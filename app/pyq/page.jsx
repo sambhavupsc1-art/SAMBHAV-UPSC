@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const subjects = [
   "Polity",
@@ -15,23 +16,32 @@ const subjects = [
 ];
 
 export default function PYQPage() {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let attempts = 0;
+    let stopped = false;
 
-    const authenticate = () => {
+    const authenticate = async () => {
+      if (stopped) return;
+
       attempts++;
 
       const webApp = window.Telegram?.WebApp;
 
       if (!webApp?.initData) {
-        if (attempts < 30) {
+        if (attempts < 50) {
           setTimeout(authenticate, 200);
           return;
         }
 
+        setError(
+          "Telegram authentication data nahi mila. Mini App ko Telegram ke andar se reopen karein."
+        );
         setLoading(false);
         return;
       }
@@ -39,52 +49,136 @@ export default function PYQPage() {
       webApp.ready();
       webApp.expand();
 
-      fetch("/api/auth/me", {
-        headers: {
-          Authorization: `tma ${webApp.initData}`,
-        },
-      })
-        .then(async (response) => {
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || "Authentication failed");
-          }
-
-          setUser(data.user);
-        })
-        .catch((error) => {
-          console.error(error);
-        })
-        .finally(() => {
-          setLoading(false);
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          headers: {
+            Authorization: `tma ${webApp.initData}`,
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-store",
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Authentication failed"
+          );
+        }
+
+        if (!data.user) {
+          throw new Error("User information nahi mili.");
+        }
+
+        setUser(data.user);
+      } catch (err) {
+        console.error("PYQ authentication error:", err);
+
+        setError(
+          err.message || "Authentication failed."
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
     authenticate();
+
+    return () => {
+      stopped = true;
+    };
   }, []);
 
   if (loading) {
     return (
-      <main style={styles.page}>
-        <div style={styles.loading}>
-          Loading PYQ Intelligence...
-        </div>
-      </main>
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.loadingBox}>
+            <h2 style={styles.brand}>
+              SAMBHAV UPSC
+            </h2>
+
+            <p style={styles.muted}>
+              Opening PYQ Intelligence...
+            </p>
+          </div>
+        </main>
+      </>
     );
   }
 
-  if (!user || user.status !== "approved") {
+  if (error) {
     return (
-      <main style={styles.page}>
-        <div style={styles.locked}>
-          <h1>SAMBHAV UPSC</h1>
-          <p>PYQ Intelligence</p>
-          <div style={styles.lockBox}>
-            Access required
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.loadingBox}>
+            <h2 style={styles.brand}>
+              SAMBHAV UPSC
+            </h2>
+
+            <h3 style={{ marginTop: "22px" }}>
+              Authentication Error
+            </h3>
+
+            <p style={styles.muted}>
+              {error}
+            </p>
+
+            <button
+              onClick={() => window.location.reload()}
+              style={styles.retryButton}
+            >
+              Retry
+            </button>
           </div>
-        </div>
-      </main>
+        </main>
+      </>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.status !== "approved") {
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.loadingBox}>
+            <h2 style={styles.brand}>
+              SAMBHAV UPSC
+            </h2>
+
+            <h3 style={{ marginTop: "22px" }}>
+              Access {user.status}
+            </h3>
+
+            <p style={styles.muted}>
+              {user.status === "pending"
+                ? "Admin approval pending."
+                : user.status === "rejected"
+                ? "Your access request was rejected."
+                : "Your account is currently blocked."}
+            </p>
+          </div>
+        </main>
+      </>
     );
   }
 
@@ -101,13 +195,14 @@ export default function PYQPage() {
           {/* HEADER */}
           <header style={styles.header}>
             <button
-              onClick={() => window.history.back()}
+              onClick={() => router.push("/")}
               style={styles.back}
+              aria-label="Back to dashboard"
             >
               ←
             </button>
 
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={styles.brand}>
                 PYQ Intelligence
               </div>
@@ -131,12 +226,12 @@ export default function PYQPage() {
             </h1>
 
             <p style={styles.heroText}>
-              Analyse previous year questions by subject,
-              year and topic.
+              Analyse previous year questions by
+              subject, year and topic.
             </p>
           </section>
 
-          {/* FILTER */}
+          {/* SUBJECTS */}
           <section style={styles.section}>
             <div style={styles.sectionTitle}>
               Select Subject
@@ -147,11 +242,12 @@ export default function PYQPage() {
                 <button
                   key={subject}
                   style={styles.subjectCard}
-                  onClick={() =>
+                  onClick={() => {
                     console.log(
-                      `Selected subject: ${subject}`
-                    )
-                  }
+                      "Selected subject:",
+                      subject
+                    );
+                  }}
                 >
                   <span style={styles.subjectIcon}>
                     {subject === "Polity"
@@ -185,7 +281,7 @@ export default function PYQPage() {
             </div>
           </section>
 
-          {/* YEAR */}
+          {/* YEARS */}
           <section style={styles.section}>
             <div style={styles.sectionTitle}>
               Quick Access
@@ -199,11 +295,12 @@ export default function PYQPage() {
                     style={styles.yearCard}
                     onClick={() =>
                       console.log(
-                        `Selected year: ${year}`
+                        "Selected year:",
+                        year
                       )
                     }
                   >
-                    <span>{year}</span>
+                    <strong>{year}</strong>
                     <small>PYQs</small>
                   </button>
                 )
@@ -211,9 +308,11 @@ export default function PYQPage() {
             </div>
           </section>
 
-          {/* COMING SOON */}
+          {/* ANALYTICS */}
           <section style={styles.infoCard}>
-            <div style={styles.infoIcon}>✦</div>
+            <div style={styles.infoIcon}>
+              ✦
+            </div>
 
             <div>
               <div style={styles.infoTitle}>
@@ -249,27 +348,38 @@ const styles = {
     padding: "18px 16px 40px",
   },
 
-  loading: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#777",
-  },
-
-  locked: {
+  loadingBox: {
     maxWidth: "500px",
     margin: "100px auto",
-    textAlign: "center",
     padding: "30px",
+    textAlign: "center",
+    background: "#ffffff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "24px",
   },
 
-  lockBox: {
-    marginTop: "20px",
-    background: "#fff",
-    border: "1px solid #e5e5e3",
-    borderRadius: "18px",
-    padding: "20px",
+  brand: {
+    fontSize: "20px",
+    fontWeight: "800",
+    letterSpacing: "-0.5px",
+  },
+
+  muted: {
+    color: "#777777",
+    fontSize: "13px",
+    lineHeight: "1.5",
+    marginTop: "10px",
+  },
+
+  retryButton: {
+    marginTop: "18px",
+    border: "none",
+    borderRadius: "14px",
+    background: "#111111",
+    color: "#ffffff",
+    padding: "12px 22px",
+    fontWeight: "700",
+    cursor: "pointer",
   },
 
   header: {
@@ -284,33 +394,27 @@ const styles = {
     height: "42px",
     borderRadius: "14px",
     border: "1px solid #e4e4e2",
-    background: "#fff",
+    background: "#ffffff",
     fontSize: "20px",
     cursor: "pointer",
   },
 
-  brand: {
-    fontSize: "20px",
-    fontWeight: "800",
-    letterSpacing: "-0.5px",
-  },
-
   subtitle: {
-    color: "#888",
+    color: "#888888",
     fontSize: "11px",
     marginTop: "3px",
   },
 
   hero: {
-    background: "#111",
-    color: "#fff",
+    background: "#111111",
+    color: "#ffffff",
     borderRadius: "25px",
     padding: "24px",
     marginBottom: "27px",
   },
 
   heroSmall: {
-    color: "#aaa",
+    color: "#aaaaaa",
     fontSize: "10px",
     letterSpacing: "1.4px",
     fontWeight: "700",
@@ -351,7 +455,7 @@ const styles = {
     minHeight: "78px",
     borderRadius: "18px",
     border: "1px solid #e5e5e3",
-    background: "#fff",
+    background: "#ffffff",
     display: "flex",
     alignItems: "center",
     gap: "9px",
@@ -365,8 +469,8 @@ const styles = {
     height: "34px",
     minWidth: "34px",
     borderRadius: "11px",
-    background: "#111",
-    color: "#fff",
+    background: "#111111",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -380,7 +484,7 @@ const styles = {
   },
 
   arrow: {
-    color: "#999",
+    color: "#999999",
     fontSize: "16px",
   },
 
@@ -392,19 +496,18 @@ const styles = {
   },
 
   yearCard: {
-    background: "#fff",
+    background: "#ffffff",
     border: "1px solid #e5e5e3",
     borderRadius: "17px",
     padding: "16px 8px",
     cursor: "pointer",
-  },
-
-  yearCardSpan: {
-    fontWeight: "800",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
   },
 
   infoCard: {
-    background: "#fff",
+    background: "#ffffff",
     border: "1px solid #e5e5e3",
     borderRadius: "20px",
     padding: "18px",
@@ -418,8 +521,8 @@ const styles = {
     height: "40px",
     minWidth: "40px",
     borderRadius: "13px",
-    background: "#111",
-    color: "#fff",
+    background: "#111111",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
