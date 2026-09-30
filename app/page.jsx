@@ -8,31 +8,37 @@ const modules = [
     title: "Current Affairs",
     subtitle: "UPSC Current Affairs",
     icon: "📰",
+    route: null,
   },
   {
     title: "PYQ Intelligence",
     subtitle: "UPSC Previous Year Questions",
     icon: "🎯",
+    route: "/pyq",
   },
   {
     title: "Prelims Test",
     subtitle: "Practice & Test Series",
     icon: "📝",
+    route: null,
   },
   {
     title: "Mains",
     subtitle: "Answer Writing Practice",
     icon: "✍️",
+    route: null,
   },
   {
     title: "AI Answer Evaluation",
     subtitle: "UPSC Mains Answer Analysis",
     icon: "🤖",
+    route: null,
   },
   {
     title: "Study Material",
     subtitle: "Notes • PDFs • Resources",
     icon: "📚",
+    route: null,
   },
 ];
 
@@ -453,7 +459,6 @@ export default function Home() {
       <main style={styles.page}>
         <div style={styles.container}>
 
-          {/* HEADER */}
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
@@ -470,7 +475,6 @@ export default function Home() {
             </div>
           </header>
 
-          {/* GREETING */}
           <section style={styles.greeting}>
             <h1 style={styles.greetingTitle}>
               Hello, {firstName}
@@ -481,7 +485,6 @@ export default function Home() {
             </p>
           </section>
 
-          {/* ACCESS CARD */}
           <section style={styles.accessCard}>
             <div style={styles.accessLabel}>
               Officer Access Card
@@ -496,7 +499,6 @@ export default function Home() {
             </div>
           </section>
 
-          {/* AI SECRETARY */}
           <button
             style={styles.secretaryButton}
             onClick={() =>
@@ -506,7 +508,6 @@ export default function Home() {
             ✦ Open AI Secretary →
           </button>
 
-          {/* QUICK LAUNCH */}
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
               Quick Launch
@@ -522,9 +523,15 @@ export default function Home() {
               <div
                 key={module.title}
                 style={styles.card}
-                onClick={() =>
-                  console.log(`${module.title} clicked`)
-                }
+                onClick={() => {
+                  if (module.route) {
+                    window.location.href = module.route;
+                  } else {
+                    console.log(
+                      `${module.title} coming soon`
+                    );
+                  }
+                }}
               >
                 <div style={styles.iconBox}>
                   {module.icon}
@@ -546,7 +553,6 @@ export default function Home() {
               </div>
             ))}
 
-            {/* ADMIN ONLY */}
             {isAdmin && (
               <div
                 style={styles.card}
@@ -574,12 +580,9 @@ export default function Home() {
               </div>
             )}
           </section>
-
         </div>
 
-        {/* BOTTOM NAV */}
         <nav style={styles.bottomNav}>
-
           <div
             style={{
               ...styles.navItem,
@@ -619,9 +622,8 @@ export default function Home() {
             <span style={styles.navIcon}>▦</span>
             AI
           </div>
-
         </nav>
       </main>
     </>
   );
-}
+            }
