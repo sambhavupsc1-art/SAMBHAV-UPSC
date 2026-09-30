@@ -6,151 +6,164 @@ import { useEffect, useState } from "react";
 const modules = [
   {
     title: "Current Affairs",
-    subtitle: "Daily UPSC-focused updates",
-    icon: "CA",
+    subtitle: "UPSC Current Affairs",
+    icon: "📰",
   },
   {
-    title: "PYQ",
-    subtitle: "Previous Year Questions",
-    icon: "PY",
+    title: "PYQ Intelligence",
+    subtitle: "UPSC Previous Year Questions",
+    icon: "🎯",
   },
   {
     title: "Prelims Test",
-    subtitle: "Practice & test series",
-    icon: "PT",
+    subtitle: "Practice & Test Series",
+    icon: "📝",
   },
   {
     title: "Mains",
-    subtitle: "Answer writing practice",
-    icon: "MA",
+    subtitle: "Answer Writing Practice",
+    icon: "✍️",
   },
   {
-    title: "AI Evaluation",
-    subtitle: "Evaluate your answers",
-    icon: "AI",
+    title: "AI Answer Evaluation",
+    subtitle: "UPSC Mains Answer Analysis",
+    icon: "🤖",
   },
   {
     title: "Study Material",
-    subtitle: "Notes, PDFs & resources",
-    icon: "SM",
+    subtitle: "Notes • PDFs • Resources",
+    icon: "📚",
   },
 ];
 
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#080b10",
-    color: "#f8fafc",
+    background: "#f5f5f3",
+    color: "#111111",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    paddingBottom: "40px",
+    paddingBottom: "105px",
   },
 
   container: {
     width: "100%",
     maxWidth: "760px",
     margin: "0 auto",
-    padding: "22px 18px",
+    padding: "18px 16px",
     boxSizing: "border-box",
   },
 
-  topBar: {
+  header: {
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "28px",
+    justifyContent: "space-between",
+    marginBottom: "25px",
   },
 
   brand: {
     fontSize: "20px",
-    fontWeight: "750",
-    letterSpacing: "-0.5px",
+    fontWeight: "800",
+    letterSpacing: "-0.6px",
   },
 
-  brandSmall: {
-    color: "#64748b",
-    fontSize: "11px",
+  brandSub: {
+    fontSize: "10px",
+    color: "#8a8a8a",
     marginTop: "3px",
-    letterSpacing: "0.8px",
+    letterSpacing: "1px",
     textTransform: "uppercase",
   },
 
-  profile: {
-    width: "42px",
-    height: "42px",
+  avatar: {
+    width: "46px",
+    height: "46px",
     borderRadius: "50%",
-    background: "#151a22",
-    border: "1px solid #252d38",
+    background: "#111111",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    fontSize: "18px",
     fontWeight: "700",
-    fontSize: "14px",
-  },
-
-  welcome: {
-    marginBottom: "22px",
   },
 
   greeting: {
-    fontSize: "27px",
-    fontWeight: "750",
-    letterSpacing: "-0.8px",
+    marginBottom: "20px",
+  },
+
+  greetingTitle: {
     margin: 0,
+    fontSize: "29px",
+    lineHeight: "1.15",
+    fontWeight: "800",
+    letterSpacing: "-1px",
   },
 
   greetingSub: {
-    color: "#7c8798",
-    fontSize: "14px",
     marginTop: "7px",
+    color: "#777777",
+    fontSize: "14px",
   },
 
-  progressCard: {
-    background: "#10151d",
-    border: "1px solid #1e2631",
-    borderRadius: "18px",
-    padding: "18px",
-    marginBottom: "25px",
+  accessCard: {
+    background: "#111111",
+    color: "#ffffff",
+    borderRadius: "24px",
+    padding: "21px",
+    marginBottom: "16px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
   },
 
-  progressTop: {
+  accessLabel: {
+    fontSize: "10px",
+    color: "#a7a7a7",
+    letterSpacing: "1.2px",
+    textTransform: "uppercase",
+    fontWeight: "700",
+  },
+
+  accessTitle: {
+    marginTop: "8px",
+    fontSize: "22px",
+    fontWeight: "800",
+  },
+
+  accessSub: {
+    marginTop: "6px",
+    color: "#bdbdbd",
+    fontSize: "13px",
+  },
+
+  secretaryButton: {
+    width: "100%",
+    border: "none",
+    borderRadius: "16px",
+    background: "#111111",
+    color: "#ffffff",
+    padding: "15px",
+    fontSize: "14px",
+    fontWeight: "700",
+    marginBottom: "26px",
+    cursor: "pointer",
+  },
+
+  sectionHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-
-  progressTitle: {
-    fontSize: "14px",
-    fontWeight: "650",
-  },
-
-  progressValue: {
-    fontSize: "13px",
-    color: "#8d98a8",
-  },
-
-  progressTrack: {
-    height: "5px",
-    background: "#202733",
-    borderRadius: "10px",
-    marginTop: "13px",
-    overflow: "hidden",
-  },
-
-  progressBar: {
-    width: "0%",
-    height: "100%",
-    background: "#d9e2ec",
-    borderRadius: "10px",
+    marginBottom: "13px",
   },
 
   sectionTitle: {
-    fontSize: "13px",
-    color: "#7c8798",
-    textTransform: "uppercase",
-    letterSpacing: "1.2px",
-    fontWeight: "650",
-    marginBottom: "12px",
+    fontSize: "21px",
+    fontWeight: "800",
+    letterSpacing: "-0.5px",
+  },
+
+  sectionSmall: {
+    fontSize: "11px",
+    color: "#999999",
   },
 
   grid: {
@@ -160,61 +173,129 @@ const styles = {
   },
 
   card: {
-    minHeight: "145px",
-    background: "#10151d",
-    border: "1px solid #1e2631",
-    borderRadius: "18px",
-    padding: "17px",
-    boxSizing: "border-box",
+    background: "#ffffff",
+    border: "1px solid #e9e9e7",
+    borderRadius: "22px",
+    padding: "15px",
+    minHeight: "108px",
     display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    boxSizing: "border-box",
     cursor: "pointer",
+    boxShadow: "0 3px 12px rgba(0,0,0,0.035)",
   },
 
-  icon: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "11px",
-    background: "#171e28",
-    border: "1px solid #28313d",
+  iconBox: {
+    width: "46px",
+    height: "46px",
+    minWidth: "46px",
+    borderRadius: "15px",
+    background: "#111111",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "10px",
-    fontWeight: "750",
-    color: "#cbd5e1",
-    letterSpacing: "0.4px",
+    fontSize: "21px",
+  },
+
+  cardContent: {
+    minWidth: 0,
+    flex: 1,
   },
 
   cardTitle: {
-    fontSize: "16px",
-    fontWeight: "680",
-    marginTop: "15px",
+    fontSize: "14px",
+    fontWeight: "800",
+    lineHeight: "1.2",
   },
 
   cardSubtitle: {
-    color: "#6f7b8c",
-    fontSize: "12px",
-    lineHeight: "1.5",
     marginTop: "5px",
+    color: "#858585",
+    fontSize: "10px",
+    lineHeight: "1.35",
   },
 
-  footer: {
-    textAlign: "center",
-    color: "#475263",
-    fontSize: "11px",
-    marginTop: "32px",
+  arrow: {
+    width: "28px",
+    height: "28px",
+    minWidth: "28px",
+    borderRadius: "50%",
+    background: "#f0f0ee",
+    color: "#777777",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "17px",
   },
 
-  pending: {
-    maxWidth: "500px",
-    margin: "80px auto",
-    padding: "30px",
+  adminButton: {
+    display: "block",
+    width: "100%",
+    marginTop: "18px",
+    padding: "14px",
+    borderRadius: "16px",
+    background: "#ffffff",
+    border: "1px solid #e4e4e2",
+    color: "#777777",
     textAlign: "center",
-    background: "#10151d",
-    border: "1px solid #1e2631",
+    textDecoration: "none",
+    fontSize: "12px",
+    fontWeight: "600",
+    boxSizing: "border-box",
+  },
+
+  bottomNav: {
+    position: "fixed",
+    left: "50%",
+    bottom: "12px",
+    transform: "translateX(-50%)",
+    width: "calc(100% - 28px)",
+    maxWidth: "730px",
+    height: "68px",
+    background: "rgba(255,255,255,0.96)",
+    border: "1px solid #e5e5e3",
+    borderRadius: "25px",
+    boxShadow: "0 10px 35px rgba(0,0,0,0.12)",
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    alignItems: "center",
+    zIndex: 50,
+    backdropFilter: "blur(14px)",
+  },
+
+  navItem: {
+    height: "52px",
+    margin: "5px",
     borderRadius: "20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "3px",
+    fontSize: "10px",
+    color: "#777777",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+
+  navActive: {
+    background: "#eeeeec",
+    color: "#111111",
+  },
+
+  navIcon: {
+    fontSize: "18px",
+    lineHeight: "18px",
+  },
+
+  pendingCard: {
+    marginTop: "70px",
+    background: "#ffffff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "24px",
+    padding: "30px 22px",
+    textAlign: "center",
   },
 };
 
@@ -280,7 +361,7 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pending}>
+            <div style={styles.pendingCard}>
               <div style={styles.brand}>SAMBHAV UPSC</div>
               <p style={styles.greetingSub}>Authenticating...</p>
             </div>
@@ -300,9 +381,9 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pending}>
+            <div style={styles.pendingCard}>
               <div style={styles.brand}>SAMBHAV UPSC</div>
-              <p style={{ color: "#f87171", marginTop: "15px" }}>
+              <p style={{ color: "#d33", marginTop: "15px" }}>
                 {error}
               </p>
             </div>
@@ -324,10 +405,16 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pending}>
+            <div style={styles.pendingCard}>
               <div style={styles.brand}>SAMBHAV UPSC</div>
 
-              <p style={{ fontSize: "22px", fontWeight: "700" }}>
+              <p
+                style={{
+                  fontSize: "22px",
+                  fontWeight: "800",
+                  marginTop: "22px",
+                }}
+              >
                 Access {user.status}
               </p>
 
@@ -339,16 +426,7 @@ export default function Home() {
                   : "Your account is currently blocked."}
               </p>
 
-              <a
-                href="/admin"
-                style={{
-                  display: "inline-block",
-                  marginTop: "22px",
-                  color: "#cbd5e1",
-                  textDecoration: "none",
-                  fontSize: "13px",
-                }}
-              >
+              <a href="/admin" style={styles.adminButton}>
                 Admin Panel
               </a>
             </div>
@@ -370,19 +448,22 @@ export default function Home() {
 
       <main style={styles.page}>
         <div style={styles.container}>
-          <header style={styles.topBar}>
+
+          {/* HEADER */}
+          <header style={styles.header}>
             <div>
               <div style={styles.brand}>SAMBHAV UPSC</div>
-              <div style={styles.brandSmall}>
+              <div style={styles.brandSub}>
                 UPSC Preparation Platform
               </div>
             </div>
 
-            <div style={styles.profile}>{initial}</div>
+            <div style={styles.avatar}>{initial}</div>
           </header>
 
-          <section style={styles.welcome}>
-            <h1 style={styles.greeting}>
+          {/* GREETING */}
+          <section style={styles.greeting}>
+            <h1 style={styles.greetingTitle}>
               Hello, {firstName}
             </h1>
 
@@ -391,24 +472,40 @@ export default function Home() {
             </p>
           </section>
 
-          <section style={styles.progressCard}>
-            <div style={styles.progressTop}>
-              <span style={styles.progressTitle}>
-                Preparation Progress
-              </span>
-
-              <span style={styles.progressValue}>
-                0% completed
-              </span>
+          {/* ACCESS CARD */}
+          <section style={styles.accessCard}>
+            <div style={styles.accessLabel}>
+              Officer Access Card
             </div>
 
-            <div style={styles.progressTrack}>
-              <div style={styles.progressBar} />
+            <div style={styles.accessTitle}>
+              {firstName}
+            </div>
+
+            <div style={styles.accessSub}>
+              Clearance: ACTIVE
             </div>
           </section>
 
-          <div style={styles.sectionTitle}>
-            Preparation
+          {/* AI SECRETARY */}
+          <button
+            style={styles.secretaryButton}
+            onClick={() =>
+              console.log("AI Secretary coming soon")
+            }
+          >
+            ✦ Open AI Secretary →
+          </button>
+
+          {/* QUICK LAUNCH */}
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitle}>
+              Quick Launch
+            </div>
+
+            <div style={styles.sectionSmall}>
+              UPSC • 2026
+            </div>
           </div>
 
           <section style={styles.grid}>
@@ -416,15 +513,15 @@ export default function Home() {
               <div
                 key={module.title}
                 style={styles.card}
-                onClick={() => {
-                  console.log(`${module.title} clicked`);
-                }}
+                onClick={() =>
+                  console.log(`${module.title} clicked`)
+                }
               >
-                <div style={styles.icon}>
+                <div style={styles.iconBox}>
                   {module.icon}
                 </div>
 
-                <div>
+                <div style={styles.cardContent}>
                   <div style={styles.cardTitle}>
                     {module.title}
                   </div>
@@ -433,33 +530,64 @@ export default function Home() {
                     {module.subtitle}
                   </div>
                 </div>
+
+                <div style={styles.arrow}>
+                  ›
+                </div>
               </div>
             ))}
           </section>
 
-          <a
-            href="/admin"
-            style={{
-              display: "block",
-              marginTop: "18px",
-              padding: "14px",
-              textAlign: "center",
-              borderRadius: "14px",
-              border: "1px solid #1e2631",
-              background: "#0d1219",
-              color: "#64748b",
-              textDecoration: "none",
-              fontSize: "12px",
-            }}
-          >
+          {/* ADMIN */}
+          <a href="/admin" style={styles.adminButton}>
             Admin Panel
           </a>
 
-          <div style={styles.footer}>
-            SAMBHAV UPSC · Built for serious preparation
-          </div>
         </div>
+
+        {/* BOTTOM NAV */}
+        <nav style={styles.bottomNav}>
+          <div
+            style={{
+              ...styles.navItem,
+              ...styles.navActive,
+            }}
+          >
+            <span style={styles.navIcon}>⌂</span>
+            Home
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("Current Affairs")
+            }
+          >
+            <span style={styles.navIcon}>▤</span>
+            CA
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("GS")
+            }
+          >
+            <span style={styles.navIcon}>▣</span>
+            GS
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("AI")
+            }
+          >
+            <span style={styles.navIcon}>▦</span>
+            AI
+          </div>
+        </nav>
       </main>
     </>
   );
-        }
+            }
