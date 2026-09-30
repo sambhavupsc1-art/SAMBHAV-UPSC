@@ -21,9 +21,66 @@ async function sendTelegramMessage(chatId, text) {
   );
 }
 
+async function getUser(telegramId) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramId}&select=telegram_id,first_name,username,status,plan`,
+    {
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Supabase GET error:", errorText);
+    return null;
+  }
+
+  const users = await response.json();
+
+  return users.length > 0 ? users[0] : null;
+}
+
+async function createUser(telegramUser) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/users`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        telegram_id: telegramUser.id,
+        first_name: telegramUser.first_name || "",
+        username: telegramUser.username || null,
+        status: "pending",
+        plan: "free",
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Supabase INSERT error:", errorText);
+    return null;
+  }
+
+  const users = await response.json();
+
+  return users.length > 0 ? users[0] : null;
+}
+
 export async function POST(request) {
   try {
-    const secret = request.headers.get("x-telegram-bot-api-secret-token");
+    const secret = request.headers.get(
+      "x-telegram-bot-api-secret-token"
+    );
 
     if (
       !TELEGRAM_WEBHOOK_SECRET ||
@@ -36,7 +93,6 @@ export async function POST(request) {
     }
 
     const update = await request.json();
-
     const message = update?.message;
 
     if (!message?.from || !message?.chat?.id) {
@@ -45,47 +101,71 @@ export async function POST(request) {
 
     const telegramUser = message.from;
     const chatId = message.chat.id;
-
     const text = message.text || "";
 
     if (!text.startsWith("/start")) {
       return NextResponse.json({ ok: true });
     }
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify({
-        telegram_id: telegramUser.id,
-        first_name: telegramUser.first_name || "",
-        username: telegramUser.username || null,
-      }),
-    });
+    // Existing user check
+    let user = await getUser(telegramUser.id);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Supabase error:", errorText);
+    // New user registration
+    if (!user) {
+      user = await createUser(telegramUser);
 
-      await sendTelegramMessage(
-        chatId,
-        "SAMBHAV UPSC me request process karne me problem aa gayi. Please thodi der baad /start dobara bheje."
-      );
+      if (!user) {
+        await sendTelegramMessage(
+          chatId,
+          "SAMBHAV UPSC me request process karne me problem aa gayi.\n\nPlease thodi der baad /start dobara bheje."
+        );
 
-      return NextResponse.json(
-        { ok: false, error: "Database error" },
-        { status: 500 }
-      );
+        return NextResponse.json(
+          { ok: false, error: "Database error" },
+          { status: 500 }
+        );
+      }
     }
 
-    await sendTelegramMessage(
-      chatId,
-      "SAMBHAV UPSC\n\nAapki access request successfully submit ho gayi hai.\n\nStatus: Pending\n\nAdmin approval ke baad aapko access diya jayega."
-    );
+    // Existing approved user
+    if (user.status === "approved") {
+      await sendTelegramMessage(
+        chatId,
+        "SAMBHAV UPSC\n\nAapka access approved hai.\n\nMini App button se SAMBHAV UPSC open karein."
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Pending user
+    if (user.status === "pending") {
+      await sendTelegramMessage(
+        chatId,
+        "SAMBHAV UPSC\n\nAapki access request pending hai.\n\nAdmin approval ke baad aapko access diya jayega."
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Rejected user
+    if (user.status === "rejected") {
+      await sendTelegramMessage(
+        chatId,
+        "SAMBHAV UPSC\n\nAapki access request reject kar di gayi hai."
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Banned user
+    if (user.status === "banned") {
+      await sendTelegramMessage(
+        chatId,
+        "SAMBHAV UPSC\n\nAapka account blocked hai."
+      );
+
+      return NextResponse.json({ ok: true });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
