@@ -10,15 +10,20 @@ export default function AdminPage() {
 
   async function loadUsers() {
     try {
-      if (!window.Telegram?.WebApp?.initData) {
-        setMessage("Admin Panel Telegram Mini App ke andar open karo.");
+      const webApp = window.Telegram?.WebApp;
+
+      if (!webApp?.initData) {
+        setMessage("Telegram authentication data nahi mila.");
         setLoading(false);
         return;
       }
 
+      webApp.ready();
+      webApp.expand();
+
       const response = await fetch("/api/admin/users", {
         headers: {
-          Authorization: `tma ${window.Telegram.WebApp.initData}`,
+          Authorization: `tma ${webApp.initData}`,
         },
       });
 
@@ -31,7 +36,9 @@ export default function AdminPage() {
       }
 
       setUsers(data.users || []);
+      setMessage("");
     } catch (error) {
+      console.error(error);
       setMessage("Server connection failed.");
     }
 
@@ -40,11 +47,18 @@ export default function AdminPage() {
 
   async function updateUser(telegramId, status) {
     try {
+      const webApp = window.Telegram?.WebApp;
+
+      if (!webApp?.initData) {
+        setMessage("Telegram authentication data nahi mila.");
+        return;
+      }
+
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `tma ${window.Telegram.WebApp.initData}`,
+          Authorization: `tma ${webApp.initData}`,
         },
         body: JSON.stringify({
           telegram_id: telegramId,
@@ -59,32 +73,58 @@ export default function AdminPage() {
         return;
       }
 
-      setMessage(`User ${status} successfully.`);
-      loadUsers();
-    } catch {
+      setMessage(
+        status === "approved"
+          ? "User approved successfully."
+          : "User rejected successfully."
+      );
+
+      await loadUsers();
+    } catch (error) {
+      console.error(error);
       setMessage("Server connection failed.");
     }
   }
 
   useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-      loadUsers();
-    }
+    let attempts = 0;
+
+    const waitForTelegram = () => {
+      attempts++;
+
+      if (window.Telegram?.WebApp?.initData) {
+        loadUsers();
+        return;
+      }
+
+      if (attempts < 30) {
+        setTimeout(waitForTelegram, 200);
+        return;
+      }
+
+      setMessage("Telegram authentication data nahi mila.");
+      setLoading(false);
+    };
+
+    waitForTelegram();
   }, []);
 
   return (
     <>
       <Script
         src="https://telegram.org/js/telegram-web-app.js"
-        strategy="afterInteractive"
+        strategy="beforeInteractive"
       />
 
       <main className="min-h-screen bg-slate-950 text-white p-5">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold">SAMBHAV UPSC</h1>
-          <p className="text-slate-400 mt-1">Admin Panel</p>
+          <h1 className="text-3xl font-bold">
+            SAMBHAV UPSC
+          </h1>
+
+          <p className="text-slate-400 mt-1">
+            Admin Panel
+          </p>
 
           {message && (
             <div className="mt-5 rounded-xl bg-slate-800 p-4 text-sm">
@@ -94,11 +134,15 @@ export default function AdminPage() {
 
           <div className="mt-6 rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
             <div className="p-4 border-b border-slate-800">
-              <h2 className="text-xl font-semibold">Access Requests</h2>
+              <h2 className="text-xl font-semibold">
+                Access Requests
+              </h2>
             </div>
 
             {loading ? (
-              <div className="p-6 text-slate-400">Loading...</div>
+              <div className="p-6 text-slate-400">
+                Loading...
+              </div>
             ) : users.length === 0 ? (
               <div className="p-6 text-slate-400">
                 No pending requests.
@@ -127,18 +171,24 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
-                          updateUser(user.telegram_id, "approved")
+                          updateUser(
+                            user.telegram_id,
+                            "approved"
+                          )
                         }
-                        className="px-4 py-2 rounded-lg bg-green-600"
+                        className="px-4 py-2 rounded-lg bg-green-600 text-white"
                       >
                         Approve
                       </button>
 
                       <button
                         onClick={() =>
-                          updateUser(user.telegram_id, "rejected")
+                          updateUser(
+                            user.telegram_id,
+                            "rejected"
+                          )
                         }
-                        className="px-4 py-2 rounded-lg bg-red-600"
+                        className="px-4 py-2 rounded-lg bg-red-600 text-white"
                       >
                         Reject
                       </button>
