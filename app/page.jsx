@@ -9,37 +9,48 @@ export default function Home() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function authenticate() {
-      if (!window.Telegram?.WebApp?.initData) {
-        setError("SAMBHAV UPSC ko Telegram Mini App ke andar open karein.");
+    let attempts = 0;
+
+    const authenticate = () => {
+      attempts++;
+
+      const webApp = window.Telegram?.WebApp;
+
+      if (!webApp?.initData) {
+        if (attempts < 30) {
+          setTimeout(authenticate, 200);
+          return;
+        }
+
+        setError("Telegram authentication data nahi mila.");
         setLoading(false);
         return;
       }
 
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
+      webApp.ready();
+      webApp.expand();
 
-      try {
-        const response = await fetch("/api/auth/me", {
-          headers: {
-            Authorization: `tma ${window.Telegram.WebApp.initData}`,
-          },
+      fetch("/api/auth/me", {
+        headers: {
+          Authorization: `tma ${webApp.initData}`,
+        },
+      })
+        .then(async (response) => {
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Authentication failed");
+          }
+
+          setUser(data.user);
+        })
+        .catch((err) => {
+          setError(err.message || "Server connection failed.");
+        })
+        .finally(() => {
+          setLoading(false);
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.error || "Authentication failed");
-          return;
-        }
-
-        setUser(data.user);
-      } catch {
-        setError("Server connection failed.");
-      } finally {
-        setLoading(false);
-      }
-    }
+    };
 
     authenticate();
   }, []);
@@ -48,7 +59,7 @@ export default function Home() {
     <>
       <Script
         src="https://telegram.org/js/telegram-web-app.js"
-        strategy="afterInteractive"
+        strategy="beforeInteractive"
       />
 
       <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
