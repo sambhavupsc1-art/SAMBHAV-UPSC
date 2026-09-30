@@ -111,6 +111,13 @@ export default function Home() {
                   Account blocked.
                 </div>
               )}
+
+              <a
+                href="/admin"
+                className="block mt-6 w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold"
+              >
+                Admin Panel
+              </a>
             </div>
           )}
         </div>
