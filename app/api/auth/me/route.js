@@ -16,6 +16,7 @@ export async function GET(request) {
     }
 
     const initData = authorization.slice(4);
+
     const telegramUser = validateTelegramInitData(initData);
 
     if (!telegramUser?.id) {
@@ -25,24 +26,29 @@ export async function GET(request) {
       );
     }
 
-    const response = await fetch(
+    // Get normal user
+    const userResponse = await fetch(
       `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramUser.id}&select=telegram_id,first_name,username,status,plan`,
       {
         headers: {
           apikey: SUPABASE_SECRET_KEY,
           Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
         },
+        cache: "no-store",
       }
     );
 
-    if (!response.ok) {
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      console.error("User lookup error:", errorText);
+
       return NextResponse.json(
         { error: "Database error" },
         { status: 500 }
       );
     }
 
-    const users = await response.json();
+    const users = await userResponse.json();
 
     if (users.length === 0) {
       return NextResponse.json(
@@ -51,8 +57,35 @@ export async function GET(request) {
       );
     }
 
+    // Check admin
+    const adminResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${telegramUser.id}&is_active=eq.true&select=id,telegram_id`,
+      {
+        headers: {
+          apikey: SUPABASE_SECRET_KEY,
+          Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!adminResponse.ok) {
+      const errorText = await adminResponse.text();
+      console.error("Admin lookup error:", errorText);
+
+      return NextResponse.json(
+        { error: "Admin verification failed" },
+        { status: 500 }
+      );
+    }
+
+    const admins = await adminResponse.json();
+
+    const isAdmin = admins.length > 0;
+
     return NextResponse.json({
       user: users[0],
+      isAdmin,
     });
   } catch (error) {
     console.error("Auth error:", error);
