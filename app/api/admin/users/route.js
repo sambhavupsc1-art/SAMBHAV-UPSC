@@ -12,7 +12,7 @@ async function getAdmin(initData) {
   }
 
   const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${telegramUser.id}&is_active=eq.true&select=telegram_id`,
+    `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${telegramUser.id}&is_active=eq.true&select=id,telegram_id,first_name,username`,
     {
       headers: {
         apikey: SUPABASE_SECRET_KEY,
@@ -27,7 +27,14 @@ async function getAdmin(initData) {
 
   const admins = await response.json();
 
-  return admins.length > 0 ? telegramUser : null;
+  if (admins.length === 0) {
+    return null;
+  }
+
+  return {
+    telegramUser,
+    admin: admins[0],
+  };
 }
 
 export async function GET(request) {
@@ -42,9 +49,9 @@ export async function GET(request) {
     }
 
     const initData = authorization.slice(4);
-    const admin = await getAdmin(initData);
+    const auth = await getAdmin(initData);
 
-    if (!admin) {
+    if (!auth) {
       return NextResponse.json(
         { error: "Admin access denied" },
         { status: 403 }
@@ -69,7 +76,7 @@ export async function GET(request) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error(error);
+    console.error("Admin GET error:", error);
 
     return NextResponse.json(
       { error: "Server error" },
@@ -90,9 +97,9 @@ export async function POST(request) {
     }
 
     const initData = authorization.slice(4);
-    const admin = await getAdmin(initData);
+    const auth = await getAdmin(initData);
 
-    if (!admin) {
+    if (!auth) {
       return NextResponse.json(
         { error: "Admin access denied" },
         { status: 403 }
@@ -130,15 +137,21 @@ export async function POST(request) {
         },
         body: JSON.stringify({
           status,
-          approved_at: status === "approved" ? new Date().toISOString() : null,
-          approved_by: admin.id || null,
+          approved_at:
+            status === "approved"
+              ? new Date().toISOString()
+              : null,
+          approved_by:
+            status === "approved"
+              ? auth.admin.id
+              : null,
         }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(errorText);
+      console.error("Supabase update error:", errorText);
 
       return NextResponse.json(
         { error: "User update failed" },
@@ -149,9 +162,10 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       status,
+      telegram_id: telegramId,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Admin POST error:", error);
 
     return NextResponse.json(
       { error: "Server error" },
