@@ -229,20 +229,13 @@ const styles = {
     fontSize: "17px",
   },
 
-  adminButton: {
-    display: "block",
-    width: "100%",
-    marginTop: "18px",
-    padding: "14px",
-    borderRadius: "16px",
+  pendingCard: {
+    marginTop: "70px",
     background: "#ffffff",
-    border: "1px solid #e4e4e2",
-    color: "#777777",
+    border: "1px solid #e5e5e3",
+    borderRadius: "24px",
+    padding: "30px 22px",
     textAlign: "center",
-    textDecoration: "none",
-    fontSize: "12px",
-    fontWeight: "600",
-    boxSizing: "border-box",
   },
 
   bottomNav: {
@@ -288,19 +281,11 @@ const styles = {
     fontSize: "18px",
     lineHeight: "18px",
   },
-
-  pendingCard: {
-    marginTop: "70px",
-    background: "#ffffff",
-    border: "1px solid #e5e5e3",
-    borderRadius: "24px",
-    padding: "30px 22px",
-    textAlign: "center",
-  },
 };
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -339,6 +324,7 @@ export default function Home() {
           }
 
           setUser(data.user);
+          setIsAdmin(data.isAdmin === true);
         })
         .catch((err) => {
           setError(err.message || "Server connection failed.");
@@ -383,7 +369,13 @@ export default function Home() {
           <div style={styles.container}>
             <div style={styles.pendingCard}>
               <div style={styles.brand}>SAMBHAV UPSC</div>
-              <p style={{ color: "#d33", marginTop: "15px" }}>
+
+              <p
+                style={{
+                  color: "#d33",
+                  marginTop: "15px",
+                }}
+              >
                 {error}
               </p>
             </div>
@@ -406,7 +398,9 @@ export default function Home() {
         <main style={styles.page}>
           <div style={styles.container}>
             <div style={styles.pendingCard}>
-              <div style={styles.brand}>SAMBHAV UPSC</div>
+              <div style={styles.brand}>
+                SAMBHAV UPSC
+              </div>
 
               <p
                 style={{
@@ -426,9 +420,19 @@ export default function Home() {
                   : "Your account is currently blocked."}
               </p>
 
-              <a href="/admin" style={styles.adminButton}>
-                Admin Panel
-              </a>
+              {isAdmin && (
+                <a
+                  href="/admin"
+                  style={{
+                    display: "block",
+                    marginTop: "20px",
+                    color: "#111111",
+                    fontWeight: "700",
+                  }}
+                >
+                  Admin Panel
+                </a>
+              )}
             </div>
           </div>
         </main>
@@ -452,13 +456,18 @@ export default function Home() {
           {/* HEADER */}
           <header style={styles.header}>
             <div>
-              <div style={styles.brand}>SAMBHAV UPSC</div>
+              <div style={styles.brand}>
+                SAMBHAV UPSC
+              </div>
+
               <div style={styles.brandSub}>
                 UPSC Preparation Platform
               </div>
             </div>
 
-            <div style={styles.avatar}>{initial}</div>
+            <div style={styles.avatar}>
+              {initial}
+            </div>
           </header>
 
           {/* GREETING */}
@@ -536,17 +545,41 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </section>
 
-          {/* ADMIN */}
-          <a href="/admin" style={styles.adminButton}>
-            Admin Panel
-          </a>
+            {/* ADMIN ONLY */}
+            {isAdmin && (
+              <div
+                style={styles.card}
+                onClick={() => {
+                  window.location.href = "/admin";
+                }}
+              >
+                <div style={styles.iconBox}>
+                  🔐
+                </div>
+
+                <div style={styles.cardContent}>
+                  <div style={styles.cardTitle}>
+                    Admin Panel
+                  </div>
+
+                  <div style={styles.cardSubtitle}>
+                    Members • Requests • Approvals
+                  </div>
+                </div>
+
+                <div style={styles.arrow}>
+                  ›
+                </div>
+              </div>
+            )}
+          </section>
 
         </div>
 
         {/* BOTTOM NAV */}
         <nav style={styles.bottomNav}>
+
           <div
             style={{
               ...styles.navItem,
@@ -586,8 +619,9 @@ export default function Home() {
             <span style={styles.navIcon}>▦</span>
             AI
           </div>
+
         </nav>
       </main>
     </>
   );
-            }
+}
