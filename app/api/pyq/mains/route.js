@@ -4,6 +4,7 @@ const CSV_URLS = [
   "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/mains_pyqs.csv",
   "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs2_pyqs.csv",
   "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs3_pyqs.csv",
+  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs4_pyqs.csv",
 ];
 
 function parseCSV(text) {
