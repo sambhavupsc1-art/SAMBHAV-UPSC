@@ -1718,6 +1718,180 @@ export default function CurrentAffairsPage() {
             align-items: flex-start;
           }
         }
+
+        .premium-facts-wrap {
+          max-width: 1050px;
+          margin: 0 auto;
+          background: #fff;
+          border: 1px solid #e4e7ec;
+          border-radius: 22px;
+          padding: 22px;
+          box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+        }
+
+        .premium-main-heading {
+          padding-bottom: 18px;
+        }
+
+        .premium-main-badge {
+          display: inline-flex;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: #172033;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .08em;
+        }
+
+        .premium-main-heading h2 {
+          margin: 8px 0 5px;
+          font-size: 24px;
+        }
+
+        .premium-main-heading p {
+          margin: 0;
+          color: #667085;
+          font-size: 13px;
+        }
+
+        .premium-subsection {
+          border: 1px solid #eaecf0;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #fcfcfd;
+        }
+
+        .premium-subheading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 14px;
+          padding: 15px 16px;
+          background: #f8fafc;
+          border-bottom: 1px solid #eaecf0;
+        }
+
+        .premium-subheading > div {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .premium-section-number {
+          display: grid;
+          place-items: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 9px;
+          background: #172033;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .premium-subheading h3 {
+          margin: 0;
+          font-size: 16px;
+        }
+
+        .premium-subheading p {
+          margin: 3px 0 0;
+          color: #667085;
+          font-size: 11px;
+        }
+
+        .premium-subheading > strong {
+          color: #667085;
+          font-size: 12px;
+        }
+
+        .premium-clean-table {
+          display: grid;
+        }
+
+        .premium-clean-card {
+          padding: 14px 16px;
+          border-bottom: 1px solid #eaecf0;
+          background: #fff;
+        }
+
+        .premium-clean-card:last-child {
+          border-bottom: 0;
+        }
+
+        .premium-clean-card:hover {
+          background: #fbfcfe;
+        }
+
+        .premium-clean-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 7px;
+        }
+
+        .premium-type-pill,
+        .premium-gs-pill {
+          font-size: 10px;
+          font-weight: 800;
+          border-radius: 999px;
+          padding: 4px 7px;
+        }
+
+        .premium-type-pill {
+          background: #eef2f6;
+          color: #344054;
+        }
+
+        .premium-gs-pill {
+          color: #667085;
+          background: #f2f4f7;
+        }
+
+        .premium-clean-card h3 {
+          margin: 0 0 5px;
+          font-size: 14px;
+          line-height: 1.45;
+          color: #172033;
+        }
+
+        .premium-clean-fact {
+          margin: 0;
+          color: #344054;
+          font-size: 13px;
+          line-height: 1.55;
+        }
+
+        .premium-clean-empty {
+          padding: 22px 16px;
+          color: #667085;
+          font-size: 13px;
+        }
+
+        .premium-divider {
+          height: 14px;
+        }
+
+        @media (max-width: 640px) {
+          .premium-facts-wrap {
+            padding: 14px;
+            border-radius: 18px;
+          }
+
+          .premium-main-heading h2 {
+            font-size: 21px;
+          }
+
+          .premium-subheading {
+            padding: 13px;
+          }
+
+          .premium-clean-card {
+            padding: 13px;
+          }
+        }
       `}</style>
     </main>
   );
@@ -1927,115 +2101,137 @@ function PremiumFacts({
   language,
   hi,
 }) {
-  const facts = news.filter(
-    (item) =>
-      item.premium_fact_hi ||
-      item.premium_fact_en ||
-      item.premium_fact
+  const getText = (item, base, fallback = "") =>
+    (hi
+      ? item[`${base}_hi`] || item[`${base}_en`]
+      : item[`${base}_en`] || item[`${base}_hi`]) ||
+    item[base] ||
+    fallback;
+
+  const prelimsFacts = news.filter((item) => {
+    const fact = getText(item, "premium_fact");
+    const prelims = [
+      item.prelims,
+      item.prelims_hi,
+      item.prelims_en,
+      item.prelims_mcq,
+      item.prelims_mcq_hi,
+      item.prelims_mcq_en,
+    ].filter(Boolean).join(" ").trim();
+
+    return fact && prelims;
+  });
+
+  const mainsFacts = news.filter((item) => {
+    const fact = getText(item, "premium_fact");
+    const mains = [
+      item.mains_analysis,
+      item.mains_analysis_hi,
+      item.mains_analysis_en,
+      item.mains_question,
+      item.mains_question_hi,
+      item.mains_question_en,
+    ].filter(Boolean).join(" ").trim();
+
+    return fact && mains;
+  });
+
+  const uniqueMains = Array.from(
+    new Map(mainsFacts.map((item) => [Number(item.id), item])).values()
   );
 
-  function getFactType(item) {
-    const hasPrelims = Boolean(
-      item.prelims ||
-      item.prelims_hi ||
-      item.prelims_en ||
-      item.prelims_mcq ||
-      item.prelims_mcq_hi ||
-      item.prelims_mcq_en
-    );
-
-    const hasMains = Boolean(
-      item.mains_analysis ||
-      item.mains_analysis_hi ||
-      item.mains_analysis_en ||
-      item.mains_question ||
-      item.mains_question_hi ||
-      item.mains_question_en
-    );
-
-    if (hasPrelims && hasMains) {
-      return "Prelims + Mains Fact";
-    }
-
-    if (hasMains) {
-      return "Mains Fact";
-    }
-
-    if (hasPrelims) {
-      return "Prelims Fact";
-    }
-
-    return "UPSC Fact";
-  }
-
-  return (
-    <section className="special-section">
-      <div className="section-heading">
-        <div>
-          <span className="badge">
-            PREMIUM
-          </span>
-
-          <h2>🔥 Premium Facts</h2>
-        </div>
-
-        <p>
-          {hi
-            ? "छोटे, सीधे और exam-ready facts"
-            : "Short, direct and exam-ready facts"}
-        </p>
+  const renderFact = (item, type) => (
+    <article className="premium-clean-card" key={`${type}-${item.id}`}>
+      <div className="premium-clean-meta">
+        <span className="premium-type-pill">
+          {type === "prelims" ? "PRELIMS FACT" : "MAINS FACT"}
+        </span>
+        <span className="premium-gs-pill">
+          {item.gs || item.paper || "UPSC"}
+        </span>
       </div>
 
-      {facts.length === 0 ? (
-        <div className="empty">
-          {hi
-            ? "अभी Premium Facts उपलब्ध नहीं हैं।"
-            : "No Premium Facts available yet."}
+      <h3>{getText(item, "title", "Current Affair")}</h3>
+
+      <p className="premium-clean-fact">
+        {getText(item, "premium_fact")}
+      </p>
+    </article>
+  );
+
+  return (
+    <section className="premium-facts-wrap">
+      <div className="premium-main-heading">
+        <div>
+          <span className="premium-main-badge">PREMIUM</span>
+          <h2>🔥 {hi ? "Premium Facts" : "Premium Facts"}</h2>
+          <p>
+            {hi
+              ? "केवल UPSC-relevant, fact-based points."
+              : "Only UPSC-relevant, fact-based points."}
+          </p>
         </div>
-      ) : (
-        <div className="fact-grid">
-          {facts.map((item) => {
-            const fact =
-              (hi
-                ? item.premium_fact_hi
-                : item.premium_fact_en) ||
-              item.premium_fact;
+      </div>
 
-            return (
-              <article
-                className="fact-card"
-                key={item.id}
-              >
-                <div className="fact-type-row">
-                  <span className="fact-type">
-                    {getFactType(item)}
-                  </span>
-
-                  <span className="fact-gs">
-                    {item.gs ||
-                      item.paper ||
-                      "UPSC"}
-                  </span>
-                </div>
-
-                <h3>
-                  {hi
-                    ? item.title_hi ||
-                      item.title_en ||
-                      item.title
-                    : item.title_en ||
-                      item.title_hi ||
-                      item.title}
-                </h3>
-
-                <p className="premium-one-line-fact">
-                  {fact}
-                </p>
-              </article>
-            );
-          })}
+      <div className="premium-subsection">
+        <div className="premium-subheading">
+          <div>
+            <span className="premium-section-number">01</span>
+            <div>
+              <h3>Prelims Current Facts</h3>
+              <p>
+                {hi
+                  ? "सीधे Prelims revision में उपयोग होने वाले facts."
+                  : "Direct facts useful for Prelims revision."}
+              </p>
+            </div>
+          </div>
+          <strong>{prelimsFacts.length}</strong>
         </div>
-      )}
+
+        {prelimsFacts.length === 0 ? (
+          <div className="premium-clean-empty">
+            {hi
+              ? "अभी कोई Prelims Premium Fact उपलब्ध नहीं है।"
+              : "No Prelims Premium Facts available yet."}
+          </div>
+        ) : (
+          <div className="premium-clean-table">
+            {prelimsFacts.map((item) => renderFact(item, "prelims"))}
+          </div>
+        )}
+      </div>
+
+      <div className="premium-divider" />
+
+      <div className="premium-subsection">
+        <div className="premium-subheading">
+          <div>
+            <span className="premium-section-number">02</span>
+            <div>
+              <h3>Mains Current Facts</h3>
+              <p>
+                {hi
+                  ? "Intro, Body, Examples और Conclusion में उपयोगी facts."
+                  : "Facts useful for Intro, Body, Examples and Conclusion."}
+              </p>
+            </div>
+          </div>
+          <strong>{uniqueMains.length}</strong>
+        </div>
+
+        {uniqueMains.length === 0 ? (
+          <div className="premium-clean-empty">
+            {hi
+              ? "अभी कोई Mains Premium Fact उपलब्ध नहीं है।"
+              : "No Mains Premium Facts available yet."}
+          </div>
+        ) : (
+          <div className="premium-clean-table">
+            {uniqueMains.map((item) => renderFact(item, "mains"))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
