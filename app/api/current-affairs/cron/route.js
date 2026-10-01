@@ -7,8 +7,8 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const PIB_ALL_RELEASES =
-  "https://www.pib.gov.in/AllReleasem.aspx?lang=1&reg=1";
+const PIB_URL =
+  "https://www.pib.gov.in/AllReleasem.aspx?lang=1&reg=3";
 
 async function supabaseRequest(path, options = {}) {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -64,33 +64,35 @@ function stripHtml(value = "") {
     .trim();
 }
 
-function normalizeUrl(href = "") {
-  const clean = decodeHtml(href).trim();
+function normalizeUrl(value = "") {
+  let url = decodeHtml(value)
+    .replace(/&amp;/gi, "&")
+    .trim();
 
-  if (!clean) return "";
+  if (!url) return "";
 
-  if (clean.startsWith("http://") || clean.startsWith("https://")) {
-    return clean;
+  url = url.replace(/^['"]|['"]$/g, "");
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
   }
 
-  if (clean.startsWith("//")) {
-    return `https:${clean}`;
+  if (url.startsWith("//")) {
+    return `https:${url}`;
   }
 
-  if (clean.startsWith("/")) {
-    return `https://www.pib.gov.in${clean}`;
+  if (url.startsWith("/")) {
+    return `https://www.pib.gov.in${url}`;
   }
 
-  return `https://www.pib.gov.in/${clean}`;
+  return `https://www.pib.gov.in/${url}`;
 }
 
 function relevanceScore(title = "", content = "") {
   const text = `${title} ${content}`.toLowerCase();
 
   const keywords = {
-    india: 3,
-    government: 3,
-    parliament: 4,
+    parliament: 5,
     constitution: 5,
     "supreme court": 5,
     judiciary: 4,
@@ -115,7 +117,6 @@ function relevanceScore(title = "", content = "") {
     wildlife: 4,
     forest: 4,
     pollution: 4,
-    "air quality": 5,
     water: 3,
     river: 3,
     disaster: 4,
@@ -127,12 +128,13 @@ function relevanceScore(title = "", content = "") {
     science: 4,
     technology: 4,
     "artificial intelligence": 5,
-    ai: 3,
+    ai: 2,
     defence: 4,
     defense: 4,
     security: 4,
     terrorism: 5,
     border: 4,
+    international: 3,
     "international relations": 5,
     "united nations": 4,
     "world bank": 4,
@@ -145,39 +147,36 @@ function relevanceScore(title = "", content = "") {
     g20: 4,
     quad: 4,
     asean: 4,
-    nepal: 3,
-    bangladesh: 3,
-    bhutan: 3,
-    pakistan: 3,
-    china: 3,
-    usa: 3,
-    russia: 3,
     treaty: 4,
     agreement: 4,
     summit: 4,
     "foreign policy": 5,
     education: 3,
     health: 3,
-    "public health": 4,
     "social justice": 5,
     tribal: 4,
     women: 3,
-    "child rights": 4,
     "human rights": 4,
-    ethics: 4,
-    integrity: 4,
     report: 3,
     index: 4,
     survey: 4,
     census: 5,
-    data: 3,
-    "national park": 4,
-    unesco: 4,
+    data: 2,
     heritage: 4,
     culture: 3,
-    archaeology: 4,
     history: 3,
-    tourism: 2,
+    archaeology: 4,
+    "national park": 4,
+    critical: 3,
+    minerals: 4,
+    "green energy": 4,
+    renewable: 4,
+    electric: 2,
+    digital: 3,
+    cybersecurity: 5,
+    cyber: 4,
+    startup: 2,
+    innovation: 3,
   };
 
   let score = 0;
@@ -191,61 +190,141 @@ function relevanceScore(title = "", content = "") {
   return score;
 }
 
-function extractPIBReleases(html) {
-  const releases = [];
+/*
+  PIB HTML parser
+
+  PIB currently uses ASP.NET-generated links and its HTML structure
+  can vary between pages. We therefore do NOT depend on one exact
+  anchor format.
+
+  We search the complete HTML for any URL containing:
+  PressReleasePage
+  pressrelease
+  PRID
+*/
+
+function extractReleaseLinks(html) {
+  const results = [];
+  const seen = new Set();
+
+  function add(url, title = "") {
+    const cleanUrl = normalizeUrl(url);
+    const cleanTitle = stripHtml(title);
+
+    if (!cleanUrl) return;
+
+    const lower = cleanUrl.toLowerCase();
+
+    const valid =
+      lower.includes("pressreleasepage") ||
+      lower.includes("pressrelease") ||
+      lower.includes("prid=");
+
+    if (!valid) return;
+
+    if (seen.has(cleanUrl)) return;
+
+    seen.add(cleanUrl);
+
+    results.push({
+      url: cleanUrl,
+      title:
+        cleanTitle.length >= 10
+          ? cleanTitle
+          : "",
+    });
+  }
 
   /*
-    PIB All Releases page contains links to individual
-    PressRelease pages. We collect those links and titles.
+    Format 1:
+    <a href="PressReleasePage.aspx?PRID=123">TITLE</a>
   */
 
   const anchorRegex =
-    /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
   let match;
 
   while ((match = anchorRegex.exec(html)) !== null) {
-    const href = normalizeUrl(match[1]);
-    const title = stripHtml(match[2]);
-
-    if (!href || !title) continue;
-
-    const lowerHref = href.toLowerCase();
-
-    const isRelease =
-      lowerHref.includes("pressrelease") ||
-      lowerHref.includes("press-release") ||
-      lowerHref.includes("press_release");
-
-    if (!isRelease) continue;
-
-    if (title.length < 15) continue;
-
-    if (
-      title.toLowerCase().includes("click here") ||
-      title.toLowerCase().includes("read more") ||
-      title.toLowerCase() === "english" ||
-      title.toLowerCase() === "hindi"
-    ) {
-      continue;
-    }
-
-    releases.push({
-      title,
-      url: href,
-    });
+    add(match[1], match[2]);
   }
 
-  return releases;
+  /*
+    Format 2:
+    href may contain HTML entities / extra attributes.
+  */
+
+  const hrefRegex =
+    /href\s*=\s*["']([^"']*(?:PressReleasePage|pressrelease|PRID=)[^"']*)["']/gi;
+
+  while ((match = hrefRegex.exec(html)) !== null) {
+    const url = normalizeUrl(match[1]);
+
+    if (!seen.has(url)) {
+      add(url, "");
+    }
+  }
+
+  /*
+    Format 3:
+    URL can occur inside JavaScript / onclick.
+  */
+
+  const jsRegex =
+    /(?:PressReleasePage\.aspx|pressreleasepage\.aspx)[^"' )<]*/gi;
+
+  while ((match = jsRegex.exec(html)) !== null) {
+    add(match[0], "");
+  }
+
+  return results;
+}
+
+/*
+  Extract release titles from the visible HTML.
+
+  This is a fallback for pages where PIB sends the title in one
+  HTML block and the actual URL separately.
+*/
+
+function extractVisibleTitles(html) {
+  const titles = [];
+
+  const patterns = [
+    /<a\b[^>]*>([\s\S]*?)<\/a>/gi,
+    /<td\b[^>]*>([\s\S]*?)<\/td>/gi,
+    /<div\b[^>]*>([\s\S]*?)<\/div>/gi,
+  ];
+
+  for (const regex of patterns) {
+    let match;
+
+    while ((match = regex.exec(html)) !== null) {
+      const text = stripHtml(match[1]);
+
+      if (
+        text.length >= 25 &&
+        text.length <= 500 &&
+        !text.toLowerCase().includes("select") &&
+        !text.toLowerCase().includes("login") &&
+        !text.toLowerCase().includes("copyright")
+      ) {
+        titles.push(text);
+      }
+    }
+  }
+
+  return [...new Set(titles)];
 }
 
 async function fetchPIBPage() {
-  const response = await fetch(PIB_ALL_RELEASES, {
+  const response = await fetch(PIB_URL, {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
       Accept:
         "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-IN,en;q=0.9",
     },
     cache: "no-store",
   });
@@ -258,15 +337,8 @@ async function fetchPIBPage() {
 
   const html = await response.text();
 
-  console.log(
-    "PIB PAGE STATUS:",
-    response.status
-  );
-
-  console.log(
-    "PIB PAGE LENGTH:",
-    html.length
-  );
+  console.log("PIB PAGE STATUS:", response.status);
+  console.log("PIB PAGE LENGTH:", html.length);
 
   return html;
 }
@@ -279,27 +351,27 @@ async function fetchReleaseContent(url) {
           "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-IN,en;q=0.9",
       },
       cache: "no-store",
     });
 
     if (!response.ok) {
+      console.log(
+        "RELEASE HTTP:",
+        response.status,
+        url
+      );
+
       return "";
     }
 
     const html = await response.text();
 
-    /*
-      Remove scripts/styles and convert page to readable text.
-    */
-
-    const text = stripHtml(html);
-
-    return text.slice(0, 30000);
+    return stripHtml(html).slice(0, 30000);
   } catch (error) {
     console.error(
-      "PIB release fetch failed:",
-      url,
+      "Release fetch failed:",
       error.message
     );
 
@@ -321,6 +393,7 @@ function removeDuplicates(items) {
     }
 
     seen.add(key);
+
     return true;
   });
 }
@@ -328,77 +401,105 @@ function removeDuplicates(items) {
 async function collectSources() {
   const html = await fetchPIBPage();
 
-  const releases = extractPIBReleases(html);
+  const releaseLinks = extractReleaseLinks(html);
 
   console.log(
     "PIB RELEASE LINKS FOUND:",
-    releases.length
+    releaseLinks.length
   );
 
-  if (!releases.length) {
-    /*
-      Fallback: collect visible release-like text
-      so logs clearly show that PIB changed its HTML.
-    */
+  /*
+    Debug information if PIB changes its HTML again.
+  */
 
+  if (!releaseLinks.length) {
     console.log(
-      "PIB PARSER WARNING: No release links detected."
+      "PIB RELEASE LINK PARSER FAILED."
     );
 
     console.log(
-      "PIB HTML START:",
-      html.slice(0, 1000)
+      "HAS PRESSRELEASEPAGE:",
+      /pressreleasepage/i.test(html)
+    );
+
+    console.log(
+      "HAS PRID:",
+      /prid=/i.test(html)
+    );
+
+    const titles =
+      extractVisibleTitles(html);
+
+    console.log(
+      "VISIBLE TITLES FOUND:",
+      titles.length
+    );
+
+    console.log(
+      "HTML RELEASE SAMPLE:",
+      html.match(
+        /.{0,150}(PressRelease|PRID).{0,250}/i
+      )?.[0] || "NONE"
     );
 
     return [];
   }
 
+  const candidates =
+    releaseLinks.slice(0, 40);
+
   const collected = [];
-
-  /*
-    Fetch only a manageable number of latest releases.
-    The page itself is already ordered by latest releases.
-  */
-
-  const candidates = releases.slice(0, 35);
 
   for (const release of candidates) {
     try {
-      const content =
-        await fetchReleaseContent(release.url);
+      let content = "";
+
+      if (release.url) {
+        content =
+          await fetchReleaseContent(
+            release.url
+          );
+      }
+
+      const title =
+        release.title ||
+        content.slice(0, 300);
+
+      if (!title) continue;
 
       const score = relevanceScore(
-        release.title,
+        title,
         content
       );
 
       console.log(
         "PIB RELEASE:",
-        release.title.slice(0, 100),
+        title.slice(0, 120),
         "| SCORE:",
         score
       );
 
       /*
-        Score >= 3 means potentially UPSC relevant.
-        Final UPSC structuring/relevance is handled by Gemini.
+        Keep moderately relevant releases.
+        Gemini performs the final UPSC relevance
+        + classification.
       */
 
-      if (score >= 3) {
+      if (score >= 2) {
         collected.push({
-          title: release.title,
+          title,
           description:
-            content || release.title,
+            content || title,
           url: release.url,
           source_url: release.url,
-          source_name: "Press Information Bureau (PIB)",
+          source_name:
+            "Press Information Bureau (PIB)",
           score,
         });
       }
     } catch (error) {
       console.error(
         "Release processing failed:",
-        release.title,
         error.message
       );
     }
@@ -408,12 +509,13 @@ async function collectSources() {
 }
 
 async function createOrResetRun(runDate) {
-  const existingResponse = await supabaseRequest(
-    `current_affairs_runs?run_date=eq.${runDate}&select=id`,
-    {
-      method: "GET",
-    }
-  );
+  const existingResponse =
+    await supabaseRequest(
+      `current_affairs_runs?run_date=eq.${runDate}&select=id`,
+      {
+        method: "GET",
+      }
+    );
 
   if (!existingResponse.ok) {
     throw new Error(
@@ -421,51 +523,55 @@ async function createOrResetRun(runDate) {
     );
   }
 
-  const existing = await existingResponse.json();
+  const existing =
+    await existingResponse.json();
 
-  if (existing.length) {
-    const updateResponse = await supabaseRequest(
-      `current_affairs_runs?run_date=eq.${runDate}`,
-      {
-        method: "PATCH",
-        headers: {
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({
-          status: "started",
-          articles_found: 0,
-          articles_created: 0,
-          error_message: null,
-          completed_at: null,
-          started_at: new Date().toISOString(),
-        }),
-      }
-    );
+  if (existing.length > 0) {
+    const response =
+      await supabaseRequest(
+        `current_affairs_runs?run_date=eq.${runDate}`,
+        {
+          method: "PATCH",
+          headers: {
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({
+            status: "started",
+            articles_found: 0,
+            articles_created: 0,
+            error_message: null,
+            completed_at: null,
+            started_at:
+              new Date().toISOString(),
+          }),
+        }
+      );
 
-    if (!updateResponse.ok) {
+    if (!response.ok) {
       throw new Error(
-        `Run reset failed: ${await updateResponse.text()}`
+        `Run reset failed: ${await response.text()}`
       );
     }
 
     return;
   }
 
-  const response = await supabaseRequest(
-    "current_affairs_runs",
-    {
-      method: "POST",
-      headers: {
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
-        run_date: runDate,
-        status: "started",
-        articles_found: 0,
-        articles_created: 0,
-      }),
-    }
-  );
+  const response =
+    await supabaseRequest(
+      "current_affairs_runs",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          run_date: runDate,
+          status: "started",
+          articles_found: 0,
+          articles_created: 0,
+        }),
+      }
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -476,16 +582,17 @@ async function createOrResetRun(runDate) {
 
 async function updateRun(runDate, values) {
   try {
-    const response = await supabaseRequest(
-      `current_affairs_runs?run_date=eq.${runDate}`,
-      {
-        method: "PATCH",
-        headers: {
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify(values),
-      }
-    );
+    const response =
+      await supabaseRequest(
+        `current_affairs_runs?run_date=eq.${runDate}`,
+        {
+          method: "PATCH",
+          headers: {
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(values),
+        }
+      );
 
     if (!response.ok) {
       console.error(
@@ -495,7 +602,7 @@ async function updateRun(runDate, values) {
     }
   } catch (error) {
     console.error(
-      "Run update exception:",
+      "Run update error:",
       error.message
     );
   }
@@ -524,7 +631,8 @@ async function generateArticle(item) {
     }
   );
 
-  const text = await response.text();
+  const text =
+    await response.text();
 
   let data;
 
@@ -565,9 +673,14 @@ export async function GET(request) {
     }
 
     const auth =
-      request.headers.get("authorization");
+      request.headers.get(
+        "authorization"
+      );
 
-    if (auth !== `Bearer ${CRON_SECRET}`) {
+    if (
+      auth !==
+      `Bearer ${CRON_SECRET}`
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -577,7 +690,9 @@ export async function GET(request) {
       );
     }
 
-    await createOrResetRun(runDate);
+    await createOrResetRun(
+      runDate
+    );
 
     console.log(
       "CURRENT AFFAIRS CRON START:",
@@ -593,25 +708,35 @@ export async function GET(request) {
     );
 
     const unique =
-      removeDuplicates(collected);
+      removeDuplicates(
+        collected
+      );
 
     console.log(
       "UNIQUE ARTICLES:",
       unique.length
     );
 
-    const selected = unique
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    const selected =
+      unique
+        .sort(
+          (a, b) =>
+            b.score - a.score
+        )
+        .slice(0, 10);
 
     console.log(
       "UPSC RELEVANT ARTICLES:",
       selected.length
     );
 
-    await updateRun(runDate, {
-      articles_found: selected.length,
-    });
+    await updateRun(
+      runDate,
+      {
+        articles_found:
+          selected.length,
+      }
+    );
 
     let created = 0;
 
@@ -623,7 +748,9 @@ export async function GET(request) {
 
       try {
         const result =
-          await generateArticle(item);
+          await generateArticle(
+            item
+          );
 
         console.log(
           "AI RESULT:",
@@ -647,29 +774,38 @@ export async function GET(request) {
       }
     }
 
-    await updateRun(runDate, {
-      status: "success",
-      articles_created: created,
-      completed_at:
-        new Date().toISOString(),
-      error_message: null,
-    });
+    await updateRun(
+      runDate,
+      {
+        status: "success",
+        articles_created:
+          created,
+        error_message: null,
+        completed_at:
+          new Date().toISOString(),
+      }
+    );
 
     console.log(
       "CURRENT AFFAIRS CRON COMPLETE:",
       {
         date: runDate,
-        articles_found: selected.length,
-        articles_created: created,
+        articles_found:
+          selected.length,
+        articles_created:
+          created,
       }
     );
 
     return NextResponse.json({
       success: true,
       date: runDate,
-      source: "PIB All Releases",
-      articles_found: selected.length,
-      articles_created: created,
+      source:
+        "PIB All Releases",
+      articles_found:
+        selected.length,
+      articles_created:
+        created,
     });
   } catch (error) {
     console.error(
@@ -677,14 +813,17 @@ export async function GET(request) {
       error
     );
 
-    await updateRun(runDate, {
-      status: "failed",
-      error_message:
-        error.message ||
-        "Unknown error",
-      completed_at:
-        new Date().toISOString(),
-    });
+    await updateRun(
+      runDate,
+      {
+        status: "failed",
+        error_message:
+          error.message ||
+          "Unknown error",
+        completed_at:
+          new Date().toISOString(),
+      }
+    );
 
     return NextResponse.json(
       {
@@ -696,4 +835,4 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-    }
+}
