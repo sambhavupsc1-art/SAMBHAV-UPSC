@@ -110,8 +110,6 @@ export default function PYQPage() {
 
   const [mainsPaper, setMainsPaper] = useState("All");
   const [mainsYear, setMainsYear] = useState("All");
-
-  // GS4 subsection
   const [gs4Section, setGs4Section] = useState("Theory");
 
   const [mainsPYQs, setMainsPYQs] = useState([]);
@@ -124,6 +122,15 @@ export default function PYQPage() {
   const [selected, setSelected] = useState(null);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
+
+  /* ---------------- PHASE 1 ---------------- */
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showMistakes, setShowMistakes] = useState(false);
+
+  const [pyqProgress, setPyqProgress] = useState({});
+  const [progressLoading, setProgressLoading] = useState(false);
 
   /* ---------------- AUTH ---------------- */
 
@@ -174,21 +181,15 @@ export default function PYQPage() {
         }
 
         if (!data.user) {
-          throw new Error(
-            "User information nahi mili."
-          );
+          throw new Error("User information nahi mili.");
         }
 
         setUser(data.user);
       } catch (err) {
-        console.error(
-          "PYQ authentication error:",
-          err
-        );
+        console.error("PYQ authentication error:", err);
 
         setError(
-          err.message ||
-            "Authentication failed."
+          err.message || "Authentication failed."
         );
       } finally {
         setLoading(false);
@@ -202,7 +203,7 @@ export default function PYQPage() {
     };
   }, []);
 
-  /* ---------------- LOAD MAINS FROM API ---------------- */
+  /* ---------------- LOAD MAINS ---------------- */
 
   useEffect(() => {
     let cancelled = false;
@@ -212,20 +213,16 @@ export default function PYQPage() {
       setMainsError("");
 
       try {
-        const response = await fetch(
-          "/api/pyq/mains",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/pyq/mains", {
+          method: "GET",
+          cache: "no-store",
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error ||
-              "Mains PYQ fetch failed"
+            data.error || "Mains PYQ fetch failed"
           );
         }
 
@@ -260,15 +257,11 @@ export default function PYQPage() {
           setMainsPYQs(mapped);
         }
       } catch (err) {
-        console.error(
-          "Mains PYQ load error:",
-          err
-        );
+        console.error("Mains PYQ load error:", err);
 
         if (!cancelled) {
           setMainsError(
-            err.message ||
-              "Mains PYQ load failed."
+            err.message || "Mains PYQ load failed."
           );
         }
       } finally {
@@ -285,7 +278,214 @@ export default function PYQPage() {
     };
   }, []);
 
-  /* ---------------- FILTERS ---------------- */
+  /* ---------------- LOAD USER PROGRESS ---------------- */
+
+  useEffect(() => {
+    if (loading || !user) return;
+
+    let cancelled = false;
+
+    const loadProgress = async () => {
+      try {
+        const webApp = window.Telegram?.WebApp;
+
+        if (!webApp?.initData) return;
+
+        const response = await fetch("/api/pyq/progress", {
+          method: "GET",
+          headers: {
+            Authorization: `tma ${webApp.initData}`,
+          },
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error(
+            "Progress load failed:",
+            data.error
+          );
+          return;
+        }
+
+        const map = {};
+
+        (data.progress || []).forEach((item) => {
+          map[
+            `${item.pyq_type}:${item.pyq_id}`
+          ] = item;
+        });
+
+        if (!cancelled) {
+          setPyqProgress(map);
+        }
+      } catch (err) {
+        console.error(
+          "PYQ progress load error:",
+          err
+        );
+      }
+    };
+
+    loadProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
+
+  /* ---------------- PROGRESS HELPERS ---------------- */
+
+  const getProgress = (pyqId, pyqType) => {
+    return (
+      pyqProgress[
+        `${pyqType}:${pyqId}`
+      ] || {
+        bookmarked: false,
+        status: "new",
+        attempted: false,
+        attempt_count: 0,
+        correct_count: 0,
+        wrong_count: 0,
+        revision_due_at: null,
+      }
+    );
+  };
+
+  const saveProgress = async (
+    pyqId,
+    pyqType,
+    updates = {}
+  ) => {
+    try {
+      const webApp = window.Telegram?.WebApp;
+
+      if (!webApp?.initData) {
+        return;
+      }
+
+      const old = getProgress(
+        pyqId,
+        pyqType
+      );
+
+      const payload = {
+        pyq_id: String(pyqId),
+        pyq_type: pyqType,
+
+        status:
+          updates.status ??
+          old.status ??
+          "new",
+
+        bookmarked:
+          updates.bookmarked ??
+          old.bookmarked ??
+          false,
+
+        attempted:
+          updates.attempted ??
+          old.attempted ??
+          false,
+
+        attempt_count:
+          updates.attempt_count ??
+          old.attempt_count ??
+          0,
+
+        correct_count:
+          updates.correct_count ??
+          old.correct_count ??
+          0,
+
+        wrong_count:
+          updates.wrong_count ??
+          old.wrong_count ??
+          0,
+
+        revision_due_at:
+          updates.revision_due_at ??
+          old.revision_due_at ??
+          null,
+      };
+
+      setProgressLoading(true);
+
+      const response = await fetch(
+        "/api/pyq/progress",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization:
+              `tma ${webApp.initData}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Progress save failed"
+        );
+      }
+
+      if (data.progress) {
+        setPyqProgress((prev) => ({
+          ...prev,
+          [`${pyqType}:${pyqId}`]:
+            data.progress,
+        }));
+      }
+    } catch (err) {
+      console.error(
+        "Progress save error:",
+        err
+      );
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  const toggleBookmark = (
+    pyqId,
+    pyqType
+  ) => {
+    const progress = getProgress(
+      pyqId,
+      pyqType
+    );
+
+    saveProgress(
+      pyqId,
+      pyqType,
+      {
+        bookmarked:
+          !progress.bookmarked,
+      }
+    );
+  };
+
+  const changePYQStatus = (
+    pyqId,
+    pyqType,
+    status
+  ) => {
+    saveProgress(
+      pyqId,
+      pyqType,
+      { status }
+    );
+  };
+
+  /* ---------------- SEARCH/FILTER ---------------- */
+
+  const searchText =
+    searchQuery.trim().toLowerCase();
 
   const filteredPrelims = useMemo(() => {
     return prelimsPYQs.filter((q) => {
@@ -297,14 +497,48 @@ export default function PYQPage() {
         prelimsYear === "All" ||
         q.year === Number(prelimsYear);
 
+      const progress = getProgress(
+        q.id,
+        "prelims"
+      );
+
+      const searchable = [
+        q.question,
+        q.subject,
+        q.topic,
+        q.year,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const searchMatch =
+        !searchText ||
+        searchable.includes(searchText);
+
+      const bookmarkMatch =
+        !showBookmarks ||
+        progress.bookmarked;
+
+      const mistakeMatch =
+        !showMistakes ||
+        progress.status === "weak" ||
+        progress.wrong_count > 0;
+
       return (
         subjectMatch &&
-        yearMatch
+        yearMatch &&
+        searchMatch &&
+        bookmarkMatch &&
+        mistakeMatch
       );
     });
   }, [
     prelimsSubject,
     prelimsYear,
+    searchText,
+    showBookmarks,
+    showMistakes,
+    pyqProgress,
   ]);
 
   const filteredMains = useMemo(() => {
@@ -317,16 +551,46 @@ export default function PYQPage() {
         mainsYear === "All" ||
         q.year === Number(mainsYear);
 
-      // GS4 only: Theory / Case Study filter
       const gs4SectionMatch =
         mainsPaper !== "GS Paper 4" ||
         gs4Section === "All" ||
         q.section === gs4Section;
 
+      const progress = getProgress(
+        q.id,
+        "mains"
+      );
+
+      const searchable = [
+        q.question,
+        q.topic,
+        q.paper,
+        q.section,
+        q.year,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const searchMatch =
+        !searchText ||
+        searchable.includes(searchText);
+
+      const bookmarkMatch =
+        !showBookmarks ||
+        progress.bookmarked;
+
+      const mistakeMatch =
+        !showMistakes ||
+        progress.status === "weak" ||
+        progress.wrong_count > 0;
+
       return (
         paperMatch &&
         yearMatch &&
-        gs4SectionMatch
+        gs4SectionMatch &&
+        searchMatch &&
+        bookmarkMatch &&
+        mistakeMatch
       );
     });
   }, [
@@ -334,6 +598,10 @@ export default function PYQPage() {
     mainsPaper,
     mainsYear,
     gs4Section,
+    searchText,
+    showBookmarks,
+    showMistakes,
+    pyqProgress,
   ]);
 
   /* ---------------- PRELIMS PRACTICE ---------------- */
@@ -341,13 +609,15 @@ export default function PYQPage() {
   const score = filteredPrelims.reduce(
     (total, q) =>
       total +
-      (answers[q.id] === q.answer
-        ? 1
-        : 0),
+      (answers[q.id] === q.answer ? 1 : 0),
     0
   );
 
   const startPractice = () => {
+    if (!filteredPrelims.length) {
+      return;
+    }
+
     setCurrent(0);
     setSelected(null);
     setAnswers({});
@@ -366,12 +636,42 @@ export default function PYQPage() {
     const question =
       filteredPrelims[current];
 
+    if (!question) return;
+
     setSelected(index);
 
     setAnswers((prev) => ({
       ...prev,
       [question.id]: index,
     }));
+
+    const old = getProgress(
+      question.id,
+      "prelims"
+    );
+
+    const isCorrect =
+      index === question.answer;
+
+    saveProgress(
+      question.id,
+      "prelims",
+      {
+        attempted: true,
+        attempt_count:
+          old.attempt_count + 1,
+        correct_count:
+          old.correct_count +
+          (isCorrect ? 1 : 0),
+        wrong_count:
+          old.wrong_count +
+          (isCorrect ? 0 : 1),
+        status:
+          isCorrect
+            ? old.status
+            : "weak",
+      }
+    );
   };
 
   const nextQuestion = () => {
@@ -397,6 +697,151 @@ export default function PYQPage() {
     setSelected(null);
     setAnswers({});
     setFinished(false);
+    setSearchQuery("");
+    setShowBookmarks(false);
+    setShowMistakes(false);
+  };
+
+  const clearSmartFilters = () => {
+    setSearchQuery("");
+    setShowBookmarks(false);
+    setShowMistakes(false);
+  };
+
+  /* ---------------- SHARED SEARCH ---------------- */
+
+  const SearchPanel = () => (
+    <section style={styles.searchCard}>
+      <div style={styles.searchTitle}>
+        PYQ Search & Revision
+      </div>
+
+      <input
+        value={searchQuery}
+        onChange={(e) =>
+          setSearchQuery(e.target.value)
+        }
+        placeholder="Search question, topic, paper..."
+        style={styles.searchInput}
+      />
+
+      <div style={styles.searchActions}>
+        <button
+          type="button"
+          onClick={() => {
+            setShowBookmarks(
+              (value) => !value
+            );
+            setShowMistakes(false);
+          }}
+          style={{
+            ...styles.filterButton,
+            ...(showBookmarks
+              ? styles.filterButtonActive
+              : {}),
+          }}
+        >
+          ⭐ Bookmarks
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowMistakes(
+              (value) => !value
+            );
+            setShowBookmarks(false);
+          }}
+          style={{
+            ...styles.filterButton,
+            ...(showMistakes
+              ? styles.filterButtonActive
+              : {}),
+          }}
+        >
+          🔴 My Mistakes
+        </button>
+
+        {(searchQuery ||
+          showBookmarks ||
+          showMistakes) && (
+          <button
+            type="button"
+            onClick={
+              clearSmartFilters
+            }
+            style={styles.clearButton}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {progressLoading && (
+        <div style={styles.savingText}>
+          Saving progress...
+        </div>
+      )}
+    </section>
+  );
+
+  /* ---------------- QUESTION ACTIONS ---------------- */
+
+  const ProgressActions = ({
+    id,
+    type,
+  }) => {
+    const progress =
+      getProgress(id, type);
+
+    return (
+      <div style={styles.pyqActions}>
+        <button
+          type="button"
+          onClick={() =>
+            toggleBookmark(
+              id,
+              type
+            )
+          }
+          style={styles.smallButton}
+        >
+          {progress.bookmarked
+            ? "⭐ Saved"
+            : "☆ Save"}
+        </button>
+
+        <select
+          value={
+            progress.status || "new"
+          }
+          onChange={(e) =>
+            changePYQStatus(
+              id,
+              type,
+              e.target.value
+            )
+          }
+          style={styles.statusSelect}
+        >
+          <option value="new">
+            New
+          </option>
+          <option value="important">
+            ⭐ Important
+          </option>
+          <option value="weak">
+            🔴 Weak
+          </option>
+          <option value="revise">
+            🟡 Revise
+          </option>
+          <option value="mastered">
+            🟢 Mastered
+          </option>
+        </select>
+      </div>
+    );
   };
 
   /* ---------------- LOADING ---------------- */
@@ -454,6 +899,7 @@ export default function PYQPage() {
             </p>
 
             <button
+              type="button"
               onClick={() =>
                 window.location.reload()
               }
@@ -515,11 +961,9 @@ export default function PYQPage() {
 
       <main style={styles.page}>
         <div style={styles.container}>
-
-          {/* HEADER */}
-
           <header style={styles.header}>
             <button
+              type="button"
               onClick={() =>
                 router.push("/")
               }
@@ -539,10 +983,9 @@ export default function PYQPage() {
             </div>
           </header>
 
-          {/* TABS */}
-
           <div style={styles.tabs}>
             <button
+              type="button"
               onClick={() =>
                 changeSection("prelims")
               }
@@ -557,6 +1000,7 @@ export default function PYQPage() {
             </button>
 
             <button
+              type="button"
               onClick={() =>
                 changeSection("mains")
               }
@@ -571,8 +1015,6 @@ export default function PYQPage() {
             </button>
           </div>
 
-          {/* HERO */}
-
           <section style={styles.hero}>
             <div style={styles.heroSmall}>
               UPSC PYQ INTELLIGENCE
@@ -586,27 +1028,23 @@ export default function PYQPage() {
 
             <p style={styles.heroText}>
               {section === "prelims"
-                ? "Subject, year and topic-wise MCQ practice with explanations."
-                : "GS papers and Essay questions with marks and word limits."}
+                ? "Subject, year, search and practice-based PYQ preparation."
+                : "GS papers and Essay questions with search, bookmarks and revision tracking."}
             </p>
           </section>
+
+          <SearchPanel />
 
           {/* ---------------- PRELIMS ---------------- */}
 
           {section === "prelims" && (
             <>
-              <section
-                style={styles.filterCard}
-              >
-                <div
-                  style={styles.filterTitle}
-                >
+              <section style={styles.filterCard}>
+                <div style={styles.filterTitle}>
                   Prelims Filters
                 </div>
 
-                <div
-                  style={styles.filterGrid}
-                >
+                <div style={styles.filterGrid}>
                   <select
                     value={prelimsSubject}
                     onChange={(e) => {
@@ -642,35 +1080,27 @@ export default function PYQPage() {
                     <option value="All">
                       All Years
                     </option>
-
                     <option value="2025">
                       2025
                     </option>
-
                     <option value="2024">
                       2024
                     </option>
-
                     <option value="2023">
                       2023
                     </option>
                   </select>
                 </div>
 
-                <div
-                  style={styles.statsRow}
-                >
+                <div style={styles.statsRow}>
                   <span>
-                    {
-                      filteredPrelims.length
-                    }{" "}
+                    {filteredPrelims.length}{" "}
                     Questions
                   </span>
 
                   <button
-                    onClick={
-                      startPractice
-                    }
+                    type="button"
+                    onClick={startPractice}
                     style={styles.primary}
                   >
                     Start Practice
@@ -679,101 +1109,81 @@ export default function PYQPage() {
               </section>
 
               {mode === "browse" && (
-                <section
-                  style={styles.section}
-                >
-                  <div
-                    style={
-                      styles.sectionTitle
-                    }
-                  >
+                <section style={styles.section}>
+                  <div style={styles.sectionTitle}>
                     Prelims PYQs
                   </div>
 
-                  {filteredPrelims.map(
-                    (q, index) => (
-                      <div
-                        key={q.id}
-                        style={
-                          styles.questionCard
-                        }
-                      >
+                  {filteredPrelims.length === 0 ? (
+                    <EmptyState
+                      text="No Prelims PYQs found for selected filters."
+                    />
+                  ) : (
+                    filteredPrelims.map(
+                      (q, index) => (
                         <div
+                          key={q.id}
                           style={
-                            styles.meta
+                            styles.questionCard
                           }
                         >
-                          {q.year} ·{" "}
-                          {q.subject} ·{" "}
-                          {q.topic}
-                        </div>
+                          <div style={styles.meta}>
+                            {q.year} ·{" "}
+                            {q.subject} ·{" "}
+                            {q.topic}
+                          </div>
 
-                        <div
-                          style={
-                            styles.question
-                          }
-                        >
-                          {index + 1}.{" "}
-                          {q.question}
-                        </div>
+                          <div
+                            style={
+                              styles.question
+                            }
+                          >
+                            {index + 1}.{" "}
+                            {q.question}
+                          </div>
 
-                        <div
-                          style={
-                            styles.answerHint
-                          }
-                        >
-                          MCQ · 4 Options
+                          <div
+                            style={
+                              styles.answerHint
+                            }
+                          >
+                            MCQ · 4 Options
+                          </div>
+
+                          <ProgressActions
+                            id={q.id}
+                            type="prelims"
+                          />
                         </div>
-                      </div>
+                      )
                     )
                   )}
                 </section>
               )}
 
               {mode === "practice" &&
-                filteredPrelims.length >
-                  0 &&
+                filteredPrelims.length > 0 &&
                 !finished && (
-                  <section
-                    style={styles.section}
-                  >
-                    <div
-                      style={
-                        styles.practiceTop
-                      }
-                    >
+                  <section style={styles.section}>
+                    <div style={styles.practiceTop}>
                       <span>
-                        Question{" "}
-                        {current + 1} /{" "}
-                        {
-                          filteredPrelims.length
-                        }
+                        Question {current + 1} /{" "}
+                        {filteredPrelims.length}
                       </span>
 
                       <button
+                        type="button"
                         onClick={() =>
-                          setMode(
-                            "browse"
-                          )
+                          setMode("browse")
                         }
-                        style={
-                          styles.textButton
-                        }
+                        style={styles.textButton}
                       >
                         Exit
                       </button>
                     </div>
 
-                    <div
-                      style={
-                        styles.questionCard
-                      }
-                    >
-                      <div
-                        style={
-                          styles.meta
-                        }
-                      >
+                    <div style={styles.questionCard}>
+                      <div style={styles.meta}>
                         {
                           filteredPrelims[
                             current
@@ -793,11 +1203,7 @@ export default function PYQPage() {
                         }
                       </div>
 
-                      <div
-                        style={
-                          styles.question
-                        }
-                      >
+                      <div style={styles.question}>
                         {
                           filteredPrelims[
                             current
@@ -805,18 +1211,11 @@ export default function PYQPage() {
                         }
                       </div>
 
-                      <div
-                        style={
-                          styles.options
-                        }
-                      >
+                      <div style={styles.options}>
                         {filteredPrelims[
                           current
                         ].options.map(
-                          (
-                            option,
-                            index
-                          ) => {
+                          (option, index) => {
                             const correct =
                               index ===
                               filteredPrelims[
@@ -827,38 +1226,48 @@ export default function PYQPage() {
                               selected ===
                               index;
 
+                            let optionStyle =
+                              styles.option;
+
+                            if (
+                              selected !==
+                                null &&
+                              correct
+                            ) {
+                              optionStyle = {
+                                ...styles.option,
+                                ...styles.correct,
+                              };
+                            } else if (
+                              selected !==
+                                null &&
+                              chosen
+                            ) {
+                              optionStyle = {
+                                ...styles.option,
+                                ...styles.wrong,
+                              };
+                            }
+
                             return (
                               <button
-                                key={
-                                  option
-                                }
+                                type="button"
+                                key={option}
                                 onClick={() =>
                                   chooseAnswer(
                                     index
                                   )
                                 }
-                                style={{
-                                  ...styles.option,
-                                  ...(selected !==
-                                    null &&
-                                  correct
-                                    ? styles.correct
-                                    : {}),
-                                  ...(selected !==
-                                    null &&
-                                  chosen &&
-                                  !correct
-                                    ? styles.wrong
-                                    : {}),
-                                }}
+                                style={
+                                  optionStyle
+                                }
                               >
-                                <b>
+                                <strong>
                                   {String.fromCharCode(
-                                    65 +
-                                      index
+                                    65 + index
                                   )}
                                   .
-                                </b>
+                                </strong>
 
                                 <span>
                                   {option}
@@ -869,8 +1278,7 @@ export default function PYQPage() {
                         )}
                       </div>
 
-                      {selected !==
-                        null && (
+                      {selected !== null && (
                         <div
                           style={
                             styles.explanation
@@ -894,6 +1302,7 @@ export default function PYQPage() {
                           </p>
 
                           <button
+                            type="button"
                             onClick={
                               nextQuestion
                             }
@@ -931,16 +1340,10 @@ export default function PYQPage() {
                     }
                   >
                     {score}/
-                    {
-                      filteredPrelims.length
-                    }
+                    {filteredPrelims.length}
                   </div>
 
-                  <p
-                    style={{
-                      color: "#aaa",
-                    }}
-                  >
+                  <p style={{ color: "#aaa" }}>
                     Accuracy{" "}
                     {filteredPrelims.length
                       ? Math.round(
@@ -953,9 +1356,8 @@ export default function PYQPage() {
                   </p>
 
                   <button
-                    onClick={
-                      startPractice
-                    }
+                    type="button"
+                    onClick={startPractice}
                     style={
                       styles.primaryLight
                     }
@@ -971,18 +1373,12 @@ export default function PYQPage() {
 
           {section === "mains" && (
             <>
-              <section
-                style={styles.filterCard}
-              >
-                <div
-                  style={styles.filterTitle}
-                >
+              <section style={styles.filterCard}>
+                <div style={styles.filterTitle}>
                   Mains Filters
                 </div>
 
-                <div
-                  style={styles.filterGrid}
-                >
+                <div style={styles.filterGrid}>
                   <select
                     value={mainsPaper}
                     onChange={(e) => {
@@ -991,7 +1387,6 @@ export default function PYQPage() {
 
                       setMainsPaper(value);
 
-                      // GS4 open hote hi Theory default
                       if (
                         value ===
                         "GS Paper 4"
@@ -1032,8 +1427,7 @@ export default function PYQPage() {
                       ...new Set(
                         mainsPYQs
                           .map(
-                            (q) =>
-                              q.year
+                            (q) => q.year
                           )
                           .filter(Boolean)
                       ),
@@ -1043,20 +1437,16 @@ export default function PYQPage() {
                           Number(b) -
                           Number(a)
                       )
-                      .map(
-                        (year) => (
-                          <option
-                            key={year}
-                            value={year}
-                          >
-                            {year}
-                          </option>
-                        )
-                      )}
+                      .map((year) => (
+                        <option
+                          key={year}
+                          value={year}
+                        >
+                          {year}
+                        </option>
+                      ))}
                   </select>
                 </div>
-
-                {/* GS4 THEORY / CASE STUDIES */}
 
                 {mainsPaper ===
                   "GS Paper 4" && (
@@ -1066,6 +1456,7 @@ export default function PYQPage() {
                     }
                   >
                     <button
+                      type="button"
                       onClick={() =>
                         setGs4Section(
                           "Theory"
@@ -1083,6 +1474,7 @@ export default function PYQPage() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() =>
                         setGs4Section(
                           "Case Study"
@@ -1101,9 +1493,7 @@ export default function PYQPage() {
                   </div>
                 )}
 
-                <div
-                  style={styles.statsRow}
-                >
+                <div style={styles.statsRow}>
                   <span>
                     {mainsLoading
                       ? "Loading..."
@@ -1112,12 +1502,8 @@ export default function PYQPage() {
                 </div>
               </section>
 
-              <section
-                style={styles.section}
-              >
-                <div
-                  style={styles.sectionTitle}
-                >
+              <section style={styles.section}>
+                <div style={styles.sectionTitle}>
                   {mainsPaper ===
                   "GS Paper 4"
                     ? gs4Section ===
@@ -1128,28 +1514,9 @@ export default function PYQPage() {
                 </div>
 
                 {mainsLoading && (
-                  <div
-                    style={
-                      styles.questionCard
-                    }
-                  >
-                    <div
-                      style={
-                        styles.question
-                      }
-                    >
-                      Loading Mains PYQs...
-                    </div>
-
-                    <div
-                      style={
-                        styles.answerHint
-                      }
-                    >
-                      PYQ data load ho
-                      raha hai.
-                    </div>
-                  </div>
+                  <EmptyState
+                    text="Loading Mains PYQs..."
+                  />
                 )}
 
                 {!mainsLoading &&
@@ -1177,13 +1544,13 @@ export default function PYQPage() {
                       </div>
 
                       <button
+                        type="button"
                         onClick={() =>
                           window.location.reload()
                         }
                         style={{
                           ...styles.primary,
-                          marginTop:
-                            "12px",
+                          marginTop: "12px",
                         }}
                       >
                         Retry
@@ -1193,31 +1560,10 @@ export default function PYQPage() {
 
                 {!mainsLoading &&
                   !mainsError &&
-                  filteredMains.length ===
-                    0 && (
-                    <div
-                      style={
-                        styles.questionCard
-                      }
-                    >
-                      <div
-                        style={
-                          styles.question
-                        }
-                      >
-                        No Mains PYQs found.
-                      </div>
-
-                      <div
-                        style={
-                          styles.answerHint
-                        }
-                      >
-                        Selected filters ke
-                        liye data available
-                        nahi hai.
-                      </div>
-                    </div>
+                  filteredMains.length === 0 && (
+                    <EmptyState
+                      text="No Mains PYQs found for selected filters."
+                    />
                   )}
 
                 {!mainsLoading &&
@@ -1230,11 +1576,7 @@ export default function PYQPage() {
                           styles.mainsCard
                         }
                       >
-                        <div
-                          style={
-                            styles.meta
-                          }
-                        >
+                        <div style={styles.meta}>
                           {q.year} ·{" "}
                           {q.paper}
                           {q.paper ===
@@ -1263,8 +1605,7 @@ export default function PYQPage() {
                           }
                         >
                           <span>
-                            {q.marks ??
-                              "—"}{" "}
+                            {q.marks ?? "—"}{" "}
                             Marks
                           </span>
 
@@ -1276,6 +1617,7 @@ export default function PYQPage() {
                         </div>
 
                         <button
+                          type="button"
                           onClick={() =>
                             alert(
                               "Mains answer writing mode next layer mein connect hoga."
@@ -1287,6 +1629,11 @@ export default function PYQPage() {
                         >
                           Start Answer Writing
                         </button>
+
+                        <ProgressActions
+                          id={q.id}
+                          type="mains"
+                        />
                       </div>
                     )
                   )}
@@ -1294,39 +1641,39 @@ export default function PYQPage() {
             </>
           )}
 
-          {/* ANALYTICS */}
-
-          <section
-            style={styles.infoCard}
-          >
-            <div
-              style={styles.infoIcon}
-            >
+          <section style={styles.infoCard}>
+            <div style={styles.infoIcon}>
               ✦
             </div>
 
             <div>
-              <div
-                style={styles.infoTitle}
-              >
-                PYQ Analytics
+              <div style={styles.infoTitle}>
+                PYQ Intelligence
               </div>
 
-              <div
-                style={styles.infoText}
-              >
-                Attempts, accuracy, topic
-                frequency and performance
-                tracking will be connected
-                to the user account in the
-                next data layer.
+              <div style={styles.infoText}>
+                Search, bookmarks, mistakes
+                and personal PYQ revision
+                status are now connected
+                with your account.
               </div>
             </div>
           </section>
-
         </div>
       </main>
     </>
+  );
+}
+
+/* ---------------- EMPTY STATE ---------------- */
+
+function EmptyState({ text }) {
+  return (
+    <div style={styles.questionCard}>
+      <div style={styles.question}>
+        {text}
+      </div>
+    </div>
   );
 }
 
@@ -1446,6 +1793,72 @@ const styles = {
     margin: 0,
   },
 
+  searchCard: {
+    background: "#fff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "20px",
+    padding: "16px",
+    marginBottom: "16px",
+  },
+
+  searchTitle: {
+    fontSize: "14px",
+    fontWeight: "800",
+    marginBottom: "9px",
+  },
+
+  searchInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "13px 14px",
+    borderRadius: "13px",
+    border: "1px solid #ddd",
+    outline: "none",
+    fontSize: "13px",
+    background: "#fafafa",
+  },
+
+  searchActions: {
+    display: "flex",
+    gap: "8px",
+    marginTop: "10px",
+    flexWrap: "wrap",
+  },
+
+  filterButton: {
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#333",
+    borderRadius: "11px",
+    padding: "9px 12px",
+    fontSize: "11px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  filterButtonActive: {
+    background: "#111",
+    color: "#fff",
+    borderColor: "#111",
+  },
+
+  clearButton: {
+    border: "0",
+    background: "#f0f0ee",
+    color: "#555",
+    borderRadius: "11px",
+    padding: "9px 12px",
+    fontSize: "11px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  savingText: {
+    color: "#888",
+    fontSize: "10px",
+    marginTop: "8px",
+  },
+
   filterCard: {
     background: "#fff",
     border: "1px solid #e5e5e3",
@@ -1474,8 +1887,6 @@ const styles = {
     background: "#fff",
     fontWeight: "600",
   },
-
-  /* GS4 THEORY / CASE STUDIES TABS */
 
   gs4Tabs: {
     display: "grid",
@@ -1583,6 +1994,33 @@ const styles = {
     display: "flex",
     gap: "8px",
     margin: "14px 0",
+    fontSize: "11px",
+    fontWeight: "700",
+  },
+
+  pyqActions: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    marginTop: "13px",
+    flexWrap: "wrap",
+  },
+
+  smallButton: {
+    border: "1px solid #ddd",
+    background: "#fff",
+    borderRadius: "10px",
+    padding: "8px 11px",
+    fontSize: "11px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  statusSelect: {
+    border: "1px solid #ddd",
+    background: "#fff",
+    borderRadius: "10px",
+    padding: "8px 10px",
     fontSize: "11px",
     fontWeight: "700",
   },
