@@ -2036,19 +2036,33 @@ export default function PYQPage() {
                         </div>
 
                         <button
-                          type="button"
-                          onClick={() =>
-                            alert(
-                              "Mains answer writing mode next layer mein connect hoga."
-                            )
-                          }
-                          style={
-                            styles.primary
-                          }
-                        >
-                          Start Answer
-                          Writing
-                        </button>
+  type="button"
+  onClick={() => {
+    sessionStorage.setItem(
+      "sambhav_answer_question",
+      JSON.stringify({
+        id: q.id,
+        year: q.year,
+        paper: q.paper,
+        section: q.section || "",
+        topic: q.topic || "",
+        question: q.question,
+        marks: q.marks,
+        word_limit:
+          q.word_limit ||
+          q.words ||
+          (Number(q.marks) <= 10
+            ? 150
+            : 250),
+      })
+    );
+
+    router.push("/answer");
+  }}
+  style={styles.primary}
+>
+  Start Answer Writing
+</button>
 
                         <ProgressActions
                           id={q.id}
