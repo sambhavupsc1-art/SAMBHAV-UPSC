@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const MAX_IMAGES = 4;
@@ -9,26 +9,29 @@ const MAX_IMAGES = 4;
 export default function AnswerWritingPage() {
   const router = useRouter();
 
-  const [questionData, setQuestionData] =
-    useState(null);
+  const [questionData, setQuestionData] = useState(null);
+  const [images, setImages] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState(null);
+  const [error, setError] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
-  const [images, setImages] =
-    useState([]);
+  /* =========================
+     MANUAL QUESTION
+  ========================= */
 
-  const [previews, setPreviews] =
-    useState([]);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualQuestion, setManualQuestion] = useState("");
+  const [manualMarks, setManualMarks] = useState("15");
+  const [manualWordLimit, setManualWordLimit] = useState("250");
 
-  const [evaluating, setEvaluating] =
-    useState(false);
+  /* =========================
+     TIMER
+  ========================= */
 
-  const [evaluation, setEvaluation] =
-    useState(null);
-
-  const [error, setError] =
-    useState("");
-
-  const [dragActive, setDragActive] =
-    useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [timeExpired, setTimeExpired] = useState(false);
 
   /* =========================
      LOAD QUESTION
@@ -36,35 +39,25 @@ export default function AnswerWritingPage() {
 
   useEffect(() => {
     try {
-      const raw =
-        sessionStorage.getItem(
-          "sambhav_answer_question"
-        );
+      const raw = sessionStorage.getItem(
+        "sambhav_answer_question"
+      );
 
       if (!raw) {
-        setError(
-          "Question data nahi mila. PYQ page se Start Answer Writing karein."
-        );
+        setManualMode(true);
         return;
       }
 
       const data = JSON.parse(raw);
-
       setQuestionData(data);
     } catch (err) {
-      console.error(
-        "Question load error:",
-        err
-      );
-
-      setError(
-        "Question load nahi ho saka."
-      );
+      console.error("Question load error:", err);
+      setError("Question load nahi ho saka.");
     }
   }, []);
 
   /* =========================
-     CLEANUP PREVIEW URLS
+     CLEANUP PREVIEWS
   ========================= */
 
   useEffect(() => {
@@ -76,12 +69,10 @@ export default function AnswerWritingPage() {
   }, [previews]);
 
   /* =========================
-     WORD LIMIT
+     MARKS / WORD LIMIT
   ========================= */
 
-  const marks = Number(
-    questionData?.marks || 15
-  );
+  const marks = Number(questionData?.marks || 15);
 
   const wordLimit = Number(
     questionData?.word_limit ||
@@ -90,27 +81,98 @@ export default function AnswerWritingPage() {
   );
 
   /* =========================
+     TIMER
+  ========================= */
+
+  useEffect(() => {
+    if (!questionData || evaluation) return;
+
+    const totalSeconds =
+      marks <= 10
+        ? 7 * 60
+        : marks <= 15
+        ? 11 * 60
+        : 15 * 60;
+
+    setTimeLeft(totalSeconds);
+    setTimeExpired(false);
+
+    const interval = setInterval(() => {
+      setTimeLeft((current) => {
+        if (current === null || current <= 1) {
+          setTimeExpired(true);
+          clearInterval(interval);
+          return 0;
+        }
+
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [questionData?.id, marks, evaluation]);
+
+  const formattedTime =
+    timeLeft === null
+      ? "--:--"
+      : `${String(Math.floor(timeLeft / 60)).padStart(
+          2,
+          "0"
+        )}:${String(timeLeft % 60).padStart(2, "0")}`;
+
+  /* =========================
+     MANUAL QUESTION START
+  ========================= */
+
+  const startManualQuestion = () => {
+    const cleanQuestion = manualQuestion.trim();
+
+    if (!cleanQuestion) {
+      setError("Pehle apna question enter karein.");
+      return;
+    }
+
+    const selectedMarks = Number(manualMarks);
+    const selectedWordLimit = Number(manualWordLimit);
+
+    setError("");
+
+    setQuestionData({
+      id: `manual-${Date.now()}`,
+      year: "Manual",
+      paper: "Manual Question",
+      section: "User Question",
+      question: cleanQuestion,
+      marks: selectedMarks,
+      word_limit: selectedWordLimit,
+      words: selectedWordLimit,
+    });
+
+    setManualMode(false);
+  };
+
+  /* =========================
      IMAGE VALIDATION
   ========================= */
 
-  const validateFiles = (
-    selectedFiles
-  ) => {
+  const validateFiles = (selectedFiles) => {
     const valid = [];
 
     for (const file of selectedFiles) {
       if (
-        !file.type.startsWith(
-          "image/"
-        )
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+        ].includes(file.type)
       ) {
+        setError(
+          `${file.name} JPG, PNG ya WEBP hona chahiye.`
+        );
         continue;
       }
 
-      if (
-        file.size >
-        8 * 1024 * 1024
-      ) {
+      if (file.size > 8 * 1024 * 1024) {
         setError(
           `${file.name} 8MB se bada hai.`
         );
@@ -127,23 +189,17 @@ export default function AnswerWritingPage() {
      ADD IMAGES
   ========================= */
 
-  const addImages = (
-    selectedFiles
-  ) => {
+  const addImages = (selectedFiles) => {
     setError("");
 
-    const valid =
-      validateFiles(
-        Array.from(selectedFiles)
-      );
+    const valid = validateFiles(
+      Array.from(selectedFiles)
+    );
 
-    if (!valid.length) {
-      return;
-    }
+    if (!valid.length) return;
 
     const remaining =
-      MAX_IMAGES -
-      images.length;
+      MAX_IMAGES - images.length;
 
     if (remaining <= 0) {
       setError(
@@ -152,39 +208,28 @@ export default function AnswerWritingPage() {
       return;
     }
 
-    const filesToAdd =
-      valid.slice(
-        0,
-        remaining
-      );
+    const filesToAdd = valid.slice(
+      0,
+      remaining
+    );
 
     const newImages = [
       ...images,
       ...filesToAdd,
     ];
 
-    const newPreviews =
-      newImages.map(
-        (file) =>
-          URL.createObjectURL(file)
-      );
+    const newPreviews = newImages.map(
+      (file) => URL.createObjectURL(file)
+    );
 
     previews.forEach((url) => {
       URL.revokeObjectURL(url);
     });
 
-    setImages(
-      newImages
-    );
+    setImages(newImages);
+    setPreviews(newPreviews);
 
-    setPreviews(
-      newPreviews
-    );
-
-    if (
-      valid.length >
-      remaining
-    ) {
+    if (valid.length > remaining) {
       setError(
         "Maximum 4 pages allowed hain."
       );
@@ -195,11 +240,8 @@ export default function AnswerWritingPage() {
      FILE INPUT
   ========================= */
 
-  const handleFileChange = (
-    event
-  ) => {
-    const files =
-      event.target.files;
+  const handleFileChange = (event) => {
+    const files = event.target.files;
 
     if (files?.length) {
       addImages(files);
@@ -212,33 +254,21 @@ export default function AnswerWritingPage() {
      REMOVE IMAGE
   ========================= */
 
-  const removeImage = (
-    index
-  ) => {
-    const newImages =
-      images.filter(
-        (_, i) =>
-          i !== index
-      );
+  const removeImage = (index) => {
+    const newImages = images.filter(
+      (_, i) => i !== index
+    );
 
-    const newPreviews =
-      newImages.map(
-        (file) =>
-          URL.createObjectURL(file)
-      );
+    const newPreviews = newImages.map(
+      (file) => URL.createObjectURL(file)
+    );
 
     previews.forEach((url) => {
       URL.revokeObjectURL(url);
     });
 
-    setImages(
-      newImages
-    );
-
-    setPreviews(
-      newPreviews
-    );
-
+    setImages(newImages);
+    setPreviews(newPreviews);
     setError("");
   };
 
@@ -246,10 +276,7 @@ export default function AnswerWritingPage() {
      MOVE PAGE
   ========================= */
 
-  const moveImage = (
-    from,
-    to
-  ) => {
+  const moveImage = (from, to) => {
     if (
       to < 0 ||
       to >= images.length
@@ -257,57 +284,37 @@ export default function AnswerWritingPage() {
       return;
     }
 
-    const newImages = [
-      ...images,
-    ];
+    const newImages = [...images];
 
-    const [
-      moved
-    ] =
-      newImages.splice(
-        from,
-        1
-      );
-
-    newImages.splice(
-      to,
-      0,
-      moved
+    const [moved] = newImages.splice(
+      from,
+      1
     );
 
-    const newPreviews =
-      newImages.map(
-        (file) =>
-          URL.createObjectURL(file)
-      );
+    newImages.splice(to, 0, moved);
+
+    const newPreviews = newImages.map(
+      (file) => URL.createObjectURL(file)
+    );
 
     previews.forEach((url) => {
       URL.revokeObjectURL(url);
     });
 
-    setImages(
-      newImages
-    );
-
-    setPreviews(
-      newPreviews
-    );
+    setImages(newImages);
+    setPreviews(newPreviews);
   };
 
   /* =========================
      DRAG & DROP
   ========================= */
 
-  const handleDrop = (
-    event
-  ) => {
+  const handleDrop = (event) => {
     event.preventDefault();
-
     setDragActive(false);
 
     if (
-      event.dataTransfer.files
-        ?.length
+      event.dataTransfer.files?.length
     ) {
       addImages(
         event.dataTransfer.files
@@ -321,13 +328,9 @@ export default function AnswerWritingPage() {
 
   const submitForEvaluation =
     async () => {
-      if (!questionData) {
-        return;
-      }
+      if (!questionData) return;
 
-      if (
-        images.length === 0
-      ) {
+      if (images.length === 0) {
         setError(
           "Pehle handwritten answer ki image upload karein."
         );
@@ -338,25 +341,21 @@ export default function AnswerWritingPage() {
       setEvaluating(true);
 
       try {
-        const formData =
-          new FormData();
+        const formData = new FormData();
 
         formData.append(
           "question",
-          questionData.question ||
-            ""
+          questionData.question || ""
         );
 
         formData.append(
           "paper",
-          questionData.paper ||
-            "GS"
+          questionData.paper || "GS"
         );
 
         formData.append(
           "section",
-          questionData.section ||
-            ""
+          questionData.section || ""
         );
 
         formData.append(
@@ -369,52 +368,47 @@ export default function AnswerWritingPage() {
           String(wordLimit)
         );
 
-        images.forEach(
-          (file, index) => {
-            formData.append(
-              `image_${index + 1}`,
-              file,
-              file.name
-            );
+        images.forEach((file, index) => {
+          formData.append(
+            `image_${index + 1}`,
+            file,
+            file.name
+          );
+        });
+
+        const response = await fetch(
+          "/api/ai/evaluate",
+          {
+            method: "POST",
+            body: formData,
           }
         );
-
-        const response =
-          await fetch(
-            "/api/ai/evaluate",
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
 
         const data =
           await response.json();
 
         if (!response.ok) {
-  const status =
-    data?.openai_status ??
-    response.status ??
-    "unknown";
+          const status =
+            data?.gemini_status ??
+            response.status ??
+            "unknown";
 
-  const details =
-    data?.details ||
-    data?.error ||
-    "Server ne koi additional error detail return nahi ki.";
+          const details =
+            data?.details ||
+            data?.error ||
+            "Server ne koi additional error detail return nahi ki.";
 
-  throw new Error(
-    `${data?.error || "AI evaluation request failed."}
+          throw new Error(
+            `${data?.error || "AI evaluation request failed."}
 
-OpenAI Status: ${status}
+Gemini Status: ${status}
 
 Details:
 ${details}`
-  );
+          );
         }
 
-        if (
-          !data.evaluation
-        ) {
+        if (!data.evaluation) {
           throw new Error(
             "Evaluation result nahi mila."
           );
@@ -427,10 +421,8 @@ ${details}`
         sessionStorage.setItem(
           `sambhav_answer_evaluation_${questionData.id}`,
           JSON.stringify({
-            question:
-              questionData,
-            pages:
-              images.length,
+            question: questionData,
+            pages: images.length,
             evaluation:
               data.evaluation,
             submittedAt:
@@ -457,12 +449,182 @@ ${details}`
   ========================= */
 
   const score =
-    evaluation?.overall_score ??
-    0;
+    evaluation?.overall_score ?? 0;
 
   const maximum =
-    evaluation?.maximum_marks ||
-    marks;
+    evaluation?.maximum_marks || marks;
+
+  /* =========================
+     MANUAL QUESTION SCREEN
+  ========================= */
+
+  if (!questionData && manualMode) {
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.container}>
+            <header style={styles.topBar}>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push("/pyq")
+                }
+                style={styles.backButton}
+              >
+                ←
+              </button>
+
+              <div>
+                <div style={styles.logo}>
+                  SAMBHAV UPSC
+                </div>
+
+                <div
+                  style={styles.topSubtitle}
+                >
+                  Manual Question Evaluation
+                </div>
+              </div>
+            </header>
+
+            <section
+              style={styles.manualCard}
+            >
+              <div style={styles.manualTitle}>
+                अपना Question डालें
+              </div>
+
+              <div
+                style={
+                  styles.manualSubtitle
+                }
+              >
+                अपना UPSC Mains question
+                लिखें और handwritten answer
+                upload करके उसी question के
+                अनुसार AI evaluation कराएं।
+              </div>
+
+              <textarea
+                value={manualQuestion}
+                onChange={(e) => {
+                  setManualQuestion(
+                    e.target.value
+                  );
+                  setError("");
+                }}
+                placeholder="यहाँ अपना UPSC Mains question लिखें..."
+                style={
+                  styles.manualTextarea
+                }
+              />
+
+              <div
+                style={styles.manualGrid}
+              >
+                <label
+                  style={styles.manualField}
+                >
+                  <span>Marks</span>
+
+                  <select
+                    value={manualMarks}
+                    onChange={(e) => {
+                      const value =
+                        e.target.value;
+
+                      setManualMarks(value);
+
+                      if (value === "10") {
+                        setManualWordLimit(
+                          "150"
+                        );
+                      } else if (
+                        value === "15"
+                      ) {
+                        setManualWordLimit(
+                          "250"
+                        );
+                      }
+                    }}
+                    style={
+                      styles.manualSelect
+                    }
+                  >
+                    <option value="10">
+                      10 Marks
+                    </option>
+                    <option value="15">
+                      15 Marks
+                    </option>
+                    <option value="20">
+                      20 Marks
+                    </option>
+                  </select>
+                </label>
+
+                <label
+                  style={styles.manualField}
+                >
+                  <span>Word Limit</span>
+
+                  <select
+                    value={manualWordLimit}
+                    onChange={(e) =>
+                      setManualWordLimit(
+                        e.target.value
+                      )
+                    }
+                    style={
+                      styles.manualSelect
+                    }
+                  >
+                    <option value="150">
+                      150 Words
+                    </option>
+                    <option value="250">
+                      250 Words
+                    </option>
+                    <option value="300">
+                      300 Words
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              {error && (
+                <div
+                  style={
+                    styles.errorBox
+                  }
+                >
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={
+                  startManualQuestion
+                }
+                style={
+                  styles.evaluateButton
+                }
+              >
+                Continue → Upload
+                Handwritten Answer
+              </button>
+            </section>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   /* =========================
      ERROR STATE
@@ -470,7 +632,8 @@ ${details}`
 
   if (
     error &&
-    !questionData
+    !questionData &&
+    !manualMode
   ) {
     return (
       <>
@@ -481,15 +644,9 @@ ${details}`
 
         <main style={styles.page}>
           <div
-            style={
-              styles.centerCard
-            }
+            style={styles.centerCard}
           >
-            <div
-              style={
-                styles.logo
-              }
-            >
+            <div style={styles.logo}>
               SAMBHAV UPSC
             </div>
 
@@ -497,24 +654,16 @@ ${details}`
               Answer Evaluation
             </h2>
 
-            <p
-              style={
-                styles.muted
-              }
-            >
+            <p style={styles.muted}>
               {error}
             </p>
 
             <button
               type="button"
               onClick={() =>
-                router.push(
-                  "/pyq"
-                )
+                router.push("/pyq")
               }
-              style={
-                styles.primary
-              }
+              style={styles.primary}
             >
               ← Back to PYQ
             </button>
@@ -536,25 +685,17 @@ ${details}`
           strategy="beforeInteractive"
         />
 
-        <main
-          style={styles.page}
-        >
+        <main style={styles.page}>
           <div
-            style={
-              styles.container
-            }
+            style={styles.container}
           >
             <header
-              style={
-                styles.topBar
-              }
+              style={styles.topBar}
             >
               <button
                 type="button"
                 onClick={() =>
-                  router.push(
-                    "/pyq"
-                  )
+                  router.push("/pyq")
                 }
                 style={
                   styles.backButton
@@ -565,9 +706,7 @@ ${details}`
 
               <div>
                 <div
-                  style={
-                    styles.logo
-                  }
+                  style={styles.logo}
                 >
                   SAMBHAV UPSC
                 </div>
@@ -583,27 +722,17 @@ ${details}`
             </header>
 
             <section
-              style={
-                styles.scoreCard
-              }
+              style={styles.scoreCard}
             >
               <div
-                style={
-                  styles.scoreLabel
-                }
+                style={styles.scoreLabel}
               >
                 UPSC-STYLE EVALUATION
               </div>
 
-              <div
-                style={
-                  styles.score
-                }
-              >
+              <div style={styles.score}>
                 {score}
-                <span>
-                  /{maximum}
-                </span>
+                <span>/{maximum}</span>
               </div>
 
               <div
@@ -746,8 +875,7 @@ ${details}`
               <ScoreGrid
                 items={[
                   {
-                    label:
-                      "Content",
+                    label: "Content",
                     score:
                       evaluation
                         .body_analysis
@@ -758,8 +886,7 @@ ${details}`
                         ?.content_maximum,
                   },
                   {
-                    label:
-                      "Analysis",
+                    label: "Analysis",
                     score:
                       evaluation
                         .body_analysis
@@ -770,8 +897,7 @@ ${details}`
                         ?.analysis_maximum,
                   },
                   {
-                    label:
-                      "Structure",
+                    label: "Structure",
                     score:
                       evaluation
                         .body_analysis
@@ -931,25 +1057,17 @@ ${details}`
             >
               {(
                 evaluation
-                  .missing_dimensions ||
-                []
+                  .missing_dimensions || []
               ).map(
-                (
-                  item,
-                  index
-                ) => (
+                (item, index) => (
                   <div
-                    key={
-                      index
-                    }
+                    key={index}
                     style={
                       styles.dimensionCard
                     }
                   >
                     <strong>
-                      {
-                        item.dimension
-                      }
+                      {item.dimension}
                     </strong>
 
                     <p
@@ -960,9 +1078,7 @@ ${details}`
                       <b>
                         Why important:
                       </b>{" "}
-                      {
-                        item.why_important
-                      }
+                      {item.why_important}
                     </p>
 
                     <p
@@ -973,9 +1089,7 @@ ${details}`
                       <b>
                         How to add:
                       </b>{" "}
-                      {
-                        item.how_to_add
-                      }
+                      {item.how_to_add}
                     </p>
                   </div>
                 )
@@ -987,17 +1101,11 @@ ${details}`
             >
               {(
                 evaluation
-                  .point_level_feedback ||
-                []
+                  .point_level_feedback || []
               ).map(
-                (
-                  item,
-                  index
-                ) => (
+                (item, index) => (
                   <div
-                    key={
-                      index
-                    }
+                    key={index}
                     style={
                       styles.feedbackCard
                     }
@@ -1007,9 +1115,7 @@ ${details}`
                         styles.feedbackType
                       }
                     >
-                      {
-                        item.type
-                      }
+                      {item.type}
                     </div>
 
                     <div
@@ -1017,9 +1123,7 @@ ${details}`
                         styles.feedbackIssue
                       }
                     >
-                      {
-                        item.issue
-                      }
+                      {item.issue}
                     </div>
 
                     <div
@@ -1027,12 +1131,8 @@ ${details}`
                         styles.feedbackImprove
                       }
                     >
-                      <b>
-                        Improve:
-                      </b>{" "}
-                      {
-                        item.improvement
-                      }
+                      <b>Improve:</b>{" "}
+                      {item.improvement}
                     </div>
                   </div>
                 )
@@ -1090,9 +1190,7 @@ ${details}`
             </EvaluationSection>
 
             <section
-              style={
-                styles.examinerCard
-              }
+              style={styles.examinerCard}
             >
               <div
                 style={
@@ -1116,9 +1214,7 @@ ${details}`
             <button
               type="button"
               onClick={() =>
-                router.push(
-                  "/pyq"
-                )
+                router.push("/pyq")
               }
               style={
                 styles.fullButton
@@ -1138,13 +1234,9 @@ ${details}`
 
   if (!questionData) {
     return (
-      <main
-        style={styles.page}
-      >
+      <main style={styles.page}>
         <div
-          style={
-            styles.centerCard
-          }
+          style={styles.centerCard}
         >
           Loading question...
         </div>
@@ -1163,25 +1255,15 @@ ${details}`
         strategy="beforeInteractive"
       />
 
-      <main
-        style={styles.page}
-      >
-        <div
-          style={
-            styles.container
-          }
-        >
+      <main style={styles.page}>
+        <div style={styles.container}>
           <header
-            style={
-              styles.topBar
-            }
+            style={styles.topBar}
           >
             <button
               type="button"
               onClick={() =>
-                router.push(
-                  "/pyq"
-                )
+                router.push("/pyq")
               }
               style={
                 styles.backButton
@@ -1191,11 +1273,7 @@ ${details}`
             </button>
 
             <div>
-              <div
-                style={
-                  styles.logo
-                }
-              >
+              <div style={styles.logo}>
                 SAMBHAV UPSC
               </div>
 
@@ -1212,20 +1290,16 @@ ${details}`
           {/* QUESTION */}
 
           <section
-            style={
-              styles.questionCard
-            }
+            style={styles.questionCard}
           >
             <div
-              style={
-                styles.questionMeta
-              }
+              style={styles.questionMeta}
             >
               {questionData.year ||
                 "UPSC"}{" "}
               ·{" "}
-              {questionData.paper}{" "}
-              · {marks} Marks
+              {questionData.paper} ·{" "}
+              {marks} Marks
             </div>
 
             <div
@@ -1233,15 +1307,11 @@ ${details}`
                 styles.questionText
               }
             >
-              {
-                questionData.question
-              }
+              {questionData.question}
             </div>
 
             <div
-              style={
-                styles.limitRow
-              }
+              style={styles.limitRow}
             >
               <span>
                 Word Limit:{" "}
@@ -1256,17 +1326,46 @@ ${details}`
             </div>
           </section>
 
-          {/* UPLOAD CARD */}
+          {/* TIMER */}
 
           <section
-            style={
-              styles.uploadCard
-            }
+            style={{
+              ...styles.timerCard,
+              ...(timeExpired
+                ? styles.timerExpired
+                : {}),
+            }}
+          >
+            <div>
+              <div
+                style={styles.timerLabel}
+              >
+                ANSWER WRITING TIMER
+              </div>
+
+              <div
+                style={styles.timerHint}
+              >
+                {timeExpired
+                  ? "Time over — answer submit kar sakte hain."
+                  : "Timer answer writing ke liye active hai."}
+              </div>
+            </div>
+
+            <div
+              style={styles.timerValue}
+            >
+              {formattedTime}
+            </div>
+          </section>
+
+          {/* UPLOAD */}
+
+          <section
+            style={styles.uploadCard}
           >
             <div
-              style={
-                styles.uploadHeader
-              }
+              style={styles.uploadHeader}
             >
               <div>
                 <div
@@ -1282,7 +1381,8 @@ ${details}`
                     styles.uploadSubtitle
                   }
                 >
-                  Maximum 4 pages · JPG, PNG, WEBP
+                  Maximum 4 pages · JPG,
+                  PNG, WEBP
                 </div>
               </div>
 
@@ -1309,9 +1409,7 @@ ${details}`
               onDragLeave={() =>
                 setDragActive(false)
               }
-              onDrop={
-                handleDrop
-              }
+              onDrop={handleDrop}
             >
               <input
                 type="file"
@@ -1334,9 +1432,7 @@ ${details}`
               </div>
 
               <div
-                style={
-                  styles.dropTitle
-                }
+                style={styles.dropTitle}
               >
                 Tap to upload pages
               </div>
@@ -1346,7 +1442,8 @@ ${details}`
                   styles.dropSubtitle
                 }
               >
-                Ya 3–4 photos ek saath select karein
+                Ya 3–4 photos ek saath
+                select karein
               </div>
 
               <div
@@ -1354,11 +1451,10 @@ ${details}`
                   styles.uploadHint
                 }
               >
-                Page order upload ke order mein rahega
+                Page order upload ke order
+                mein rahega
               </div>
             </label>
-
-            {/* PREVIEWS */}
 
             {images.length > 0 && (
               <div
@@ -1367,14 +1463,9 @@ ${details}`
                 }
               >
                 {images.map(
-                  (
-                    file,
-                    index
-                  ) => (
+                  (file, index) => (
                     <div
-                      key={
-                        `${file.name}-${index}`
-                      }
+                      key={`${file.name}-${index}`}
                       style={
                         styles.previewCard
                       }
@@ -1386,9 +1477,7 @@ ${details}`
                       >
                         <img
                           src={
-                            previews[
-                              index
-                            ]
+                            previews[index]
                           }
                           alt={`Answer page ${
                             index + 1
@@ -1404,8 +1493,7 @@ ${details}`
                           }
                         >
                           Page{" "}
-                          {index +
-                            1}
+                          {index + 1}
                         </div>
                       </div>
 
@@ -1417,14 +1505,12 @@ ${details}`
                         <button
                           type="button"
                           disabled={
-                            index ===
-                            0
+                            index === 0
                           }
                           onClick={() =>
                             moveImage(
                               index,
-                              index -
-                                1
+                              index - 1
                             )
                           }
                           style={
@@ -1438,14 +1524,12 @@ ${details}`
                           type="button"
                           disabled={
                             index ===
-                            images.length -
-                              1
+                            images.length - 1
                           }
                           onClick={() =>
                             moveImage(
                               index,
-                              index +
-                                1
+                              index + 1
                             )
                           }
                           style={
@@ -1476,26 +1560,19 @@ ${details}`
             )}
           </section>
 
-          {/* ERROR */}
-
           {error && (
             <div
-              style={
-                styles.errorBox
-              }
+              style={styles.errorBox}
             >
               {error}
             </div>
           )}
 
-          {/* SUBMIT */}
-
           <button
             type="button"
             disabled={
               evaluating ||
-              images.length ===
-                0
+              images.length === 0
             }
             onClick={
               submitForEvaluation
@@ -1518,10 +1595,12 @@ ${details}`
               styles.securityNote
             }
           >
-            AI uploaded pages ko read karke question
-            demand, content, analysis, structure,
-            examples, factual accuracy aur missing
-            dimensions ke basis par evaluation karega.
+            AI uploaded pages ko read karke
+            question demand, content,
+            analysis, structure, examples,
+            factual accuracy aur missing
+            dimensions ke basis par evaluation
+            karega.
           </div>
         </div>
       </main>
@@ -1563,11 +1642,7 @@ function InfoBlock({
   if (!text) return null;
 
   return (
-    <div
-      style={
-        styles.infoBlock
-      }
-    >
+    <div style={styles.infoBlock}>
       {title && (
         <div
           style={
@@ -1601,33 +1676,21 @@ function ArrayBlock({
   }
 
   return (
-    <div
-      style={
-        styles.arrayBlock
-      }
-    >
+    <div style={styles.arrayBlock}>
       {title && (
         <div
-          style={
-            styles.arrayTitle
-          }
+          style={styles.arrayTitle}
         >
           {title}
         </div>
       )}
 
       <ul
-        style={
-          styles.arrayList
-        }
+        style={styles.arrayList}
       >
         {items.map(
           (item, index) => (
-            <li
-              key={
-                index
-              }
-            >
+            <li key={index}>
               {item}
             </li>
           )
@@ -1644,9 +1707,7 @@ function ImprovementBlock({
 
   return (
     <div
-      style={
-        styles.improvement
-      }
+      style={styles.improvement}
     >
       <strong>
         How to improve
@@ -1668,14 +1729,8 @@ function ScoreLine({
   maximum,
 }) {
   return (
-    <div
-      style={
-        styles.scoreLine
-      }
-    >
-      <span>
-        Score
-      </span>
+    <div style={styles.scoreLine}>
+      <span>Score</span>
 
       <strong>
         {score ?? 0}/
@@ -1685,47 +1740,32 @@ function ScoreLine({
   );
 }
 
-function ScoreGrid({
-  items,
-}) {
+function ScoreGrid({ items }) {
   return (
-    <div
-      style={
-        styles.scoreGrid
-      }
-    >
-      {items.map(
-        (item) => (
-          <div
-            key={
-              item.label
-            }
+    <div style={styles.scoreGrid}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={styles.miniScore}
+        >
+          <span
             style={
-              styles.miniScore
+              styles.miniScoreLabel
             }
           >
-            <span
-              style={
-                styles.miniScoreLabel
-              }
-            >
-              {item.label}
-            </span>
+            {item.label}
+          </span>
 
-            <strong
-              style={
-                styles.miniScoreValue
-              }
-            >
-              {item.score ??
-                0}
-              /
-              {item.max ??
-                0}
-            </strong>
-          </div>
-        )
-      )}
+          <strong
+            style={
+              styles.miniScoreValue
+            }
+          >
+            {item.score ?? 0}/
+            {item.max ?? 0}
+          </strong>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1746,8 +1786,7 @@ const styles = {
   container: {
     maxWidth: "760px",
     margin: "0 auto",
-    padding:
-      "18px 16px 45px",
+    padding: "18px 16px 45px",
   },
 
   centerCard: {
@@ -1755,8 +1794,7 @@ const styles = {
     margin: "80px auto",
     padding: "30px",
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "24px",
     textAlign: "center",
   },
@@ -1772,8 +1810,7 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "13px",
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     background: "#fff",
     fontSize: "20px",
     cursor: "pointer",
@@ -1782,8 +1819,7 @@ const styles = {
   logo: {
     fontSize: "18px",
     fontWeight: "900",
-    letterSpacing:
-      "-0.4px",
+    letterSpacing: "-0.4px",
   },
 
   topSubtitle: {
@@ -1804,10 +1840,8 @@ const styles = {
     color: "#aaa",
     fontSize: "10px",
     fontWeight: "700",
-    letterSpacing:
-      ".5px",
-    textTransform:
-      "uppercase",
+    letterSpacing: ".5px",
+    textTransform: "uppercase",
   },
 
   questionText: {
@@ -1819,29 +1853,127 @@ const styles = {
 
   limitRow: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     gap: "10px",
     marginTop: "16px",
     paddingTop: "12px",
-    borderTop:
-      "1px solid #292929",
+    borderTop: "1px solid #292929",
     color: "#aaa",
     fontSize: "10px",
   },
 
+  timerCard: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    background: "#fff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "18px",
+    padding: "13px 15px",
+    marginBottom: "12px",
+  },
+
+  timerExpired: {
+    borderColor: "#999",
+  },
+
+  timerLabel: {
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+  },
+
+  timerHint: {
+    marginTop: "4px",
+    fontSize: "9px",
+    color: "#777",
+    lineHeight: "1.4",
+  },
+
+  timerValue: {
+    minWidth: "76px",
+    textAlign: "center",
+    background: "#111",
+    color: "#fff",
+    borderRadius: "11px",
+    padding: "10px 8px",
+    fontSize: "18px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+  },
+
+  manualCard: {
+    background: "#fff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "22px",
+    padding: "18px",
+  },
+
+  manualTitle: {
+    fontSize: "18px",
+    fontWeight: "900",
+  },
+
+  manualSubtitle: {
+    marginTop: "6px",
+    color: "#777",
+    fontSize: "11px",
+    lineHeight: "1.5",
+  },
+
+  manualTextarea: {
+    width: "100%",
+    minHeight: "150px",
+    marginTop: "15px",
+    boxSizing: "border-box",
+    border: "1px solid #ddd",
+    borderRadius: "14px",
+    padding: "13px",
+    fontSize: "13px",
+    lineHeight: "1.6",
+    resize: "vertical",
+    outline: "none",
+    fontFamily: "inherit",
+  },
+
+  manualGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "9px",
+    marginTop: "10px",
+  },
+
+  manualField: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    fontSize: "10px",
+    fontWeight: "800",
+    color: "#666",
+  },
+
+  manualSelect: {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid #ddd",
+    borderRadius: "10px",
+    padding: "10px",
+    background: "#fff",
+    color: "#111",
+    fontSize: "12px",
+  },
+
   uploadCard: {
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "21px",
     padding: "16px",
   },
 
   uploadHeader: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     gap: "10px",
     marginBottom: "12px",
@@ -1862,16 +1994,14 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "10px",
-    padding:
-      "8px 10px",
+    padding: "8px 10px",
     fontSize: "10px",
     fontWeight: "800",
   },
 
   dropZone: {
     display: "block",
-    border:
-      "2px dashed #d4d4d0",
+    border: "2px dashed #d4d4d0",
     borderRadius: "17px",
     padding: "30px 16px",
     textAlign: "center",
@@ -1891,15 +2021,13 @@ const styles = {
   uploadIcon: {
     width: "46px",
     height: "46px",
-    margin:
-      "0 auto 10px",
+    margin: "0 auto 10px",
     borderRadius: "14px",
     background: "#111",
     color: "#fff",
     display: "flex",
     alignItems: "center",
-    justifyContent:
-      "center",
+    justifyContent: "center",
     fontSize: "23px",
     fontWeight: "900",
   },
@@ -1930,8 +2058,7 @@ const styles = {
   },
 
   previewCard: {
-    border:
-      "1px solid #e2e2df",
+    border: "1px solid #e2e2df",
     borderRadius: "15px",
     overflow: "hidden",
     background: "#fafafa",
@@ -1958,8 +2085,7 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "7px",
-    padding:
-      "5px 7px",
+    padding: "5px 7px",
     fontSize: "8px",
     fontWeight: "800",
   },
@@ -1971,12 +2097,10 @@ const styles = {
   },
 
   smallButton: {
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     background: "#fff",
     borderRadius: "8px",
-    padding:
-      "6px 8px",
+    padding: "6px 8px",
     cursor: "pointer",
     fontWeight: "800",
   },
@@ -1987,8 +2111,7 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "8px",
-    padding:
-      "6px 8px",
+    padding: "6px 8px",
     cursor: "pointer",
     fontSize: "9px",
     fontWeight: "700",
@@ -1997,13 +2120,13 @@ const styles = {
   errorBox: {
     background: "#fff",
     color: "#555",
-    border:
-      "1px solid #ccc",
+    border: "1px solid #ccc",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "10px",
     fontSize: "11px",
     lineHeight: "1.5",
+    whiteSpace: "pre-wrap",
   },
 
   evaluateButton: {
@@ -2029,8 +2152,7 @@ const styles = {
     color: "#999",
     fontSize: "9px",
     lineHeight: "1.5",
-    margin:
-      "11px auto 0",
+    margin: "11px auto 0",
     maxWidth: "520px",
   },
 
@@ -2046,8 +2168,7 @@ const styles = {
   scoreLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing:
-      "1.5px",
+    letterSpacing: "1.5px",
     fontWeight: "800",
   },
 
@@ -2067,8 +2188,7 @@ const styles = {
 
   evaluationSection: {
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "20px",
     padding: "17px",
     marginBottom: "10px",
@@ -2077,21 +2197,18 @@ const styles = {
   evaluationTitle: {
     fontSize: "15px",
     fontWeight: "900",
-    margin:
-      "0 0 13px",
+    margin: "0 0 13px",
   },
 
   directiveBox: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     gap: "10px",
     background: "#111",
     color: "#fff",
     borderRadius: "13px",
-    padding:
-      "12px 13px",
+    padding: "12px 13px",
     fontSize: "11px",
   },
 
@@ -2106,10 +2223,8 @@ const styles = {
     fontSize: "10px",
     color: "#777",
     fontWeight: "800",
-    textTransform:
-      "uppercase",
-    letterSpacing:
-      ".5px",
+    textTransform: "uppercase",
+    letterSpacing: ".5px",
     marginBottom: "5px",
   },
 
@@ -2129,8 +2244,7 @@ const styles = {
   },
 
   arrayList: {
-    margin:
-      "0 0 0 18px",
+    margin: "0 0 0 18px",
     padding: 0,
     fontSize: "12px",
     lineHeight: "1.6",
@@ -2146,19 +2260,16 @@ const styles = {
   },
 
   improvementText: {
-    margin:
-      "5px 0 0",
+    margin: "5px 0 0",
   },
 
   scoreLine: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     background: "#f0f0ee",
     borderRadius: "12px",
-    padding:
-      "11px 13px",
+    padding: "11px 13px",
     fontSize: "12px",
     marginBottom: "10px",
   },
@@ -2191,8 +2302,7 @@ const styles = {
   },
 
   dimensionCard: {
-    border:
-      "1px solid #e2e2df",
+    border: "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -2201,13 +2311,11 @@ const styles = {
   },
 
   dimensionText: {
-    margin:
-      "7px 0 0",
+    margin: "7px 0 0",
   },
 
   feedbackCard: {
-    border:
-      "1px solid #e2e2df",
+    border: "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -2218,8 +2326,7 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "7px",
-    padding:
-      "4px 7px",
+    padding: "4px 7px",
     fontSize: "8px",
     fontWeight: "800",
     marginBottom: "7px",
@@ -2248,8 +2355,7 @@ const styles = {
   examinerLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing:
-      "1.2px",
+    letterSpacing: "1.2px",
     fontWeight: "800",
   },
 
@@ -2257,8 +2363,7 @@ const styles = {
     fontSize: "12px",
     lineHeight: "1.6",
     color: "#ddd",
-    margin:
-      "10px 0 0",
+    margin: "10px 0 0",
   },
 
   fullButton: {
@@ -2278,8 +2383,7 @@ const styles = {
     borderRadius: "12px",
     background: "#111",
     color: "#fff",
-    padding:
-      "11px 15px",
+    padding: "11px 15px",
     fontWeight: "700",
     cursor: "pointer",
   },
