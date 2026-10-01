@@ -7,38 +7,20 @@ import { useRouter } from "next/navigation";
 export default function AnswerWritingPage() {
   const router = useRouter();
 
-  const [questionData, setQuestionData] =
-    useState(null);
-
-  const [answer, setAnswer] =
-    useState("");
-
-  const [seconds, setSeconds] =
-    useState(0);
-
-  const [timerRunning, setTimerRunning] =
-    useState(true);
-
-  const [evaluating, setEvaluating] =
-    useState(false);
-
-  const [evaluation, setEvaluation] =
-    useState(null);
-
-  const [error, setError] =
-    useState("");
-
-  const [saved, setSaved] =
-    useState(false);
-
-  /* ---------------- LOAD QUESTION ---------------- */
+  const [questionData, setQuestionData] = useState(null);
+  const [answer, setAnswer] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(true);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState(null);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     try {
-      const raw =
-        sessionStorage.getItem(
-          "sambhav_answer_question"
-        );
+      const raw = sessionStorage.getItem(
+        "sambhav_answer_question"
+      );
 
       if (!raw) {
         setError(
@@ -48,115 +30,59 @@ export default function AnswerWritingPage() {
       }
 
       const data = JSON.parse(raw);
-
       setQuestionData(data);
 
-      const draft =
-        sessionStorage.getItem(
-          `sambhav_answer_draft_${data.id}`
-        );
+      const draft = sessionStorage.getItem(
+        `sambhav_answer_draft_${data.id}`
+      );
 
       if (draft) {
         setAnswer(draft);
       }
     } catch (err) {
-      console.error(
-        "Question load error:",
-        err
-      );
-
-      setError(
-        "Question load nahi ho saka."
-      );
+      console.error("Question load error:", err);
+      setError("Question load nahi ho saka.");
     }
   }, []);
 
-  /* ---------------- TIMER ---------------- */
-
   useEffect(() => {
-    if (
-      !timerRunning ||
-      evaluation
-    ) {
-      return;
-    }
+    if (!timerRunning || evaluation) return;
 
-    const timer =
-      setInterval(() => {
-        setSeconds(
-          (value) => value + 1
-        );
-      }, 1000);
+    const timer = setInterval(() => {
+      setSeconds((value) => value + 1);
+    }, 1000);
 
-    return () =>
-      clearInterval(timer);
-  }, [
-    timerRunning,
-    evaluation,
-  ]);
+    return () => clearInterval(timer);
+  }, [timerRunning, evaluation]);
 
-  /* ---------------- WORD COUNT ---------------- */
+  const wordCount = useMemo(() => {
+    if (!answer.trim()) return 0;
 
-  const wordCount =
-    useMemo(() => {
-      return answer
-        .trim()
-        ? answer
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean)
-            .length
-        : 0;
-    }, [answer]);
+    return answer
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+  }, [answer]);
 
-  const wordLimit =
-    Number(
-      questionData?.word_limit ||
-        questionData?.words ||
-        (Number(
-          questionData?.marks
-        ) <= 10
-          ? 150
-          : 250)
-    );
+  const marks = Number(questionData?.marks || 15);
 
-  const marks =
-    Number(
-      questionData?.marks || 15
-    );
+  const wordLimit = Number(
+    questionData?.word_limit ||
+      questionData?.words ||
+      (marks <= 10 ? 150 : 250)
+  );
 
-  /* ---------------- TIMER FORMAT ---------------- */
+  const formatTime = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
 
-  const formatTime = (
-    totalSeconds
-  ) => {
-    const minutes =
-      Math.floor(
-        totalSeconds / 60
-      );
-
-    const secs =
-      totalSeconds % 60;
-
-    return `${String(
-      minutes
-    ).padStart(
-      2,
-      "0"
-    )}:${String(
+    return `${String(minutes).padStart(2, "0")}:${String(
       secs
-    ).padStart(
-      2,
-      "0"
-    )}`;
+    ).padStart(2, "0")}`;
   };
 
-  /* ---------------- SAVE DRAFT ---------------- */
-
   const saveDraft = () => {
-    if (!questionData) {
-      return;
-    }
+    if (!questionData) return;
 
     sessionStorage.setItem(
       `sambhav_answer_draft_${questionData.id}`,
@@ -170,113 +96,72 @@ export default function AnswerWritingPage() {
     }, 1800);
   };
 
-  /* ---------------- EVALUATE ---------------- */
+  const submitForEvaluation = async () => {
+    if (!questionData) return;
 
-  const submitForEvaluation =
-    async () => {
-      if (!questionData) {
-        return;
+    if (!answer.trim()) {
+      setError("Pehle answer likhiye.");
+      return;
+    }
+
+    setError("");
+    setTimerRunning(false);
+    setEvaluating(true);
+
+    try {
+      const response = await fetch("/api/ai/evaluate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: questionData.question,
+          answer: answer.trim(),
+          paper: questionData.paper || "GS",
+          section: questionData.section || "",
+          marks,
+          word_limit: wordLimit,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "AI evaluation failed."
+        );
       }
 
-      if (!answer.trim()) {
-        setError(
-          "Pehle answer likhiye."
+      if (!data.evaluation) {
+        throw new Error(
+          "Evaluation result nahi mila."
         );
-        return;
       }
 
-      setError("");
-      setTimerRunning(false);
-      setEvaluating(true);
+      setEvaluation(data.evaluation);
 
-      try {
-        const response =
-          await fetch(
-            "/api/ai/evaluate",
-            {
-              method: "POST",
+      sessionStorage.setItem(
+        `sambhav_answer_evaluation_${questionData.id}`,
+        JSON.stringify({
+          question: questionData,
+          answer,
+          evaluation: data.evaluation,
+          timeTaken: seconds,
+          submittedAt: new Date().toISOString(),
+        })
+      );
+    } catch (err) {
+      console.error("AI evaluation error:", err);
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+      setError(
+        err.message || "AI evaluation failed."
+      );
 
-              body: JSON.stringify({
-                question:
-                  questionData.question,
-
-                answer: answer.trim(),
-
-                paper:
-                  questionData.paper ||
-                  "GS",
-
-                section:
-                  questionData.section ||
-                  "",
-
-                marks,
-
-                word_limit:
-                  wordLimit,
-              }),
-            }
-          );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "AI evaluation failed."
-          );
-        }
-
-        if (
-          !data.evaluation
-        ) {
-          throw new Error(
-            "Evaluation result nahi mila."
-          );
-        }
-
-        setEvaluation(
-          data.evaluation
-        );
-
-        sessionStorage.setItem(
-          `sambhav_answer_evaluation_${questionData.id}`,
-          JSON.stringify({
-            question:
-              questionData,
-            answer,
-            evaluation:
-              data.evaluation,
-            timeTaken:
-              seconds,
-            submittedAt:
-              new Date().toISOString(),
-          })
-        );
-      } catch (err) {
-        console.error(
-          "AI evaluation error:",
-          err
-        );
-
-        setError(
-          err.message ||
-            "AI evaluation failed."
-        );
-
-        setTimerRunning(true);
-      } finally {
-        setEvaluating(false);
-      }
-    };
-
-  /* ---------------- ERROR ---------------- */
+      setTimerRunning(true);
+    } finally {
+      setEvaluating(false);
+    }
+  };
 
   if (error && !questionData) {
     return (
@@ -286,44 +171,20 @@ export default function AnswerWritingPage() {
           strategy="beforeInteractive"
         />
 
-        <main
-          style={styles.page}
-        >
-          <div
-            style={
-              styles.centerCard
-            }
-          >
-            <div
-              style={
-                styles.logo
-              }
-            >
+        <main style={styles.page}>
+          <div style={styles.centerCard}>
+            <div style={styles.logo}>
               SAMBHAV UPSC
             </div>
 
-            <h2>
-              Answer Writing
-            </h2>
+            <h2>Answer Writing</h2>
 
-            <p
-              style={
-                styles.muted
-              }
-            >
-              {error}
-            </p>
+            <p style={styles.muted}>{error}</p>
 
             <button
               type="button"
-              onClick={() =>
-                router.push(
-                  "/pyq"
-                )
-              }
-              style={
-                styles.primary
-              }
+              onClick={() => router.push("/pyq")}
+              style={styles.primary}
             >
               ← Back to PYQ
             </button>
@@ -333,8 +194,6 @@ export default function AnswerWritingPage() {
     );
   }
 
-  /* ---------------- EVALUATION RESULT ---------------- */
-
   if (evaluation) {
     return (
       <>
@@ -343,113 +202,52 @@ export default function AnswerWritingPage() {
           strategy="beforeInteractive"
         />
 
-        <main
-          style={styles.page}
-        >
-          <div
-            style={
-              styles.container
-            }
-          >
-            <header
-              style={
-                styles.topBar
-              }
-            >
+        <main style={styles.page}>
+          <div style={styles.container}>
+            <header style={styles.topBar}>
               <button
                 type="button"
-                onClick={() =>
-                  router.push(
-                    "/pyq"
-                  )
-                }
-                style={
-                  styles.backButton
-                }
+                onClick={() => router.push("/pyq")}
+                style={styles.backButton}
               >
                 ←
               </button>
 
               <div>
-                <div
-                  style={
-                    styles.logo
-                  }
-                >
+                <div style={styles.logo}>
                   SAMBHAV UPSC
                 </div>
 
-                <div
-                  style={
-                    styles.topSubtitle
-                  }
-                >
+                <div style={styles.topSubtitle}>
                   AI Mains Evaluation
                 </div>
               </div>
             </header>
 
-            {/* SCORE */}
-
-            <section
-              style={
-                styles.scoreCard
-              }
-            >
-              <div
-                style={
-                  styles.scoreLabel
-                }
-              >
+            <section style={styles.scoreCard}>
+              <div style={styles.scoreLabel}>
                 UPSC-STYLE EVALUATION
               </div>
 
-              <div
-                style={
-                  styles.score
-                }
-              >
-                {
-                  evaluation.overall_score
-                }
+              <div style={styles.score}>
+                {evaluation.overall_score}
                 <span>
-                  /
-                  {
-                    evaluation.maximum_marks ||
-                    marks
-                  }
+                  /{evaluation.maximum_marks || marks}
                 </span>
               </div>
 
-              <div
-                style={
-                  styles.scoreAssessment
-                }
-              >
-                {
-                  evaluation.overall_assessment
-                }
+              <div style={styles.scoreAssessment}>
+                {evaluation.overall_assessment}
               </div>
             </section>
 
-            {/* QUESTION ANALYSIS */}
-
-            <EvaluationSection
-              title="1. Question Demand Analysis"
-            >
-              <div
-                style={
-                  styles.directiveBox
-                }
-              >
-                <span>
-                  Directive
-                </span>
+            <EvaluationSection title="1. Question Demand Analysis">
+              <div style={styles.directiveBox}>
+                <span>Directive</span>
 
                 <strong>
                   {
-                    evaluation
-                      .question_analysis
+                    evaluation.question_analysis
                       ?.directive
                   }
                 </strong>
@@ -458,8 +256,7 @@ export default function AnswerWritingPage() {
               <InfoBlock
                 title="Core Demand"
                 text={
-                  evaluation
-                    .question_analysis
+                  evaluation.question_analysis
                     ?.core_demand
                 }
               />
@@ -467,8 +264,7 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Keywords"
                 items={
-                  evaluation
-                    .question_analysis
+                  evaluation.question_analysis
                     ?.keywords
                 }
               />
@@ -476,36 +272,26 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Expected Dimensions"
                 items={
-                  evaluation
-                    .question_analysis
+                  evaluation.question_analysis
                     ?.expected_dimensions
                 }
               />
             </EvaluationSection>
 
-            {/* DEMAND */}
-
-            <EvaluationSection
-              title="2. Demand Fulfilment"
-            >
+            <EvaluationSection title="2. Demand Fulfilment">
               <ScoreLine
                 score={
-                  evaluation
-                    .demand_fulfilment
-                    ?.score
+                  evaluation.demand_fulfilment?.score
                 }
                 maximum={
-                  evaluation
-                    .demand_fulfilment
-                    ?.maximum
+                  evaluation.demand_fulfilment?.maximum
                 }
               />
 
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .demand_fulfilment
+                  evaluation.demand_fulfilment
                     ?.assessment
                 }
               />
@@ -513,95 +299,69 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Missing Demands"
                 items={
-                  evaluation
-                    .demand_fulfilment
+                  evaluation.demand_fulfilment
                     ?.missing_demands
                 }
               />
             </EvaluationSection>
 
-            {/* INTRODUCTION */}
-
-            <EvaluationSection
-              title="3. Introduction"
-            >
+            <EvaluationSection title="3. Introduction">
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .introduction
-                    ?.assessment
+                  evaluation.introduction?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation
-                    .introduction
-                    ?.strengths
+                  evaluation.introduction?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation
-                    .introduction
-                    ?.weaknesses
+                  evaluation.introduction?.weaknesses
                 }
               />
 
               <ImprovementBlock
                 text={
-                  evaluation
-                    .introduction
-                    ?.improvement
+                  evaluation.introduction?.improvement
                 }
               />
             </EvaluationSection>
 
-            {/* BODY */}
-
-            <EvaluationSection
-              title="4. Body Analysis"
-            >
+            <EvaluationSection title="4. Body Analysis">
               <ScoreGrid
                 items={[
                   {
-                    label:
-                      "Content",
+                    label: "Content",
                     score:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.content_score,
                     max:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.content_maximum,
                   },
                   {
-                    label:
-                      "Analysis",
+                    label: "Analysis",
                     score:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.analysis_score,
                     max:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.analysis_maximum,
                   },
                   {
-                    label:
-                      "Structure",
+                    label: "Structure",
                     score:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.structure_score,
                     max:
-                      evaluation
-                        .body_analysis
+                      evaluation.body_analysis
                         ?.structure_maximum,
                   },
                 ]}
@@ -610,54 +370,39 @@ export default function AnswerWritingPage() {
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .body_analysis
-                    ?.assessment
+                  evaluation.body_analysis?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation
-                    .body_analysis
-                    ?.strengths
+                  evaluation.body_analysis?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation
-                    .body_analysis
-                    ?.weaknesses
+                  evaluation.body_analysis?.weaknesses
                 }
               />
             </EvaluationSection>
 
-            {/* EXAMPLES */}
-
-            <EvaluationSection
-              title="5. Examples & Data"
-            >
+            <EvaluationSection title="5. Examples & Data">
               <ScoreLine
                 score={
-                  evaluation
-                    .examples_and_data
-                    ?.score
+                  evaluation.examples_and_data?.score
                 }
                 maximum={
-                  evaluation
-                    .examples_and_data
-                    ?.maximum
+                  evaluation.examples_and_data?.maximum
                 }
               />
 
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .examples_and_data
+                  evaluation.examples_and_data
                     ?.assessment
                 }
               />
@@ -665,8 +410,7 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Good Examples"
                 items={
-                  evaluation
-                    .examples_and_data
+                  evaluation.examples_and_data
                     ?.good_examples
                 }
               />
@@ -674,23 +418,17 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Missing Examples"
                 items={
-                  evaluation
-                    .examples_and_data
+                  evaluation.examples_and_data
                     ?.missing_examples
                 }
               />
             </EvaluationSection>
 
-            {/* FACTUAL */}
-
-            <EvaluationSection
-              title="6. Factual Accuracy"
-            >
+            <EvaluationSection title="6. Factual Accuracy">
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .factual_accuracy
+                  evaluation.factual_accuracy
                     ?.assessment
                 }
               />
@@ -698,8 +436,7 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Possible Errors"
                 items={
-                  evaluation
-                    .factual_accuracy
+                  evaluation.factual_accuracy
                     ?.possible_errors
                 }
               />
@@ -707,171 +444,93 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Corrections"
                 items={
-                  evaluation
-                    .factual_accuracy
+                  evaluation.factual_accuracy
                     ?.corrections
                 }
               />
             </EvaluationSection>
 
-            {/* CONCLUSION */}
-
-            <EvaluationSection
-              title="7. Conclusion"
-            >
+            <EvaluationSection title="7. Conclusion">
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation
-                    .conclusion
-                    ?.assessment
+                  evaluation.conclusion?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation
-                    .conclusion
-                    ?.strengths
+                  evaluation.conclusion?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation
-                    .conclusion
-                    ?.weaknesses
+                  evaluation.conclusion?.weaknesses
                 }
               />
 
               <ImprovementBlock
                 text={
-                  evaluation
-                    .conclusion
-                    ?.improvement
+                  evaluation.conclusion?.improvement
                 }
               />
             </EvaluationSection>
 
-            {/* MISSING DIMENSIONS */}
-
-            <EvaluationSection
-              title="8. Missing Dimensions"
-            >
+            <EvaluationSection title="8. Missing Dimensions">
               {(
-                evaluation
-                  .missing_dimensions ||
-                []
-              ).map(
-                (
-                  item,
-                  index
-                ) => (
-                  <div
-                    key={
-                      index
-                    }
-                    style={
-                      styles.dimensionCard
-                    }
-                  >
-                    <strong>
-                      {item.dimension}
-                    </strong>
+                evaluation.missing_dimensions || []
+              ).map((item, index) => (
+                <div
+                  key={index}
+                  style={styles.dimensionCard}
+                >
+                  <strong>{item.dimension}</strong>
 
-                    <p>
-                      <b>
-                        Why important:
-                      </b>{" "}
-                      {
-                        item.why_important
-                      }
-                    </p>
+                  <p style={styles.dimensionText}>
+                    <b>Why important:</b>{" "}
+                    {item.why_important}
+                  </p>
 
-                    <p>
-                      <b>
-                        How to add:
-                      </b>{" "}
-                      {
-                        item.how_to_add
-                      }
-                    </p>
-                  </div>
-                )
-              )}
+                  <p style={styles.dimensionText}>
+                    <b>How to add:</b>{" "}
+                    {item.how_to_add}
+                  </p>
+                </div>
+              ))}
             </EvaluationSection>
 
-            {/* POINT FEEDBACK */}
-
-            <EvaluationSection
-              title="9. Point-Level Feedback"
-            >
+            <EvaluationSection title="9. Point-Level Feedback">
               {(
-                evaluation
-                  .point_level_feedback ||
-                []
-              ).map(
-                (
-                  item,
-                  index
-                ) => (
-                  <div
-                    key={
-                      index
-                    }
-                    style={
-                      styles.feedbackCard
-                    }
-                  >
-                    <div
-                      style={
-                        styles.feedbackType
-                      }
-                    >
-                      {
-                        item.type
-                      }
-                    </div>
-
-                    <div
-                      style={
-                        styles.feedbackIssue
-                      }
-                    >
-                      {
-                        item.issue
-                      }
-                    </div>
-
-                    <div
-                      style={
-                        styles.feedbackImprove
-                      }
-                    >
-                      <b>
-                        Improve:
-                      </b>{" "}
-                      {
-                        item.improvement
-                      }
-                    </div>
+                evaluation.point_level_feedback || []
+              ).map((item, index) => (
+                <div
+                  key={index}
+                  style={styles.feedbackCard}
+                >
+                  <div style={styles.feedbackType}>
+                    {item.type}
                   </div>
-                )
-              )}
+
+                  <div style={styles.feedbackIssue}>
+                    {item.issue}
+                  </div>
+
+                  <div style={styles.feedbackImprove}>
+                    <b>Improve:</b>{" "}
+                    {item.improvement}
+                  </div>
+                </div>
+              ))}
             </EvaluationSection>
 
-            {/* FRAMEWORK */}
-
-            <EvaluationSection
-              title="10. Better Answer Framework"
-            >
+            <EvaluationSection title="10. Better Answer Framework">
               <InfoBlock
                 title="Introduction"
                 text={
-                  evaluation
-                    .answer_structure
+                  evaluation.answer_structure
                     ?.introduction
                 }
               />
@@ -879,17 +538,14 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Body"
                 items={
-                  evaluation
-                    .answer_structure
-                    ?.body
+                  evaluation.answer_structure?.body
                 }
               />
 
               <InfoBlock
                 title="Conclusion"
                 text={
-                  evaluation
-                    .answer_structure
+                  evaluation.answer_structure
                     ?.conclusion
                 }
               />
@@ -897,62 +553,31 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Model Framework"
                 items={
-                  evaluation
-                    .model_framework
+                  evaluation.model_framework
                 }
               />
             </EvaluationSection>
 
-            {/* IMPROVEMENT */}
-
-            <EvaluationSection
-              title="11. Next Attempt Improvement Plan"
-            >
+            <EvaluationSection title="11. Next Attempt Improvement Plan">
               <ArrayBlock
-                title=""
-                items={
-                  evaluation
-                    .improvement_plan
-                }
+                items={evaluation.improvement_plan}
               />
             </EvaluationSection>
 
-            {/* EXAMINER */}
-
-            <section
-              style={
-                styles.examinerCard
-              }
-            >
-              <div
-                style={
-                  styles.examinerLabel
-                }
-              >
+            <section style={styles.examinerCard}>
+              <div style={styles.examinerLabel}>
                 EXAMINER SUMMARY
               </div>
 
-              <p
-                style={
-                  styles.examinerText
-                }
-              >
-                {
-                  evaluation.examiner_summary
-                }
+              <p style={styles.examinerText}>
+                {evaluation.examiner_summary}
               </p>
             </section>
 
             <button
               type="button"
-              onClick={() =>
-                router.push(
-                  "/pyq"
-                )
-              }
-              style={
-                styles.fullButton
-              }
+              onClick={() => router.push("/pyq")}
+              style={styles.fullButton}
             >
               ← Back to Mains PYQs
             </button>
@@ -962,23 +587,13 @@ export default function AnswerWritingPage() {
     );
   }
 
-  /* ---------------- ANSWER WRITING ---------------- */
-
   if (!questionData) {
     return (
-      <>
-        <main
-          style={styles.page}
-        >
-          <div
-            style={
-              styles.centerCard
-            }
-          >
-            Loading question...
-          </div>
-        </main>
-      </>
+      <main style={styles.page}>
+        <div style={styles.centerCard}>
+          Loading question...
+        </div>
+      </main>
     );
   }
 
@@ -989,70 +604,32 @@ export default function AnswerWritingPage() {
         strategy="beforeInteractive"
       />
 
-      <main
-        style={styles.page}
-      >
-        <div
-          style={
-            styles.container
-          }
-        >
-          <header
-            style={
-              styles.topBar
-            }
-          >
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.topBar}>
             <button
               type="button"
-              onClick={() =>
-                router.push(
-                  "/pyq"
-                )
-              }
-              style={
-                styles.backButton
-              }
+              onClick={() => router.push("/pyq")}
+              style={styles.backButton}
             >
               ←
             </button>
 
             <div>
-              <div
-                style={
-                  styles.logo
-                }
-              >
+              <div style={styles.logo}>
                 SAMBHAV UPSC
               </div>
 
-              <div
-                style={
-                  styles.topSubtitle
-                }
-              >
+              <div style={styles.topSubtitle}>
                 Mains Answer Writing
               </div>
             </div>
           </header>
 
-          {/* QUESTION */}
-
-          <section
-            style={
-              styles.questionCard
-            }
-          >
-            <div
-              style={
-                styles.questionMeta
-              }
-            >
-              {questionData.year ||
-                "UPSC"}{" "}
-              ·{" "}
-              {
-                questionData.paper
-              }
+          <section style={styles.questionCard}>
+            <div style={styles.questionMeta}>
+              {questionData.year || "UPSC"} ·{" "}
+              {questionData.paper}
 
               {questionData.section
                 ? ` · ${questionData.section}`
@@ -1062,26 +639,14 @@ export default function AnswerWritingPage() {
               {marks} Marks
             </div>
 
-            <div
-              style={
-                styles.questionText
-              }
-            >
-              {
-                questionData.question
-              }
+            <div style={styles.questionText}>
+              {questionData.question}
             </div>
 
-            <div
-              style={
-                styles.limitRow
-              }
-            >
+            <div style={styles.limitRow}>
               <span>
                 Word Limit:{" "}
-                <strong>
-                  {wordLimit}
-                </strong>
+                <strong>{wordLimit}</strong>
               </span>
 
               <span>
@@ -1093,166 +658,90 @@ export default function AnswerWritingPage() {
             </div>
           </section>
 
-          {/* TIMER */}
-
-          <section
-            style={
-              styles.controlBar
-            }
-          >
+          <section style={styles.controlBar}>
             <div>
-              <div
-                style={
-                  styles.controlLabel
-                }
-              >
+              <div style={styles.controlLabel}>
                 TIME
               </div>
 
-              <div
-                style={
-                  styles.timer
-                }
-              >
-                {formatTime(
-                  seconds
-                )}
+              <div style={styles.timer}>
+                {formatTime(seconds)}
               </div>
             </div>
 
             <button
               type="button"
               onClick={() =>
-                setTimerRunning(
-                  (value) =>
-                    !value
-                )
+                setTimerRunning((value) => !value)
               }
-              style={
-                styles.pauseButton
-              }
+              style={styles.pauseButton}
             >
-              {timerRunning
-                ? "Pause"
-                : "Resume"}
+              {timerRunning ? "Pause" : "Resume"}
             </button>
           </section>
 
-          {/* ANSWER EDITOR */}
-
-          <section
-            style={
-              styles.editorCard
-            }
-          >
-            <div
-              style={
-                styles.editorHeader
-              }
-            >
+          <section style={styles.editorCard}>
+            <div style={styles.editorHeader}>
               <div>
-                <div
-                  style={
-                    styles.editorTitle
-                  }
-                >
+                <div style={styles.editorTitle}>
                   Your Answer
                 </div>
 
-                <div
-                  style={
-                    styles.editorHint
-                  }
-                >
-                  Write as you would in
-                  the UPSC Mains examination.
+                <div style={styles.editorHint}>
+                  Write as you would in the UPSC
+                  Mains examination.
                 </div>
               </div>
 
               <div
                 style={{
                   ...styles.wordCount,
-                  ...(wordCount >
-                  wordLimit
+                  ...(wordCount > wordLimit
                     ? styles.wordCountOver
                     : {}),
                 }}
               >
-                {wordCount}/
-                {wordLimit}
+                {wordCount}/{wordLimit}
               </div>
             </div>
 
             <textarea
               value={answer}
-              onChange={(e) =>
-                setAnswer(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setAnswer(e.target.value)}
               placeholder="Start writing your answer..."
-              style={
-                styles.textarea
-              }
-              spellCheck={true}
+              style={styles.textarea}
+              spellCheck
             />
 
-            <div
-              style={
-                styles.editorFooter
-              }
-            >
-              <span
-                style={
-                  styles.editorTip
-                }
-              >
-                Focus on demand,
-                structure, dimensions
+            <div style={styles.editorFooter}>
+              <span style={styles.editorTip}>
+                Focus on demand, structure, dimensions
                 and analysis.
               </span>
 
               <button
                 type="button"
-                onClick={
-                  saveDraft
-                }
-                style={
-                  styles.saveButton
-                }
+                onClick={saveDraft}
+                style={styles.saveButton}
               >
-                {saved
-                  ? "✓ Saved"
-                  : "Save Draft"}
+                {saved ? "✓ Saved" : "Save Draft"}
               </button>
             </div>
           </section>
 
-          {/* SUBMIT */}
-
           {error && (
-            <div
-              style={
-                styles.errorBox
-              }
-            >
+            <div style={styles.errorBox}>
               {error}
             </div>
           )}
 
           <button
             type="button"
-            disabled={
-              evaluating ||
-              !answer.trim()
-            }
-            onClick={
-              submitForEvaluation
-            }
+            disabled={evaluating || !answer.trim()}
+            onClick={submitForEvaluation}
             style={{
               ...styles.evaluateButton,
-              ...(evaluating ||
-              !answer.trim()
+              ...(evaluating || !answer.trim()
                 ? styles.disabledButton
                 : {}),
             }}
@@ -1262,16 +751,11 @@ export default function AnswerWritingPage() {
               : "Submit for UPSC Evaluation →"}
           </button>
 
-          <div
-            style={
-              styles.securityNote
-            }
-          >
-            Your answer is evaluated against
-            the question demand, directive,
-            content, analysis, structure,
+          <div style={styles.securityNote}>
+            Evaluation covers question demand,
+            directive, content, analysis, structure,
             examples, factual accuracy and
-            UPSC-specific dimensions.
+            missing dimensions.
           </div>
         </div>
       </main>
@@ -1283,21 +767,10 @@ export default function AnswerWritingPage() {
    RESULT COMPONENTS
 ========================================================= */
 
-function EvaluationSection({
-  title,
-  children,
-}) {
+function EvaluationSection({ title, children }) {
   return (
-    <section
-      style={
-        styles.evaluationSection
-      }
-    >
-      <h2
-        style={
-          styles.evaluationTitle
-        }
-      >
+    <section style={styles.evaluationSection}>
+      <h2 style={styles.evaluationTitle}>
         {title}
       </h2>
 
@@ -1306,160 +779,89 @@ function EvaluationSection({
   );
 }
 
-function InfoBlock({
-  title,
-  text,
-}) {
+function InfoBlock({ title, text }) {
   if (!text) return null;
 
   return (
-    <div
-      style={
-        styles.infoBlock
-      }
-    >
+    <div style={styles.infoBlock}>
       {title && (
-        <div
-          style={
-            styles.infoBlockTitle
-          }
-        >
+        <div style={styles.infoBlockTitle}>
           {title}
         </div>
       )}
 
-      <div
-        style={
-          styles.infoBlockText
-        }
-      >
+      <div style={styles.infoBlockText}>
         {text}
       </div>
     </div>
   );
 }
 
-function ArrayBlock({
-  title,
-  items,
-}) {
-  if (
-    !Array.isArray(items) ||
-    items.length === 0
-  ) {
+function ArrayBlock({ title, items }) {
+  if (!Array.isArray(items) || items.length === 0) {
     return null;
   }
 
   return (
-    <div
-      style={
-        styles.arrayBlock
-      }
-    >
+    <div style={styles.arrayBlock}>
       {title && (
-        <div
-          style={
-            styles.arrayTitle
-          }
-        >
+        <div style={styles.arrayTitle}>
           {title}
         </div>
       )}
 
-      <ul
-        style={
-          styles.arrayList
-        }
-      >
-        {items.map(
-          (item, index) => (
-            <li
-              key={index}
-            >
-              {item}
-            </li>
-          )
-        )}
+      <ul style={styles.arrayList}>
+        {items.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
       </ul>
     </div>
   );
 }
 
-function ImprovementBlock({
-  text,
-}) {
+function ImprovementBlock({ text }) {
   if (!text) return null;
 
   return (
-    <div
-      style={
-        styles.improvement
-      }
-    >
-      <strong>
-        How to improve
-      </strong>
+    <div style={styles.improvement}>
+      <strong>How to improve</strong>
 
-      <p>{text}</p>
+      <p style={styles.improvementText}>
+        {text}
+      </p>
     </div>
   );
 }
 
-function ScoreLine({
-  score,
-  maximum,
-}) {
+function ScoreLine({ score, maximum }) {
   return (
-    <div
-      style={
-        styles.scoreLine
-      }
-    >
-      <span>
-        Score
-      </span>
+    <div style={styles.scoreLine}>
+      <span>Score</span>
 
       <strong>
-        {score ?? 0}/
-        {maximum ?? 0}
+        {score ?? 0}/{maximum ?? 0}
       </strong>
     </div>
   );
 }
 
-function ScoreGrid({
-  items,
-}) {
+function ScoreGrid({ items }) {
   return (
-    <div
-      style={
-        styles.scoreGrid
-      }
-    >
-      {items.map(
-        (item) => (
-          <div
-            key={
-              item.label
-            }
-            style={
-              styles.miniScore
-            }
-          >
-            <span>
-              {item.label}
-            </span>
+    <div style={styles.scoreGrid}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={styles.miniScore}
+        >
+          <span style={styles.miniScoreLabel}>
+            {item.label}
+          </span>
 
-            <strong>
-              {item.score ??
-                0}
-              /
-              {item.max ??
-                0}
-            </strong>
-          </div>
-        )
-      )}
+          <strong style={styles.miniScoreValue}>
+            {item.score ?? 0}/{item.max ?? 0}
+          </strong>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1480,8 +882,7 @@ const styles = {
   container: {
     maxWidth: "760px",
     margin: "0 auto",
-    padding:
-      "18px 16px 45px",
+    padding: "18px 16px 45px",
   },
 
   centerCard: {
@@ -1489,8 +890,7 @@ const styles = {
     margin: "80px auto",
     padding: "30px",
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "24px",
     textAlign: "center",
   },
@@ -1506,8 +906,7 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "13px",
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     background: "#fff",
     fontSize: "20px",
     cursor: "pointer",
@@ -1516,8 +915,7 @@ const styles = {
   logo: {
     fontSize: "18px",
     fontWeight: "900",
-    letterSpacing:
-      "-0.4px",
+    letterSpacing: "-0.4px",
   },
 
   topSubtitle: {
@@ -1539,8 +937,7 @@ const styles = {
     fontSize: "10px",
     fontWeight: "700",
     letterSpacing: ".5px",
-    textTransform:
-      "uppercase",
+    textTransform: "uppercase",
   },
 
   questionText: {
@@ -1552,28 +949,23 @@ const styles = {
 
   limitRow: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     gap: "10px",
     marginTop: "16px",
     paddingTop: "12px",
-    borderTop:
-      "1px solid #292929",
+    borderTop: "1px solid #292929",
     color: "#aaa",
     fontSize: "10px",
   },
 
   controlBar: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "18px",
-    padding:
-      "13px 16px",
+    padding: "13px 16px",
     marginBottom: "10px",
   },
 
@@ -1588,33 +980,28 @@ const styles = {
     fontSize: "22px",
     fontWeight: "900",
     marginTop: "2px",
-    fontVariantNumeric:
-      "tabular-nums",
+    fontVariantNumeric: "tabular-nums",
   },
 
   pauseButton: {
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     background: "#fff",
     borderRadius: "11px",
-    padding:
-      "9px 13px",
+    padding: "9px 13px",
     fontWeight: "700",
     cursor: "pointer",
   },
 
   editorCard: {
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "21px",
     padding: "16px",
   },
 
   editorHeader: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "10px",
     marginBottom: "11px",
@@ -1636,8 +1023,7 @@ const styles = {
     flexShrink: 0,
     borderRadius: "10px",
     background: "#f0f0ee",
-    padding:
-      "8px 10px",
+    padding: "8px 10px",
     fontSize: "10px",
     fontWeight: "800",
   },
@@ -1652,22 +1038,19 @@ const styles = {
     minHeight: "390px",
     resize: "vertical",
     boxSizing: "border-box",
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     borderRadius: "15px",
     padding: "15px",
     outline: "none",
     fontSize: "14px",
     lineHeight: "1.7",
-    fontFamily:
-      "inherit",
+    fontFamily: "inherit",
     background: "#fafafa",
   },
 
   editorFooter: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     gap: "10px",
     marginTop: "10px",
@@ -1680,12 +1063,10 @@ const styles = {
   },
 
   saveButton: {
-    border:
-      "1px solid #ddd",
+    border: "1px solid #ddd",
     background: "#fff",
     borderRadius: "10px",
-    padding:
-      "9px 12px",
+    padding: "9px 12px",
     fontWeight: "700",
     fontSize: "10px",
     cursor: "pointer",
@@ -1695,8 +1076,7 @@ const styles = {
   errorBox: {
     background: "#fff",
     color: "#555",
-    border:
-      "1px solid #ccc",
+    border: "1px solid #ccc",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "10px",
@@ -1727,12 +1107,9 @@ const styles = {
     color: "#999",
     fontSize: "9px",
     lineHeight: "1.5",
-    margin:
-      "11px auto 0",
+    margin: "11px auto 0",
     maxWidth: "500px",
   },
-
-  /* RESULT */
 
   scoreCard: {
     background: "#111",
@@ -1746,8 +1123,7 @@ const styles = {
   scoreLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing:
-      "1.5px",
+    letterSpacing: "1.5px",
     fontWeight: "800",
   },
 
@@ -1767,8 +1143,7 @@ const styles = {
 
   evaluationSection: {
     background: "#fff",
-    border:
-      "1px solid #e5e5e3",
+    border: "1px solid #e5e5e3",
     borderRadius: "20px",
     padding: "17px",
     marginBottom: "10px",
@@ -1777,21 +1152,18 @@ const styles = {
   evaluationTitle: {
     fontSize: "15px",
     fontWeight: "900",
-    margin:
-      "0 0 13px",
+    margin: "0 0 13px",
   },
 
   directiveBox: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     gap: "10px",
     background: "#111",
     color: "#fff",
     borderRadius: "13px",
-    padding:
-      "12px 13px",
+    padding: "12px 13px",
     fontSize: "11px",
   },
 
@@ -1806,8 +1178,7 @@ const styles = {
     fontSize: "10px",
     color: "#777",
     fontWeight: "800",
-    textTransform:
-      "uppercase",
+    textTransform: "uppercase",
     letterSpacing: ".5px",
     marginBottom: "5px",
   },
@@ -1828,8 +1199,7 @@ const styles = {
   },
 
   arrayList: {
-    margin:
-      "0 0 0 18px",
+    margin: "0 0 0 18px",
     padding: 0,
     fontSize: "12px",
     lineHeight: "1.6",
@@ -1844,27 +1214,24 @@ const styles = {
     lineHeight: "1.5",
   },
 
-  improvement p: {
-    marginTop: "5px",
+  improvementText: {
+    margin: "5px 0 0",
   },
 
   scoreLine: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     background: "#f0f0ee",
     borderRadius: "12px",
-    padding:
-      "11px 13px",
+    padding: "11px 13px",
     fontSize: "12px",
     marginBottom: "10px",
   },
 
   scoreGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "7px",
     marginBottom: "10px",
   },
@@ -1876,21 +1243,20 @@ const styles = {
     textAlign: "center",
   },
 
-  miniScore span: {
+  miniScoreLabel: {
     display: "block",
     color: "#777",
     fontSize: "9px",
   },
 
-  miniScore strong: {
+  miniScoreValue: {
     display: "block",
     marginTop: "4px",
     fontSize: "13px",
   },
 
   dimensionCard: {
-    border:
-      "1px solid #e2e2df",
+    border: "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -1898,14 +1264,12 @@ const styles = {
     lineHeight: "1.5",
   },
 
-  dimensionCard p: {
-    margin:
-      "7px 0 0",
+  dimensionText: {
+    margin: "7px 0 0",
   },
 
   feedbackCard: {
-    border:
-      "1px solid #e2e2df",
+    border: "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -1916,8 +1280,7 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "7px",
-    padding:
-      "4px 7px",
+    padding: "4px 7px",
     fontSize: "8px",
     fontWeight: "800",
     marginBottom: "7px",
@@ -1946,8 +1309,7 @@ const styles = {
   examinerLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing:
-      "1.2px",
+    letterSpacing: "1.2px",
     fontWeight: "800",
   },
 
@@ -1955,8 +1317,7 @@ const styles = {
     fontSize: "12px",
     lineHeight: "1.6",
     color: "#ddd",
-    margin:
-      "10px 0 0",
+    margin: "10px 0 0",
   },
 
   fullButton: {
@@ -1968,6 +1329,16 @@ const styles = {
     padding: "14px",
     marginTop: "12px",
     fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  primary: {
+    border: 0,
+    borderRadius: "12px",
+    background: "#111",
+    color: "#fff",
+    padding: "11px 15px",
+    fontWeight: "700",
     cursor: "pointer",
   },
 
