@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 
 const modules = [
   {
-    title: "Current Affairs",
-    subtitle: "UPSC Current Affairs",
-    icon: "📰",
-    route: null,
-  },
+  title: "Current Affairs",
+  subtitle: "UPSC Current Affairs",
+  icon: "📰",
+  route: "/current-affairs",
+},
   {
     title: "PYQ Intelligence",
     subtitle: "UPSC Previous Year Questions",
