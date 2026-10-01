@@ -13,12 +13,15 @@ const filters = [
 
 export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
+  const [language, setLanguage] = useState("hi");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importantLoading, setImportantLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const hi = language === "hi";
 
   useEffect(() => {
     loadCurrentAffairs();
@@ -64,27 +67,31 @@ export default function CurrentAffairsPage() {
       if (response.ok && result.success) {
         setImportant(result.data || []);
       }
-    } catch (error) {
-      console.error("Important Current Affairs load failed:", error);
+    } catch (err) {
+      console.error(err);
     }
   }
 
   const importantIds = useMemo(
-    () => important.map((item) => Number(item.current_affair_id)),
+    () =>
+      important.map((item) =>
+        Number(item.current_affair_id)
+      ),
     [important]
   );
 
   const filteredNews = useMemo(() => {
-    if (active === "Today") {
-      return news;
-    }
+    if (active === "Today") return news;
 
     if (active === "Prelims") {
       return news.filter(
         (item) =>
           item.prelims ||
+          item.prelims_hi ||
+          item.prelims_en ||
           item.prelims_mcq ||
-          item.paper?.toUpperCase() === "PRELIMS"
+          item.prelims_mcq_hi ||
+          item.prelims_mcq_en
       );
     }
 
@@ -95,7 +102,9 @@ export default function CurrentAffairsPage() {
     }
 
     return news.filter(
-      (item) => item.gs === active || item.paper === active
+      (item) =>
+        item.gs === active ||
+        item.paper === active
     );
   }, [active, news, importantIds]);
 
@@ -103,46 +112,45 @@ export default function CurrentAffairsPage() {
     try {
       setImportantLoading(true);
 
-      const isAlreadyImportant = importantIds.includes(Number(id));
+      const already =
+        importantIds.includes(Number(id));
 
-      if (isAlreadyImportant) {
-        const response = await fetch(
-          `/api/current-affairs?mode=important&current_affair_id=${id}`,
-          {
-            method: "DELETE",
-          }
+      const response = await fetch(
+        already
+          ? `/api/current-affairs?mode=important&current_affair_id=${id}`
+          : "/api/current-affairs",
+        {
+          method: already ? "DELETE" : "POST",
+          headers: already
+            ? {}
+            : {
+                "Content-Type": "application/json",
+              },
+          body: already
+            ? undefined
+            : JSON.stringify({
+                current_affair_id: id,
+              }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.error ||
+            (already
+              ? "Important remove nahi hua."
+              : "Important save nahi hua.")
         );
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result?.error || "Important remove nahi hua."
-          );
-        }
-      } else {
-        const response = await fetch("/api/current-affairs", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            current_affair_id: id,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result?.error || "Important save nahi hua."
-          );
-        }
       }
 
       await loadImportant();
-    } catch (error) {
-      alert(error.message || "Important update nahi ho paya.");
+    } catch (err) {
+      alert(
+        err.message ||
+          "Important update nahi ho paya."
+      );
     } finally {
       setImportantLoading(false);
     }
@@ -153,7 +161,9 @@ export default function CurrentAffairsPage() {
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return value;
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
 
     return date.toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -164,29 +174,84 @@ export default function CurrentAffairsPage() {
 
   function getLatestDate() {
     if (!news.length) return "Loading...";
-
     return formatDate(news[0]?.date);
+  }
+
+  function getTitle(item) {
+    if (hi) {
+      return (
+        item.title_hi ||
+        item.title ||
+        item.title_en ||
+        "Current Affair"
+      );
+    }
+
+    return (
+      item.title_en ||
+      item.title ||
+      item.title_hi ||
+      "Current Affair"
+    );
   }
 
   return (
     <main className="ca-page">
       <section className="ca-header">
         <div>
-          <p className="eyebrow">SAMBHAV UPSC</p>
+          <p className="eyebrow">
+            SAMBHAV UPSC
+          </p>
 
           <h1>Current Affairs</h1>
 
           <p className="sub">
-            UPSC-relevant daily current affairs — Prelims + GS-wise Mains
+            {hi
+              ? "UPSC प्रासंगिक दैनिक करेंट अफेयर्स — Prelims + Mains"
+              : "UPSC-relevant daily current affairs — Prelims + Mains"}
           </p>
         </div>
 
-        <div className="date-card">
-          <span>Latest Update</span>
+        <div className="header-actions">
+          <div className="language-box">
+            <span>
+              {hi ? "भाषा" : "Language"}
+            </span>
 
-          <strong>{getLatestDate()}</strong>
+            <div className="language-buttons">
+              <button
+                className={hi ? "lang active" : "lang"}
+                onClick={() => setLanguage("hi")}
+              >
+                हिन्दी
+              </button>
 
-          <small>Daily update target: 10:00 AM</small>
+              <button
+                className={!hi ? "lang active" : "lang"}
+                onClick={() => setLanguage("en")}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
+          <div className="date-card">
+            <span>
+              {hi
+                ? "Latest Update"
+                : "Latest Update"}
+            </span>
+
+            <strong>
+              {getLatestDate()}
+            </strong>
+
+            <small>
+              {hi
+                ? "Daily update target: 10:00 AM"
+                : "Daily update target: 10:00 AM"}
+            </small>
+          </div>
         </div>
       </section>
 
@@ -195,7 +260,9 @@ export default function CurrentAffairsPage() {
           <button
             key={filter}
             className={
-              active === filter ? "filter active" : "filter"
+              active === filter
+                ? "filter active"
+                : "filter"
             }
             onClick={() => setActive(filter)}
           >
@@ -211,7 +278,7 @@ export default function CurrentAffairsPage() {
           }
           onClick={() => setActive("Important")}
         >
-          ⭐ Important
+          ⭐ {hi ? "Important" : "Important"}
         </button>
 
         <button
@@ -222,23 +289,33 @@ export default function CurrentAffairsPage() {
           }
           onClick={() => setActive("Premium")}
         >
-          🔥 Premium Facts
+          🔥 {hi ? "Premium Facts" : "Premium Facts"}
         </button>
       </nav>
 
       {loading ? (
         <section className="state-card">
-          <div className="loader"></div>
+          <div className="loader" />
 
-          <h2>Current Affairs load ho rahe hain...</h2>
+          <h2>
+            {hi
+              ? "Current Affairs load हो रहे हैं..."
+              : "Loading Current Affairs..."}
+          </h2>
 
           <p>
-            Supabase database se latest updates fetch kiye ja rahe hain.
+            {hi
+              ? "Latest updates fetch किए जा रहे हैं।"
+              : "Fetching latest updates."}
           </p>
         </section>
       ) : error ? (
         <section className="state-card error-card">
-          <h2>Current Affairs load nahi ho paye</h2>
+          <h2>
+            {hi
+              ? "Current Affairs load नहीं हो पाए"
+              : "Current Affairs could not be loaded"}
+          </h2>
 
           <p>{error}</p>
         </section>
@@ -246,19 +323,41 @@ export default function CurrentAffairsPage() {
         <section className="special-section">
           <div className="section-heading">
             <div>
-              <span className="badge">SAVED</span>
+              <span className="badge">
+                SAVED
+              </span>
 
-              <h2>⭐ My Important Current Affairs</h2>
+              <h2>
+                ⭐{" "}
+                {hi
+                  ? "My Important Current Affairs"
+                  : "My Important Current Affairs"}
+              </h2>
             </div>
 
-            <p>{filteredNews.length} saved</p>
+            <p>
+              {filteredNews.length} saved
+            </p>
           </div>
 
           {filteredNews.length === 0 ? (
             <div className="empty">
-              अभी कोई Current Affair Important में नहीं है।
-              <br />
-              किसी भी news पर ⭐ दबाकर उसे यहाँ save करें।
+              {hi ? (
+                <>
+                  अभी कोई Current Affair
+                  Important में नहीं है।
+                  <br />
+                  किसी news पर ⭐ दबाकर
+                  save करें।
+                </>
+              ) : (
+                <>
+                  No Current Affairs saved yet.
+                  <br />
+                  Press ⭐ on any article to
+                  save it.
+                </>
+              )}
             </div>
           ) : (
             <div className="news-list">
@@ -266,7 +365,8 @@ export default function CurrentAffairsPage() {
                 <ArticleCard
                   key={item.id}
                   item={item}
-                  important={true}
+                  important
+                  language={language}
                   onImportant={toggleImportant}
                   onOpen={setSelected}
                   formatDate={formatDate}
@@ -277,47 +377,11 @@ export default function CurrentAffairsPage() {
           )}
         </section>
       ) : active === "Premium" ? (
-        <section className="special-section">
-          <div className="section-heading">
-            <div>
-              <span className="badge premium-badge">PREMIUM</span>
-
-              <h2>🔥 Premium Facts</h2>
-            </div>
-
-            <p>
-              Introduction, Body और Conclusion में उपयोग होने वाले
-              high-value facts.
-            </p>
-          </div>
-
-          {news.filter((item) => item.premium_fact).length === 0 ? (
-            <div className="empty">
-              अभी Premium Facts उपलब्ध नहीं हैं।
-            </div>
-          ) : (
-            <div className="fact-grid">
-              {news
-                .filter((item) => item.premium_fact)
-                .map((item) => (
-                  <article className="fact-card" key={item.id}>
-                    <span>
-                      {item.gs || item.paper || "UPSC"}
-                    </span>
-
-                    <h3>{item.title}</h3>
-
-                    <p>{item.premium_fact}</p>
-
-                    <small>
-                      Source:{" "}
-                      {item.source_name || "Official Source"}
-                    </small>
-                  </article>
-                ))}
-            </div>
-          )}
-        </section>
+        <PremiumFacts
+          news={news}
+          language={language}
+          hi={hi}
+        />
       ) : (
         <section>
           <div className="section-heading">
@@ -328,17 +392,24 @@ export default function CurrentAffairsPage() {
 
               <h2>
                 {active === "Today"
-                  ? "Today's UPSC Current Affairs"
+                  ? hi
+                    ? "आज के UPSC Current Affairs"
+                    : "Today's UPSC Current Affairs"
                   : active}
               </h2>
             </div>
 
-            <p>{filteredNews.length} updates</p>
+            <p>
+              {filteredNews.length}{" "}
+              {hi ? "updates" : "updates"}
+            </p>
           </div>
 
           {filteredNews.length === 0 ? (
             <div className="empty">
-              इस category में अभी कोई Current Affair उपलब्ध नहीं है।
+              {hi
+                ? "इस category में अभी कोई Current Affair उपलब्ध नहीं है।"
+                : "No Current Affair is available in this category."}
             </div>
           ) : (
             <div className="news-list">
@@ -349,6 +420,7 @@ export default function CurrentAffairsPage() {
                   important={importantIds.includes(
                     Number(item.id)
                   )}
+                  language={language}
                   onImportant={toggleImportant}
                   onOpen={setSelected}
                   formatDate={formatDate}
@@ -361,137 +433,16 @@ export default function CurrentAffairsPage() {
       )}
 
       {selected && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setSelected(null)}
-        >
-          <article
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="close"
-              onClick={() => setSelected(null)}
-            >
-              ×
-            </button>
-
-            <span className="badge">
-              {selected.gs || selected.paper || "UPSC"}
-            </span>
-
-            <h2>{selected.title}</h2>
-
-            <p className="source">
-              Source:{" "}
-              {selected.source_name || "Not specified"}
-            </p>
-
-            {selected.source_url && (
-              <a
-                className="source-link"
-                href={selected.source_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View Original Source
-              </a>
-            )}
-
-            {selected.why_in_news && (
-              <>
-                <h3>Why in News</h3>
-                <p>{selected.why_in_news}</p>
-              </>
-            )}
-
-            {selected.background && (
-              <>
-                <h3>Background</h3>
-                <p>{selected.background}</p>
-              </>
-            )}
-
-            {selected.key_facts && (
-              <>
-                <h3>Key Facts</h3>
-                <p>{selected.key_facts}</p>
-              </>
-            )}
-
-            {selected.prelims && (
-              <>
-                <h3>Prelims</h3>
-                <div className="content-block">
-                  {selected.prelims}
-                </div>
-              </>
-            )}
-
-            {selected.mains_analysis && (
-              <>
-                <h3>Mains Analysis</h3>
-                <div className="content-block">
-                  {selected.mains_analysis}
-                </div>
-              </>
-            )}
-
-            {selected.static_link && (
-              <>
-                <h3>Static Link</h3>
-                <p>{selected.static_link}</p>
-              </>
-            )}
-
-            {selected.related_pyqs && (
-              <>
-                <h3>Related PYQs</h3>
-                <div className="content-block">
-                  {selected.related_pyqs}
-                </div>
-              </>
-            )}
-
-            {selected.prelims_mcq && (
-              <>
-                <h3>Possible Prelims MCQ</h3>
-                <div className="content-block">
-                  {selected.prelims_mcq}
-                </div>
-              </>
-            )}
-
-            {selected.mains_question && (
-              <>
-                <h3>Possible Mains Question</h3>
-                <div className="content-block">
-                  {selected.mains_question}
-                </div>
-              </>
-            )}
-
-            {selected.premium_fact && (
-              <div className="premium-box">
-                <strong>🔥 Premium Fact</strong>
-
-                <p>{selected.premium_fact}</p>
-              </div>
-            )}
-
-            <button
-              className="important-button modal-important"
-              disabled={importantLoading}
-              onClick={() =>
-                toggleImportant(selected.id)
-              }
-            >
-              {importantIds.includes(Number(selected.id))
-                ? "★ Remove from Important"
-                : "⭐ Add to Important"}
-            </button>
-          </article>
-        </div>
+        <ArticleModal
+          item={selected}
+          language={language}
+          important={importantIds.includes(
+            Number(selected.id)
+          )}
+          importantLoading={importantLoading}
+          onImportant={toggleImportant}
+          onClose={() => setSelected(null)}
+        />
       )}
 
       <style jsx>{`
@@ -521,6 +472,48 @@ export default function CurrentAffairsPage() {
           margin-bottom: 22px;
         }
 
+        .header-actions {
+          display: flex;
+          gap: 12px;
+          align-items: stretch;
+        }
+
+        .language-box,
+        .date-card {
+          background: #fff;
+          border: 1px solid #e4e7ec;
+          border-radius: 16px;
+          padding: 13px 15px;
+          box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+        }
+
+        .language-box > span {
+          display: block;
+          color: #667085;
+          font-size: 12px;
+          margin-bottom: 7px;
+        }
+
+        .language-buttons {
+          display: flex;
+          gap: 5px;
+        }
+
+        .lang {
+          border: 1px solid #dfe3e8;
+          background: #fff;
+          border-radius: 8px;
+          padding: 7px 10px;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .lang.active {
+          background: #172033;
+          color: #fff;
+          border-color: #172033;
+        }
+
         .eyebrow {
           font-size: 12px;
           font-weight: 800;
@@ -540,12 +533,7 @@ export default function CurrentAffairsPage() {
         }
 
         .date-card {
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 16px;
-          padding: 15px 18px;
           min-width: 205px;
-          box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
         }
 
         .date-card span,
@@ -602,8 +590,7 @@ export default function CurrentAffairsPage() {
           margin-bottom: 14px;
         }
 
-        .section-heading h2,
-        .special-section h2 {
+        .section-heading h2 {
           margin: 8px 0 0;
           font-size: 23px;
         }
@@ -621,11 +608,6 @@ export default function CurrentAffairsPage() {
           border-radius: 999px;
           background: #eef2f6;
           color: #475467;
-        }
-
-        .premium-badge {
-          background: #f7e9ed;
-          color: #7a263a;
         }
 
         .news-list {
@@ -648,7 +630,8 @@ export default function CurrentAffairsPage() {
           align-items: center;
         }
 
-        .meta {
+        .meta,
+        .source {
           color: #667085;
           font-size: 12px;
         }
@@ -663,6 +646,7 @@ export default function CurrentAffairsPage() {
           color: #475467;
           line-height: 1.55;
           margin: 0 0 13px;
+          white-space: pre-wrap;
         }
 
         .card-actions {
@@ -694,29 +678,6 @@ export default function CurrentAffairsPage() {
         .important-button:disabled {
           opacity: 0.6;
           cursor: wait;
-        }
-
-        .modal-important {
-          margin-top: 12px;
-        }
-
-        .source {
-          color: #667085;
-          font-size: 12px;
-          margin: 0;
-        }
-
-        .source-link {
-          display: inline-block;
-          margin-top: 8px;
-          color: #175cd3;
-          font-size: 13px;
-          font-weight: 700;
-          text-decoration: none;
-        }
-
-        .special-section {
-          margin-top: 8px;
         }
 
         .empty,
@@ -762,6 +723,8 @@ export default function CurrentAffairsPage() {
         }
 
         .fact-grid {
+          max-width: 1050px;
+          margin: auto;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 13px;
@@ -788,6 +751,7 @@ export default function CurrentAffairsPage() {
         .fact-card p {
           color: #475467;
           line-height: 1.55;
+          white-space: pre-wrap;
         }
 
         .fact-card small {
@@ -832,16 +796,25 @@ export default function CurrentAffairsPage() {
           margin: 22px 0 8px;
         }
 
-        .modal p,
-        .modal li {
+        .modal p {
           line-height: 1.65;
           color: #475467;
+          white-space: pre-wrap;
         }
 
         .content-block {
           white-space: pre-wrap;
           color: #475467;
           line-height: 1.65;
+        }
+
+        .source-link {
+          display: inline-block;
+          margin-top: 8px;
+          color: #175cd3;
+          font-size: 13px;
+          font-weight: 700;
+          text-decoration: none;
         }
 
         .premium-box {
@@ -856,25 +829,36 @@ export default function CurrentAffairsPage() {
           margin-bottom: 0;
         }
 
-        @media (max-width: 700px) {
-          .ca-page {
-            padding: 20px 12px 45px;
-          }
+        .modal-important {
+          margin-top: 12px;
+        }
 
+        @media (max-width: 800px) {
           .ca-header {
             display: block;
           }
 
-          .date-card {
+          .header-actions {
             margin-top: 15px;
+            flex-wrap: wrap;
+          }
+
+          .fact-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .ca-page {
+            padding: 20px 12px 45px;
           }
 
           .section-heading {
             display: block;
           }
 
-          .fact-grid {
-            grid-template-columns: 1fr;
+          .section-heading p {
+            margin-top: 8px;
           }
 
           .topline {
@@ -885,6 +869,22 @@ export default function CurrentAffairsPage() {
             display: block;
             margin-top: 7px;
           }
+
+          .date-card {
+            width: 100%;
+          }
+
+          .language-box {
+            width: 100%;
+          }
+
+          .language-buttons {
+            width: 100%;
+          }
+
+          .lang {
+            flex: 1;
+          }
         }
       `}</style>
     </main>
@@ -894,11 +894,36 @@ export default function CurrentAffairsPage() {
 function ArticleCard({
   item,
   important,
+  language,
   onImportant,
   onOpen,
   formatDate,
   disabled,
 }) {
+  const hi = language === "hi";
+
+  const title =
+    (hi
+      ? item.title_hi
+      : item.title_en) ||
+    item.title ||
+    (hi ? item.title_en : item.title_hi) ||
+    "Current Affair";
+
+  const summary =
+    (hi
+      ? item.why_in_news_hi
+      : item.why_in_news_en) ||
+    (hi
+      ? item.why_in_news
+      : item.why_in_news) ||
+    (hi
+      ? item.background_hi
+      : item.background_en) ||
+    item.background ||
+    item.key_facts ||
+    "";
+
   return (
     <article className="news-card">
       <div className="topline">
@@ -912,13 +937,10 @@ function ArticleCard({
         </span>
       </div>
 
-      <h3>{item.title}</h3>
+      <h3>{title}</h3>
 
       <p className="summary">
-        {item.why_in_news ||
-          item.background ||
-          item.key_facts ||
-          "UPSC-relevant current affair."}
+        {summary}
       </p>
 
       <div className="card-actions">
@@ -926,7 +948,9 @@ function ArticleCard({
           className="read-button"
           onClick={() => onOpen(item)}
         >
-          Read Full Analysis
+          {hi
+            ? "पूरा Analysis पढ़ें"
+            : "Read Full Analysis"}
         </button>
 
         <button
@@ -934,13 +958,367 @@ function ArticleCard({
           disabled={disabled}
           onClick={() => onImportant(item.id)}
         >
-          {important ? "★ Important" : "⭐ Add to Important"}
+          {important
+            ? "★ Important"
+            : "⭐ Add to Important"}
         </button>
 
         <span className="source">
-          Source: {item.source_name || "Not specified"}
+          Source:{" "}
+          {item.source_name ||
+            "Not specified"}
         </span>
       </div>
     </article>
+  );
+}
+
+function PremiumFacts({
+  news,
+  language,
+  hi,
+}) {
+  const facts = news.filter(
+    (item) =>
+      item.premium_fact_hi ||
+      item.premium_fact_en ||
+      item.premium_fact
+  );
+
+  return (
+    <section className="special-section">
+      <div className="section-heading">
+        <div>
+          <span className="badge">
+            PREMIUM
+          </span>
+
+          <h2>🔥 Premium Facts</h2>
+        </div>
+
+        <p>
+          {hi
+            ? "Mains में उपयोग होने वाले high-value facts"
+            : "High-value facts for UPSC Mains"}
+        </p>
+      </div>
+
+      {facts.length === 0 ? (
+        <div className="empty">
+          {hi
+            ? "अभी Premium Facts उपलब्ध नहीं हैं।"
+            : "No Premium Facts available yet."}
+        </div>
+      ) : (
+        <div className="fact-grid">
+          {facts.map((item) => {
+            const fact =
+              (hi
+                ? item.premium_fact_hi
+                : item.premium_fact_en) ||
+              item.premium_fact;
+
+            return (
+              <article
+                className="fact-card"
+                key={item.id}
+              >
+                <span>
+                  {item.gs ||
+                    item.paper ||
+                    "UPSC"}
+                </span>
+
+                <h3>
+                  {hi
+                    ? item.title_hi ||
+                      item.title
+                    : item.title_en ||
+                      item.title}
+                </h3>
+
+                <p>{fact}</p>
+
+                <small>
+                  Source:{" "}
+                  {item.source_name ||
+                    "Official Source"}
+                </small>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ArticleModal({
+  item,
+  language,
+  important,
+  importantLoading,
+  onImportant,
+  onClose,
+}) {
+  const hi = language === "hi";
+
+  const title =
+    (hi
+      ? item.title_hi
+      : item.title_en) ||
+    item.title ||
+    (hi
+      ? item.title_en
+      : item.title_hi);
+
+  const why =
+    (hi
+      ? item.why_in_news_hi
+      : item.why_in_news_en) ||
+    item.why_in_news;
+
+  const background =
+    (hi
+      ? item.background_hi
+      : item.background_en) ||
+    item.background;
+
+  const facts =
+    (hi
+      ? item.key_facts_hi
+      : item.key_facts_en) ||
+    item.key_facts;
+
+  const prelims =
+    (hi
+      ? item.prelims_hi
+      : item.prelims_en) ||
+    item.prelims;
+
+  const mains =
+    (hi
+      ? item.mains_analysis_hi
+      : item.mains_analysis_en) ||
+    item.mains_analysis;
+
+  const premium =
+    (hi
+      ? item.premium_fact_hi
+      : item.premium_fact_en) ||
+    item.premium_fact;
+
+  const pyqs =
+    (hi
+      ? item.related_pyqs_hi
+      : item.related_pyqs_en) ||
+    item.related_pyqs;
+
+  const mcq =
+    (hi
+      ? item.prelims_mcq_hi
+      : item.prelims_mcq_en) ||
+    item.prelims_mcq;
+
+  const mainsQuestion =
+    (hi
+      ? item.mains_question_hi
+      : item.mains_question_en) ||
+    item.mains_question;
+
+  const ethics =
+    (hi
+      ? item.ethics_angle_hi
+      : item.ethics_angle_en) ||
+    "";
+
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+    >
+      <article
+        className="modal"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <button
+          className="close"
+          onClick={onClose}
+        >
+          ×
+        </button>
+
+        <span className="badge">
+          {item.gs ||
+            item.paper ||
+            "UPSC"}
+        </span>
+
+        <h2>{title}</h2>
+
+        <p className="source">
+          Source:{" "}
+          {item.source_name ||
+            "Not specified"}
+        </p>
+
+        {item.source_url && (
+          <a
+            className="source-link"
+            href={item.source_url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {hi
+              ? "Original Source देखें"
+              : "View Original Source"}
+          </a>
+        )}
+
+        {why && (
+          <>
+            <h3>
+              {hi
+                ? "Why in News"
+                : "Why in News"}
+            </h3>
+            <p>{why}</p>
+          </>
+        )}
+
+        {background && (
+          <>
+            <h3>
+              {hi
+                ? "Background"
+                : "Background"}
+            </h3>
+            <p>{background}</p>
+          </>
+        )}
+
+        {facts && (
+          <>
+            <h3>
+              {hi
+                ? "Key Facts"
+                : "Key Facts"}
+            </h3>
+            <div className="content-block">
+              {facts}
+            </div>
+          </>
+        )}
+
+        {prelims && (
+          <>
+            <h3>
+              {hi
+                ? "Prelims"
+                : "Prelims"}
+            </h3>
+            <div className="content-block">
+              {prelims}
+            </div>
+          </>
+        )}
+
+        {mains && (
+          <>
+            <h3>
+              {hi
+                ? "Mains Analysis"
+                : "Mains Analysis"}
+            </h3>
+            <div className="content-block">
+              {mains}
+            </div>
+          </>
+        )}
+
+        {item.static_link && (
+          <>
+            <h3>
+              {hi
+                ? "Static Link"
+                : "Static Link"}
+            </h3>
+            <p>{item.static_link}</p>
+          </>
+        )}
+
+        {pyqs && (
+          <>
+            <h3>
+              {hi
+                ? "Related PYQs"
+                : "Related PYQs"}
+            </h3>
+            <div className="content-block">
+              {pyqs}
+            </div>
+          </>
+        )}
+
+        {mcq && (
+          <>
+            <h3>
+              {hi
+                ? "Possible Prelims MCQ"
+                : "Possible Prelims MCQ"}
+            </h3>
+            <div className="content-block">
+              {mcq}
+            </div>
+          </>
+        )}
+
+        {mainsQuestion && (
+          <>
+            <h3>
+              {hi
+                ? "Possible Mains Question"
+                : "Possible Mains Question"}
+            </h3>
+            <div className="content-block">
+              {mainsQuestion}
+            </div>
+          </>
+        )}
+
+        {ethics && (
+          <>
+            <h3>GS-IV Ethics</h3>
+            <div className="content-block">
+              {ethics}
+            </div>
+          </>
+        )}
+
+        {premium && (
+          <div className="premium-box">
+            <strong>
+              🔥 Premium Fact
+            </strong>
+
+            <p>{premium}</p>
+          </div>
+        )}
+
+        <button
+          className="important-button modal-important"
+          disabled={importantLoading}
+          onClick={() =>
+            onImportant(item.id)
+          }
+        >
+          {important
+            ? "★ Remove from Important"
+            : "⭐ Add to Important"}
+        </button>
+      </article>
+    </div>
   );
 }
