@@ -1,610 +1,965 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 export const maxDuration = 300;
 
-function getISTMonth() {
-  const now = new Date();
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  const ist = new Date(
-    now.toLocaleString("en-US", {
-      timeZone: "Asia/Kolkata",
-    })
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const CRON_SECRET =
+  process.env.CRON_SECRET;
+
+/* ---------------------------------------
+   SUPABASE
+--------------------------------------- */
+
+async function supabaseRequest(
+  path,
+  options = {}
+) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    throw new Error(
+      "Supabase environment variables missing."
+    );
+  }
+
+  return fetch(
+    `${SUPABASE_URL}/rest/v1/${path}`,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization:
+          `Bearer ${SUPABASE_KEY}`,
+        "Content-Type":
+          "application/json",
+        ...(options.headers || {}),
+      },
+      cache: "no-store",
+    }
   );
-
-  const year = ist.getFullYear();
-  const month = String(ist.getMonth() + 1).padStart(2, "0");
-
-  return `${year}-${month}`;
 }
 
-function isValidMonth(value) {
+/* ---------------------------------------
+   MONTH
+--------------------------------------- */
+
+function validMonth(value) {
   return /^\d{4}-\d{2}$/.test(value);
 }
 
-function getMonthRange(month) {
-  const [year, monthNumber] = month.split("-").map(Number);
+function monthRange(month) {
+  const [year, monthNumber] =
+    month.split("-").map(Number);
 
-  const start = `${year}-${String(monthNumber).padStart(2, "0")}-01`;
+  const start =
+    `${year}-${String(monthNumber).padStart(
+      2,
+      "0"
+    )}-01`;
 
-  const nextMonthDate = new Date(
-    Date.UTC(year, monthNumber, 1)
-  );
+  const nextYear =
+    monthNumber === 12
+      ? year + 1
+      : year;
 
-  const nextYear = nextMonthDate.getUTCFullYear();
-  const nextMonth = String(
-    nextMonthDate.getUTCMonth() + 1
-  ).padStart(2, "0");
+  const nextMonth =
+    monthNumber === 12
+      ? 1
+      : monthNumber + 1;
 
-  const end = `${nextYear}-${nextMonth}-01`;
-
-  return { start, end };
-}
-
-function clean(value) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value).trim();
-}
-
-function articleBlock(article, index) {
-  const title =
-    clean(article.title_hi) ||
-    clean(article.title_en) ||
-    clean(article.title);
-
-  const source = clean(article.source_name);
-  const date = clean(article.date);
-  const gs = clean(article.gs);
-  const subject = clean(article.subject);
-
-  const why =
-    clean(article.why_in_news_hi) ||
-    clean(article.why_in_news_en) ||
-    clean(article.why_in_news);
-
-  const background =
-    clean(article.background_hi) ||
-    clean(article.background_en) ||
-    clean(article.background);
-
-  const facts =
-    clean(article.key_facts_hi) ||
-    clean(article.key_facts_en) ||
-    clean(article.key_facts);
-
-  const prelims =
-    clean(article.prelims_hi) ||
-    clean(article.prelims_en) ||
-    clean(article.prelims);
-
-  const mains =
-    clean(article.mains_analysis_hi) ||
-    clean(article.mains_analysis_en) ||
-    clean(article.mains_analysis);
-
-  const premium =
-    clean(article.premium_fact_hi) ||
-    clean(article.premium_fact_en) ||
-    clean(article.premium_fact);
-
-  const pyqs =
-    clean(article.related_pyqs_hi) ||
-    clean(article.related_pyqs_en) ||
-    clean(article.related_pyqs);
-
-  const mcq =
-    clean(article.prelims_mcq_hi) ||
-    clean(article.prelims_mcq_en) ||
-    clean(article.prelims_mcq);
-
-  const mainsQuestion =
-    clean(article.mains_question_hi) ||
-    clean(article.mains_question_en) ||
-    clean(article.mains_question);
-
-  const ethics =
-    clean(article.ethics_angle_hi) ||
-    clean(article.ethics_angle_en) ||
-    clean(article.ethics_angle);
-
-  const reportType = clean(article.report_type);
-  const scheme = clean(article.government_scheme);
-  const place = clean(article.important_place);
-  const personality = clean(article.personalities);
-
-  return [
-    `### ${index + 1}. ${title}`,
-    `Date: ${date}`,
-    `GS: ${gs}`,
-    `Subject: ${subject}`,
-    source ? `Source: ${source}` : "",
-    why ? `Why in News: ${why}` : "",
-    background ? `Background: ${background}` : "",
-    facts ? `Key Facts: ${facts}` : "",
-    prelims ? `Prelims: ${prelims}` : "",
-    mains ? `Mains Analysis: ${mains}` : "",
-    premium ? `Premium Fact: ${premium}` : "",
-    pyqs ? `Related PYQs: ${pyqs}` : "",
-    mcq ? `Prelims MCQ: ${mcq}` : "",
-    mainsQuestion
-      ? `Mains Question: ${mainsQuestion}`
-      : "",
-    ethics ? `Ethics Angle: ${ethics}` : "",
-    reportType ? `Report Type: ${reportType}` : "",
-    scheme ? `Government Scheme: ${scheme}` : "",
-    place ? `Important Place: ${place}` : "",
-    personality
-      ? `Important Personality: ${personality}`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-async function getArticles(month) {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      "Supabase environment variables are missing."
-    );
-  }
-
-  const { start, end } = getMonthRange(month);
-
-  const url =
-    `${supabaseUrl}/rest/v1/current_affairs` +
-    `?select=*` +
-    `&date=gte.${encodeURIComponent(start)}` +
-    `&date=lt.${encodeURIComponent(end)}` +
-    `&order=date.asc,id.asc` +
-    `&limit=1000`;
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error(
-      "MAGAZINE ARTICLES FETCH ERROR:",
-      data
-    );
-
-    throw new Error(
-      data?.message ||
-        data?.error_description ||
-        "Unable to fetch current affairs."
-    );
-  }
-
-  return Array.isArray(data) ? data : [];
-}
-
-function buildMagazine(month, articles) {
-  const monthLabel = new Date(
-    `${month}-01T00:00:00Z`
-  ).toLocaleDateString("en-IN", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-
-  const allArticles = articles
-    .map((article, index) =>
-      articleBlock(article, index)
-    )
-    .join("\n\n");
-
-  const gs1 = articles.filter((a) =>
-    String(a.gs || "")
-      .toUpperCase()
-      .includes("GS-I")
-  );
-
-  const gs2 = articles.filter((a) =>
-    String(a.gs || "")
-      .toUpperCase()
-      .includes("GS-II")
-  );
-
-  const gs3 = articles.filter((a) =>
-    String(a.gs || "")
-      .toUpperCase()
-      .includes("GS-III")
-  );
-
-  const gs4 = articles.filter((a) =>
-    String(a.gs || "")
-      .toUpperCase()
-      .includes("GS-IV")
-  );
-
-  const prelims = articles.filter(
-    (a) =>
-      clean(a.prelims) ||
-      clean(a.prelims_hi) ||
-      clean(a.prelims_en)
-  );
-
-  const reports = articles.filter(
-    (a) =>
-      clean(a.report_type) ||
-      String(a.tags || "")
-        .toLowerCase()
-        .includes("report")
-  );
-
-  const schemes = articles.filter(
-    (a) =>
-      clean(a.government_scheme) ||
-      String(a.tags || "")
-        .toLowerCase()
-        .includes("scheme")
-  );
-
-  const international = articles.filter(
-    (a) =>
-      String(a.gs || "")
-        .toUpperCase()
-        .includes("GS-II") ||
-      String(a.subject || "")
-        .toLowerCase()
-        .includes("international") ||
-      String(a.tags || "")
-        .toLowerCase()
-        .includes("international")
-  );
-
-  const places = articles.filter(
-    (a) => clean(a.important_place)
-  );
-
-  const personalities = articles.filter(
-    (a) => clean(a.personalities)
-  );
-
-  const premiumFacts = articles
-    .map((a) =>
-      clean(a.premium_fact_hi) ||
-      clean(a.premium_fact_en) ||
-      clean(a.premium_fact)
-    )
-    .filter(Boolean);
-
-  const importantCA = articles.filter(
-    (a) => a.is_important === true
-  );
-
-  const prelims100 = articles
-    .flatMap((a) => {
-      const value =
-        clean(a.prelims_hi) ||
-        clean(a.prelims_en) ||
-        clean(a.prelims);
-
-      if (!value) return [];
-
-      return [value];
-    })
-    .slice(0, 100);
-
-  const mainsThemes = articles
-    .map((a) => {
-      const title =
-        clean(a.title_hi) ||
-        clean(a.title_en) ||
-        clean(a.title);
-
-      const mains =
-        clean(a.mains_analysis_hi) ||
-        clean(a.mains_analysis_en) ||
-        clean(a.mains_analysis);
-
-      if (!title && !mains) return "";
-
-      return title
-        ? `${title}${mains ? ` — ${mains}` : ""}`
-        : mains;
-    })
-    .filter(Boolean);
-
-  const mcqs = articles
-    .map((a) =>
-      clean(a.prelims_mcq_hi) ||
-      clean(a.prelims_mcq_en) ||
-      clean(a.prelims_mcq)
-    )
-    .filter(Boolean);
-
-  const mainsQuestions = articles
-    .map((a) =>
-      clean(a.mains_question_hi) ||
-      clean(a.mains_question_en) ||
-      clean(a.mains_question)
-    )
-    .filter(Boolean);
-
-  const makeSection = (items) =>
-    items.length
-      ? items
-          .map((a, index) =>
-            articleBlock(a, index)
-          )
-          .join("\n\n")
-      : "इस section के लिए इस महीने कोई article उपलब्ध नहीं है।";
+  const end =
+    `${nextYear}-${String(nextMonth).padStart(
+      2,
+      "0"
+    )}-01`;
 
   return {
-    month_date: `${month}-01`,
-    title: `${monthLabel} Current Affairs Magazine`,
-    subtitle:
-      "UPSC Prelims + Mains के लिए Monthly Current Affairs Compilation",
-
-    overview: [
-      `${monthLabel} में कुल ${articles.length} UPSC-relevant Current Affairs articles compile किए गए हैं।`,
-      "",
-      "इस Magazine में GS-I, GS-II, GS-III, GS-IV, Prelims, Premium Facts, Reports & Indices, Government Schemes, International Relations, Important Places, Important Personalities, Mains Themes, MCQs और Mains Questions शामिल हैं।",
-    ].join("\n"),
-
-    gs1_content: makeSection(gs1),
-    gs2_content: makeSection(gs2),
-    gs3_content: makeSection(gs3),
-    gs4_content: makeSection(gs4),
-
-    prelims_content: makeSection(prelims),
-
-    premium_facts:
-      premiumFacts.length
-        ? premiumFacts
-            .map(
-              (fact, index) =>
-                `${index + 1}. ${fact}`
-            )
-            .join("\n")
-        : "इस महीने Premium Facts उपलब्ध नहीं हैं।",
-
-    important_current_affairs:
-      makeSection(importantCA),
-
-    reports_indices:
-      makeSection(reports),
-
-    government_schemes:
-      makeSection(schemes),
-
-    international_relations:
-      makeSection(international),
-
-    important_places:
-      makeSection(places),
-
-    important_personalities:
-      makeSection(personalities),
-
-    prelims_100_facts:
-      prelims100.length
-        ? prelims100
-            .map(
-              (fact, index) =>
-                `${index + 1}. ${fact}`
-            )
-            .join("\n")
-        : "इस महीने Prelims facts उपलब्ध नहीं हैं।",
-
-    mains_themes:
-      mainsThemes.length
-        ? mainsThemes
-            .map(
-              (theme, index) =>
-                `${index + 1}. ${theme}`
-            )
-            .join("\n")
-        : "इस महीने Mains themes उपलब्ध नहीं हैं।",
-
-    mind_maps:
-      "Mind Maps के लिए इस महीने के GS-wise Current Affairs को topic-wise revise किया जा सकता है।",
-
-    mcqs:
-      mcqs.length
-        ? mcqs
-            .map(
-              (question, index) =>
-                `${index + 1}. ${question}`
-            )
-            .join("\n\n")
-        : "इस महीने MCQs उपलब्ध नहीं हैं।",
-
-    mains_questions:
-      mainsQuestions.length
-        ? mainsQuestions
-            .map(
-              (question, index) =>
-                `${index + 1}. ${question}`
-            )
-            .join("\n\n")
-        : "इस महीने Mains Questions उपलब्ध नहीं हैं।",
-
-    status: "published",
+    start,
+    end,
   };
 }
 
-async function deleteExistingMagazine(
-  month,
-  supabaseUrl,
-  supabaseKey
-) {
-  const monthDate = `${month}-01`;
+/* ---------------------------------------
+   TEXT
+--------------------------------------- */
 
-  const url =
-    `${supabaseUrl}/rest/v1/current_affairs_magazines` +
-    `?month_date=eq.${encodeURIComponent(monthDate)}`;
-
-  const response = await fetch(url, {
-    method: "DELETE",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-  });
-
-  if (!response.ok) {
-    const data = await response.text();
-
-    console.error(
-      "MAGAZINE DELETE ERROR:",
-      data
-    );
-
-    throw new Error(
-      data || "Unable to delete existing magazine."
-    );
-  }
+function clean(value = "") {
+  return String(value)
+    .replace(/\r/g, "")
+    .trim();
 }
 
-async function saveMagazine(magazine) {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
+function titleOf(item) {
+  return (
+    clean(item.title_hi) ||
+    clean(item.title_en) ||
+    clean(item.title) ||
+    "Current Affair"
+  );
+}
 
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function factOf(item) {
+  return (
+    clean(item.premium_fact_hi) ||
+    clean(item.premium_fact_en) ||
+    clean(item.premium_fact) ||
+    ""
+  );
+}
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      "Supabase environment variables are missing."
+/* ---------------------------------------
+   ARTICLE FORMATTER
+--------------------------------------- */
+
+function articleBlock(item) {
+  const title =
+    titleOf(item);
+
+  const fact =
+    factOf(item);
+
+  const keyFacts =
+    clean(item.key_facts_hi) ||
+    clean(item.key_facts_en) ||
+    clean(item.key_facts);
+
+  const prelims =
+    clean(item.prelims_hi) ||
+    clean(item.prelims_en) ||
+    clean(item.prelims);
+
+  const mains =
+    clean(item.mains_analysis_hi) ||
+    clean(item.mains_analysis_en) ||
+    clean(item.mains_analysis);
+
+  const source =
+    clean(item.source_name);
+
+  const date =
+    clean(item.date);
+
+  const lines = [
+    `• ${title}`,
+  ];
+
+  if (fact) {
+    lines.push(
+      `Fact: ${fact}`
     );
   }
 
-  await deleteExistingMagazine(
-    magazine.month_date.substring(0, 7),
-    supabaseUrl,
-    supabaseKey
+  if (keyFacts) {
+    lines.push(
+      `Key Facts: ${keyFacts}`
+    );
+  }
+
+  if (prelims) {
+    lines.push(
+      `Prelims: ${prelims}`
+    );
+  }
+
+  if (mains) {
+    lines.push(
+      `Mains: ${mains}`
+    );
+  }
+
+  if (source) {
+    lines.push(
+      `Source: ${source}${date ? ` | ${date}` : ""}`
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/* ---------------------------------------
+   GROUP
+--------------------------------------- */
+
+function byGS(
+  articles,
+  gs
+) {
+  return articles.filter(
+    (item) =>
+      String(
+        item.gs || item.paper || ""
+      )
+        .toUpperCase()
+        .includes(gs)
   );
+}
 
-  const url =
-    `${supabaseUrl}/rest/v1/current_affairs_magazines`;
+function buildGSContent(
+  articles,
+  gs
+) {
+  const items =
+    byGS(articles, gs);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(magazine),
-  });
+  if (!items.length) {
+    return "";
+  }
 
-  const data = await response.json();
+  return items
+    .map(articleBlock)
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   PRELIMS
+--------------------------------------- */
+
+function buildPrelims(
+  articles
+) {
+  const items =
+    articles.filter(
+      (item) =>
+        item.prelims ||
+        item.prelims_hi ||
+        item.prelims_en ||
+        item.prelims_mcq ||
+        item.prelims_mcq_hi ||
+        item.prelims_mcq_en
+    );
+
+  return items
+    .map((item) => {
+      const title =
+        titleOf(item);
+
+      const prelims =
+        clean(item.prelims_hi) ||
+        clean(item.prelims_en) ||
+        clean(item.prelims);
+
+      const mcq =
+        clean(item.prelims_mcq_hi) ||
+        clean(item.prelims_mcq_en) ||
+        clean(item.prelims_mcq);
+
+      return [
+        `• ${title}`,
+        prelims
+          ? `Fact: ${prelims}`
+          : "",
+        mcq
+          ? `MCQ: ${mcq}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   PREMIUM FACTS
+--------------------------------------- */
+
+function buildPremiumFacts(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        factOf(item)
+    )
+    .map((item) => {
+      const fact =
+        factOf(item);
+
+      const title =
+        titleOf(item);
+
+      return `• ${fact}\n  — ${title}`;
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   IMPORTANT CURRENT AFFAIRS
+--------------------------------------- */
+
+function buildImportant(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.is_important === true
+    )
+    .map(articleBlock)
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   REPORTS
+--------------------------------------- */
+
+function buildReports(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.report_type ||
+        /report|index|survey|ranking|indicator/i.test(
+          `${item.tags || ""} ${
+            item.subject || ""
+          }`
+        )
+    )
+    .map((item) => {
+      const title =
+        titleOf(item);
+
+      const type =
+        clean(item.report_type);
+
+      const facts =
+        clean(item.key_facts_hi) ||
+        clean(item.key_facts_en) ||
+        clean(item.key_facts);
+
+      return [
+        `• ${title}`,
+        type
+          ? `Type: ${type}`
+          : "",
+        facts
+          ? `Key Facts: ${facts}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   SCHEMES
+--------------------------------------- */
+
+function buildSchemes(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.government_scheme ||
+        /scheme|yojana|mission|programme|program/i.test(
+          `${item.tags || ""} ${
+            item.subject || ""
+          }`
+        )
+    )
+    .map((item) => {
+      const title =
+        titleOf(item);
+
+      const scheme =
+        clean(
+          item.government_scheme
+        );
+
+      const facts =
+        clean(item.key_facts_hi) ||
+        clean(item.key_facts_en) ||
+        clean(item.key_facts);
+
+      return [
+        `• ${title}`,
+        scheme
+          ? `Scheme: ${scheme}`
+          : "",
+        facts
+          ? `Key Facts: ${facts}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   IR
+--------------------------------------- */
+
+function buildIR(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.gs === "GS-II" ||
+        item.paper === "GS-II" ||
+        /international|bilateral|multilateral|foreign|g20|un |summit|treaty|agreement/i.test(
+          `${item.title || ""} ${
+            item.title_en || ""
+          } ${item.tags || ""}`
+        )
+    )
+    .map(articleBlock)
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   PLACES
+--------------------------------------- */
+
+function buildPlaces(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.important_place
+    )
+    .map(
+      (item) =>
+        `• ${item.important_place}\n  ${titleOf(
+          item
+        )}`
+    )
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   PERSONALITIES
+--------------------------------------- */
+
+function buildPersonalities(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.personalities
+    )
+    .map(
+      (item) =>
+        `• ${item.personalities}\n  ${titleOf(
+          item
+        )}`
+    )
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   100 PRELIMS FACTS
+--------------------------------------- */
+
+function build100Facts(
+  articles
+) {
+  const facts = [];
+
+  for (
+    const item of articles
+  ) {
+    const fact =
+      factOf(item);
+
+    if (!fact) {
+      continue;
+    }
+
+    facts.push(
+      fact
+    );
+
+    if (
+      facts.length >= 100
+    ) {
+      break;
+    }
+  }
+
+  return facts
+    .map(
+      (fact, index) =>
+        `${index + 1}. ${fact}`
+    )
+    .join("\n");
+}
+
+/* ---------------------------------------
+   MAINS THEMES
+--------------------------------------- */
+
+function buildMainsThemes(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.mains_analysis ||
+        item.mains_analysis_hi ||
+        item.mains_analysis_en ||
+        item.mains_question ||
+        item.mains_question_hi ||
+        item.mains_question_en
+    )
+    .map((item) => {
+      const title =
+        titleOf(item);
+
+      const analysis =
+        clean(
+          item.mains_analysis_hi
+        ) ||
+        clean(
+          item.mains_analysis_en
+        ) ||
+        clean(
+          item.mains_analysis
+        );
+
+      const question =
+        clean(
+          item.mains_question_hi
+        ) ||
+        clean(
+          item.mains_question_en
+        ) ||
+        clean(
+          item.mains_question
+        );
+
+      return [
+        `• ${title}`,
+        analysis
+          ? `Analysis: ${analysis}`
+          : "",
+        question
+          ? `Question: ${question}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   MIND MAPS
+--------------------------------------- */
+
+function buildMindMaps(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.gs ||
+        item.subject
+    )
+    .map((item) => {
+      const title =
+        titleOf(item);
+
+      const gs =
+        item.gs ||
+        item.paper ||
+        "UPSC";
+
+      const subject =
+        item.subject ||
+        "Current Affairs";
+
+      return [
+        `• ${title}`,
+        `GS: ${gs}`,
+        `Subject: ${subject}`,
+        "→ Background → Significance → Challenges → Way Forward",
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   MCQs
+--------------------------------------- */
+
+function buildMCQs(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.prelims_mcq ||
+        item.prelims_mcq_hi ||
+        item.prelims_mcq_en
+    )
+    .map((item, index) => {
+      const mcq =
+        clean(
+          item.prelims_mcq_hi
+        ) ||
+        clean(
+          item.prelims_mcq_en
+        ) ||
+        clean(
+          item.prelims_mcq
+        );
+
+      return `${index + 1}. ${mcq}`;
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   MAINS QUESTIONS
+--------------------------------------- */
+
+function buildMainsQuestions(
+  articles
+) {
+  return articles
+    .filter(
+      (item) =>
+        item.mains_question ||
+        item.mains_question_hi ||
+        item.mains_question_en
+    )
+    .map((item, index) => {
+      const question =
+        clean(
+          item.mains_question_hi
+        ) ||
+        clean(
+          item.mains_question_en
+        ) ||
+        clean(
+          item.mains_question
+        );
+
+      return `${index + 1}. ${question}`;
+    })
+    .join("\n\n");
+}
+
+/* ---------------------------------------
+   MAGAZINE OBJECT
+--------------------------------------- */
+
+function buildMagazine(
+  month,
+  articles
+) {
+  const [
+    year,
+    monthNumber,
+  ] = month.split("-");
+
+  const monthName =
+    new Date(
+      Number(year),
+      Number(monthNumber) - 1,
+      1
+    ).toLocaleDateString(
+      "en-IN",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
+
+  return {
+    month_date:
+      `${month}-01`,
+
+    title:
+      `SAMBHAV UPSC — ${monthName} Monthly Current Affairs`,
+
+    subtitle:
+      `${articles.length} UPSC-relevant current affairs compiled for monthly revision.`,
+
+    overview:
+      `This monthly magazine compiles the UPSC-relevant Current Affairs collected during ${monthName}. It is organised paper-wise and topic-wise for Prelims and Mains revision.`,
+
+    gs1_content:
+      buildGSContent(
+        articles,
+        "GS-I"
+      ),
+
+    gs2_content:
+      buildGSContent(
+        articles,
+        "GS-II"
+      ),
+
+    gs3_content:
+      buildGSContent(
+        articles,
+        "GS-III"
+      ),
+
+    gs4_content:
+      buildGSContent(
+        articles,
+        "GS-IV"
+      ),
+
+    prelims_content:
+      buildPrelims(
+        articles
+      ),
+
+    premium_facts:
+      buildPremiumFacts(
+        articles
+      ),
+
+    important_current_affairs:
+      buildImportant(
+        articles
+      ),
+
+    reports_indices:
+      buildReports(
+        articles
+      ),
+
+    government_schemes:
+      buildSchemes(
+        articles
+      ),
+
+    international_relations:
+      buildIR(
+        articles
+      ),
+
+    important_places:
+      buildPlaces(
+        articles
+      ),
+
+    important_personalities:
+      buildPersonalities(
+        articles
+      ),
+
+    prelims_100_facts:
+      build100Facts(
+        articles
+      ),
+
+    mains_themes:
+      buildMainsThemes(
+        articles
+      ),
+
+    mind_maps:
+      buildMindMaps(
+        articles
+      ),
+
+    mcqs:
+      buildMCQs(
+        articles
+      ),
+
+    mains_questions:
+      buildMainsQuestions(
+        articles
+      ),
+
+    status:
+      "published",
+  };
+}
+
+/* ---------------------------------------
+   GET MONTH ARTICLES
+--------------------------------------- */
+
+async function getArticles(
+  month
+) {
+  const {
+    start,
+    end,
+  } = monthRange(month);
+
+  const path =
+    `current_affairs?select=*` +
+    `&date=gte.${start}` +
+    `&date=lt.${end}` +
+    `&order=date.asc` +
+    `&limit=1000`;
+
+  const response =
+    await supabaseRequest(
+      path
+    );
+
+  const text =
+    await response.text();
 
   if (!response.ok) {
-    console.error(
-      "MAGAZINE SAVE ERROR:",
-      data
-    );
-
     throw new Error(
-      data?.message ||
-        data?.hint ||
-        data?.details ||
-        "Unable to save magazine."
+      `Current Affairs fetch failed: ${text}`
     );
   }
+
+  return JSON.parse(
+    text
+  );
+}
+
+/* ---------------------------------------
+   SAVE MAGAZINE
+--------------------------------------- */
+
+async function saveMagazine(
+  magazine
+) {
+  /*
+   * Delete the old version first.
+   * This makes regeneration safe.
+   */
+
+  const deleteResponse =
+    await supabaseRequest(
+      `current_affairs_magazines?month_date=eq.${encodeURIComponent(
+        magazine.month_date
+      )}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+  if (
+    !deleteResponse.ok
+  ) {
+    throw new Error(
+      `Old magazine removal failed: ${await deleteResponse.text()}`
+    );
+  }
+
+  const response =
+    await supabaseRequest(
+      "current_affairs_magazines",
+      {
+        method: "POST",
+        headers: {
+          Prefer:
+            "return=representation",
+        },
+        body:
+          JSON.stringify(
+            magazine
+          ),
+      }
+    );
+
+  const text =
+    await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Magazine save failed: ${text}`
+    );
+  }
+
+  const data =
+    JSON.parse(text);
 
   return Array.isArray(data)
     ? data[0]
     : data;
 }
 
-async function generateMagazine(request) {
+/* ---------------------------------------
+   POST
+--------------------------------------- */
+
+export async function POST(
+  request
+) {
   try {
-    console.log(
-      "MAGAZINE GENERATION REQUEST:",
-      request.method
-    );
-
-    const cronSecret =
-      process.env.CRON_SECRET;
-
-    if (!cronSecret) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "CRON_SECRET is not configured.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const authorization =
-      request.headers.get("authorization");
-
-    if (
-      authorization !==
-      `Bearer ${cronSecret}`
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized.",
-        },
-        { status: 401 }
-      );
-    }
-
-    let month = getISTMonth();
-
-    if (request.method === "POST") {
-      try {
-        const body = await request.json();
-
-        if (
-          body?.month &&
-          isValidMonth(body.month)
-        ) {
-          month = body.month;
-        }
-      } catch {
-        // Empty POST body is allowed.
-      }
-    }
-
-    const url = new URL(request.url);
-
-    const queryMonth =
-      url.searchParams.get("month");
-
-    if (
-      queryMonth &&
-      isValidMonth(queryMonth)
-    ) {
-      month = queryMonth;
-    }
-
-    if (!isValidMonth(month)) {
+    if (!CRON_SECRET) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Valid month is required in YYYY-MM format.",
+            "CRON_SECRET environment variable missing.",
         },
-        { status: 400 }
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const auth =
+      request.headers.get(
+        "authorization"
+      );
+
+    if (
+      auth !==
+      `Bearer ${CRON_SECRET}`
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const body =
+      await request.json().catch(
+        () => ({})
+      );
+
+    const currentMonth =
+      new Intl.DateTimeFormat(
+        "en-CA",
+        {
+          timeZone:
+            "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+        }
+      ).format(
+        new Date()
+      );
+
+    const month =
+      body?.month ||
+      currentMonth;
+
+    if (
+      !validMonth(month)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Month must be YYYY-MM.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
@@ -614,7 +969,9 @@ async function generateMagazine(request) {
     );
 
     const articles =
-      await getArticles(month);
+      await getArticles(
+        month
+      );
 
     console.log(
       "MAGAZINE SOURCE ARTICLES:",
@@ -622,36 +979,42 @@ async function generateMagazine(request) {
     );
 
     if (!articles.length) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            `No Current Affairs articles found for ${month}.`,
-          month,
-          articles_found: 0,
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: true,
+        month,
+        articles_used: 0,
+        magazine_created: false,
+        message:
+          "No Current Affairs found for this month.",
+      });
     }
 
     const magazine =
-      buildMagazine(month, articles);
+      buildMagazine(
+        month,
+        articles
+      );
 
     const saved =
-      await saveMagazine(magazine);
+      await saveMagazine(
+        magazine
+      );
 
     console.log(
       "MAGAZINE GENERATED:",
-      month
+      month,
+      saved?.id
     );
 
     return NextResponse.json({
       success: true,
-      message:
-        "Monthly Current Affairs Magazine generated successfully.",
       month,
-      articles_found: articles.length,
-      magazine_id: saved?.id || null,
+      articles_used:
+        articles.length,
+      magazine_created:
+        true,
+      magazine_id:
+        saved?.id || null,
     });
   } catch (error) {
     console.error(
@@ -666,15 +1029,19 @@ async function generateMagazine(request) {
           error?.message ||
           "Magazine generation failed.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
-export async function GET(request) {
-  return generateMagazine(request);
-}
+/* ---------------------------------------
+   GET — VERCEL CRON
+--------------------------------------- */
 
-export async function POST(request) {
-  return generateMagazine(request);
+export async function GET(
+  request
+) {
+  return POST(request);
 }
