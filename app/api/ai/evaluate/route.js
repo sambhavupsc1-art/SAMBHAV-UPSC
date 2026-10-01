@@ -2,9 +2,23 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const MODEL =
-  process.env.GEMINI_EVALUATION_MODEL ||
-  "gemini-3.8-flash";
+/*
+ * Model priority:
+ *
+ * 1. Gemini 3.8 Flash
+ * 2. Gemini 3.7 Flash
+ * 3. Gemini 3.6 Flash
+ * 4. Gemini 3.5 Flash
+ *
+ * Temporary 429 / 5xx errors par automatically next model try hoga.
+ */
+
+const MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+];
 
 const SYSTEM_INSTRUCTIONS = `
 You are an expert UPSC Civil Services Examination Mains evaluator.
@@ -577,12 +591,277 @@ function cleanJsonText(text) {
   return cleaned;
 }
 
+function shouldFallback(status, details) {
+  if (
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  ) {
+    return true;
+  }
+
+  const message =
+    String(details || "").toLowerCase();
+
+  return (
+    message.includes("high demand") ||
+    message.includes("overloaded") ||
+    message.includes("temporarily unavailable") ||
+    message.includes("capacity") ||
+    message.includes("try again later")
+  );
+}
+
 async function fileToBase64(file) {
   const buffer = Buffer.from(
     await file.arrayBuffer()
   );
 
   return buffer.toString("base64");
+}
+
+async function callGemini({
+  model,
+  apiKey,
+  input,
+}) {
+  const endpoint =
+    "https://generativelanguage.googleapis.com/v1beta/interactions";
+
+  const body = {
+    model,
+
+    input,
+
+    response_format: {
+      type: "text",
+
+      mime_type:
+        "application/json",
+
+      schema:
+        EVALUATION_SCHEMA,
+    },
+  };
+
+  const response =
+    await fetch(
+      endpoint,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "x-goog-api-key":
+            apiKey,
+        },
+
+        body:
+          JSON.stringify(body),
+      }
+    );
+
+  const responseText =
+    await response.text();
+
+  if (!response.ok) {
+    let details =
+      responseText;
+
+    try {
+      const parsed =
+        JSON.parse(
+          responseText
+        );
+
+      details =
+        parsed?.error?.message ||
+        parsed?.error?.status ||
+        responseText;
+    } catch {
+      // Keep raw response.
+    }
+
+    return {
+      success: false,
+
+      status:
+        response.status,
+
+      details:
+        String(details).slice(
+          0,
+          2000
+        ),
+    };
+  }
+
+  let data;
+
+  try {
+    data =
+      JSON.parse(
+        responseText
+      );
+  } catch {
+    return {
+      success: false,
+
+      status: 502,
+
+      details:
+        "Gemini returned invalid JSON response.",
+    };
+  }
+
+  let outputText = "";
+
+  /*
+   * Interactions API output.
+   */
+
+  const steps =
+    Array.isArray(data?.steps)
+      ? data.steps
+      : [];
+
+  for (
+    const step of steps
+  ) {
+    if (
+      step?.type !==
+      "model_output"
+    ) {
+      continue;
+    }
+
+    const contents =
+      Array.isArray(
+        step?.content
+      )
+        ? step.content
+        : [];
+
+    for (
+      const content of contents
+    ) {
+      if (
+        typeof content?.text ===
+        "string"
+      ) {
+        outputText +=
+          content.text;
+      }
+    }
+  }
+
+  /*
+   * Additional response shape fallback.
+   */
+
+  if (
+    !outputText &&
+    typeof data?.output_text ===
+      "string"
+  ) {
+    outputText =
+      data.output_text;
+  }
+
+  /*
+   * Additional direct output fallback.
+   */
+
+  if (
+    !outputText &&
+    Array.isArray(
+      data?.output
+    )
+  ) {
+    for (
+      const item of
+        data.output
+    ) {
+      if (
+        typeof item?.text ===
+        "string"
+      ) {
+        outputText +=
+          item.text;
+      }
+
+      if (
+        Array.isArray(
+          item?.content
+        )
+      ) {
+        for (
+          const content of
+            item.content
+        ) {
+          if (
+            typeof content?.text ===
+            "string"
+          ) {
+            outputText +=
+              content.text;
+          }
+        }
+      }
+    }
+  }
+
+  outputText =
+    cleanJsonText(
+      outputText
+    );
+
+  if (!outputText) {
+    return {
+      success: false,
+
+      status: 502,
+
+      details:
+        `Gemini returned empty output. Interaction status: ${
+          data?.status ||
+          "unknown"
+        }`,
+    };
+  }
+
+  let evaluation;
+
+  try {
+    evaluation =
+      JSON.parse(
+        outputText
+      );
+  } catch {
+    return {
+      success: false,
+
+      status: 502,
+
+      details:
+        `Gemini returned invalid evaluation JSON: ${outputText.slice(
+          0,
+          1500
+        )}`,
+    };
+  }
+
+  return {
+    success: true,
+
+    evaluation,
+
+    response: data,
+  };
 }
 
 export async function POST(request) {
@@ -595,10 +874,10 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error:
-            "Gemini API key is missing on the server.",
+            "Gemini API key is missing.",
 
           details:
-            "Add GEMINI_API_KEY in Vercel Environment Variables.",
+            "Add GEMINI_API_KEY to Vercel Environment Variables.",
         },
         {
           status: 500,
@@ -609,26 +888,43 @@ export async function POST(request) {
     const formData =
       await request.formData();
 
-    const question = String(
-      formData.get("question") || ""
-    ).trim();
+    const question =
+      String(
+        formData.get(
+          "question"
+        ) || ""
+      ).trim();
 
-    const paper = String(
-      formData.get("paper") || "GS"
-    ).trim();
+    const paper =
+      String(
+        formData.get(
+          "paper"
+        ) || "GS"
+      ).trim();
 
-    const section = String(
-      formData.get("section") || ""
-    ).trim();
+    const section =
+      String(
+        formData.get(
+          "section"
+        ) || ""
+      ).trim();
 
-    const marks = Number(
-      formData.get("marks") || 15
-    );
+    const marks =
+      Number(
+        formData.get(
+          "marks"
+        ) || 15
+      );
 
-    const wordLimit = Number(
-      formData.get("word_limit") ||
-        (marks <= 10 ? 150 : 250)
-    );
+    const wordLimit =
+      Number(
+        formData.get(
+          "word_limit"
+        ) ||
+          (marks <= 10
+            ? 150
+            : 250)
+      );
 
     if (!question) {
       return NextResponse.json(
@@ -643,7 +939,9 @@ export async function POST(request) {
     }
 
     if (
-      !Number.isFinite(marks) ||
+      !Number.isFinite(
+        marks
+      ) ||
       marks <= 0 ||
       marks > 100
     ) {
@@ -659,25 +957,35 @@ export async function POST(request) {
     }
 
     /*
-     * Read up to 4 handwritten answer pages.
+     * Read maximum 4 handwritten pages.
      */
 
     const imageFiles = [];
 
-    for (let i = 1; i <= 4; i++) {
+    for (
+      let i = 1;
+      i <= 4;
+      i++
+    ) {
       const file =
-        formData.get(`image_${i}`);
+        formData.get(
+          `image_${i}`
+        );
 
       if (
         file &&
         typeof file.arrayBuffer ===
           "function"
       ) {
-        imageFiles.push(file);
+        imageFiles.push(
+          file
+        );
       }
     }
 
-    if (imageFiles.length === 0) {
+    if (
+      imageFiles.length === 0
+    ) {
       return NextResponse.json(
         {
           error:
@@ -689,7 +997,9 @@ export async function POST(request) {
       );
     }
 
-    if (imageFiles.length > 4) {
+    if (
+      imageFiles.length > 4
+    ) {
       return NextResponse.json(
         {
           error:
@@ -702,8 +1012,7 @@ export async function POST(request) {
     }
 
     /*
-     * Gemini Interactions API accepts image
-     * content using base64 inline data.
+     * Convert all pages to image input.
      */
 
     const imageInputs = [];
@@ -713,10 +1022,12 @@ export async function POST(request) {
       i < imageFiles.length;
       i++
     ) {
-      const file = imageFiles[i];
+      const file =
+        imageFiles[i];
 
       const mimeType =
-        file.type || "image/jpeg";
+        file.type ||
+        "image/jpeg";
 
       const allowedTypes = [
         "image/jpeg",
@@ -732,7 +1043,9 @@ export async function POST(request) {
         return NextResponse.json(
           {
             error:
-              `Page ${i + 1} must be JPG, PNG or WEBP.`,
+              `Page ${
+                i + 1
+              } must be JPG, PNG or WEBP.`,
           },
           {
             status: 400,
@@ -742,12 +1055,16 @@ export async function POST(request) {
 
       if (
         file.size >
-        8 * 1024 * 1024
+        8 *
+          1024 *
+          1024
       ) {
         return NextResponse.json(
           {
             error:
-              `Page ${i + 1} exceeds 8MB.`,
+              `Page ${
+                i + 1
+              } exceeds 8MB.`,
           },
           {
             status: 400,
@@ -756,19 +1073,22 @@ export async function POST(request) {
       }
 
       const base64 =
-        await fileToBase64(file);
+        await fileToBase64(
+          file
+        );
 
       imageInputs.push({
         type: "image",
 
         data: base64,
 
-        mime_type: mimeType,
+        mime_type:
+          mimeType,
       });
     }
 
     const userPrompt = `
-Evaluate the following UPSC Civil Services Examination Mains answer.
+Evaluate this UPSC Civil Services Examination Mains handwritten answer.
 
 QUESTION:
 ${question}
@@ -788,96 +1108,58 @@ ${wordLimit}
 NUMBER OF ANSWER PAGES:
 ${imageFiles.length}
 
-The images supplied after this instruction are handwritten pages
-of ONE continuous answer.
+The supplied images are pages of ONE continuous answer.
 
-Read them strictly in this order:
+Read all pages in order.
 
-Page 1
-Page 2
-Page 3
-Page 4
+Do not evaluate pages independently.
 
-Only the pages actually supplied exist.
+First understand the question and directive.
 
-IMPORTANT EVALUATION RULES:
+Then compare the actual answer against the question demand.
 
-1. First understand the question.
-2. Identify its directive.
-3. Identify its core demand.
-4. Identify the expected dimensions.
-5. Then evaluate the candidate answer against that demand.
-6. Read all pages together.
-7. Do not evaluate each page independently.
-8. Do not invent unreadable text.
-9. Do not assume an argument exists if it cannot be reasonably read.
-10. Do not reward handwriting quality itself.
-11. Do not inflate marks.
-12. Do not give an official UPSC score.
-
-A strong answer should demonstrate:
-- direct question demand fulfilment
-- appropriate directive handling
-- relevant dimensions
-- analytical depth
-- examples
-- data where useful
-- constitutional/institutional references where relevant
-- balance
+Evaluate:
+- demand fulfilment
+- relevance
+- content
+- analysis
+- dimensions
 - structure
-- useful introduction
-- relevant body
-- meaningful conclusion
-- appropriate way forward where required
+- introduction
+- body
+- examples
+- data
+- factual accuracy
+- conclusion
+- balance
+- current affairs linkage where relevant
+- constitutional/institutional references where relevant
+- word-limit discipline
 
-Penalise:
-- generic content
-- irrelevant content
-- repetition
-- weak analysis
-- factual errors
-- missing dimensions
-- poor directive handling
-- unsupported claims
-- weak conclusion
-- excessive introduction
-- failure to answer the actual question
+Do not invent unreadable text.
 
-For factual accuracy:
-Only identify an error when there is reasonable basis.
-Do not invent corrections.
+Do not invent facts.
 
-For missing dimensions:
-Explain why the dimension matters and how the candidate could include it.
+Do not reward handwriting quality itself.
 
-For point-level feedback:
-Give feedback on actual points visible in the candidate's answer.
-
-For improvement:
-Give practical advice that can be used in the next UPSC answer.
+Do not artificially inflate marks.
 
 The final score must be between 0 and ${marks}.
+
+Give practical feedback useful for the next UPSC Mains answer.
 `;
-
-    /*
-     * Gemini Interactions API.
-     *
-     * This replaces the old OpenAI API and the old
-     * Gemini generateContent endpoint.
-     */
-
-    const endpoint =
-      `https://generativelanguage.googleapis.com/v1beta/interactions`;
 
     const input = [
       {
         type: "text",
+
         text:
           SYSTEM_INSTRUCTIONS,
       },
 
       {
         type: "text",
+
         text:
           userPrompt,
       },
@@ -885,224 +1167,120 @@ The final score must be between 0 and ${marks}.
       ...imageInputs,
     ];
 
-    const requestBody = {
-      model: MODEL,
-
-      input,
-
-      response_format: {
-        type: "text",
-
-        mime_type:
-          "application/json",
-
-        schema:
-          EVALUATION_SCHEMA,
-      },
-    };
-
-    const geminiResponse =
-      await fetch(
-        endpoint,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-goog-api-key":
-              apiKey,
-          },
-
-          body:
-            JSON.stringify(
-              requestBody
-            ),
-        }
-      );
-
-    const responseText =
-      await geminiResponse.text();
-
     /*
-     * Return actual Gemini error.
+     * FALLBACK CASCADE
+     *
+     * 3.8 → 3.7 → 3.6 → 3.5
      */
 
-    if (!geminiResponse.ok) {
-      console.error(
-        "Gemini API status:",
-        geminiResponse.status
-      );
+    let lastFailure =
+      null;
 
-      console.error(
-        "Gemini API response:",
-        responseText
-      );
+    let successfulModel =
+      null;
 
-      let details =
-        responseText;
-
-      try {
-        const parsed =
-          JSON.parse(
-            responseText
-          );
-
-        details =
-          parsed?.error?.message ||
-          parsed?.error?.status ||
-          responseText;
-      } catch {
-        // Keep raw response.
-      }
-
-      return NextResponse.json(
-        {
-          error:
-            "Gemini evaluation request failed.",
-
-          gemini_status:
-            geminiResponse.status,
-
-          details:
-            String(
-              details
-            ).slice(0, 2000),
-        },
-        {
-          status: 502,
-        }
-      );
-    }
-
-    let geminiData;
-
-    try {
-      geminiData =
-        JSON.parse(
-          responseText
-        );
-    } catch {
-      return NextResponse.json(
-        {
-          error:
-            "Gemini returned invalid response data.",
-
-          details:
-            responseText.slice(
-              0,
-              2000
-            ),
-        },
-        {
-          status: 502,
-        }
-      );
-    }
-
-    /*
-     * Interactions API returns output steps.
-     */
-
-    let outputText = "";
-
-    const steps =
-      geminiData?.steps ||
-      [];
+    let evaluation =
+      null;
 
     for (
-      const step of steps
+      let index = 0;
+      index < MODELS.length;
+      index++
     ) {
-      if (
-        step?.type ===
-        "model_output"
-      ) {
-        const contents =
-          step?.content ||
-          [];
+      const model =
+        MODELS[index];
 
-        for (
-          const content of contents
-        ) {
-          if (
-            content?.type ===
-              "text" &&
-            typeof content?.text ===
-              "string"
-          ) {
-            outputText +=
-              content.text;
+      console.log(
+        `Trying Gemini model: ${model}`
+      );
+
+      const result =
+        await callGemini({
+          model,
+
+          apiKey,
+
+          input,
+        });
+
+      if (
+        result.success
+      ) {
+        evaluation =
+          result.evaluation;
+
+        successfulModel =
+          model;
+
+        break;
+      }
+
+      lastFailure =
+        result;
+
+      console.error(
+        `Gemini ${model} failed:`,
+        result.status,
+        result.details
+      );
+
+      /*
+       * Only temporary/capacity errors
+       * should trigger fallback.
+       *
+       * Permanent errors like 400/401/403
+       * should stop immediately.
+       */
+
+      if (
+        !shouldFallback(
+          result.status,
+          result.details
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Gemini evaluation request failed.",
+
+            gemini_status:
+              result.status,
+
+            details:
+              result.details,
+
+            model,
+          },
+          {
+            status: 502,
           }
-        }
+        );
       }
     }
 
     /*
-     * Some responses may expose output_text
-     * directly.
+     * All models failed.
      */
 
     if (
-      !outputText &&
-      typeof geminiData?.output_text ===
-        "string"
+      !evaluation ||
+      !successfulModel
     ) {
-      outputText =
-        geminiData.output_text;
-    }
-
-    outputText =
-      cleanJsonText(
-        outputText
-      );
-
-    if (!outputText) {
       return NextResponse.json(
         {
           error:
-            "Gemini returned empty evaluation.",
+            "All Gemini evaluation models are temporarily unavailable.",
+
+          gemini_status:
+            lastFailure?.status ||
+            502,
 
           details:
-            `Interaction status: ${
-              geminiData?.status ||
-              "unknown"
-            }`,
-        },
-        {
-          status: 502,
-        }
-      );
-    }
+            lastFailure?.details ||
+            "All fallback models failed.",
 
-    let evaluation;
-
-    try {
-      evaluation =
-        JSON.parse(
-          outputText
-        );
-    } catch (error) {
-      console.error(
-        "Gemini JSON parse error:",
-        error
-      );
-
-      console.error(
-        "Raw Gemini output:",
-        outputText
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Gemini evaluation JSON format invalid.",
-
-          details:
-            outputText.slice(
-              0,
-              2000
-            ),
+          attempted_models:
+            MODELS,
         },
         {
           status: 502,
@@ -1111,7 +1289,7 @@ The final score must be between 0 and ${marks}.
     }
 
     /*
-     * Score safety.
+     * Final score safety.
      */
 
     evaluation.maximum_marks =
@@ -1136,7 +1314,7 @@ The final score must be between 0 and ${marks}.
       );
 
     /*
-     * Return exactly the structure expected
+     * Return the same structure expected
      * by the existing SAMBHAV UPSC frontend.
      */
 
@@ -1151,7 +1329,14 @@ The final score must be between 0 and ${marks}.
             "google-gemini",
 
           model:
-            MODEL,
+            successfulModel,
+
+          fallback_used:
+            successfulModel !==
+            MODELS[0],
+
+          attempted_models:
+            MODELS,
 
           paper,
 
@@ -1186,7 +1371,10 @@ The final score must be between 0 and ${marks}.
           error?.stack
             ? String(
                 error.stack
-              ).slice(0, 2000)
+              ).slice(
+                0,
+                2000
+              )
             : undefined,
       },
       {
