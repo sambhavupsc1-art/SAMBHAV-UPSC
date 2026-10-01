@@ -61,7 +61,7 @@ export async function GET(request) {
     }
 
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?select=telegram_id,first_name,username,status,created_at&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/users?select=telegram_id,first_name,username,status,plan,created_at,approved_at,approved_by&order=created_at.desc`,
       {
         headers: {
           apikey: SUPABASE_SECRET_KEY,
@@ -81,11 +81,7 @@ export async function GET(request) {
       );
     }
 
-    const allUsers = await response.json();
-
-    const users = allUsers.filter(
-      (user) => user.status === "pending"
-    );
+    const users = await response.json();
 
     return NextResponse.json({
       users,
@@ -140,6 +136,18 @@ export async function POST(request) {
       );
     }
 
+    const updateData = {
+      status,
+      approved_at:
+        status === "approved"
+          ? new Date().toISOString()
+          : null,
+      approved_by:
+        status === "approved"
+          ? auth.admin.id
+          : null,
+    };
+
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramId}`,
       {
@@ -150,17 +158,7 @@ export async function POST(request) {
           Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
           Prefer: "return=minimal",
         },
-        body: JSON.stringify({
-          status,
-          approved_at:
-            status === "approved"
-              ? new Date().toISOString()
-              : null,
-          approved_by:
-            status === "approved"
-              ? auth.admin.id
-              : null,
-        }),
+        body: JSON.stringify(updateData),
       }
     );
 
