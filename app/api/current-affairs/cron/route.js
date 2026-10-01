@@ -67,11 +67,10 @@ function stripHtml(value = "") {
 function normalizeUrl(value = "") {
   let url = decodeHtml(value)
     .replace(/&amp;/gi, "&")
+    .replace(/^['"]|['"]$/g, "")
     .trim();
 
   if (!url) return "";
-
-  url = url.replace(/^['"]|['"]$/g, "");
 
   if (/^https?:\/\//i.test(url)) {
     return url;
@@ -88,6 +87,10 @@ function normalizeUrl(value = "") {
   return `https://www.pib.gov.in/${url}`;
 }
 
+/* ---------------------------------------
+   UPSC RELEVANCE
+--------------------------------------- */
+
 function relevanceScore(title = "", content = "") {
   const text = `${title} ${content}`.toLowerCase();
 
@@ -99,18 +102,24 @@ function relevanceScore(title = "", content = "") {
     governance: 4,
     policy: 3,
     scheme: 4,
-    "rbi": 5,
-    "sebi": 5,
+
+    rbi: 5,
+    sebi: 5,
     economy: 4,
     gdp: 5,
     inflation: 5,
     fiscal: 4,
     monetary: 4,
     budget: 4,
+    taxation: 4,
+
     agriculture: 4,
     farmer: 4,
     crops: 3,
     msp: 5,
+    irrigation: 4,
+    fertilizer: 4,
+
     environment: 5,
     climate: 5,
     biodiversity: 5,
@@ -119,9 +128,13 @@ function relevanceScore(title = "", content = "") {
     pollution: 4,
     water: 3,
     river: 3,
+    wetland: 4,
+
     disaster: 4,
     earthquake: 4,
     cyclone: 4,
+    flood: 4,
+
     isro: 5,
     space: 5,
     satellite: 4,
@@ -129,11 +142,17 @@ function relevanceScore(title = "", content = "") {
     technology: 4,
     "artificial intelligence": 5,
     ai: 2,
+    biotechnology: 5,
+    semiconductor: 5,
+
     defence: 4,
     defense: 4,
     security: 4,
     terrorism: 5,
     border: 4,
+    cyber: 4,
+    cybersecurity: 5,
+
     international: 3,
     "international relations": 5,
     "united nations": 4,
@@ -142,6 +161,7 @@ function relevanceScore(title = "", content = "") {
     wto: 4,
     who: 4,
     unesco: 4,
+
     brics: 4,
     sco: 4,
     g20: 4,
@@ -151,31 +171,32 @@ function relevanceScore(title = "", content = "") {
     agreement: 4,
     summit: 4,
     "foreign policy": 5,
+
     education: 3,
     health: 3,
+    "public health": 4,
     "social justice": 5,
     tribal: 4,
     women: 3,
     "human rights": 4,
+
     report: 3,
     index: 4,
     survey: 4,
     census: 5,
     data: 2,
+
     heritage: 4,
     culture: 3,
     history: 3,
     archaeology: 4,
     "national park": 4,
-    critical: 3,
-    minerals: 4,
-    "green energy": 4,
+
     renewable: 4,
-    electric: 2,
+    "green energy": 4,
+    minerals: 4,
+    mining: 3,
     digital: 3,
-    cybersecurity: 5,
-    cyber: 4,
-    startup: 2,
     innovation: 3,
   };
 
@@ -190,37 +211,49 @@ function relevanceScore(title = "", content = "") {
   return score;
 }
 
-/*
-  PIB HTML parser
-
-  PIB currently uses ASP.NET-generated links and its HTML structure
-  can vary between pages. We therefore do NOT depend on one exact
-  anchor format.
-
-  We search the complete HTML for any URL containing:
-  PressReleasePage
-  pressrelease
-  PRID
-*/
+/* ---------------------------------------
+   PIB PARSER
+--------------------------------------- */
 
 function extractReleaseLinks(html) {
   const results = [];
   const seen = new Set();
 
   function add(url, title = "") {
-    const cleanUrl = normalizeUrl(url);
-    const cleanTitle = stripHtml(title);
+    if (!url) return;
+
+    let cleanUrl = decodeHtml(url)
+      .replace(/&amp;/gi, "&")
+      .replace(/^['"]|['"]$/g, "")
+      .trim();
 
     if (!cleanUrl) return;
 
+    if (cleanUrl.startsWith("/")) {
+      cleanUrl = `https://www.pib.gov.in${cleanUrl}`;
+    } else if (cleanUrl.startsWith("//")) {
+      cleanUrl = `https:${cleanUrl}`;
+    } else if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = `https://www.pib.gov.in/${cleanUrl}`;
+    }
+
     const lower = cleanUrl.toLowerCase();
 
-    const valid =
-      lower.includes("pressreleasepage") ||
-      lower.includes("pressrelease") ||
-      lower.includes("prid=");
+    /*
+      PIB uses:
+      PressReleseDetailm.aspx?PRID=XXXX
 
-    if (!valid) return;
+      "Relese" is intentionally spelled this way
+      because that is how the PIB URL is structured.
+    */
+
+    if (
+      !lower.includes("pressrelesedetail") &&
+      !lower.includes("pressreleasedetail") &&
+      !lower.includes("prid=")
+    ) {
+      return;
+    }
 
     if (seen.has(cleanUrl)) return;
 
@@ -228,20 +261,14 @@ function extractReleaseLinks(html) {
 
     results.push({
       url: cleanUrl,
-      title:
-        cleanTitle.length >= 10
-          ? cleanTitle
-          : "",
+      title: stripHtml(title),
     });
   }
 
-  /*
-    Format 1:
-    <a href="PressReleasePage.aspx?PRID=123">TITLE</a>
-  */
+  /* Normal anchor links */
 
   const anchorRegex =
-    /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
   let match;
 
@@ -250,72 +277,59 @@ function extractReleaseLinks(html) {
   }
 
   /*
-    Format 2:
-    href may contain HTML entities / extra attributes.
+    Handle href attributes even if anchor HTML
+    is unusual.
   */
 
   const hrefRegex =
-    /href\s*=\s*["']([^"']*(?:PressReleasePage|pressrelease|PRID=)[^"']*)["']/gi;
+    /href\s*=\s*["']([^"']*(?:PressReleseDetailm|PressReleaseDetailm)[^"']*)["']/gi;
 
   while ((match = hrefRegex.exec(html)) !== null) {
-    const url = normalizeUrl(match[1]);
-
-    if (!seen.has(url)) {
-      add(url, "");
-    }
+    add(match[1], "");
   }
 
   /*
-    Format 3:
-    URL can occur inside JavaScript / onclick.
+    Direct occurrences of PIB release URLs.
   */
 
-  const jsRegex =
-    /(?:PressReleasePage\.aspx|pressreleasepage\.aspx)[^"' )<]*/gi;
+  const directRegex =
+    /(?:https?:\/\/)?(?:www\.)?pib\.gov\.in\/PressReleseDetailm\.aspx\?[^"'<> ]+/gi;
 
-  while ((match = jsRegex.exec(html)) !== null) {
+  while ((match = directRegex.exec(html)) !== null) {
     add(match[0], "");
+  }
+
+  /*
+    Relative occurrences.
+  */
+
+  const relativeRegex =
+    /PressReleseDetailm\.aspx\?[^"'<> )]+/gi;
+
+  while ((match = relativeRegex.exec(html)) !== null) {
+    add(match[0], "");
+  }
+
+  /*
+    PRID fallback.
+  */
+
+  const pridRegex =
+    /(?:PressReleseDetailm|PressReleaseDetailm)\.aspx[^"'<>]*?PRID\s*=\s*(\d+)/gi;
+
+  while ((match = pridRegex.exec(html)) !== null) {
+    add(
+      `https://www.pib.gov.in/PressReleseDetailm.aspx?PRID=${match[1]}`,
+      ""
+    );
   }
 
   return results;
 }
 
-/*
-  Extract release titles from the visible HTML.
-
-  This is a fallback for pages where PIB sends the title in one
-  HTML block and the actual URL separately.
-*/
-
-function extractVisibleTitles(html) {
-  const titles = [];
-
-  const patterns = [
-    /<a\b[^>]*>([\s\S]*?)<\/a>/gi,
-    /<td\b[^>]*>([\s\S]*?)<\/td>/gi,
-    /<div\b[^>]*>([\s\S]*?)<\/div>/gi,
-  ];
-
-  for (const regex of patterns) {
-    let match;
-
-    while ((match = regex.exec(html)) !== null) {
-      const text = stripHtml(match[1]);
-
-      if (
-        text.length >= 25 &&
-        text.length <= 500 &&
-        !text.toLowerCase().includes("select") &&
-        !text.toLowerCase().includes("login") &&
-        !text.toLowerCase().includes("copyright")
-      ) {
-        titles.push(text);
-      }
-    }
-  }
-
-  return [...new Set(titles)];
-}
+/* ---------------------------------------
+   PIB PAGE
+--------------------------------------- */
 
 async function fetchPIBPage() {
   const response = await fetch(PIB_URL, {
@@ -342,6 +356,10 @@ async function fetchPIBPage() {
 
   return html;
 }
+
+/* ---------------------------------------
+   INDIVIDUAL PIB RELEASE
+--------------------------------------- */
 
 async function fetchReleaseContent(url) {
   try {
@@ -379,6 +397,10 @@ async function fetchReleaseContent(url) {
   }
 }
 
+/* ---------------------------------------
+   DUPLICATE REMOVAL
+--------------------------------------- */
+
 function removeDuplicates(items) {
   const seen = new Set();
 
@@ -398,19 +420,20 @@ function removeDuplicates(items) {
   });
 }
 
+/* ---------------------------------------
+   COLLECT PIB ARTICLES
+--------------------------------------- */
+
 async function collectSources() {
   const html = await fetchPIBPage();
 
-  const releaseLinks = extractReleaseLinks(html);
+  const releaseLinks =
+    extractReleaseLinks(html);
 
   console.log(
     "PIB RELEASE LINKS FOUND:",
     releaseLinks.length
   );
-
-  /*
-    Debug information if PIB changes its HTML again.
-  */
 
   if (!releaseLinks.length) {
     console.log(
@@ -418,8 +441,13 @@ async function collectSources() {
     );
 
     console.log(
-      "HAS PRESSRELEASEPAGE:",
-      /pressreleasepage/i.test(html)
+      "HAS PRESSRELESEDETAIL:",
+      /pressrelesedetail/i.test(html)
+    );
+
+    console.log(
+      "HAS PRESSRELEASEDETAIL:",
+      /pressreleasedetail/i.test(html)
     );
 
     console.log(
@@ -427,39 +455,48 @@ async function collectSources() {
       /prid=/i.test(html)
     );
 
-    const titles =
-      extractVisibleTitles(html);
+    /*
+      Print a useful HTML sample around PRID
+      if available.
+    */
 
-    console.log(
-      "VISIBLE TITLES FOUND:",
-      titles.length
-    );
+    const pridPosition =
+      html.toLowerCase().indexOf("prid");
 
-    console.log(
-      "HTML RELEASE SAMPLE:",
-      html.match(
-        /.{0,150}(PressRelease|PRID).{0,250}/i
-      )?.[0] || "NONE"
-    );
+    if (pridPosition >= 0) {
+      console.log(
+        "PRID HTML SAMPLE:",
+        html.slice(
+          Math.max(0, pridPosition - 500),
+          pridPosition + 1000
+        )
+      );
+    }
 
     return [];
   }
 
+  /*
+    Latest releases first.
+    Limit avoids excessive requests.
+  */
+
   const candidates =
-    releaseLinks.slice(0, 40);
+    releaseLinks.slice(0, 35);
+
+  console.log(
+    "PIB CANDIDATES:",
+    candidates.length
+  );
 
   const collected = [];
 
   for (const release of candidates) {
     try {
-      let content = "";
-
-      if (release.url) {
-        content =
-          await fetchReleaseContent(
-            release.url
-          );
-      }
+      const content =
+        await fetchReleaseContent(
+          release.url
+        );
 
       const title =
         release.title ||
@@ -467,10 +504,11 @@ async function collectSources() {
 
       if (!title) continue;
 
-      const score = relevanceScore(
-        title,
-        content
-      );
+      const score =
+        relevanceScore(
+          title,
+          content
+        );
 
       console.log(
         "PIB RELEASE:",
@@ -480,9 +518,9 @@ async function collectSources() {
       );
 
       /*
-        Keep moderately relevant releases.
-        Gemini performs the final UPSC relevance
-        + classification.
+        Score >= 2 enters the pipeline.
+        Gemini performs the final UPSC
+        relevance and structuring.
       */
 
       if (score >= 2) {
@@ -507,6 +545,10 @@ async function collectSources() {
 
   return collected;
 }
+
+/* ---------------------------------------
+   RUN TRACKING
+--------------------------------------- */
 
 async function createOrResetRun(runDate) {
   const existingResponse =
@@ -608,6 +650,10 @@ async function updateRun(runDate, values) {
   }
 }
 
+/* ---------------------------------------
+   GEMINI / AI ARTICLE CREATION
+--------------------------------------- */
+
 async function generateArticle(item) {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -657,6 +703,10 @@ async function generateArticle(item) {
   return data;
 }
 
+/* ---------------------------------------
+   CRON GET
+--------------------------------------- */
+
 export async function GET(request) {
   const runDate = todayIST();
 
@@ -690,12 +740,12 @@ export async function GET(request) {
       );
     }
 
-    await createOrResetRun(
+    console.log(
+      "CURRENT AFFAIRS CRON START:",
       runDate
     );
 
-    console.log(
-      "CURRENT AFFAIRS CRON START:",
+    await createOrResetRun(
       runDate
     );
 
@@ -835,4 +885,4 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-}
+    }
