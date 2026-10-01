@@ -4,23 +4,42 @@ import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const MAX_IMAGES = 4;
+
 export default function AnswerWritingPage() {
   const router = useRouter();
 
-  const [questionData, setQuestionData] = useState(null);
-  const [answer, setAnswer] = useState("");
-  const [seconds, setSeconds] = useState(0);
-  const [timerRunning, setTimerRunning] = useState(true);
-  const [evaluating, setEvaluating] = useState(false);
-  const [evaluation, setEvaluation] = useState(null);
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [questionData, setQuestionData] =
+    useState(null);
+
+  const [images, setImages] =
+    useState([]);
+
+  const [previews, setPreviews] =
+    useState([]);
+
+  const [evaluating, setEvaluating] =
+    useState(false);
+
+  const [evaluation, setEvaluation] =
+    useState(null);
+
+  const [error, setError] =
+    useState("");
+
+  const [dragActive, setDragActive] =
+    useState(false);
+
+  /* =========================
+     LOAD QUESTION
+  ========================= */
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem(
-        "sambhav_answer_question"
-      );
+      const raw =
+        sessionStorage.getItem(
+          "sambhav_answer_question"
+        );
 
       if (!raw) {
         setError(
@@ -30,41 +49,39 @@ export default function AnswerWritingPage() {
       }
 
       const data = JSON.parse(raw);
-      setQuestionData(data);
 
-      const draft = sessionStorage.getItem(
-        `sambhav_answer_draft_${data.id}`
+      setQuestionData(data);
+    } catch (err) {
+      console.error(
+        "Question load error:",
+        err
       );
 
-      if (draft) {
-        setAnswer(draft);
-      }
-    } catch (err) {
-      console.error("Question load error:", err);
-      setError("Question load nahi ho saka.");
+      setError(
+        "Question load nahi ho saka."
+      );
     }
   }, []);
 
+  /* =========================
+     CLEANUP PREVIEW URLS
+  ========================= */
+
   useEffect(() => {
-    if (!timerRunning || evaluation) return;
+    return () => {
+      previews.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [previews]);
 
-    const timer = setInterval(() => {
-      setSeconds((value) => value + 1);
-    }, 1000);
+  /* =========================
+     WORD LIMIT
+  ========================= */
 
-    return () => clearInterval(timer);
-  }, [timerRunning, evaluation]);
-
-  const wordCount = useMemo(() => {
-    if (!answer.trim()) return 0;
-
-    return answer
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean).length;
-  }, [answer]);
-
-  const marks = Number(questionData?.marks || 15);
+  const marks = Number(
+    questionData?.marks || 15
+  );
 
   const wordLimit = Number(
     questionData?.word_limit ||
@@ -72,98 +89,375 @@ export default function AnswerWritingPage() {
       (marks <= 10 ? 150 : 250)
   );
 
-  const formatTime = (totalSeconds) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
+  /* =========================
+     IMAGE VALIDATION
+  ========================= */
 
-    return `${String(minutes).padStart(2, "0")}:${String(
-      secs
-    ).padStart(2, "0")}`;
+  const validateFiles = (
+    selectedFiles
+  ) => {
+    const valid = [];
+
+    for (const file of selectedFiles) {
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        file.size >
+        8 * 1024 * 1024
+      ) {
+        setError(
+          `${file.name} 8MB se bada hai.`
+        );
+        continue;
+      }
+
+      valid.push(file);
+    }
+
+    return valid;
   };
 
-  const saveDraft = () => {
-    if (!questionData) return;
+  /* =========================
+     ADD IMAGES
+  ========================= */
 
-    sessionStorage.setItem(
-      `sambhav_answer_draft_${questionData.id}`,
-      answer
-    );
+  const addImages = (
+    selectedFiles
+  ) => {
+    setError("");
 
-    setSaved(true);
+    const valid =
+      validateFiles(
+        Array.from(selectedFiles)
+      );
 
-    setTimeout(() => {
-      setSaved(false);
-    }, 1800);
-  };
-
-  const submitForEvaluation = async () => {
-    if (!questionData) return;
-
-    if (!answer.trim()) {
-      setError("Pehle answer likhiye.");
+    if (!valid.length) {
       return;
     }
 
-    setError("");
-    setTimerRunning(false);
-    setEvaluating(true);
+    const remaining =
+      MAX_IMAGES -
+      images.length;
 
-    try {
-      const response = await fetch("/api/ai/evaluate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question: questionData.question,
-          answer: answer.trim(),
-          paper: questionData.paper || "GS",
-          section: questionData.section || "",
-          marks,
-          word_limit: wordLimit,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "AI evaluation failed."
-        );
-      }
-
-      if (!data.evaluation) {
-        throw new Error(
-          "Evaluation result nahi mila."
-        );
-      }
-
-      setEvaluation(data.evaluation);
-
-      sessionStorage.setItem(
-        `sambhav_answer_evaluation_${questionData.id}`,
-        JSON.stringify({
-          question: questionData,
-          answer,
-          evaluation: data.evaluation,
-          timeTaken: seconds,
-          submittedAt: new Date().toISOString(),
-        })
-      );
-    } catch (err) {
-      console.error("AI evaluation error:", err);
-
+    if (remaining <= 0) {
       setError(
-        err.message || "AI evaluation failed."
+        "Maximum 4 pages upload kar sakte hain."
+      );
+      return;
+    }
+
+    const filesToAdd =
+      valid.slice(
+        0,
+        remaining
       );
 
-      setTimerRunning(true);
-    } finally {
-      setEvaluating(false);
+    const newImages = [
+      ...images,
+      ...filesToAdd,
+    ];
+
+    const newPreviews =
+      newImages.map(
+        (file) =>
+          URL.createObjectURL(file)
+      );
+
+    previews.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+
+    setImages(
+      newImages
+    );
+
+    setPreviews(
+      newPreviews
+    );
+
+    if (
+      valid.length >
+      remaining
+    ) {
+      setError(
+        "Maximum 4 pages allowed hain."
+      );
     }
   };
 
-  if (error && !questionData) {
+  /* =========================
+     FILE INPUT
+  ========================= */
+
+  const handleFileChange = (
+    event
+  ) => {
+    const files =
+      event.target.files;
+
+    if (files?.length) {
+      addImages(files);
+    }
+
+    event.target.value = "";
+  };
+
+  /* =========================
+     REMOVE IMAGE
+  ========================= */
+
+  const removeImage = (
+    index
+  ) => {
+    const newImages =
+      images.filter(
+        (_, i) =>
+          i !== index
+      );
+
+    const newPreviews =
+      newImages.map(
+        (file) =>
+          URL.createObjectURL(file)
+      );
+
+    previews.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+
+    setImages(
+      newImages
+    );
+
+    setPreviews(
+      newPreviews
+    );
+
+    setError("");
+  };
+
+  /* =========================
+     MOVE PAGE
+  ========================= */
+
+  const moveImage = (
+    from,
+    to
+  ) => {
+    if (
+      to < 0 ||
+      to >= images.length
+    ) {
+      return;
+    }
+
+    const newImages = [
+      ...images,
+    ];
+
+    const [
+      moved
+    ] =
+      newImages.splice(
+        from,
+        1
+      );
+
+    newImages.splice(
+      to,
+      0,
+      moved
+    );
+
+    const newPreviews =
+      newImages.map(
+        (file) =>
+          URL.createObjectURL(file)
+      );
+
+    previews.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+
+    setImages(
+      newImages
+    );
+
+    setPreviews(
+      newPreviews
+    );
+  };
+
+  /* =========================
+     DRAG & DROP
+  ========================= */
+
+  const handleDrop = (
+    event
+  ) => {
+    event.preventDefault();
+
+    setDragActive(false);
+
+    if (
+      event.dataTransfer.files
+        ?.length
+    ) {
+      addImages(
+        event.dataTransfer.files
+      );
+    }
+  };
+
+  /* =========================
+     SUBMIT
+  ========================= */
+
+  const submitForEvaluation =
+    async () => {
+      if (!questionData) {
+        return;
+      }
+
+      if (
+        images.length === 0
+      ) {
+        setError(
+          "Pehle handwritten answer ki image upload karein."
+        );
+        return;
+      }
+
+      setError("");
+      setEvaluating(true);
+
+      try {
+        const formData =
+          new FormData();
+
+        formData.append(
+          "question",
+          questionData.question ||
+            ""
+        );
+
+        formData.append(
+          "paper",
+          questionData.paper ||
+            "GS"
+        );
+
+        formData.append(
+          "section",
+          questionData.section ||
+            ""
+        );
+
+        formData.append(
+          "marks",
+          String(marks)
+        );
+
+        formData.append(
+          "word_limit",
+          String(wordLimit)
+        );
+
+        images.forEach(
+          (file, index) => {
+            formData.append(
+              `image_${index + 1}`,
+              file,
+              file.name
+            );
+          }
+        );
+
+        const response =
+          await fetch(
+            "/api/ai/evaluate",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "AI evaluation failed."
+          );
+        }
+
+        if (
+          !data.evaluation
+        ) {
+          throw new Error(
+            "Evaluation result nahi mila."
+          );
+        }
+
+        setEvaluation(
+          data.evaluation
+        );
+
+        sessionStorage.setItem(
+          `sambhav_answer_evaluation_${questionData.id}`,
+          JSON.stringify({
+            question:
+              questionData,
+            pages:
+              images.length,
+            evaluation:
+              data.evaluation,
+            submittedAt:
+              new Date().toISOString(),
+          })
+        );
+      } catch (err) {
+        console.error(
+          "AI evaluation error:",
+          err
+        );
+
+        setError(
+          err.message ||
+            "AI evaluation failed."
+        );
+      } finally {
+        setEvaluating(false);
+      }
+    };
+
+  /* =========================
+     SCORE
+  ========================= */
+
+  const score =
+    evaluation?.overall_score ??
+    0;
+
+  const maximum =
+    evaluation?.maximum_marks ||
+    marks;
+
+  /* =========================
+     ERROR STATE
+  ========================= */
+
+  if (
+    error &&
+    !questionData
+  ) {
     return (
       <>
         <Script
@@ -172,19 +466,41 @@ export default function AnswerWritingPage() {
         />
 
         <main style={styles.page}>
-          <div style={styles.centerCard}>
-            <div style={styles.logo}>
+          <div
+            style={
+              styles.centerCard
+            }
+          >
+            <div
+              style={
+                styles.logo
+              }
+            >
               SAMBHAV UPSC
             </div>
 
-            <h2>Answer Writing</h2>
+            <h2>
+              Answer Evaluation
+            </h2>
 
-            <p style={styles.muted}>{error}</p>
+            <p
+              style={
+                styles.muted
+              }
+            >
+              {error}
+            </p>
 
             <button
               type="button"
-              onClick={() => router.push("/pyq")}
-              style={styles.primary}
+              onClick={() =>
+                router.push(
+                  "/pyq"
+                )
+              }
+              style={
+                styles.primary
+              }
             >
               ← Back to PYQ
             </button>
@@ -194,6 +510,10 @@ export default function AnswerWritingPage() {
     );
   }
 
+  /* =========================
+     RESULT
+  ========================= */
+
   if (evaluation) {
     return (
       <>
@@ -202,52 +522,103 @@ export default function AnswerWritingPage() {
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
-          <div style={styles.container}>
-            <header style={styles.topBar}>
+        <main
+          style={styles.page}
+        >
+          <div
+            style={
+              styles.container
+            }
+          >
+            <header
+              style={
+                styles.topBar
+              }
+            >
               <button
                 type="button"
-                onClick={() => router.push("/pyq")}
-                style={styles.backButton}
+                onClick={() =>
+                  router.push(
+                    "/pyq"
+                  )
+                }
+                style={
+                  styles.backButton
+                }
               >
                 ←
               </button>
 
               <div>
-                <div style={styles.logo}>
+                <div
+                  style={
+                    styles.logo
+                  }
+                >
                   SAMBHAV UPSC
                 </div>
 
-                <div style={styles.topSubtitle}>
+                <div
+                  style={
+                    styles.topSubtitle
+                  }
+                >
                   AI Mains Evaluation
                 </div>
               </div>
             </header>
 
-            <section style={styles.scoreCard}>
-              <div style={styles.scoreLabel}>
+            <section
+              style={
+                styles.scoreCard
+              }
+            >
+              <div
+                style={
+                  styles.scoreLabel
+                }
+              >
                 UPSC-STYLE EVALUATION
               </div>
 
-              <div style={styles.score}>
-                {evaluation.overall_score}
+              <div
+                style={
+                  styles.score
+                }
+              >
+                {score}
                 <span>
-                  /{evaluation.maximum_marks || marks}
+                  /{maximum}
                 </span>
               </div>
 
-              <div style={styles.scoreAssessment}>
-                {evaluation.overall_assessment}
+              <div
+                style={
+                  styles.scoreAssessment
+                }
+              >
+                {
+                  evaluation.overall_assessment
+                }
               </div>
             </section>
 
-            <EvaluationSection title="1. Question Demand Analysis">
-              <div style={styles.directiveBox}>
-                <span>Directive</span>
+            <EvaluationSection
+              title="1. Question Demand Analysis"
+            >
+              <div
+                style={
+                  styles.directiveBox
+                }
+              >
+                <span>
+                  Directive
+                </span>
 
                 <strong>
                   {
-                    evaluation.question_analysis
+                    evaluation
+                      .question_analysis
                       ?.directive
                   }
                 </strong>
@@ -256,7 +627,8 @@ export default function AnswerWritingPage() {
               <InfoBlock
                 title="Core Demand"
                 text={
-                  evaluation.question_analysis
+                  evaluation
+                    .question_analysis
                     ?.core_demand
                 }
               />
@@ -264,7 +636,8 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Keywords"
                 items={
-                  evaluation.question_analysis
+                  evaluation
+                    .question_analysis
                     ?.keywords
                 }
               />
@@ -272,26 +645,34 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Expected Dimensions"
                 items={
-                  evaluation.question_analysis
+                  evaluation
+                    .question_analysis
                     ?.expected_dimensions
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="2. Demand Fulfilment">
+            <EvaluationSection
+              title="2. Demand Fulfilment"
+            >
               <ScoreLine
                 score={
-                  evaluation.demand_fulfilment?.score
+                  evaluation
+                    .demand_fulfilment
+                    ?.score
                 }
                 maximum={
-                  evaluation.demand_fulfilment?.maximum
+                  evaluation
+                    .demand_fulfilment
+                    ?.maximum
                 }
               />
 
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.demand_fulfilment
+                  evaluation
+                    .demand_fulfilment
                     ?.assessment
                 }
               />
@@ -299,69 +680,91 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Missing Demands"
                 items={
-                  evaluation.demand_fulfilment
+                  evaluation
+                    .demand_fulfilment
                     ?.missing_demands
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="3. Introduction">
+            <EvaluationSection
+              title="3. Introduction"
+            >
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.introduction?.assessment
+                  evaluation
+                    .introduction
+                    ?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation.introduction?.strengths
+                  evaluation
+                    .introduction
+                    ?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation.introduction?.weaknesses
+                  evaluation
+                    .introduction
+                    ?.weaknesses
                 }
               />
 
               <ImprovementBlock
                 text={
-                  evaluation.introduction?.improvement
+                  evaluation
+                    .introduction
+                    ?.improvement
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="4. Body Analysis">
+            <EvaluationSection
+              title="4. Body Analysis"
+            >
               <ScoreGrid
                 items={[
                   {
-                    label: "Content",
+                    label:
+                      "Content",
                     score:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.content_score,
                     max:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.content_maximum,
                   },
                   {
-                    label: "Analysis",
+                    label:
+                      "Analysis",
                     score:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.analysis_score,
                     max:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.analysis_maximum,
                   },
                   {
-                    label: "Structure",
+                    label:
+                      "Structure",
                     score:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.structure_score,
                     max:
-                      evaluation.body_analysis
+                      evaluation
+                        .body_analysis
                         ?.structure_maximum,
                   },
                 ]}
@@ -370,39 +773,52 @@ export default function AnswerWritingPage() {
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.body_analysis?.assessment
+                  evaluation
+                    .body_analysis
+                    ?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation.body_analysis?.strengths
+                  evaluation
+                    .body_analysis
+                    ?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation.body_analysis?.weaknesses
+                  evaluation
+                    .body_analysis
+                    ?.weaknesses
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="5. Examples & Data">
+            <EvaluationSection
+              title="5. Examples & Data"
+            >
               <ScoreLine
                 score={
-                  evaluation.examples_and_data?.score
+                  evaluation
+                    .examples_and_data
+                    ?.score
                 }
                 maximum={
-                  evaluation.examples_and_data?.maximum
+                  evaluation
+                    .examples_and_data
+                    ?.maximum
                 }
               />
 
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.examples_and_data
+                  evaluation
+                    .examples_and_data
                     ?.assessment
                 }
               />
@@ -410,7 +826,8 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Good Examples"
                 items={
-                  evaluation.examples_and_data
+                  evaluation
+                    .examples_and_data
                     ?.good_examples
                 }
               />
@@ -418,17 +835,21 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Missing Examples"
                 items={
-                  evaluation.examples_and_data
+                  evaluation
+                    .examples_and_data
                     ?.missing_examples
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="6. Factual Accuracy">
+            <EvaluationSection
+              title="6. Factual Accuracy"
+            >
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.factual_accuracy
+                  evaluation
+                    .factual_accuracy
                     ?.assessment
                 }
               />
@@ -436,7 +857,8 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Possible Errors"
                 items={
-                  evaluation.factual_accuracy
+                  evaluation
+                    .factual_accuracy
                     ?.possible_errors
                 }
               />
@@ -444,93 +866,173 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Corrections"
                 items={
-                  evaluation.factual_accuracy
+                  evaluation
+                    .factual_accuracy
                     ?.corrections
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="7. Conclusion">
+            <EvaluationSection
+              title="7. Conclusion"
+            >
               <InfoBlock
                 title="Assessment"
                 text={
-                  evaluation.conclusion?.assessment
+                  evaluation
+                    .conclusion
+                    ?.assessment
                 }
               />
 
               <ArrayBlock
                 title="Strengths"
                 items={
-                  evaluation.conclusion?.strengths
+                  evaluation
+                    .conclusion
+                    ?.strengths
                 }
               />
 
               <ArrayBlock
                 title="Weaknesses"
                 items={
-                  evaluation.conclusion?.weaknesses
+                  evaluation
+                    .conclusion
+                    ?.weaknesses
                 }
               />
 
               <ImprovementBlock
                 text={
-                  evaluation.conclusion?.improvement
+                  evaluation
+                    .conclusion
+                    ?.improvement
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="8. Missing Dimensions">
+            <EvaluationSection
+              title="8. Missing Dimensions"
+            >
               {(
-                evaluation.missing_dimensions || []
-              ).map((item, index) => (
-                <div
-                  key={index}
-                  style={styles.dimensionCard}
-                >
-                  <strong>{item.dimension}</strong>
+                evaluation
+                  .missing_dimensions ||
+                []
+              ).map(
+                (
+                  item,
+                  index
+                ) => (
+                  <div
+                    key={
+                      index
+                    }
+                    style={
+                      styles.dimensionCard
+                    }
+                  >
+                    <strong>
+                      {
+                        item.dimension
+                      }
+                    </strong>
 
-                  <p style={styles.dimensionText}>
-                    <b>Why important:</b>{" "}
-                    {item.why_important}
-                  </p>
+                    <p
+                      style={
+                        styles.dimensionText
+                      }
+                    >
+                      <b>
+                        Why important:
+                      </b>{" "}
+                      {
+                        item.why_important
+                      }
+                    </p>
 
-                  <p style={styles.dimensionText}>
-                    <b>How to add:</b>{" "}
-                    {item.how_to_add}
-                  </p>
-                </div>
-              ))}
+                    <p
+                      style={
+                        styles.dimensionText
+                      }
+                    >
+                      <b>
+                        How to add:
+                      </b>{" "}
+                      {
+                        item.how_to_add
+                      }
+                    </p>
+                  </div>
+                )
+              )}
             </EvaluationSection>
 
-            <EvaluationSection title="9. Point-Level Feedback">
+            <EvaluationSection
+              title="9. Point-Level Feedback"
+            >
               {(
-                evaluation.point_level_feedback || []
-              ).map((item, index) => (
-                <div
-                  key={index}
-                  style={styles.feedbackCard}
-                >
-                  <div style={styles.feedbackType}>
-                    {item.type}
-                  </div>
+                evaluation
+                  .point_level_feedback ||
+                []
+              ).map(
+                (
+                  item,
+                  index
+                ) => (
+                  <div
+                    key={
+                      index
+                    }
+                    style={
+                      styles.feedbackCard
+                    }
+                  >
+                    <div
+                      style={
+                        styles.feedbackType
+                      }
+                    >
+                      {
+                        item.type
+                      }
+                    </div>
 
-                  <div style={styles.feedbackIssue}>
-                    {item.issue}
-                  </div>
+                    <div
+                      style={
+                        styles.feedbackIssue
+                      }
+                    >
+                      {
+                        item.issue
+                      }
+                    </div>
 
-                  <div style={styles.feedbackImprove}>
-                    <b>Improve:</b>{" "}
-                    {item.improvement}
+                    <div
+                      style={
+                        styles.feedbackImprove
+                      }
+                    >
+                      <b>
+                        Improve:
+                      </b>{" "}
+                      {
+                        item.improvement
+                      }
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </EvaluationSection>
 
-            <EvaluationSection title="10. Better Answer Framework">
+            <EvaluationSection
+              title="10. Better Answer Framework"
+            >
               <InfoBlock
                 title="Introduction"
                 text={
-                  evaluation.answer_structure
+                  evaluation
+                    .answer_structure
                     ?.introduction
                 }
               />
@@ -538,14 +1040,17 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Body"
                 items={
-                  evaluation.answer_structure?.body
+                  evaluation
+                    .answer_structure
+                    ?.body
                 }
               />
 
               <InfoBlock
                 title="Conclusion"
                 text={
-                  evaluation.answer_structure
+                  evaluation
+                    .answer_structure
                     ?.conclusion
                 }
               />
@@ -553,31 +1058,57 @@ export default function AnswerWritingPage() {
               <ArrayBlock
                 title="Model Framework"
                 items={
-                  evaluation.model_framework
+                  evaluation
+                    .model_framework
                 }
               />
             </EvaluationSection>
 
-            <EvaluationSection title="11. Next Attempt Improvement Plan">
+            <EvaluationSection
+              title="11. Next Attempt Improvement Plan"
+            >
               <ArrayBlock
-                items={evaluation.improvement_plan}
+                items={
+                  evaluation
+                    .improvement_plan
+                }
               />
             </EvaluationSection>
 
-            <section style={styles.examinerCard}>
-              <div style={styles.examinerLabel}>
+            <section
+              style={
+                styles.examinerCard
+              }
+            >
+              <div
+                style={
+                  styles.examinerLabel
+                }
+              >
                 EXAMINER SUMMARY
               </div>
 
-              <p style={styles.examinerText}>
-                {evaluation.examiner_summary}
+              <p
+                style={
+                  styles.examinerText
+                }
+              >
+                {
+                  evaluation.examiner_summary
+                }
               </p>
             </section>
 
             <button
               type="button"
-              onClick={() => router.push("/pyq")}
-              style={styles.fullButton}
+              onClick={() =>
+                router.push(
+                  "/pyq"
+                )
+              }
+              style={
+                styles.fullButton
+              }
             >
               ← Back to Mains PYQs
             </button>
@@ -587,15 +1118,29 @@ export default function AnswerWritingPage() {
     );
   }
 
+  /* =========================
+     LOADING
+  ========================= */
+
   if (!questionData) {
     return (
-      <main style={styles.page}>
-        <div style={styles.centerCard}>
+      <main
+        style={styles.page}
+      >
+        <div
+          style={
+            styles.centerCard
+          }
+        >
           Loading question...
         </div>
       </main>
     );
   }
+
+  /* =========================
+     UPLOAD SCREEN
+  ========================= */
 
   return (
     <>
@@ -604,158 +1149,365 @@ export default function AnswerWritingPage() {
         strategy="beforeInteractive"
       />
 
-      <main style={styles.page}>
-        <div style={styles.container}>
-          <header style={styles.topBar}>
+      <main
+        style={styles.page}
+      >
+        <div
+          style={
+            styles.container
+          }
+        >
+          <header
+            style={
+              styles.topBar
+            }
+          >
             <button
               type="button"
-              onClick={() => router.push("/pyq")}
-              style={styles.backButton}
+              onClick={() =>
+                router.push(
+                  "/pyq"
+                )
+              }
+              style={
+                styles.backButton
+              }
             >
               ←
             </button>
 
             <div>
-              <div style={styles.logo}>
+              <div
+                style={
+                  styles.logo
+                }
+              >
                 SAMBHAV UPSC
               </div>
 
-              <div style={styles.topSubtitle}>
-                Mains Answer Writing
+              <div
+                style={
+                  styles.topSubtitle
+                }
+              >
+                Handwritten Answer Evaluation
               </div>
             </div>
           </header>
 
-          <section style={styles.questionCard}>
-            <div style={styles.questionMeta}>
-              {questionData.year || "UPSC"} ·{" "}
-              {questionData.paper}
+          {/* QUESTION */}
 
-              {questionData.section
-                ? ` · ${questionData.section}`
-                : ""}
-
-              {" · "}
-              {marks} Marks
+          <section
+            style={
+              styles.questionCard
+            }
+          >
+            <div
+              style={
+                styles.questionMeta
+              }
+            >
+              {questionData.year ||
+                "UPSC"}{" "}
+              ·{" "}
+              {questionData.paper}{" "}
+              · {marks} Marks
             </div>
 
-            <div style={styles.questionText}>
-              {questionData.question}
+            <div
+              style={
+                styles.questionText
+              }
+            >
+              {
+                questionData.question
+              }
             </div>
 
-            <div style={styles.limitRow}>
+            <div
+              style={
+                styles.limitRow
+              }
+            >
               <span>
                 Word Limit:{" "}
-                <strong>{wordLimit}</strong>
+                <strong>
+                  {wordLimit}
+                </strong>
               </span>
 
               <span>
-                Target:{" "}
-                {marks <= 10
-                  ? "150 words"
-                  : "250 words"}
+                Handwritten Mode
               </span>
             </div>
           </section>
 
-          <section style={styles.controlBar}>
-            <div>
-              <div style={styles.controlLabel}>
-                TIME
-              </div>
+          {/* UPLOAD CARD */}
 
-              <div style={styles.timer}>
-                {formatTime(seconds)}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setTimerRunning((value) => !value)
+          <section
+            style={
+              styles.uploadCard
+            }
+          >
+            <div
+              style={
+                styles.uploadHeader
               }
-              style={styles.pauseButton}
             >
-              {timerRunning ? "Pause" : "Resume"}
-            </button>
-          </section>
-
-          <section style={styles.editorCard}>
-            <div style={styles.editorHeader}>
               <div>
-                <div style={styles.editorTitle}>
-                  Your Answer
+                <div
+                  style={
+                    styles.uploadTitle
+                  }
+                >
+                  Upload Handwritten Answer
                 </div>
 
-                <div style={styles.editorHint}>
-                  Write as you would in the UPSC
-                  Mains examination.
+                <div
+                  style={
+                    styles.uploadSubtitle
+                  }
+                >
+                  Maximum 4 pages · JPG, PNG, WEBP
                 </div>
               </div>
 
               <div
-                style={{
-                  ...styles.wordCount,
-                  ...(wordCount > wordLimit
-                    ? styles.wordCountOver
-                    : {}),
-                }}
+                style={
+                  styles.pageCounter
+                }
               >
-                {wordCount}/{wordLimit}
+                {images.length}/4
               </div>
             </div>
 
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Start writing your answer..."
-              style={styles.textarea}
-              spellCheck
-            />
+            <label
+              style={{
+                ...styles.dropZone,
+                ...(dragActive
+                  ? styles.dropZoneActive
+                  : {}),
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={() =>
+                setDragActive(false)
+              }
+              onDrop={
+                handleDrop
+              }
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={
+                  handleFileChange
+                }
+                style={
+                  styles.hiddenInput
+                }
+              />
 
-            <div style={styles.editorFooter}>
-              <span style={styles.editorTip}>
-                Focus on demand, structure, dimensions
-                and analysis.
-              </span>
-
-              <button
-                type="button"
-                onClick={saveDraft}
-                style={styles.saveButton}
+              <div
+                style={
+                  styles.uploadIcon
+                }
               >
-                {saved ? "✓ Saved" : "Save Draft"}
-              </button>
-            </div>
+                ↑
+              </div>
+
+              <div
+                style={
+                  styles.dropTitle
+                }
+              >
+                Tap to upload pages
+              </div>
+
+              <div
+                style={
+                  styles.dropSubtitle
+                }
+              >
+                Ya 3–4 photos ek saath select karein
+              </div>
+
+              <div
+                style={
+                  styles.uploadHint
+                }
+              >
+                Page order upload ke order mein rahega
+              </div>
+            </label>
+
+            {/* PREVIEWS */}
+
+            {images.length > 0 && (
+              <div
+                style={
+                  styles.previewGrid
+                }
+              >
+                {images.map(
+                  (
+                    file,
+                    index
+                  ) => (
+                    <div
+                      key={
+                        `${file.name}-${index}`
+                      }
+                      style={
+                        styles.previewCard
+                      }
+                    >
+                      <div
+                        style={
+                          styles.previewImageWrap
+                        }
+                      >
+                        <img
+                          src={
+                            previews[
+                              index
+                            ]
+                          }
+                          alt={`Answer page ${
+                            index + 1
+                          }`}
+                          style={
+                            styles.previewImage
+                          }
+                        />
+
+                        <div
+                          style={
+                            styles.pageBadge
+                          }
+                        >
+                          Page{" "}
+                          {index +
+                            1}
+                        </div>
+                      </div>
+
+                      <div
+                        style={
+                          styles.previewActions
+                        }
+                      >
+                        <button
+                          type="button"
+                          disabled={
+                            index ===
+                            0
+                          }
+                          onClick={() =>
+                            moveImage(
+                              index,
+                              index -
+                                1
+                            )
+                          }
+                          style={
+                            styles.smallButton
+                          }
+                        >
+                          ←
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            index ===
+                            images.length -
+                              1
+                          }
+                          onClick={() =>
+                            moveImage(
+                              index,
+                              index +
+                                1
+                            )
+                          }
+                          style={
+                            styles.smallButton
+                          }
+                        >
+                          →
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeImage(
+                              index
+                            )
+                          }
+                          style={
+                            styles.removeButton
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </section>
 
+          {/* ERROR */}
+
           {error && (
-            <div style={styles.errorBox}>
+            <div
+              style={
+                styles.errorBox
+              }
+            >
               {error}
             </div>
           )}
 
+          {/* SUBMIT */}
+
           <button
             type="button"
-            disabled={evaluating || !answer.trim()}
-            onClick={submitForEvaluation}
+            disabled={
+              evaluating ||
+              images.length ===
+                0
+            }
+            onClick={
+              submitForEvaluation
+            }
             style={{
               ...styles.evaluateButton,
-              ...(evaluating || !answer.trim()
+              ...(evaluating ||
+              images.length === 0
                 ? styles.disabledButton
                 : {}),
             }}
           >
             {evaluating
-              ? "AI is evaluating..."
+              ? "AI is reading your answer..."
               : "Submit for UPSC Evaluation →"}
           </button>
 
-          <div style={styles.securityNote}>
-            Evaluation covers question demand,
-            directive, content, analysis, structure,
-            examples, factual accuracy and
-            missing dimensions.
+          <div
+            style={
+              styles.securityNote
+            }
+          >
+            AI uploaded pages ko read karke question
+            demand, content, analysis, structure,
+            examples, factual accuracy aur missing
+            dimensions ke basis par evaluation karega.
           </div>
         </div>
       </main>
@@ -764,13 +1516,24 @@ export default function AnswerWritingPage() {
 }
 
 /* =========================================================
-   RESULT COMPONENTS
+   COMPONENTS
 ========================================================= */
 
-function EvaluationSection({ title, children }) {
+function EvaluationSection({
+  title,
+  children,
+}) {
   return (
-    <section style={styles.evaluationSection}>
-      <h2 style={styles.evaluationTitle}>
+    <section
+      style={
+        styles.evaluationSection
+      }
+    >
+      <h2
+        style={
+          styles.evaluationTitle
+        }
+      >
         {title}
       </h2>
 
@@ -779,89 +1542,176 @@ function EvaluationSection({ title, children }) {
   );
 }
 
-function InfoBlock({ title, text }) {
+function InfoBlock({
+  title,
+  text,
+}) {
   if (!text) return null;
 
   return (
-    <div style={styles.infoBlock}>
+    <div
+      style={
+        styles.infoBlock
+      }
+    >
       {title && (
-        <div style={styles.infoBlockTitle}>
+        <div
+          style={
+            styles.infoBlockTitle
+          }
+        >
           {title}
         </div>
       )}
 
-      <div style={styles.infoBlockText}>
+      <div
+        style={
+          styles.infoBlockText
+        }
+      >
         {text}
       </div>
     </div>
   );
 }
 
-function ArrayBlock({ title, items }) {
-  if (!Array.isArray(items) || items.length === 0) {
+function ArrayBlock({
+  title,
+  items,
+}) {
+  if (
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
     return null;
   }
 
   return (
-    <div style={styles.arrayBlock}>
+    <div
+      style={
+        styles.arrayBlock
+      }
+    >
       {title && (
-        <div style={styles.arrayTitle}>
+        <div
+          style={
+            styles.arrayTitle
+          }
+        >
           {title}
         </div>
       )}
 
-      <ul style={styles.arrayList}>
-        {items.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
+      <ul
+        style={
+          styles.arrayList
+        }
+      >
+        {items.map(
+          (item, index) => (
+            <li
+              key={
+                index
+              }
+            >
+              {item}
+            </li>
+          )
+        )}
       </ul>
     </div>
   );
 }
 
-function ImprovementBlock({ text }) {
+function ImprovementBlock({
+  text,
+}) {
   if (!text) return null;
 
   return (
-    <div style={styles.improvement}>
-      <strong>How to improve</strong>
+    <div
+      style={
+        styles.improvement
+      }
+    >
+      <strong>
+        How to improve
+      </strong>
 
-      <p style={styles.improvementText}>
+      <p
+        style={
+          styles.improvementText
+        }
+      >
         {text}
       </p>
     </div>
   );
 }
 
-function ScoreLine({ score, maximum }) {
+function ScoreLine({
+  score,
+  maximum,
+}) {
   return (
-    <div style={styles.scoreLine}>
-      <span>Score</span>
+    <div
+      style={
+        styles.scoreLine
+      }
+    >
+      <span>
+        Score
+      </span>
 
       <strong>
-        {score ?? 0}/{maximum ?? 0}
+        {score ?? 0}/
+        {maximum ?? 0}
       </strong>
     </div>
   );
 }
 
-function ScoreGrid({ items }) {
+function ScoreGrid({
+  items,
+}) {
   return (
-    <div style={styles.scoreGrid}>
-      {items.map((item) => (
-        <div
-          key={item.label}
-          style={styles.miniScore}
-        >
-          <span style={styles.miniScoreLabel}>
-            {item.label}
-          </span>
+    <div
+      style={
+        styles.scoreGrid
+      }
+    >
+      {items.map(
+        (item) => (
+          <div
+            key={
+              item.label
+            }
+            style={
+              styles.miniScore
+            }
+          >
+            <span
+              style={
+                styles.miniScoreLabel
+              }
+            >
+              {item.label}
+            </span>
 
-          <strong style={styles.miniScoreValue}>
-            {item.score ?? 0}/{item.max ?? 0}
-          </strong>
-        </div>
-      ))}
+            <strong
+              style={
+                styles.miniScoreValue
+              }
+            >
+              {item.score ??
+                0}
+              /
+              {item.max ??
+                0}
+            </strong>
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -882,7 +1732,8 @@ const styles = {
   container: {
     maxWidth: "760px",
     margin: "0 auto",
-    padding: "18px 16px 45px",
+    padding:
+      "18px 16px 45px",
   },
 
   centerCard: {
@@ -890,7 +1741,8 @@ const styles = {
     margin: "80px auto",
     padding: "30px",
     background: "#fff",
-    border: "1px solid #e5e5e3",
+    border:
+      "1px solid #e5e5e3",
     borderRadius: "24px",
     textAlign: "center",
   },
@@ -906,7 +1758,8 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "13px",
-    border: "1px solid #ddd",
+    border:
+      "1px solid #ddd",
     background: "#fff",
     fontSize: "20px",
     cursor: "pointer",
@@ -915,7 +1768,8 @@ const styles = {
   logo: {
     fontSize: "18px",
     fontWeight: "900",
-    letterSpacing: "-0.4px",
+    letterSpacing:
+      "-0.4px",
   },
 
   topSubtitle: {
@@ -936,8 +1790,10 @@ const styles = {
     color: "#aaa",
     fontSize: "10px",
     fontWeight: "700",
-    letterSpacing: ".5px",
-    textTransform: "uppercase",
+    letterSpacing:
+      ".5px",
+    textTransform:
+      "uppercase",
   },
 
   questionText: {
@@ -949,134 +1805,186 @@ const styles = {
 
   limitRow: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     gap: "10px",
     marginTop: "16px",
     paddingTop: "12px",
-    borderTop: "1px solid #292929",
+    borderTop:
+      "1px solid #292929",
     color: "#aaa",
     fontSize: "10px",
   },
 
-  controlBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+  uploadCard: {
     background: "#fff",
-    border: "1px solid #e5e5e3",
-    borderRadius: "18px",
-    padding: "13px 16px",
-    marginBottom: "10px",
-  },
-
-  controlLabel: {
-    fontSize: "8px",
-    color: "#999",
-    fontWeight: "800",
-    letterSpacing: "1px",
-  },
-
-  timer: {
-    fontSize: "22px",
-    fontWeight: "900",
-    marginTop: "2px",
-    fontVariantNumeric: "tabular-nums",
-  },
-
-  pauseButton: {
-    border: "1px solid #ddd",
-    background: "#fff",
-    borderRadius: "11px",
-    padding: "9px 13px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  editorCard: {
-    background: "#fff",
-    border: "1px solid #e5e5e3",
+    border:
+      "1px solid #e5e5e3",
     borderRadius: "21px",
     padding: "16px",
   },
 
-  editorHeader: {
+  uploadHeader: {
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent:
+      "space-between",
+    alignItems: "center",
     gap: "10px",
-    marginBottom: "11px",
+    marginBottom: "12px",
   },
 
-  editorTitle: {
+  uploadTitle: {
     fontSize: "15px",
-    fontWeight: "850",
+    fontWeight: "900",
   },
 
-  editorHint: {
-    color: "#888",
+  uploadSubtitle: {
     fontSize: "10px",
-    marginTop: "3px",
-    lineHeight: "1.4",
+    color: "#888",
+    marginTop: "4px",
   },
 
-  wordCount: {
-    flexShrink: 0,
+  pageCounter: {
+    background: "#111",
+    color: "#fff",
     borderRadius: "10px",
-    background: "#f0f0ee",
-    padding: "8px 10px",
+    padding:
+      "8px 10px",
     fontSize: "10px",
     fontWeight: "800",
   },
 
-  wordCountOver: {
-    background: "#111",
-    color: "#fff",
-  },
-
-  textarea: {
-    width: "100%",
-    minHeight: "390px",
-    resize: "vertical",
-    boxSizing: "border-box",
-    border: "1px solid #ddd",
-    borderRadius: "15px",
-    padding: "15px",
-    outline: "none",
-    fontSize: "14px",
-    lineHeight: "1.7",
-    fontFamily: "inherit",
+  dropZone: {
+    display: "block",
+    border:
+      "2px dashed #d4d4d0",
+    borderRadius: "17px",
+    padding: "30px 16px",
+    textAlign: "center",
+    cursor: "pointer",
     background: "#fafafa",
   },
 
-  editorFooter: {
+  dropZoneActive: {
+    borderColor: "#111",
+    background: "#f0f0ee",
+  },
+
+  hiddenInput: {
+    display: "none",
+  },
+
+  uploadIcon: {
+    width: "46px",
+    height: "46px",
+    margin:
+      "0 auto 10px",
+    borderRadius: "14px",
+    background: "#111",
+    color: "#fff",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: "10px",
-    marginTop: "10px",
+    justifyContent:
+      "center",
+    fontSize: "23px",
+    fontWeight: "900",
   },
 
-  editorTip: {
-    color: "#999",
+  dropTitle: {
+    fontSize: "14px",
+    fontWeight: "850",
+  },
+
+  dropSubtitle: {
+    fontSize: "11px",
+    color: "#777",
+    marginTop: "5px",
+  },
+
+  uploadHint: {
     fontSize: "9px",
-    lineHeight: "1.4",
+    color: "#aaa",
+    marginTop: "9px",
   },
 
-  saveButton: {
-    border: "1px solid #ddd",
+  previewGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "10px",
+    marginTop: "12px",
+  },
+
+  previewCard: {
+    border:
+      "1px solid #e2e2df",
+    borderRadius: "15px",
+    overflow: "hidden",
+    background: "#fafafa",
+  },
+
+  previewImageWrap: {
+    position: "relative",
+    background: "#eee",
+    aspectRatio: "3 / 4",
+    overflow: "hidden",
+  },
+
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  },
+
+  pageBadge: {
+    position: "absolute",
+    top: "8px",
+    left: "8px",
+    background: "#111",
+    color: "#fff",
+    borderRadius: "7px",
+    padding:
+      "5px 7px",
+    fontSize: "8px",
+    fontWeight: "800",
+  },
+
+  previewActions: {
+    display: "flex",
+    gap: "5px",
+    padding: "7px",
+  },
+
+  smallButton: {
+    border:
+      "1px solid #ddd",
     background: "#fff",
-    borderRadius: "10px",
-    padding: "9px 12px",
-    fontWeight: "700",
-    fontSize: "10px",
+    borderRadius: "8px",
+    padding:
+      "6px 8px",
     cursor: "pointer",
-    flexShrink: 0,
+    fontWeight: "800",
+  },
+
+  removeButton: {
+    marginLeft: "auto",
+    border: 0,
+    background: "#111",
+    color: "#fff",
+    borderRadius: "8px",
+    padding:
+      "6px 8px",
+    cursor: "pointer",
+    fontSize: "9px",
+    fontWeight: "700",
   },
 
   errorBox: {
     background: "#fff",
     color: "#555",
-    border: "1px solid #ccc",
+    border:
+      "1px solid #ccc",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "10px",
@@ -1107,8 +2015,9 @@ const styles = {
     color: "#999",
     fontSize: "9px",
     lineHeight: "1.5",
-    margin: "11px auto 0",
-    maxWidth: "500px",
+    margin:
+      "11px auto 0",
+    maxWidth: "520px",
   },
 
   scoreCard: {
@@ -1123,7 +2032,8 @@ const styles = {
   scoreLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing: "1.5px",
+    letterSpacing:
+      "1.5px",
     fontWeight: "800",
   },
 
@@ -1143,7 +2053,8 @@ const styles = {
 
   evaluationSection: {
     background: "#fff",
-    border: "1px solid #e5e5e3",
+    border:
+      "1px solid #e5e5e3",
     borderRadius: "20px",
     padding: "17px",
     marginBottom: "10px",
@@ -1152,18 +2063,21 @@ const styles = {
   evaluationTitle: {
     fontSize: "15px",
     fontWeight: "900",
-    margin: "0 0 13px",
+    margin:
+      "0 0 13px",
   },
 
   directiveBox: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
     gap: "10px",
     background: "#111",
     color: "#fff",
     borderRadius: "13px",
-    padding: "12px 13px",
+    padding:
+      "12px 13px",
     fontSize: "11px",
   },
 
@@ -1178,8 +2092,10 @@ const styles = {
     fontSize: "10px",
     color: "#777",
     fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: ".5px",
+    textTransform:
+      "uppercase",
+    letterSpacing:
+      ".5px",
     marginBottom: "5px",
   },
 
@@ -1199,7 +2115,8 @@ const styles = {
   },
 
   arrayList: {
-    margin: "0 0 0 18px",
+    margin:
+      "0 0 0 18px",
     padding: 0,
     fontSize: "12px",
     lineHeight: "1.6",
@@ -1215,23 +2132,27 @@ const styles = {
   },
 
   improvementText: {
-    margin: "5px 0 0",
+    margin:
+      "5px 0 0",
   },
 
   scoreLine: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
     background: "#f0f0ee",
     borderRadius: "12px",
-    padding: "11px 13px",
+    padding:
+      "11px 13px",
     fontSize: "12px",
     marginBottom: "10px",
   },
 
   scoreGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns:
+      "repeat(3, 1fr)",
     gap: "7px",
     marginBottom: "10px",
   },
@@ -1256,7 +2177,8 @@ const styles = {
   },
 
   dimensionCard: {
-    border: "1px solid #e2e2df",
+    border:
+      "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -1265,11 +2187,13 @@ const styles = {
   },
 
   dimensionText: {
-    margin: "7px 0 0",
+    margin:
+      "7px 0 0",
   },
 
   feedbackCard: {
-    border: "1px solid #e2e2df",
+    border:
+      "1px solid #e2e2df",
     borderRadius: "13px",
     padding: "12px",
     marginTop: "8px",
@@ -1280,7 +2204,8 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius: "7px",
-    padding: "4px 7px",
+    padding:
+      "4px 7px",
     fontSize: "8px",
     fontWeight: "800",
     marginBottom: "7px",
@@ -1309,7 +2234,8 @@ const styles = {
   examinerLabel: {
     color: "#999",
     fontSize: "9px",
-    letterSpacing: "1.2px",
+    letterSpacing:
+      "1.2px",
     fontWeight: "800",
   },
 
@@ -1317,7 +2243,8 @@ const styles = {
     fontSize: "12px",
     lineHeight: "1.6",
     color: "#ddd",
-    margin: "10px 0 0",
+    margin:
+      "10px 0 0",
   },
 
   fullButton: {
@@ -1337,7 +2264,8 @@ const styles = {
     borderRadius: "12px",
     background: "#111",
     color: "#fff",
-    padding: "11px 15px",
+    padding:
+      "11px 15px",
     fontWeight: "700",
     cursor: "pointer",
   },
