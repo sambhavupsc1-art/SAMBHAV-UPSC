@@ -392,10 +392,24 @@ export default function AnswerWritingPage() {
           await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "AI evaluation failed."
-          );
+  const status =
+    data?.openai_status ??
+    response.status ??
+    "unknown";
+
+  const details =
+    data?.details ||
+    data?.error ||
+    "Server ne koi additional error detail return nahi ki.";
+
+  throw new Error(
+    `${data?.error || "AI evaluation request failed."}
+
+OpenAI Status: ${status}
+
+Details:
+${details}`
+  );
         }
 
         if (
