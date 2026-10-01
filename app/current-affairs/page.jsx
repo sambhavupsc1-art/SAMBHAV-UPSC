@@ -498,6 +498,19 @@ export default function CurrentAffairsPage() {
           </div>
 
           <button
+            className="magazine-button"
+            onClick={() =>
+              (window.location.href =
+                "/current-affairs/magazine")
+            }
+          >
+            📖
+            <span>
+              {hi ? "Monthly Magazine" : "Monthly Magazine"}
+            </span>
+          </button>
+
+          <button
             className="notification-button"
             onClick={() =>
               setNotificationOpen(
@@ -982,6 +995,28 @@ export default function CurrentAffairsPage() {
           border-color: #172033;
         }
 
+        .magazine-button {
+          cursor: pointer;
+          font-weight: 800;
+          color: #fff;
+          background: #172033;
+          border: 1px solid #172033;
+          border-radius: 16px;
+          padding: 13px 15px;
+          display: flex;
+          gap: 7px;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 16px
+            rgba(16, 24, 40, 0.08);
+          white-space: nowrap;
+        }
+
+        .magazine-button:hover {
+          background: #25304a;
+          border-color: #25304a;
+        }
+
         .notification-button {
           cursor: pointer;
           font-weight: 800;
@@ -1411,41 +1446,6 @@ export default function CurrentAffairsPage() {
           gap: 13px;
         }
 
-        .fact-type-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 9px;
-        }
-
-        .fact-type {
-          display: inline-flex;
-          align-items: center;
-          width: fit-content;
-          padding: 4px 8px;
-          border-radius: 999px;
-          background: #eef2f6;
-          color: #344054;
-          font-size: 11px;
-          font-weight: 800;
-        }
-
-        .fact-gs {
-          color: #98a2b3;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .premium-one-line-fact {
-          margin: 0;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          overflow: hidden;
-        }
-
         .fact-card {
           background: #fff;
           border: 1px solid #e4e7ec;
@@ -1718,180 +1718,6 @@ export default function CurrentAffairsPage() {
             align-items: flex-start;
           }
         }
-
-        .premium-facts-wrap {
-          max-width: 1050px;
-          margin: 0 auto;
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 22px;
-          padding: 22px;
-          box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
-        }
-
-        .premium-main-heading {
-          padding-bottom: 18px;
-        }
-
-        .premium-main-badge {
-          display: inline-flex;
-          padding: 5px 9px;
-          border-radius: 999px;
-          background: #172033;
-          color: #fff;
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: .08em;
-        }
-
-        .premium-main-heading h2 {
-          margin: 8px 0 5px;
-          font-size: 24px;
-        }
-
-        .premium-main-heading p {
-          margin: 0;
-          color: #667085;
-          font-size: 13px;
-        }
-
-        .premium-subsection {
-          border: 1px solid #eaecf0;
-          border-radius: 16px;
-          overflow: hidden;
-          background: #fcfcfd;
-        }
-
-        .premium-subheading {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 14px;
-          padding: 15px 16px;
-          background: #f8fafc;
-          border-bottom: 1px solid #eaecf0;
-        }
-
-        .premium-subheading > div {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-        }
-
-        .premium-section-number {
-          display: grid;
-          place-items: center;
-          width: 30px;
-          height: 30px;
-          border-radius: 9px;
-          background: #172033;
-          color: #fff;
-          font-size: 11px;
-          font-weight: 900;
-        }
-
-        .premium-subheading h3 {
-          margin: 0;
-          font-size: 16px;
-        }
-
-        .premium-subheading p {
-          margin: 3px 0 0;
-          color: #667085;
-          font-size: 11px;
-        }
-
-        .premium-subheading > strong {
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .premium-clean-table {
-          display: grid;
-        }
-
-        .premium-clean-card {
-          padding: 14px 16px;
-          border-bottom: 1px solid #eaecf0;
-          background: #fff;
-        }
-
-        .premium-clean-card:last-child {
-          border-bottom: 0;
-        }
-
-        .premium-clean-card:hover {
-          background: #fbfcfe;
-        }
-
-        .premium-clean-meta {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 7px;
-        }
-
-        .premium-type-pill,
-        .premium-gs-pill {
-          font-size: 10px;
-          font-weight: 800;
-          border-radius: 999px;
-          padding: 4px 7px;
-        }
-
-        .premium-type-pill {
-          background: #eef2f6;
-          color: #344054;
-        }
-
-        .premium-gs-pill {
-          color: #667085;
-          background: #f2f4f7;
-        }
-
-        .premium-clean-card h3 {
-          margin: 0 0 5px;
-          font-size: 14px;
-          line-height: 1.45;
-          color: #172033;
-        }
-
-        .premium-clean-fact {
-          margin: 0;
-          color: #344054;
-          font-size: 13px;
-          line-height: 1.55;
-        }
-
-        .premium-clean-empty {
-          padding: 22px 16px;
-          color: #667085;
-          font-size: 13px;
-        }
-
-        .premium-divider {
-          height: 14px;
-        }
-
-        @media (max-width: 640px) {
-          .premium-facts-wrap {
-            padding: 14px;
-            border-radius: 18px;
-          }
-
-          .premium-main-heading h2 {
-            font-size: 21px;
-          }
-
-          .premium-subheading {
-            padding: 13px;
-          }
-
-          .premium-clean-card {
-            padding: 13px;
-          }
-        }
       `}</style>
     </main>
   );
@@ -2101,137 +1927,78 @@ function PremiumFacts({
   language,
   hi,
 }) {
-  const getText = (item, base, fallback = "") =>
-    (hi
-      ? item[`${base}_hi`] || item[`${base}_en`]
-      : item[`${base}_en`] || item[`${base}_hi`]) ||
-    item[base] ||
-    fallback;
-
-  const prelimsFacts = news.filter((item) => {
-    const fact = getText(item, "premium_fact");
-    const prelims = [
-      item.prelims,
-      item.prelims_hi,
-      item.prelims_en,
-      item.prelims_mcq,
-      item.prelims_mcq_hi,
-      item.prelims_mcq_en,
-    ].filter(Boolean).join(" ").trim();
-
-    return fact && prelims;
-  });
-
-  const mainsFacts = news.filter((item) => {
-    const fact = getText(item, "premium_fact");
-    const mains = [
-      item.mains_analysis,
-      item.mains_analysis_hi,
-      item.mains_analysis_en,
-      item.mains_question,
-      item.mains_question_hi,
-      item.mains_question_en,
-    ].filter(Boolean).join(" ").trim();
-
-    return fact && mains;
-  });
-
-  const uniqueMains = Array.from(
-    new Map(mainsFacts.map((item) => [Number(item.id), item])).values()
-  );
-
-  const renderFact = (item, type) => (
-    <article className="premium-clean-card" key={`${type}-${item.id}`}>
-      <div className="premium-clean-meta">
-        <span className="premium-type-pill">
-          {type === "prelims" ? "PRELIMS FACT" : "MAINS FACT"}
-        </span>
-        <span className="premium-gs-pill">
-          {item.gs || item.paper || "UPSC"}
-        </span>
-      </div>
-
-      <h3>{getText(item, "title", "Current Affair")}</h3>
-
-      <p className="premium-clean-fact">
-        {getText(item, "premium_fact")}
-      </p>
-    </article>
+  const facts = news.filter(
+    (item) =>
+      item.premium_fact_hi ||
+      item.premium_fact_en ||
+      item.premium_fact
   );
 
   return (
-    <section className="premium-facts-wrap">
-      <div className="premium-main-heading">
+    <section className="special-section">
+      <div className="section-heading">
         <div>
-          <span className="premium-main-badge">PREMIUM</span>
-          <h2>🔥 {hi ? "Premium Facts" : "Premium Facts"}</h2>
-          <p>
-            {hi
-              ? "केवल UPSC-relevant, fact-based points."
-              : "Only UPSC-relevant, fact-based points."}
-          </p>
-        </div>
-      </div>
+          <span className="badge">
+            PREMIUM
+          </span>
 
-      <div className="premium-subsection">
-        <div className="premium-subheading">
-          <div>
-            <span className="premium-section-number">01</span>
-            <div>
-              <h3>Prelims Current Facts</h3>
-              <p>
-                {hi
-                  ? "सीधे Prelims revision में उपयोग होने वाले facts."
-                  : "Direct facts useful for Prelims revision."}
-              </p>
-            </div>
-          </div>
-          <strong>{prelimsFacts.length}</strong>
+          <h2>🔥 Premium Facts</h2>
         </div>
 
-        {prelimsFacts.length === 0 ? (
-          <div className="premium-clean-empty">
-            {hi
-              ? "अभी कोई Prelims Premium Fact उपलब्ध नहीं है।"
-              : "No Prelims Premium Facts available yet."}
-          </div>
-        ) : (
-          <div className="premium-clean-table">
-            {prelimsFacts.map((item) => renderFact(item, "prelims"))}
-          </div>
-        )}
+        <p>
+          {hi
+            ? "Mains में उपयोग होने वाले high-value facts"
+            : "High-value facts for UPSC Mains"}
+        </p>
       </div>
 
-      <div className="premium-divider" />
-
-      <div className="premium-subsection">
-        <div className="premium-subheading">
-          <div>
-            <span className="premium-section-number">02</span>
-            <div>
-              <h3>Mains Current Facts</h3>
-              <p>
-                {hi
-                  ? "Intro, Body, Examples और Conclusion में उपयोगी facts."
-                  : "Facts useful for Intro, Body, Examples and Conclusion."}
-              </p>
-            </div>
-          </div>
-          <strong>{uniqueMains.length}</strong>
+      {facts.length === 0 ? (
+        <div className="empty">
+          {hi
+            ? "अभी Premium Facts उपलब्ध नहीं हैं।"
+            : "No Premium Facts available yet."}
         </div>
+      ) : (
+        <div className="fact-grid">
+          {facts.map((item) => {
+            const fact =
+              (hi
+                ? item.premium_fact_hi
+                : item.premium_fact_en) ||
+              item.premium_fact;
 
-        {uniqueMains.length === 0 ? (
-          <div className="premium-clean-empty">
-            {hi
-              ? "अभी कोई Mains Premium Fact उपलब्ध नहीं है।"
-              : "No Mains Premium Facts available yet."}
-          </div>
-        ) : (
-          <div className="premium-clean-table">
-            {uniqueMains.map((item) => renderFact(item, "mains"))}
-          </div>
-        )}
-      </div>
+            return (
+              <article
+                className="fact-card"
+                key={item.id}
+              >
+                <span>
+                  {item.gs ||
+                    item.paper ||
+                    "UPSC"}
+                </span>
+
+                <h3>
+                  {hi
+                    ? item.title_hi ||
+                      item.title
+                    : item.title_en ||
+                      item.title}
+                </h3>
+
+                <p>{fact}</p>
+
+                <small>
+                  Source:{" "}
+                  {item.source_name ||
+                    "Official Source"}
+                </small>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
+
