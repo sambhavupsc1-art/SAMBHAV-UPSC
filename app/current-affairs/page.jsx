@@ -1411,6 +1411,41 @@ export default function CurrentAffairsPage() {
           gap: 13px;
         }
 
+        .fact-type-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 9px;
+        }
+
+        .fact-type {
+          display: inline-flex;
+          align-items: center;
+          width: fit-content;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: #eef2f6;
+          color: #344054;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .fact-gs {
+          color: #98a2b3;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .premium-one-line-fact {
+          margin: 0;
+          line-height: 1.5;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+        }
+
         .fact-card {
           background: #fff;
           border: 1px solid #e4e7ec;
@@ -1899,6 +1934,40 @@ function PremiumFacts({
       item.premium_fact
   );
 
+  function getFactType(item) {
+    const hasPrelims = Boolean(
+      item.prelims ||
+      item.prelims_hi ||
+      item.prelims_en ||
+      item.prelims_mcq ||
+      item.prelims_mcq_hi ||
+      item.prelims_mcq_en
+    );
+
+    const hasMains = Boolean(
+      item.mains_analysis ||
+      item.mains_analysis_hi ||
+      item.mains_analysis_en ||
+      item.mains_question ||
+      item.mains_question_hi ||
+      item.mains_question_en
+    );
+
+    if (hasPrelims && hasMains) {
+      return "Prelims + Mains Fact";
+    }
+
+    if (hasMains) {
+      return "Mains Fact";
+    }
+
+    if (hasPrelims) {
+      return "Prelims Fact";
+    }
+
+    return "UPSC Fact";
+  }
+
   return (
     <section className="special-section">
       <div className="section-heading">
@@ -1912,8 +1981,8 @@ function PremiumFacts({
 
         <p>
           {hi
-            ? "Mains में उपयोग होने वाले high-value facts"
-            : "High-value facts for UPSC Mains"}
+            ? "छोटे, सीधे और exam-ready facts"
+            : "Short, direct and exam-ready facts"}
         </p>
       </div>
 
@@ -1937,27 +2006,31 @@ function PremiumFacts({
                 className="fact-card"
                 key={item.id}
               >
-                <span>
-                  {item.gs ||
-                    item.paper ||
-                    "UPSC"}
-                </span>
+                <div className="fact-type-row">
+                  <span className="fact-type">
+                    {getFactType(item)}
+                  </span>
+
+                  <span className="fact-gs">
+                    {item.gs ||
+                      item.paper ||
+                      "UPSC"}
+                  </span>
+                </div>
 
                 <h3>
                   {hi
                     ? item.title_hi ||
+                      item.title_en ||
                       item.title
                     : item.title_en ||
+                      item.title_hi ||
                       item.title}
                 </h3>
 
-                <p>{fact}</p>
-
-                <small>
-                  Source:{" "}
-                  {item.source_name ||
-                    "Official Source"}
-                </small>
+                <p className="premium-one-line-fact">
+                  {fact}
+                </p>
               </article>
             );
           })}
@@ -1966,4 +2039,3 @@ function PremiumFacts({
     </section>
   );
 }
-
