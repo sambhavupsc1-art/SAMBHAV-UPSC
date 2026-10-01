@@ -1474,6 +1474,36 @@ export default function CurrentAffairsPage() {
           color: #667085;
         }
 
+        .premium-tabs {
+          max-width: 1050px;
+          margin: 0 auto 18px;
+          display: flex;
+          gap: 8px;
+          border-bottom: 1px solid #e4e7ec;
+          padding-bottom: 10px;
+        }
+
+        .premium-tab {
+          border: 1px solid #dfe3e8;
+          background: #fff;
+          color: #172033;
+          border-radius: 10px;
+          padding: 10px 18px;
+          cursor: pointer;
+          font-weight: 800;
+          transition: 0.2s;
+        }
+
+        .premium-tab:hover {
+          background: #f8fafc;
+        }
+
+        .premium-tab.active {
+          background: #172033;
+          color: #fff;
+          border-color: #172033;
+        }
+
         .news-card.expanded {
           border-color: #cfd6e4;
           box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
@@ -1487,8 +1517,15 @@ export default function CurrentAffairsPage() {
         }
 
         @keyframes analysisIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         .analysis-header {
@@ -1717,6 +1754,14 @@ export default function CurrentAffairsPage() {
           .notification-title {
             align-items: flex-start;
           }
+
+          .premium-tabs {
+            width: 100%;
+          }
+
+          .premium-tab {
+            flex: 1;
+          }
         }
       `}</style>
     </main>
@@ -1734,7 +1779,8 @@ function ArticleCard({
   disabled,
 }) {
   const hi = language === "hi";
-  const expanded = Number(expandedId) === Number(item.id);
+  const expanded =
+    Number(expandedId) === Number(item.id);
 
   const title =
     (hi ? item.title_hi : item.title_en) ||
@@ -1751,26 +1797,40 @@ function ArticleCard({
     "";
 
   return (
-    <article className={expanded ? "news-card expanded" : "news-card"}>
+    <article
+      className={
+        expanded
+          ? "news-card expanded"
+          : "news-card"
+      }
+    >
       <div className="topline">
         <span className="badge">
           {item.gs || item.paper || "UPSC"}
         </span>
 
         <span className="meta">
-          {item.subject || "UPSC Current Affairs"} • {formatDate(item.date)}
+          {item.subject ||
+            "UPSC Current Affairs"}{" "}
+          • {formatDate(item.date)}
         </span>
       </div>
 
       <h3>{title}</h3>
 
-      {summary && <p className="summary">{summary}</p>}
+      {summary && (
+        <p className="summary">
+          {summary}
+        </p>
+      )}
 
       <div className="card-actions">
         <button
           className="read-button"
           onClick={() =>
-            onExpand(expanded ? null : item.id)
+            onExpand(
+              expanded ? null : item.id
+            )
           }
           aria-expanded={expanded}
         >
@@ -1786,13 +1846,19 @@ function ArticleCard({
         <button
           className="important-button"
           disabled={disabled}
-          onClick={() => onImportant(item.id)}
+          onClick={() =>
+            onImportant(item.id)
+          }
         >
-          {important ? "★ Important" : "⭐ Add to Important"}
+          {important
+            ? "★ Important"
+            : "⭐ Add to Important"}
         </button>
 
         <span className="source">
-          Source: {item.source_name || "Not specified"}
+          Source:{" "}
+          {item.source_name ||
+            "Not specified"}
         </span>
       </div>
 
@@ -1825,34 +1891,63 @@ function ArticleAnalysis({
     "Current Affair";
 
   const why =
-    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
+    (hi
+      ? item.why_in_news_hi
+      : item.why_in_news_en) ||
     item.why_in_news;
+
   const background =
-    (hi ? item.background_hi : item.background_en) ||
+    (hi
+      ? item.background_hi
+      : item.background_en) ||
     item.background;
+
   const facts =
-    (hi ? item.key_facts_hi : item.key_facts_en) ||
+    (hi
+      ? item.key_facts_hi
+      : item.key_facts_en) ||
     item.key_facts;
+
   const prelims =
-    (hi ? item.prelims_hi : item.prelims_en) ||
+    (hi
+      ? item.prelims_hi
+      : item.prelims_en) ||
     item.prelims;
+
   const mains =
-    (hi ? item.mains_analysis_hi : item.mains_analysis_en) ||
+    (hi
+      ? item.mains_analysis_hi
+      : item.mains_analysis_en) ||
     item.mains_analysis;
+
   const premium =
-    (hi ? item.premium_fact_hi : item.premium_fact_en) ||
+    (hi
+      ? item.premium_fact_hi
+      : item.premium_fact_en) ||
     item.premium_fact;
+
   const pyqs =
-    (hi ? item.related_pyqs_hi : item.related_pyqs_en) ||
+    (hi
+      ? item.related_pyqs_hi
+      : item.related_pyqs_en) ||
     item.related_pyqs;
+
   const mcq =
-    (hi ? item.prelims_mcq_hi : item.prelims_mcq_en) ||
+    (hi
+      ? item.prelims_mcq_hi
+      : item.prelims_mcq_en) ||
     item.prelims_mcq;
+
   const mainsQuestion =
-    (hi ? item.mains_question_hi : item.mains_question_en) ||
+    (hi
+      ? item.mains_question_hi
+      : item.mains_question_en) ||
     item.mains_question;
+
   const ethics =
-    (hi ? item.ethics_angle_hi : item.ethics_angle_en) ||
+    (hi
+      ? item.ethics_angle_hi
+      : item.ethics_angle_en) ||
     "";
 
   return (
@@ -1860,12 +1955,16 @@ function ArticleAnalysis({
       <div className="analysis-header">
         <div>
           <span className="analysis-kicker">
-            {hi ? "DETAILED UPSC ANALYSIS" : "DETAILED UPSC ANALYSIS"}
+            DETAILED UPSC ANALYSIS
           </span>
+
           <h4>{title}</h4>
         </div>
+
         <span className="analysis-badge">
-          {item.gs || item.paper || "UPSC"}
+          {item.gs ||
+            item.paper ||
+            "UPSC"}
         </span>
       </div>
 
@@ -1876,25 +1975,91 @@ function ArticleAnalysis({
           target="_blank"
           rel="noreferrer"
         >
-          {hi ? "Original Source देखें ↗" : "View Original Source ↗"}
+          {hi
+            ? "Original Source देखें ↗"
+            : "View Original Source ↗"}
         </a>
       )}
 
-      {why && <AnalysisBlock title={hi ? "Why in News" : "Why in News"} text={why} />}
-      {background && <AnalysisBlock title={hi ? "Background" : "Background"} text={background} />}
-      {facts && <AnalysisBlock title={hi ? "Key Facts" : "Key Facts"} text={facts} />}
-      {prelims && <AnalysisBlock title={hi ? "Prelims" : "Prelims"} text={prelims} />}
-      {mains && <AnalysisBlock title={hi ? "Mains Analysis" : "Mains Analysis"} text={mains} />}
-      {item.static_link && <AnalysisBlock title={hi ? "Static Link" : "Static Link"} text={item.static_link} />}
-      {pyqs && <AnalysisBlock title={hi ? "Related PYQs" : "Related PYQs"} text={pyqs} />}
-      {mcq && <AnalysisBlock title={hi ? "Possible Prelims MCQ" : "Possible Prelims MCQ"} text={mcq} />}
-      {mainsQuestion && <AnalysisBlock title={hi ? "Possible Mains Question" : "Possible Mains Question"} text={mainsQuestion} />}
-      {ethics && <AnalysisBlock title={hi ? "GS-IV Ethics" : "GS-IV Ethics"} text={ethics} />}
+      {why && (
+        <AnalysisBlock
+          title="Why in News"
+          text={why}
+        />
+      )}
+
+      {background && (
+        <AnalysisBlock
+          title="Background"
+          text={background}
+        />
+      )}
+
+      {facts && (
+        <AnalysisBlock
+          title="Key Facts"
+          text={facts}
+        />
+      )}
+
+      {prelims && (
+        <AnalysisBlock
+          title="Prelims"
+          text={prelims}
+        />
+      )}
+
+      {mains && (
+        <AnalysisBlock
+          title="Mains Analysis"
+          text={mains}
+        />
+      )}
+
+      {item.static_link && (
+        <AnalysisBlock
+          title="Static Link"
+          text={item.static_link}
+        />
+      )}
+
+      {pyqs && (
+        <AnalysisBlock
+          title="Related PYQs"
+          text={pyqs}
+        />
+      )}
+
+      {mcq && (
+        <AnalysisBlock
+          title="Possible Prelims MCQ"
+          text={mcq}
+        />
+      )}
+
+      {mainsQuestion && (
+        <AnalysisBlock
+          title="Possible Mains Question"
+          text={mainsQuestion}
+        />
+      )}
+
+      {ethics && (
+        <AnalysisBlock
+          title="GS-IV Ethics"
+          text={ethics}
+        />
+      )}
 
       {premium && (
         <div className="inline-premium-box">
-          <div className="premium-label">🔥 PREMIUM FACT</div>
-          <div className="content-block">{premium}</div>
+          <div className="premium-label">
+            🔥 PREMIUM FACT
+          </div>
+
+          <div className="content-block">
+            {premium}
+          </div>
         </div>
       )}
 
@@ -1902,7 +2067,9 @@ function ArticleAnalysis({
         <button
           className="important-button"
           disabled={importantLoading}
-          onClick={() => onImportant(item.id)}
+          onClick={() =>
+            onImportant(item.id)
+          }
         >
           {important
             ? "★ Remove from Important"
@@ -1913,11 +2080,17 @@ function ArticleAnalysis({
   );
 }
 
-function AnalysisBlock({ title, text }) {
+function AnalysisBlock({
+  title,
+  text,
+}) {
   return (
     <section className="analysis-block">
       <h5>{title}</h5>
-      <div className="content-block">{text}</div>
+
+      <div className="content-block">
+        {text}
+      </div>
     </section>
   );
 }
@@ -1927,12 +2100,27 @@ function PremiumFacts({
   language,
   hi,
 }) {
-  const facts = news.filter(
+  const [factType, setFactType] =
+    useState("prelims");
+
+  const prelimsFacts = news.filter(
+    (item) =>
+      item.prelims_hi ||
+      item.prelims_en ||
+      item.prelims
+  );
+
+  const mainsFacts = news.filter(
     (item) =>
       item.premium_fact_hi ||
       item.premium_fact_en ||
       item.premium_fact
   );
+
+  const facts =
+    factType === "prelims"
+      ? prelimsFacts
+      : mainsFacts;
 
   return (
     <section className="special-section">
@@ -1942,30 +2130,93 @@ function PremiumFacts({
             PREMIUM
           </span>
 
-          <h2>🔥 Premium Facts</h2>
+          <h2>
+            🔥 Premium Facts
+          </h2>
         </div>
 
         <p>
-          {hi
-            ? "Mains में उपयोग होने वाले high-value facts"
-            : "High-value facts for UPSC Mains"}
+          {factType === "prelims"
+            ? hi
+              ? "Prelims revision के लिए high-value facts"
+              : "High-value facts for Prelims revision"
+            : hi
+            ? "Mains answer में उपयोग होने वाले high-value facts"
+            : "High-value facts for UPSC Mains answers"}
         </p>
+      </div>
+
+      <div className="premium-tabs">
+        <button
+          type="button"
+          className={
+            factType === "prelims"
+              ? "premium-tab active"
+              : "premium-tab"
+          }
+          onClick={() =>
+            setFactType("prelims")
+          }
+        >
+          PRELIMS
+        </button>
+
+        <button
+          type="button"
+          className={
+            factType === "mains"
+              ? "premium-tab active"
+              : "premium-tab"
+          }
+          onClick={() =>
+            setFactType("mains")
+          }
+        >
+          MAINS
+        </button>
       </div>
 
       {facts.length === 0 ? (
         <div className="empty">
-          {hi
-            ? "अभी Premium Facts उपलब्ध नहीं हैं।"
-            : "No Premium Facts available yet."}
+          {factType === "prelims"
+            ? hi
+              ? "अभी Prelims Facts उपलब्ध नहीं हैं।"
+              : "No Prelims Facts available yet."
+            : hi
+            ? "अभी Mains Facts उपलब्ध नहीं हैं।"
+            : "No Mains Facts available yet."}
         </div>
       ) : (
         <div className="fact-grid">
           {facts.map((item) => {
             const fact =
-              (hi
-                ? item.premium_fact_hi
-                : item.premium_fact_en) ||
-              item.premium_fact;
+              factType === "prelims"
+                ? (
+                    hi
+                      ? item.prelims_hi
+                      : item.prelims_en
+                  ) ||
+                  item.prelims
+                : (
+                    hi
+                      ? item.premium_fact_hi
+                      : item.premium_fact_en
+                  ) ||
+                  item.premium_fact;
+
+            const title =
+              (
+                hi
+                  ? item.title_hi
+                  : item.title_en
+              ) ||
+              item.title ||
+              (
+                hi
+                  ? item.title_en
+                  : item.title_hi
+              ) ||
+              "Current Affair";
 
             return (
               <article
@@ -1979,14 +2230,12 @@ function PremiumFacts({
                 </span>
 
                 <h3>
-                  {hi
-                    ? item.title_hi ||
-                      item.title
-                    : item.title_en ||
-                      item.title}
+                  {title}
                 </h3>
 
-                <p>{fact}</p>
+                <p>
+                  {fact}
+                </p>
 
                 <small>
                   Source:{" "}
@@ -2001,4 +2250,3 @@ function PremiumFacts({
     </section>
   );
 }
-
