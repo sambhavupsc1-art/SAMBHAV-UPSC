@@ -3,22 +3,30 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 /*
- * Model priority:
- *
- * 1. Gemini 3.8 Flash
- * 2. Gemini 3.7 Flash
- * 3. Gemini 3.6 Flash
- * 4. Gemini 3.5 Flash
- *
- * Temporary 429 / 5xx errors par automatically next model try hoga.
- */
+|--------------------------------------------------------------------------
+| GEMINI MODEL FALLBACK
+|--------------------------------------------------------------------------
+|
+| अगर पहला model high-demand / temporary capacity error देता है,
+| तो automatically अगला model try होगा.
+|
+*/
 
 const MODELS = [
   "gemini-3.8-flash",
   "gemini-3.7-flash",
   "gemini-3.6-flash",
   "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
 ];
+
+/*
+|--------------------------------------------------------------------------
+| SYSTEM INSTRUCTIONS
+|--------------------------------------------------------------------------
+*/
 
 const SYSTEM_INSTRUCTIONS = `
 You are an expert UPSC Civil Services Examination Mains evaluator.
@@ -27,7 +35,7 @@ The candidate has submitted handwritten answer pages as images.
 
 Read ALL submitted pages in order.
 
-Treat Page 1, Page 2, Page 3 and Page 4 as ONE continuous answer.
+Treat all pages as ONE continuous answer.
 
 Do not evaluate pages separately.
 
@@ -154,6 +162,12 @@ Do not invent quotations or claims made by the candidate.
 
 Return ONLY valid JSON matching the supplied schema.
 `;
+
+/*
+|--------------------------------------------------------------------------
+| EVALUATION SCHEMA
+|--------------------------------------------------------------------------
+*/
 
 const EVALUATION_SCHEMA = {
   type: "object",
@@ -534,7 +548,6 @@ const EVALUATION_SCHEMA = {
 
     model_framework: {
       type: "array",
-
       items: {
         type: "string",
       },
@@ -542,7 +555,6 @@ const EVALUATION_SCHEMA = {
 
     improvement_plan: {
       type: "array",
-
       items: {
         type: "string",
       },
@@ -573,10 +585,14 @@ const EVALUATION_SCHEMA = {
   ],
 };
 
+/*
+|--------------------------------------------------------------------------
+| HELPERS
+|--------------------------------------------------------------------------
+*/
+
 function cleanJsonText(text) {
-  if (!text) {
-    return "";
-  }
+  if (!text) return "";
 
   let cleaned = String(text).trim();
 
@@ -591,26 +607,25 @@ function cleanJsonText(text) {
   return cleaned;
 }
 
-function shouldFallback(status, details) {
-  if (
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  ) {
-    return true;
-  }
-
+function isTemporaryError(status, details) {
   const message =
     String(details || "").toLowerCase();
 
   return (
+    status === 408 ||
+    status === 409 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
     message.includes("high demand") ||
     message.includes("overloaded") ||
     message.includes("temporarily unavailable") ||
     message.includes("capacity") ||
-    message.includes("try again later")
+    message.includes("try again later") ||
+    message.includes("resource exhausted") ||
+    message.includes("rate limit")
   );
 }
 
@@ -622,6 +637,12 @@ async function fileToBase64(file) {
   return buffer.toString("base64");
 }
 
+/*
+|--------------------------------------------------------------------------
+| GEMINI CALL
+|--------------------------------------------------------------------------
+*/
+
 async function callGemini({
   model,
   apiKey,
@@ -632,22 +653,19 @@ async function callGemini({
 
   const body = {
     model,
-
     input,
 
     response_format: {
       type: "text",
-
-      mime_type:
-        "application/json",
-
-      schema:
-        EVALUATION_SCHEMA,
+      mime_type: "application/json",
+      schema: EVALUATION_SCHEMA,
     },
   };
 
-  const response =
-    await fetch(
+  let response;
+
+  try {
+    response = await fetch(
       endpoint,
       {
         method: "POST",
@@ -660,23 +678,28 @@ async function callGemini({
             apiKey,
         },
 
-        body:
-          JSON.stringify(body),
+        body: JSON.stringify(body),
       }
     );
+  } catch (error) {
+    return {
+      success: false,
+      status: 503,
+      details:
+        error?.message ||
+        "Network error while contacting Gemini.",
+    };
+  }
 
   const responseText =
     await response.text();
 
   if (!response.ok) {
-    let details =
-      responseText;
+    let details = responseText;
 
     try {
       const parsed =
-        JSON.parse(
-          responseText
-        );
+        JSON.parse(responseText);
 
       details =
         parsed?.error?.message ||
@@ -695,7 +718,7 @@ async function callGemini({
       details:
         String(details).slice(
           0,
-          2000
+          2500
         ),
     };
   }
@@ -704,34 +727,28 @@ async function callGemini({
 
   try {
     data =
-      JSON.parse(
-        responseText
-      );
+      JSON.parse(responseText);
   } catch {
     return {
       success: false,
-
       status: 502,
-
       details:
         "Gemini returned invalid JSON response.",
     };
   }
 
-  let outputText = "";
-
   /*
-   * Interactions API output.
+   * Interactions API model output
    */
+
+  let outputText = "";
 
   const steps =
     Array.isArray(data?.steps)
       ? data.steps
       : [];
 
-  for (
-    const step of steps
-  ) {
+  for (const step of steps) {
     if (
       step?.type !==
       "model_output"
@@ -746,9 +763,7 @@ async function callGemini({
         ? step.content
         : [];
 
-    for (
-      const content of contents
-    ) {
+    for (const content of contents) {
       if (
         typeof content?.text ===
         "string"
@@ -760,7 +775,7 @@ async function callGemini({
   }
 
   /*
-   * Additional response shape fallback.
+   * Other possible response shapes
    */
 
   if (
@@ -772,20 +787,13 @@ async function callGemini({
       data.output_text;
   }
 
-  /*
-   * Additional direct output fallback.
-   */
-
   if (
     !outputText &&
     Array.isArray(
       data?.output
     )
   ) {
-    for (
-      const item of
-        data.output
-    ) {
+    for (const item of data.output) {
       if (
         typeof item?.text ===
         "string"
@@ -823,9 +831,7 @@ async function callGemini({
   if (!outputText) {
     return {
       success: false,
-
       status: 502,
-
       details:
         `Gemini returned empty output. Interaction status: ${
           data?.status ||
@@ -844,9 +850,7 @@ async function callGemini({
   } catch {
     return {
       success: false,
-
       status: 502,
-
       details:
         `Gemini returned invalid evaluation JSON: ${outputText.slice(
           0,
@@ -857,12 +861,15 @@ async function callGemini({
 
   return {
     success: true,
-
     evaluation,
-
-    response: data,
   };
 }
+
+/*
+|--------------------------------------------------------------------------
+| POST
+|--------------------------------------------------------------------------
+*/
 
 export async function POST(request) {
   try {
@@ -877,7 +884,7 @@ export async function POST(request) {
             "Gemini API key is missing.",
 
           details:
-            "Add GEMINI_API_KEY to Vercel Environment Variables.",
+            "Add GEMINI_API_KEY in Vercel Environment Variables.",
         },
         {
           status: 500,
@@ -887,6 +894,10 @@ export async function POST(request) {
 
     const formData =
       await request.formData();
+
+    /*
+     * QUESTION
+     */
 
     const question =
       String(
@@ -957,7 +968,7 @@ export async function POST(request) {
     }
 
     /*
-     * Read maximum 4 handwritten pages.
+     * HANDWRITTEN PAGES
      */
 
     const imageFiles = [];
@@ -1012,7 +1023,7 @@ export async function POST(request) {
     }
 
     /*
-     * Convert all pages to image input.
+     * IMAGE INPUT
      */
 
     const imageInputs = [];
@@ -1079,13 +1090,15 @@ export async function POST(request) {
 
       imageInputs.push({
         type: "image",
-
         data: base64,
-
         mime_type:
           mimeType,
       });
     }
+
+    /*
+     * USER PROMPT
+     */
 
     const userPrompt = `
 Evaluate this UPSC Civil Services Examination Mains handwritten answer.
@@ -1152,14 +1165,12 @@ Give practical feedback useful for the next UPSC Mains answer.
     const input = [
       {
         type: "text",
-
         text:
           SYSTEM_INSTRUCTIONS,
       },
 
       {
         type: "text",
-
         text:
           userPrompt,
       },
@@ -1168,19 +1179,14 @@ Give practical feedback useful for the next UPSC Mains answer.
     ];
 
     /*
-     * FALLBACK CASCADE
-     *
-     * 3.8 → 3.7 → 3.6 → 3.5
+     * FALLBACK EXECUTION
      */
 
-    let lastFailure =
-      null;
+    let evaluation = null;
+    let successfulModel = null;
+    let lastFailure = null;
 
-    let successfulModel =
-      null;
-
-    let evaluation =
-      null;
+    const attemptedModels = [];
 
     for (
       let index = 0;
@@ -1190,16 +1196,18 @@ Give practical feedback useful for the next UPSC Mains answer.
       const model =
         MODELS[index];
 
+      attemptedModels.push(
+        model
+      );
+
       console.log(
-        `Trying Gemini model: ${model}`
+        `[SAMBHAV AI] Trying model: ${model}`
       );
 
       const result =
         await callGemini({
           model,
-
           apiKey,
-
           input,
         });
 
@@ -1212,6 +1220,10 @@ Give practical feedback useful for the next UPSC Mains answer.
         successfulModel =
           model;
 
+        console.log(
+          `[SAMBHAV AI] SUCCESS: ${model}`
+        );
+
         break;
       }
 
@@ -1219,21 +1231,21 @@ Give practical feedback useful for the next UPSC Mains answer.
         result;
 
       console.error(
-        `Gemini ${model} failed:`,
+        `[SAMBHAV AI] FAILED: ${model}`,
         result.status,
         result.details
       );
 
       /*
-       * Only temporary/capacity errors
-       * should trigger fallback.
+       * Temporary errors:
+       * move to next model.
        *
-       * Permanent errors like 400/401/403
-       * should stop immediately.
+       * Permanent errors:
+       * stop immediately.
        */
 
       if (
-        !shouldFallback(
+        !isTemporaryError(
           result.status,
           result.details
         )
@@ -1250,6 +1262,9 @@ Give practical feedback useful for the next UPSC Mains answer.
               result.details,
 
             model,
+
+            attempted_models:
+              attemptedModels,
           },
           {
             status: 502,
@@ -1259,7 +1274,7 @@ Give practical feedback useful for the next UPSC Mains answer.
     }
 
     /*
-     * All models failed.
+     * ALL MODELS FAILED
      */
 
     if (
@@ -1280,7 +1295,7 @@ Give practical feedback useful for the next UPSC Mains answer.
             "All fallback models failed.",
 
           attempted_models:
-            MODELS,
+            attemptedModels,
         },
         {
           status: 502,
@@ -1289,7 +1304,7 @@ Give practical feedback useful for the next UPSC Mains answer.
     }
 
     /*
-     * Final score safety.
+     * SCORE SAFETY
      */
 
     evaluation.maximum_marks =
@@ -1314,8 +1329,7 @@ Give practical feedback useful for the next UPSC Mains answer.
       );
 
     /*
-     * Return the same structure expected
-     * by the existing SAMBHAV UPSC frontend.
+     * SUCCESS RESPONSE
      */
 
     return NextResponse.json(
@@ -1336,7 +1350,7 @@ Give practical feedback useful for the next UPSC Mains answer.
             MODELS[0],
 
           attempted_models:
-            MODELS,
+            attemptedModels,
 
           paper,
 
@@ -1357,7 +1371,7 @@ Give practical feedback useful for the next UPSC Mains answer.
     );
   } catch (error) {
     console.error(
-      "Gemini evaluation route error:",
+      "[SAMBHAV AI] Route error:",
       error
     );
 
