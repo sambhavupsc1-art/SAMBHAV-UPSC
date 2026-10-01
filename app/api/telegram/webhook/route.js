@@ -6,19 +6,23 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 async function sendTelegramMessage(chatId, text) {
-  await fetch(
-    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-      }),
-    }
-  );
+  try {
+    await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+        }),
+      }
+    );
+  } catch (error) {
+    console.error("Telegram message error:", error);
+  }
 }
 
 async function getUser(telegramId) {
@@ -34,8 +38,7 @@ async function getUser(telegramId) {
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Supabase GET error:", errorText);
+    console.error("Supabase GET error:", await response.text());
     return null;
   }
 
@@ -63,14 +66,76 @@ async function createUser(telegramUser) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Supabase INSERT error:", errorText);
+    console.error("Supabase INSERT error:", await response.text());
     return null;
   }
 
   const users = await response.json();
 
   return users.length > 0 ? users[0] : null;
+}
+
+/*
+ * Send new access request notification
+ * to every active admin.
+ */
+async function notifyAdminsAboutAccessRequest(user) {
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/admin_users?is_active=eq.true&select=telegram_id`,
+      {
+        headers: {
+          apikey: SUPABASE_SECRET_KEY,
+          Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Admin notification lookup failed:",
+        await response.text()
+      );
+      return;
+    }
+
+    const admins = await response.json();
+
+    if (!admins.length) {
+      return;
+    }
+
+    const name = user?.first_name || "Unknown User";
+
+    const username = user?.username
+      ? `@${user.username}`
+      : "No username";
+
+    const telegramId = user?.telegram_id || "Unknown";
+
+    const notificationText =
+      "🔔 SAMBHAV UPSC\n\n" +
+      "NEW ACCESS REQUEST\n\n" +
+      `Name: ${name}\n` +
+      `Username: ${username}\n` +
+      `Telegram ID: ${telegramId}\n\n` +
+      "Open Admin Panel to review the request.";
+
+    await Promise.all(
+      admins.map((admin) =>
+        sendTelegramMessage(
+          admin.telegram_id,
+          notificationText
+        )
+      )
+    );
+  } catch (error) {
+    console.error(
+      "Admin notification error:",
+      error
+    );
+  }
 }
 
 async function resetRejectedUser(telegramId) {
@@ -93,8 +158,11 @@ async function resetRejectedUser(telegramId) {
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Rejected user reset error:", errorText);
+    console.error(
+      "Rejected user reset error:",
+      await response.text()
+    );
+
     return false;
   }
 
@@ -103,9 +171,9 @@ async function resetRejectedUser(telegramId) {
 
 export async function POST(request) {
   try {
-    // --------------------------------------------------
-    // TELEGRAM WEBHOOK SECURITY
-    // --------------------------------------------------
+    // -----------------------------------------
+    // WEBHOOK SECURITY
+    // -----------------------------------------
 
     const secret = request.headers.get(
       "x-telegram-bot-api-secret-token"
@@ -126,9 +194,9 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------------------------
-    // READ TELEGRAM UPDATE
-    // --------------------------------------------------
+    // -----------------------------------------
+    // TELEGRAM UPDATE
+    // -----------------------------------------
 
     const update = await request.json();
 
@@ -144,9 +212,9 @@ export async function POST(request) {
     const chatId = message.chat.id;
     const text = message.text || "";
 
-    // --------------------------------------------------
-    // ONLY HANDLE /start
-    // --------------------------------------------------
+    // -----------------------------------------
+    // ONLY /start
+    // -----------------------------------------
 
     if (!text.startsWith("/start")) {
       return NextResponse.json({
@@ -154,15 +222,15 @@ export async function POST(request) {
       });
     }
 
-    // --------------------------------------------------
-    // GET EXISTING USER
-    // --------------------------------------------------
+    // -----------------------------------------
+    // FIND USER
+    // -----------------------------------------
 
     let user = await getUser(telegramUser.id);
 
-    // --------------------------------------------------
+    // -----------------------------------------
     // NEW USER
-    // --------------------------------------------------
+    // -----------------------------------------
 
     if (!user) {
       user = await createUser(telegramUser);
@@ -170,7 +238,9 @@ export async function POST(request) {
       if (!user) {
         await sendTelegramMessage(
           chatId,
-          "SAMBHAV UPSC me request process karne me problem aa gayi.\n\nPlease thodi der baad /start dobara bheje."
+          "SAMBHAV UPSC\n\n" +
+            "Request process karne me problem aa gayi.\n\n" +
+            "Please thodi der baad /start dobara bheje."
         );
 
         return NextResponse.json(
@@ -184,24 +254,32 @@ export async function POST(request) {
         );
       }
 
+      // User ko confirmation
       await sendTelegramMessage(
         chatId,
-        "SAMBHAV UPSC\n\nAapki access request submit ho gayi hai.\n\nAdmin approval ke baad aapko access diya jayega."
+        "SAMBHAV UPSC\n\n" +
+          "Aapki access request submit ho gayi hai.\n\n" +
+          "Admin approval ke baad aapko access diya jayega."
       );
+
+      // ADMIN KO NOTIFICATION
+      await notifyAdminsAboutAccessRequest(user);
 
       return NextResponse.json({
         ok: true,
       });
     }
 
-    // --------------------------------------------------
+    // -----------------------------------------
     // APPROVED USER
-    // --------------------------------------------------
+    // -----------------------------------------
 
     if (user.status === "approved") {
       await sendTelegramMessage(
         chatId,
-        "SAMBHAV UPSC\n\nAapka access already approved hai.\n\nMini App button se SAMBHAV UPSC open karein."
+        "SAMBHAV UPSC\n\n" +
+          "Aapka access already approved hai.\n\n" +
+          "Mini App button se SAMBHAV UPSC open karein."
       );
 
       return NextResponse.json({
@@ -209,14 +287,16 @@ export async function POST(request) {
       });
     }
 
-    // --------------------------------------------------
+    // -----------------------------------------
     // PENDING USER
-    // --------------------------------------------------
+    // -----------------------------------------
 
     if (user.status === "pending") {
       await sendTelegramMessage(
         chatId,
-        "SAMBHAV UPSC\n\nAapki access request abhi pending hai.\n\nAdmin approval ka wait karein."
+        "SAMBHAV UPSC\n\n" +
+          "Aapki access request abhi pending hai.\n\n" +
+          "Admin approval ka wait karein."
       );
 
       return NextResponse.json({
@@ -224,20 +304,23 @@ export async function POST(request) {
       });
     }
 
-    // --------------------------------------------------
+    // -----------------------------------------
     // REJECTED USER
-    // USER CAN REQUEST AGAIN
-    // --------------------------------------------------
+    // CAN REQUEST AGAIN
+    // -----------------------------------------
 
     if (user.status === "rejected") {
-      const resetSuccessful = await resetRejectedUser(
-        telegramUser.id
-      );
+      const resetSuccessful =
+        await resetRejectedUser(
+          telegramUser.id
+        );
 
       if (!resetSuccessful) {
         await sendTelegramMessage(
           chatId,
-          "SAMBHAV UPSC\n\nRequest dobara bhejne me problem aa gayi.\n\nPlease thodi der baad /start dobara bheje."
+          "SAMBHAV UPSC\n\n" +
+            "Request dobara bhejne me problem aa gayi.\n\n" +
+            "Please thodi der baad /start dobara bheje."
         );
 
         return NextResponse.json(
@@ -251,9 +334,22 @@ export async function POST(request) {
         );
       }
 
+      const refreshedUser = {
+        ...user,
+        status: "pending",
+      };
+
       await sendTelegramMessage(
         chatId,
-        "SAMBHAV UPSC\n\nAapki purani request reject/cancel ho chuki thi.\n\nAapki nayi access request dobara submit ho gayi hai.\n\nAdmin approval ka wait karein."
+        "SAMBHAV UPSC\n\n" +
+          "Aapki purani request reject/cancel ho chuki thi.\n\n" +
+          "Aapki nayi access request dobara submit ho gayi hai.\n\n" +
+          "Admin approval ka wait karein."
+      );
+
+      // ADMIN KO DOBARA NOTIFICATION
+      await notifyAdminsAboutAccessRequest(
+        refreshedUser
       );
 
       return NextResponse.json({
@@ -261,31 +357,31 @@ export async function POST(request) {
       });
     }
 
-    // --------------------------------------------------
+    // -----------------------------------------
     // BANNED USER
-    // BANNED USER CANNOT REQUEST AGAIN
-    // --------------------------------------------------
+    // -----------------------------------------
 
     if (user.status === "banned") {
       await sendTelegramMessage(
         chatId,
-        "SAMBHAV UPSC\n\nAapka account blocked hai.\n\nAap dobara access request submit nahi kar sakte."
+        "SAMBHAV UPSC\n\n" +
+          "Aapka account blocked hai.\n\n" +
+          "Aap dobara access request submit nahi kar sakte."
       );
 
       return NextResponse.json({
         ok: true,
       });
     }
-
-    // --------------------------------------------------
-    // UNKNOWN STATUS
-    // --------------------------------------------------
 
     return NextResponse.json({
       ok: true,
     });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error(
+      "Webhook error:",
+      error
+    );
 
     return NextResponse.json(
       {
