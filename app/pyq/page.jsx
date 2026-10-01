@@ -130,6 +130,14 @@ export default function PYQPage() {
   const [showMistakes, setShowMistakes] = useState(false);
   const [showRevise, setShowRevise] = useState(false);
 
+  /* ---------------- PREMIUM ---------------- */
+
+  const [showPremiumTopics, setShowPremiumTopics] =
+    useState(false);
+
+  const [selectedPremiumTopic, setSelectedPremiumTopic] =
+    useState(null);
+
   /* ---------------- PROGRESS ---------------- */
 
   const [pyqProgress, setPyqProgress] = useState({});
@@ -682,6 +690,91 @@ export default function PYQPage() {
       pyqProgress,
     ]);
 
+  /* ---------------- PREMIUM TOPICS ---------------- */
+
+  const premiumTopics = useMemo(() => {
+    const groups = new Map();
+
+    (mainsPYQs || []).forEach((q) => {
+      const rawTopic =
+        String(q.topic || "").trim();
+
+      if (!rawTopic) return;
+
+      const normalized =
+        rawTopic
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9\s&/-]/g,
+            ""
+          )
+          .replace(
+            /\s+/g,
+            " "
+          )
+          .trim();
+
+      if (
+        !normalized ||
+        normalized.length < 3
+      ) {
+        return;
+      }
+
+      if (!groups.has(normalized)) {
+        groups.set(normalized, {
+          key: normalized,
+          label: rawTopic,
+          questions: [],
+        });
+      }
+
+      groups
+        .get(normalized)
+        .questions.push(q);
+    });
+
+    return [...groups.values()]
+      .filter(
+        (group) =>
+          group.questions.length >= 2
+      )
+      .sort((a, b) => {
+        if (
+          b.questions.length !==
+          a.questions.length
+        ) {
+          return (
+            b.questions.length -
+            a.questions.length
+          );
+        }
+
+        return a.label.localeCompare(
+          b.label
+        );
+      });
+  }, [mainsPYQs]);
+
+  const selectedPremiumQuestions =
+    useMemo(() => {
+      if (!selectedPremiumTopic) {
+        return [];
+      }
+
+      const topic =
+        premiumTopics.find(
+          (item) =>
+            item.key ===
+            selectedPremiumTopic
+        );
+
+      return topic?.questions || [];
+    }, [
+      premiumTopics,
+      selectedPremiumTopic,
+    ]);
+
   /* ---------------- PRELIMS PRACTICE ---------------- */
 
   const score =
@@ -806,6 +899,9 @@ export default function PYQPage() {
     setShowBookmarks(false);
     setShowMistakes(false);
     setShowRevise(false);
+
+    setShowPremiumTopics(false);
+    setSelectedPremiumTopic(null);
   };
 
   const clearSmartFilters =
@@ -1122,37 +1218,38 @@ export default function PYQPage() {
             progressLoading={
               progressLoading
             }
+            section={section}
+            showPremiumTopics={
+              showPremiumTopics
+            }
+            setShowPremiumTopics={
+              setShowPremiumTopics
+            }
+            setSelectedPremiumTopic={
+              setSelectedPremiumTopic
+            }
           />
 
-          {/* PREMIUM QUESTIONS */}
+          {/* PREMIUM TOPICS */}
 
           {section ===
-            "mains" && (
-            <PremiumQuestions
-              mainsPYQs={
-                mainsPYQs
-              }
-              onThemeSelect={(
-                theme
-              ) => {
-                setSearchQuery(
-                  theme
-                );
-                setShowBookmarks(
-                  false
-                );
-                setShowMistakes(
-                  false
-                );
-                setShowRevise(
-                  false
-                );
-                setMode(
-                  "browse"
-                );
-              }}
-            />
-          )}
+            "mains" &&
+            showPremiumTopics && (
+              <PremiumTopics
+                topics={
+                  premiumTopics
+                }
+                selectedTopic={
+                  selectedPremiumTopic
+                }
+                setSelectedTopic={
+                  setSelectedPremiumTopic
+                }
+                selectedQuestions={
+                  selectedPremiumQuestions
+                }
+              />
+            )}
 
           {/* ---------------- PRELIMS ---------------- */}
 
@@ -2030,9 +2127,7 @@ export default function PYQPage() {
 
 /* =========================================================
    STABLE SEARCH COMPONENT
-   IMPORTANT:
-   This is outside PYQPage so it does NOT remount
-   on every keystroke.
+   OUTSIDE PYQPage = keyboard/focus stays stable
 ========================================================= */
 
 function SearchPanel({
@@ -2046,6 +2141,10 @@ function SearchPanel({
   setShowRevise,
   clearSmartFilters,
   progressLoading,
+  section,
+  showPremiumTopics,
+  setShowPremiumTopics,
+  setSelectedPremiumTopic,
 }) {
   const hasFilters =
     Boolean(searchQuery) ||
@@ -2059,10 +2158,45 @@ function SearchPanel({
     >
       <div
         style={
-          styles.searchTitle
+          styles.searchHeader
         }
       >
-        PYQ Search & Revision
+        <div
+          style={
+            styles.searchTitle
+          }
+        >
+          PYQ Search & Revision
+        </div>
+
+        {section ===
+          "mains" && (
+          <button
+            type="button"
+            onClick={() => {
+              const next =
+                !showPremiumTopics;
+
+              setShowPremiumTopics(
+                next
+              );
+
+              if (!next) {
+                setSelectedPremiumTopic(
+                  null
+                );
+              }
+            }}
+            style={{
+              ...styles.premiumMiniButton,
+              ...(showPremiumTopics
+                ? styles.premiumMiniButtonActive
+                : {}),
+            }}
+          >
+            ⭐ Premium
+          </button>
+        )}
       </div>
 
       <input
@@ -2186,6 +2320,253 @@ function SearchPanel({
 }
 
 /* =========================================================
+   PREMIUM TOPICS
+   NO LIMIT — every repeated topic is shown.
+   Minimum 2 PYQs.
+========================================================= */
+
+function PremiumTopics({
+  topics,
+  selectedTopic,
+  setSelectedTopic,
+  selectedQuestions,
+}) {
+  if (!topics.length) {
+    return (
+      <section
+        style={
+          styles.compactPremium
+        }
+      >
+        <div
+          style={
+            styles.compactPremiumTitle
+          }
+        >
+          PREMIUM TOPICS
+        </div>
+
+        <div
+          style={
+            styles.premiumEmpty
+          }
+        >
+          अभी कोई repeated topic
+          उपलब्ध नहीं है।
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      style={
+        styles.compactPremium
+      }
+    >
+      <div
+        style={
+          styles.compactPremiumHeader
+        }
+      >
+        <div>
+          <div
+            style={
+              styles.compactPremiumTitle
+            }
+          >
+            ⭐ PREMIUM TOPICS
+          </div>
+
+          <div
+            style={
+              styles.compactPremiumSubtitle
+            }
+          >
+            सभी repeated themes ·
+            frequency के अनुसार
+          </div>
+        </div>
+
+        <div
+          style={
+            styles.repeatedCount
+          }
+        >
+          {topics.length}
+        </div>
+      </div>
+
+      <div
+        style={
+          styles.premiumTopicList
+        }
+      >
+        {topics.map((topic) => {
+          const active =
+            selectedTopic ===
+            topic.key;
+
+          return (
+            <button
+              key={topic.key}
+              type="button"
+              onClick={() =>
+                setSelectedTopic(
+                  active
+                    ? null
+                    : topic.key
+                )
+              }
+              style={{
+                ...styles.premiumTopicButton,
+                ...(active
+                  ? styles.premiumTopicActive
+                  : {}),
+              }}
+            >
+              <span
+                style={
+                  styles.premiumTopicName
+                }
+              >
+                {topic.label}
+              </span>
+
+              <span
+                style={
+                  styles.premiumTopicCount
+                }
+              >
+                {topic.questions.length}{" "}
+                PYQs
+                {active
+                  ? " ▲"
+                  : " ▼"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedTopic &&
+        selectedQuestions.length >
+          0 && (
+          <div
+            style={
+              styles.premiumQuestionsInline
+            }
+          >
+            <div
+              style={
+                styles.selectedPremiumHeader
+              }
+            >
+              <div>
+                <div
+                  style={
+                    styles.selectedPremiumTitle
+                  }
+                >
+                  {
+                    topics.find(
+                      (topic) =>
+                        topic.key ===
+                        selectedTopic
+                    )?.label
+                  }
+                </div>
+
+                <div
+                  style={
+                    styles.selectedPremiumMeta
+                  }
+                >
+                  {
+                    selectedQuestions.length
+                  }{" "}
+                  related PYQs
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedTopic(
+                    null
+                  )
+                }
+                style={
+                  styles.closePremiumButton
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            {selectedQuestions.map(
+              (q, index) => (
+                <div
+                  key={`premium-${q.id}-${index}`}
+                  style={
+                    styles.premiumInlineQuestion
+                  }
+                >
+                  <div
+                    style={
+                      styles.meta
+                    }
+                  >
+                    {q.year} ·{" "}
+                    {q.paper}
+                    {q.section
+                      ? ` · ${q.section}`
+                      : ""}
+                  </div>
+
+                  <div
+                    style={
+                      styles.premiumQuestionNumber
+                    }
+                  >
+                    PYQ {index + 1}
+                  </div>
+
+                  <div
+                    style={
+                      styles.question
+                    }
+                  >
+                    {q.question}
+                  </div>
+
+                  <div
+                    style={
+                      styles.mainsMeta
+                    }
+                  >
+                    <span>
+                      {q.marks ??
+                        "—"}{" "}
+                      Marks
+                    </span>
+
+                    <span>
+                      {q.words
+                        ? `${q.words} Words`
+                        : "Word limit —"}
+                    </span>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+    </section>
+  );
+}
+
+/* =========================================================
    QUESTION ACTIONS
 ========================================================= */
 
@@ -2259,244 +2640,6 @@ function ProgressActions({
         </option>
       </select>
     </div>
-  );
-}
-
-/* =========================================================
-   PREMIUM QUESTIONS
-   Groups Mains PYQs by repeated topic.
-========================================================= */
-
-function PremiumQuestions({
-  mainsPYQs,
-  onThemeSelect,
-}) {
-  const premiumThemes =
-    useMemo(() => {
-      const groups =
-        new Map();
-
-      (mainsPYQs || []).forEach(
-        (q) => {
-          const rawTopic =
-            String(
-              q.topic || ""
-            ).trim();
-
-          if (!rawTopic) {
-            return;
-          }
-
-          const themeKey =
-            rawTopic
-              .toLowerCase()
-              .replace(
-                /[^a-z0-9\s&/-]/g,
-                ""
-              )
-              .replace(
-                /\s+/g,
-                " "
-              )
-              .trim();
-
-          if (
-            !themeKey ||
-            themeKey.length < 3
-          ) {
-            return;
-          }
-
-          if (
-            !groups.has(
-              themeKey
-            )
-          ) {
-            groups.set(
-              themeKey,
-              {
-                key: themeKey,
-                label: rawTopic,
-                questions: [],
-              }
-            );
-          }
-
-          groups
-            .get(themeKey)
-            .questions.push(q);
-        }
-      );
-
-      return [
-        ...groups.values(),
-      ]
-        .filter(
-          (group) =>
-            group.questions
-              .length >= 2
-        )
-        .sort(
-          (a, b) =>
-            b.questions
-              .length -
-            a.questions
-              .length
-        )
-        .slice(0, 8);
-    }, [mainsPYQs]);
-
-  if (
-    !premiumThemes.length
-  ) {
-    return null;
-  }
-
-  return (
-    <section
-      style={
-        styles.premiumSection
-      }
-    >
-      <div
-        style={
-          styles.premiumHeader
-        }
-      >
-        <div>
-          <div
-            style={
-              styles.premiumEyebrow
-            }
-          >
-            PYQ INTELLIGENCE
-          </div>
-
-          <div
-            style={
-              styles.premiumTitle
-            }
-          >
-            PREMIUM QUESTIONS
-          </div>
-
-          <div
-            style={
-              styles.premiumSubtitle
-            }
-          >
-            Repeated themes across
-            previous years
-          </div>
-        </div>
-
-        <div
-          style={
-            styles.premiumBadge
-          }
-        >
-          ⭐
-        </div>
-      </div>
-
-      {premiumThemes.map(
-        (theme) => (
-          <div
-            key={theme.key}
-            style={
-              styles.premiumThemeCard
-            }
-          >
-            <div
-              style={
-                styles.premiumThemeTop
-              }
-            >
-              <div>
-                <div
-                  style={
-                    styles.premiumThemeName
-                  }
-                >
-                  {theme.label}
-                </div>
-
-                <div
-                  style={
-                    styles.premiumThemeMeta
-                  }
-                >
-                  {
-                    theme
-                      .questions
-                      .length
-                  }{" "}
-                  related PYQs ·
-                  Repeated Theme
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  onThemeSelect(
-                    theme.label
-                  )
-                }
-                style={
-                  styles.premiumViewButton
-                }
-              >
-                View
-              </button>
-            </div>
-
-            {theme.questions
-              .slice(0, 3)
-              .map((q) => (
-                <div
-                  key={`${q.id}-premium`}
-                  style={
-                    styles.premiumQuestion
-                  }
-                >
-                  <div
-                    style={
-                      styles.premiumQuestionMeta
-                    }
-                  >
-                    {q.year} ·{" "}
-                    {q.paper}
-                  </div>
-
-                  <div
-                    style={
-                      styles.premiumQuestionText
-                    }
-                  >
-                    {q.question}
-                  </div>
-                </div>
-              ))}
-
-            {theme.questions
-              .length > 3 && (
-              <div
-                style={
-                  styles.premiumMore
-                }
-              >
-                +
-                {theme.questions
-                  .length -
-                  3}{" "}
-                more questions
-              </div>
-            )}
-          </div>
-        )
-      )}
-    </section>
   );
 }
 
@@ -2647,129 +2790,6 @@ const styles = {
     margin: 0,
   },
 
-  /* PREMIUM */
-
-  premiumSection: {
-    background: "#111",
-    color: "#fff",
-    borderRadius: "20px",
-    padding: "16px",
-    marginBottom: "16px",
-  },
-
-  premiumHeader: {
-    display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems:
-      "flex-start",
-    gap: "12px",
-    marginBottom:
-      "12px",
-  },
-
-  premiumEyebrow: {
-    color: "#aaa",
-    fontSize: "9px",
-    letterSpacing:
-      "1.3px",
-    fontWeight: "800",
-  },
-
-  premiumTitle: {
-    fontSize: "20px",
-    fontWeight: "900",
-    letterSpacing:
-      "-0.4px",
-    marginTop: "4px",
-  },
-
-  premiumSubtitle: {
-    color: "#aaa",
-    fontSize: "11px",
-    marginTop: "4px",
-  },
-
-  premiumBadge: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "11px",
-    background: "#222",
-    display: "flex",
-    alignItems: "center",
-    justifyContent:
-      "center",
-    flexShrink: 0,
-  },
-
-  premiumThemeCard: {
-    background: "#1b1b1b",
-    border:
-      "1px solid #2b2b2b",
-    borderRadius: "15px",
-    padding: "12px",
-    marginTop: "9px",
-  },
-
-  premiumThemeTop: {
-    display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  premiumThemeName: {
-    fontSize: "13px",
-    fontWeight: "800",
-  },
-
-  premiumThemeMeta: {
-    color: "#999",
-    fontSize: "9px",
-    marginTop: "4px",
-  },
-
-  premiumViewButton: {
-    border:
-      "1px solid #444",
-    background: "#fff",
-    color: "#111",
-    borderRadius: "9px",
-    padding:
-      "7px 10px",
-    fontSize: "10px",
-    fontWeight: "800",
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-
-  premiumQuestion: {
-    borderTop:
-      "1px solid #2b2b2b",
-    paddingTop: "9px",
-    marginTop: "9px",
-  },
-
-  premiumQuestionMeta: {
-    color: "#888",
-    fontSize: "9px",
-    fontWeight: "700",
-  },
-
-  premiumQuestionText: {
-    color: "#eee",
-    fontSize: "11px",
-    lineHeight: "1.45",
-    marginTop: "3px",
-  },
-
-  premiumMore: {
-    color: "#aaa",
-    fontSize: "10px",
-    marginTop: "9px",
-  },
-
   /* SEARCH */
 
   searchCard: {
@@ -2781,10 +2801,37 @@ const styles = {
     marginBottom: "16px",
   },
 
+  searchHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    gap: "10px",
+    marginBottom: "9px",
+  },
+
   searchTitle: {
     fontSize: "14px",
     fontWeight: "800",
-    marginBottom: "9px",
+  },
+
+  premiumMiniButton: {
+    border:
+      "1px solid #222",
+    background: "#111",
+    color: "#fff",
+    borderRadius: "10px",
+    padding:
+      "8px 10px",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
+  premiumMiniButtonActive: {
+    background: "#fff",
+    color: "#111",
   },
 
   searchInput: {
@@ -2842,6 +2889,164 @@ const styles = {
     color: "#888",
     fontSize: "10px",
     marginTop: "8px",
+  },
+
+  /* PREMIUM */
+
+  compactPremium: {
+    background: "#111",
+    color: "#fff",
+    borderRadius: "17px",
+    padding: "12px",
+    marginBottom: "14px",
+  },
+
+  compactPremiumHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    gap: "10px",
+    marginBottom: "9px",
+  },
+
+  compactPremiumTitle: {
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing:
+      "0.8px",
+  },
+
+  compactPremiumSubtitle: {
+    color: "#999",
+    fontSize: "9px",
+    marginTop: "3px",
+  },
+
+  repeatedCount: {
+    minWidth: "30px",
+    height: "30px",
+    borderRadius: "9px",
+    background: "#222",
+    display: "flex",
+    alignItems: "center",
+    justifyContent:
+      "center",
+    fontSize: "10px",
+    fontWeight: "900",
+  },
+
+  premiumTopicList: {
+    display: "grid",
+    gap: "6px",
+    maxHeight: "430px",
+    overflowY: "auto",
+    paddingRight: "1px",
+  },
+
+  premiumTopicButton: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent:
+      "space-between",
+    gap: "10px",
+    border:
+      "1px solid #2c2c2c",
+    background: "#1a1a1a",
+    color: "#fff",
+    borderRadius: "10px",
+    padding:
+      "9px 10px",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+
+  premiumTopicActive: {
+    background: "#fff",
+    color: "#111",
+    borderColor: "#fff",
+  },
+
+  premiumTopicName: {
+    flex: 1,
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow:
+      "ellipsis",
+    whiteSpace: "nowrap",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  premiumTopicCount: {
+    flexShrink: 0,
+    fontSize: "9px",
+    fontWeight: "700",
+    opacity: 0.65,
+  },
+
+  premiumQuestionsInline: {
+    marginTop: "10px",
+    paddingTop: "10px",
+    borderTop:
+      "1px solid #2c2c2c",
+  },
+
+  selectedPremiumHeader: {
+    display: "flex",
+    justifyContent:
+      "space-between",
+    alignItems: "flex-start",
+    gap: "10px",
+    marginBottom: "8px",
+  },
+
+  selectedPremiumTitle: {
+    fontSize: "14px",
+    fontWeight: "900",
+  },
+
+  selectedPremiumMeta: {
+    color: "#999",
+    fontSize: "9px",
+    marginTop: "3px",
+  },
+
+  closePremiumButton: {
+    width: "27px",
+    height: "27px",
+    borderRadius: "8px",
+    border:
+      "1px solid #333",
+    background: "#1b1b1b",
+    color: "#fff",
+    fontSize: "17px",
+    lineHeight: "1",
+    cursor: "pointer",
+  },
+
+  premiumInlineQuestion: {
+    background: "#1b1b1b",
+    border:
+      "1px solid #2d2d2d",
+    borderRadius: "12px",
+    padding: "11px",
+    marginTop: "7px",
+  },
+
+  premiumQuestionNumber: {
+    color: "#aaa",
+    fontSize: "9px",
+    fontWeight: "800",
+    marginTop: "7px",
+  },
+
+  premiumEmpty: {
+    color: "#888",
+    fontSize: "10px",
+    padding:
+      "7px 0 2px",
   },
 
   /* FILTER */
