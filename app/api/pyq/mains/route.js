@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
-const CSV_URL =
-  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/mains_pyqs.csv";
+const CSV_URLS = [
+  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/mains_pyqs.csv",
+  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs2_pyqs.csv",
+];
 
 function parseCSV(text) {
   const rows = [];
@@ -86,7 +88,6 @@ function mapPYQ(row, index) {
     year: Number(row.year),
     paper: row.paper,
     topic: row.topic || null,
-
     question: row.question,
     question_hi: row.question_hi || null,
 
@@ -120,20 +121,26 @@ export async function GET(request) {
     const year =
       searchParams.get("year");
 
-    const response = await fetch(
-      CSV_URL,
-      {
-        cache: "no-store",
-        headers: {
-          Accept: "text/plain",
-        },
-      }
+    const responses = await Promise.all(
+      CSV_URLS.map((url) =>
+        fetch(url, {
+          cache: "no-store",
+          headers: {
+            Accept: "text/plain",
+          },
+        })
+      )
     );
 
-    if (!response.ok) {
+    const failed =
+      responses.find(
+        (response) => !response.ok
+      );
+
+    if (failed) {
       console.error(
         "GitHub CSV fetch error:",
-        response.status
+        failed.status
       );
 
       return NextResponse.json(
@@ -145,11 +152,19 @@ export async function GET(request) {
       );
     }
 
-    const csvText =
-      await response.text();
+    const csvTexts =
+      await Promise.all(
+        responses.map(
+          (response) =>
+            response.text()
+        )
+      );
 
     const rows =
-      parseCSV(csvText);
+      csvTexts.flatMap(
+        (csvText) =>
+          parseCSV(csvText)
+      );
 
     let pyqs = rows
       .map(mapPYQ)
