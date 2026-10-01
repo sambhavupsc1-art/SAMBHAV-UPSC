@@ -26,7 +26,8 @@ export default function CurrentAffairsPage() {
   const [expandedId, setExpandedId] = useState(null);
 
   const [loading, setLoading] = useState(true);
-  const [importantLoading, setImportantLoading] = useState(false);
+  const [importantLoading, setImportantLoading] =
+    useState(false);
   const [error, setError] = useState("");
 
   const [notificationOpen, setNotificationOpen] =
@@ -343,11 +344,15 @@ export default function CurrentAffairsPage() {
     }
 
     if (active === "Places") {
-      return result.filter((item) => item.important_place);
+      return result.filter(
+        (item) => item.important_place
+      );
     }
 
     if (active === "Personalities") {
-      return result.filter((item) => item.personalities);
+      return result.filter(
+        (item) => item.personalities
+      );
     }
 
     if (active === "Important") {
@@ -506,7 +511,9 @@ export default function CurrentAffairsPage() {
           >
             📖
             <span>
-              {hi ? "Monthly Magazine" : "Monthly Magazine"}
+              {hi
+                ? "Monthly Magazine"
+                : "Monthly Magazine"}
             </span>
           </button>
 
@@ -648,8 +655,6 @@ export default function CurrentAffairsPage() {
               >
                 {notificationSaving
                   ? "Saving..."
-                  : hi
-                  ? "Save Time"
                   : "Save Time"}
               </button>
             </div>
@@ -694,7 +699,9 @@ export default function CurrentAffairsPage() {
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             placeholder={
               hi
                 ? "Current Affairs खोजें — topic, subject, GS, scheme, report..."
@@ -1438,6 +1445,12 @@ export default function CurrentAffairsPage() {
           }
         }
 
+        /*
+          OLD FACT CARD STYLES
+          Kept for compatibility with any other existing
+          component styles.
+        */
+
         .fact-grid {
           max-width: 1050px;
           margin: auto;
@@ -1474,39 +1487,265 @@ export default function CurrentAffairsPage() {
           color: #667085;
         }
 
-        .premium-tabs {
-          max-width: 1050px;
-          margin: 0 auto 18px;
-          display: flex;
-          gap: 8px;
-          border-bottom: 1px solid #e4e7ec;
-          padding-bottom: 10px;
+        /*
+          PREMIUM FACTS - FINAL DESIGN
+        */
+
+        .premium-facts-section {
+          width: 100%;
+          max-width: 1100px;
+          margin: 28px auto;
+          padding: 0 18px 32px;
         }
 
-        .premium-tab {
-          border: 1px solid #dfe3e8;
-          background: #fff;
+        .premium-facts-header {
+          margin-bottom: 18px;
+        }
+
+        .premium-facts-header .premium-label {
+          display: inline-flex;
+          align-items: center;
+          padding: 5px 10px;
+          border-radius: 7px;
+          background: #f3f4f6;
+          color: #667085;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          margin-bottom: 8px;
+        }
+
+        .premium-facts-header h2 {
+          margin: 0;
           color: #172033;
-          border-radius: 10px;
-          padding: 10px 18px;
+          font-size: 28px;
+          line-height: 1.2;
+          font-weight: 850;
+        }
+
+        .premium-facts-header p {
+          margin: 8px 0 0;
+          color: #667085;
+          font-size: 14px;
+        }
+
+        .premium-fact-tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          max-width: 460px;
+          margin: 20px 0 16px;
+          padding: 5px;
+          background: #f1f3f6;
+          border-radius: 13px;
+        }
+
+        .premium-fact-tab {
+          border: 0;
+          background: transparent;
+          color: #667085;
+          padding: 11px 15px;
+          border-radius: 9px;
           cursor: pointer;
-          font-weight: 800;
-          transition: 0.2s;
+          font-size: 12px;
+          font-weight: 850;
+          letter-spacing: 0.3px;
+          transition: all 0.2s ease;
         }
 
-        .premium-tab:hover {
-          background: #f8fafc;
+        .premium-fact-tab span {
+          margin-right: 6px;
         }
 
-        .premium-tab.active {
+        .premium-fact-tab:hover {
+          background: #ffffff;
+          color: #172033;
+        }
+
+        .premium-fact-tab.active {
           background: #172033;
-          color: #fff;
-          border-color: #172033;
+          color: #ffffff;
+          box-shadow: 0 3px 10px
+            rgba(23, 32, 51, 0.14);
+        }
+
+        .premium-fact-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+          color: #98a0ad;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: 0.8px;
+        }
+
+        .premium-fact-meta strong {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 27px;
+          height: 27px;
+          padding: 0 7px;
+          border-radius: 50%;
+          background: #f1f3f6;
+          color: #172033;
+          font-size: 10px;
+        }
+
+        .premium-facts-grid {
+          display: grid;
+          grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+          );
+          gap: 13px;
+        }
+
+        .premium-fact-card {
+          min-width: 0;
+          background: #ffffff;
+          border: 1px solid #e6e8ec;
+          border-radius: 15px;
+          padding: 15px;
+          box-shadow: 0 3px 14px
+            rgba(16, 24, 40, 0.04);
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease;
+        }
+
+        .premium-fact-card:hover {
+          transform: translateY(-2px);
+          border-color: #d5d9e0;
+          box-shadow: 0 7px 22px
+            rgba(16, 24, 40, 0.07);
+        }
+
+        .premium-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .premium-number {
+          color: #a0a6b1;
+          font-size: 10px;
+          font-weight: 850;
+        }
+
+        .premium-gs {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          border-radius: 6px;
+          background: #f5f6f8;
+          color: #596273;
+          font-size: 9px;
+          font-weight: 850;
+        }
+
+        .premium-fact-card h3 {
+          margin: 0 0 10px;
+          color: #172033;
+          font-size: 15px;
+          line-height: 1.4;
+          font-weight: 800;
+        }
+
+        .premium-fact-content {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 10px 11px;
+          border-radius: 9px;
+          background: #f8f9fb;
+        }
+
+        .premium-fact-icon {
+          flex: 0 0 auto;
+          margin-top: 3px;
+          color: #172033;
+          font-size: 8px;
+        }
+
+        .premium-fact-content p {
+          margin: 0;
+          color: #465064;
+          font-size: 12.5px;
+          line-height: 1.5;
+          font-weight: 500;
+        }
+
+        /*
+          PRELIMS:
+          UI always shows only one line.
+        */
+
+        .prelims-card
+          .premium-fact-content
+          p {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 1;
+          line-clamp: 1;
+          overflow: hidden;
+        }
+
+        /*
+          MAINS:
+          UI always shows maximum two lines.
+        */
+
+        .mains-card
+          .premium-fact-content
+          p {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          overflow: hidden;
+        }
+
+        .premium-card-footer {
+          margin-top: 10px;
+          padding-top: 9px;
+          border-top: 1px solid #eef0f3;
+        }
+
+        .premium-card-footer span {
+          color: #98a0ad;
+          font-size: 9px;
+          font-weight: 600;
+        }
+
+        .premium-empty {
+          text-align: center;
+          padding: 45px 20px;
+          border: 1px dashed #d9dde4;
+          border-radius: 15px;
+          background: #fafbfc;
+        }
+
+        .premium-empty-icon {
+          margin-bottom: 7px;
+          font-size: 28px;
+        }
+
+        .premium-empty h3 {
+          margin: 0;
+          color: #667085;
+          font-size: 13px;
+          font-weight: 700;
         }
 
         .news-card.expanded {
           border-color: #cfd6e4;
-          box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+          box-shadow: 0 10px 30px
+            rgba(16, 24, 40, 0.08);
         }
 
         .inline-analysis {
@@ -1695,6 +1934,10 @@ export default function CurrentAffairsPage() {
           .fact-grid {
             grid-template-columns: 1fr;
           }
+
+          .premium-facts-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 600px) {
@@ -1755,12 +1998,40 @@ export default function CurrentAffairsPage() {
             align-items: flex-start;
           }
 
-          .premium-tabs {
+          .premium-fact-tabs {
             width: 100%;
+            max-width: none;
           }
 
-          .premium-tab {
-            flex: 1;
+          .premium-fact-tab {
+            padding: 11px 7px;
+            font-size: 11px;
+          }
+
+          .premium-facts-section {
+            padding: 0 12px 25px;
+            margin-top: 22px;
+          }
+
+          .premium-facts-header h2 {
+            font-size: 24px;
+          }
+
+          .premium-facts-header p {
+            font-size: 12.5px;
+          }
+
+          .premium-fact-card {
+            padding: 14px;
+            border-radius: 13px;
+          }
+
+          .premium-fact-card h3 {
+            font-size: 14px;
+          }
+
+          .premium-fact-content p {
+            font-size: 12px;
           }
         }
       `}</style>
@@ -1779,19 +2050,26 @@ function ArticleCard({
   disabled,
 }) {
   const hi = language === "hi";
+
   const expanded =
     Number(expandedId) === Number(item.id);
 
   const title =
     (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi ? item.title_en : item.title_hi) ||
+    (hi
+      ? item.title_en
+      : item.title_hi) ||
     "Current Affair";
 
   const summary =
-    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
+    (hi
+      ? item.why_in_news_hi
+      : item.why_in_news_en) ||
     item.why_in_news ||
-    (hi ? item.background_hi : item.background_en) ||
+    (hi
+      ? item.background_hi
+      : item.background_en) ||
     item.background ||
     item.key_facts ||
     "";
@@ -1887,7 +2165,9 @@ function ArticleAnalysis({
   const title =
     (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi ? item.title_en : item.title_hi) ||
+    (hi
+      ? item.title_en
+      : item.title_hi) ||
     "Current Affair";
 
   const why =
@@ -2103,6 +2383,10 @@ function PremiumFacts({
   const [factType, setFactType] =
     useState("prelims");
 
+  /*
+    PRELIMS:
+    Uses only prelims data.
+  */
   const prelimsFacts = news.filter(
     (item) =>
       item.prelims_hi ||
@@ -2110,6 +2394,10 @@ function PremiumFacts({
       item.prelims
   );
 
+  /*
+    MAINS:
+    Uses only premium_fact data.
+  */
   const mainsFacts = news.filter(
     (item) =>
       item.premium_fact_hi ||
@@ -2122,42 +2410,109 @@ function PremiumFacts({
       ? prelimsFacts
       : mainsFacts;
 
+  function getTitle(item) {
+    return (
+      (hi
+        ? item.title_hi
+        : item.title_en) ||
+      item.title ||
+      (hi
+        ? item.title_en
+        : item.title_hi) ||
+      "Current Affair"
+    );
+  }
+
+  /*
+    PRELIMS FACT:
+    Convert existing detailed prelims text
+    into a compact single factual statement.
+  */
+  function getPrelimsFact(item) {
+    const raw =
+      (hi
+        ? item.prelims_hi
+        : item.prelims_en) ||
+      item.prelims ||
+      "";
+
+    const clean = raw
+      .replace(/\s+/g, " ")
+      .replace(/^[-•*]\s*/, "")
+      .trim();
+
+    if (!clean) return "";
+
+    const firstSentence =
+      clean.split(
+        /(?<=[.!?।])\s+/
+      )[0];
+
+    return firstSentence.length > 145
+      ? firstSentence.slice(0, 142) +
+          "..."
+      : firstSentence;
+  }
+
+  /*
+    MAINS FACT:
+    Uses premium_fact directly.
+    CSS limits visible content to two lines.
+  */
+  function getMainsFact(item) {
+    const raw =
+      (hi
+        ? item.premium_fact_hi
+        : item.premium_fact_en) ||
+      item.premium_fact ||
+      "";
+
+    return raw
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   return (
-    <section className="special-section">
-      <div className="section-heading">
+    <section className="premium-facts-section">
+
+      {/* HEADER */}
+      <div className="premium-facts-header">
         <div>
-          <span className="badge">
+          <span className="premium-label">
             PREMIUM
           </span>
 
           <h2>
             🔥 Premium Facts
           </h2>
-        </div>
 
-        <p>
-          {factType === "prelims"
-            ? hi
-              ? "Prelims revision के लिए high-value facts"
-              : "High-value facts for Prelims revision"
-            : hi
-            ? "Mains answer में उपयोग होने वाले high-value facts"
-            : "High-value facts for UPSC Mains answers"}
-        </p>
+          <p>
+            {factType === "prelims"
+              ? hi
+                ? "Prelims के लिए short factual revision"
+                : "Short factual revision for Prelims"
+              : hi
+              ? "Mains answers के लिए high-value points"
+              : "High-value points for Mains answers"}
+          </p>
+        </div>
       </div>
 
-      <div className="premium-tabs">
+      {/* PRELIMS / MAINS BUTTONS */}
+      <div className="premium-fact-tabs">
+
         <button
           type="button"
           className={
             factType === "prelims"
-              ? "premium-tab active"
-              : "premium-tab"
+              ? "premium-fact-tab active"
+              : "premium-fact-tab"
           }
           onClick={() =>
             setFactType("prelims")
           }
         >
+          <span>📌</span>
           PRELIMS
         </button>
 
@@ -2165,88 +2520,127 @@ function PremiumFacts({
           type="button"
           className={
             factType === "mains"
-              ? "premium-tab active"
-              : "premium-tab"
+              ? "premium-fact-tab active"
+              : "premium-fact-tab"
           }
           onClick={() =>
             setFactType("mains")
           }
         >
+          <span>✍️</span>
           MAINS
         </button>
+
       </div>
 
-      {facts.length === 0 ? (
-        <div className="empty">
+      {/* COUNT */}
+      <div className="premium-fact-meta">
+        <span>
           {factType === "prelims"
-            ? hi
-              ? "अभी Prelims Facts उपलब्ध नहीं हैं।"
-              : "No Prelims Facts available yet."
-            : hi
-            ? "अभी Mains Facts उपलब्ध नहीं हैं।"
-            : "No Mains Facts available yet."}
+            ? "PRELIMS FACTS"
+            : "MAINS FACTS"}
+        </span>
+
+        <strong>
+          {facts.length}
+        </strong>
+      </div>
+
+      {/* EMPTY */}
+      {facts.length === 0 ? (
+
+        <div className="premium-empty">
+          <div className="premium-empty-icon">
+            🔥
+          </div>
+
+          <h3>
+            {factType === "prelims"
+              ? hi
+                ? "अभी Prelims Facts उपलब्ध नहीं हैं"
+                : "No Prelims Facts available"
+              : hi
+              ? "अभी Mains Facts उपलब्ध नहीं हैं"
+              : "No Mains Facts available"}
+          </h3>
         </div>
+
       ) : (
-        <div className="fact-grid">
-          {facts.map((item) => {
+
+        /* FACT CARDS */
+        <div className="premium-facts-grid">
+
+          {facts.map((item, index) => {
+            const title =
+              getTitle(item);
+
             const fact =
               factType === "prelims"
-                ? (
-                    hi
-                      ? item.prelims_hi
-                      : item.prelims_en
-                  ) ||
-                  item.prelims
-                : (
-                    hi
-                      ? item.premium_fact_hi
-                      : item.premium_fact_en
-                  ) ||
-                  item.premium_fact;
-
-            const title =
-              (
-                hi
-                  ? item.title_hi
-                  : item.title_en
-              ) ||
-              item.title ||
-              (
-                hi
-                  ? item.title_en
-                  : item.title_hi
-              ) ||
-              "Current Affair";
+                ? getPrelimsFact(item)
+                : getMainsFact(item);
 
             return (
               <article
-                className="fact-card"
+                className={
+                  factType === "prelims"
+                    ? "premium-fact-card prelims-card"
+                    : "premium-fact-card mains-card"
+                }
                 key={item.id}
               >
-                <span>
-                  {item.gs ||
-                    item.paper ||
-                    "UPSC"}
-                </span>
 
+                {/* CARD TOP */}
+                <div className="premium-card-top">
+
+                  <span className="premium-number">
+                    {String(
+                      index + 1
+                    ).padStart(2, "0")}
+                  </span>
+
+                  <span className="premium-gs">
+                    {item.gs ||
+                      item.paper ||
+                      "UPSC"}
+                  </span>
+
+                </div>
+
+                {/* TITLE */}
                 <h3>
                   {title}
                 </h3>
 
-                <p>
-                  {fact}
-                </p>
+                {/* FACT */}
+                <div className="premium-fact-content">
 
-                <small>
-                  Source:{" "}
-                  {item.source_name ||
-                    "Official Source"}
-                </small>
+                  <span className="premium-fact-icon">
+                    {factType === "prelims"
+                      ? "◆"
+                      : "→"}
+                  </span>
+
+                  <p>
+                    {fact}
+                  </p>
+
+                </div>
+
+                {/* SOURCE */}
+                <div className="premium-card-footer">
+                  <span>
+                    {item.source_name ||
+                      "Official Source"}
+                  </span>
+                </div>
+
               </article>
             );
           })}
+
         </div>
       )}
+
     </section>
   );
 }
