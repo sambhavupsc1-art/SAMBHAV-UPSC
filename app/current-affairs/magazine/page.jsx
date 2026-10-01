@@ -56,8 +56,19 @@ export default function MagazinePage() {
       setLoading(true);
       setError("");
 
+      const safeMonth =
+        /^\\d{4}-\\d{2}$/.test(month)
+          ? month
+          : monthValue();
+
+      if (safeMonth !== month) {
+        setMonth(safeMonth);
+      }
+
       const response = await fetch(
-        `/api/current-affairs/magazine?month=${encodeURIComponent(month)}`,
+        `/api/current-affairs/magazine?month=${encodeURIComponent(
+          safeMonth
+        )}`,
         { cache: "no-store" }
       );
 
@@ -115,11 +126,26 @@ export default function MagazinePage() {
         <div className="header-tools">
           <label className="month-box">
             <span>{hi ? "Month" : "Month"}</span>
-            <input
-              type="month"
+
+            <select
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-            />
+            >
+              {Array.from({ length: 18 }, (_, index) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - index);
+
+                const value = `${d.getFullYear()}-${String(
+                  d.getMonth() + 1
+                ).padStart(2, "0")}`;
+
+                return (
+                  <option key={value} value={value}>
+                    {formatMonth(value)}
+                  </option>
+                );
+              })}
+            </select>
           </label>
 
           <div className="lang-box">
@@ -313,12 +339,15 @@ export default function MagazinePage() {
           margin-bottom: 5px;
         }
 
-        .month-box input {
+        .month-box select {
           border: 0;
           outline: 0;
           color: #172033;
           font-weight: 700;
           background: transparent;
+          font-size: 14px;
+          min-width: 150px;
+          cursor: pointer;
         }
 
         .lang-box {
