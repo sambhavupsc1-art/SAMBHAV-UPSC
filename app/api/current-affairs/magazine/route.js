@@ -26,7 +26,7 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL;
 
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY;
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
@@ -40,14 +40,14 @@ export async function GET(request) {
 
     const monthDate = `${month}-01`;
 
-    const url =
+    const supabaseApiUrl =
       `${supabaseUrl}/rest/v1/current_affairs_magazines` +
       `?select=*` +
       `&month_date=eq.${encodeURIComponent(monthDate)}` +
       `&status=eq.published` +
       `&limit=1`;
 
-    const response = await fetch(url, {
+    const response = await fetch(supabaseApiUrl, {
       method: "GET",
       headers: {
         apikey: supabaseKey,
