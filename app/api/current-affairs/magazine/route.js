@@ -1,24 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase environment variables are missing.");
-  }
-
-  return createClient(url, key, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 function isValidMonth(value) {
   return /^\d{4}-\d{2}$/.test(value);
@@ -39,24 +22,56 @@ export async function GET(request) {
       );
     }
 
-    const supabase = getSupabase();
+    const supabaseUrl =
+      process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Supabase environment variables are missing.",
+        },
+        { status: 500 }
+      );
+    }
 
     const monthDate = `${month}-01`;
 
-    const { data, error } = await supabase
-      .from("current_affairs_magazines")
-      .select("*")
-      .eq("month_date", monthDate)
-      .eq("status", "published")
-      .maybeSingle();
+    const url =
+      `${supabaseUrl}/rest/v1/current_affairs_magazines` +
+      `?select=*` +
+      `&month_date=eq.${encodeURIComponent(monthDate)}` +
+      `&status=eq.published` +
+      `&limit=1`;
 
-    if (error) {
-      console.error("MAGAZINE GET ERROR:", error);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "MAGAZINE SUPABASE ERROR:",
+        data
+      );
 
       return NextResponse.json(
         {
           success: false,
-          error: error.message || "Magazine fetch failed.",
+          error:
+            data?.message ||
+            data?.error_description ||
+            "Magazine fetch failed.",
         },
         { status: 500 }
       );
@@ -64,15 +79,23 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      data: data || null,
+      data:
+        Array.isArray(data) && data.length > 0
+          ? data[0]
+          : null,
     });
   } catch (error) {
-    console.error("MAGAZINE API ERROR:", error);
+    console.error(
+      "MAGAZINE API ERROR:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Magazine API failed.",
+        error:
+          error?.message ||
+          "Magazine API failed.",
       },
       { status: 500 }
     );
