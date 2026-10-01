@@ -17,37 +17,82 @@ export default function CurrentAffairsPage() {
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
   const [selected, setSelected] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [importantLoading, setImportantLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [notificationOpen, setNotificationOpen] =
+    useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] =
+    useState(true);
+  const [notificationLanguage, setNotificationLanguage] =
+    useState("hi");
+  const [notificationTime, setNotificationTime] =
+    useState("10:00");
+  const [notificationSaving, setNotificationSaving] =
+    useState(false);
+  const [notificationMessage, setNotificationMessage] =
+    useState("");
 
   const hi = language === "hi";
 
   useEffect(() => {
     loadCurrentAffairs();
     loadImportant();
+    loadNotificationSettings();
   }, []);
+
+  function getUserId() {
+    if (typeof window === "undefined") return "";
+
+    let id = localStorage.getItem(
+      "sambhav_upsc_notification_user"
+    );
+
+    if (!id) {
+      id =
+        "sambhav_" +
+        Math.random().toString(36).slice(2) +
+        "_" +
+        Date.now();
+
+      localStorage.setItem(
+        "sambhav_upsc_notification_user",
+        id
+      );
+    }
+
+    return id;
+  }
 
   async function loadCurrentAffairs() {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch("/api/current-affairs", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        "/api/current-affairs",
+        {
+          cache: "no-store",
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result?.error || "Current Affairs load nahi ho paye."
+          result?.error ||
+            "Current Affairs load nahi ho paye."
         );
       }
 
       setNews(result.data || []);
     } catch (err) {
-      setError(err.message || "Current Affairs load nahi ho paye.");
+      setError(
+        err.message ||
+          "Current Affairs load nahi ho paye."
+      );
     } finally {
       setLoading(false);
     }
@@ -69,6 +114,123 @@ export default function CurrentAffairsPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function loadNotificationSettings() {
+    try {
+      const userId = getUserId();
+
+      if (!userId) return;
+
+      const response = await fetch(
+        `/api/current-affairs/notifications?user_id=${encodeURIComponent(
+          userId
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json();
+
+      if (
+        response.ok &&
+        result.success &&
+        result.data
+      ) {
+        setNotificationsEnabled(
+          result.data.enabled !== false
+        );
+
+        setNotificationLanguage(
+          result.data.language === "en"
+            ? "en"
+            : "hi"
+        );
+
+        setNotificationTime(
+          result.data.notification_time ||
+            "10:00"
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Notification settings load error:",
+        err
+      );
+    }
+  }
+
+  async function saveNotificationSettings(
+    overrides = {}
+  ) {
+    try {
+      setNotificationSaving(true);
+      setNotificationMessage("");
+
+      const userId = getUserId();
+
+      if (!userId) {
+        throw new Error(
+          "User identification unavailable."
+        );
+      }
+
+      const enabled =
+        overrides.enabled !== undefined
+          ? overrides.enabled
+          : notificationsEnabled;
+
+      const selectedLanguage =
+        overrides.language ||
+        notificationLanguage;
+
+      const selectedTime =
+        overrides.time ||
+        notificationTime;
+
+      const response = await fetch(
+        "/api/current-affairs/notifications",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            enabled,
+            language: selectedLanguage,
+            notification_time: selectedTime,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.error ||
+            "Notification settings save nahi hui."
+        );
+      }
+
+      setNotificationsEnabled(enabled);
+      setNotificationLanguage(selectedLanguage);
+      setNotificationTime(selectedTime);
+
+      setNotificationMessage(
+        hi
+          ? "Notification settings save हो गईं।"
+          : "Notification settings saved."
+      );
+    } catch (err) {
+      setNotificationMessage(
+        err.message ||
+          "Notification settings save nahi hui."
+      );
+    } finally {
+      setNotificationSaving(false);
     }
   }
 
@@ -124,7 +286,8 @@ export default function CurrentAffairsPage() {
           headers: already
             ? {}
             : {
-                "Content-Type": "application/json",
+                "Content-Type":
+                  "application/json",
               },
           body: already
             ? undefined
@@ -177,24 +340,6 @@ export default function CurrentAffairsPage() {
     return formatDate(news[0]?.date);
   }
 
-  function getTitle(item) {
-    if (hi) {
-      return (
-        item.title_hi ||
-        item.title ||
-        item.title_en ||
-        "Current Affair"
-      );
-    }
-
-    return (
-      item.title_en ||
-      item.title ||
-      item.title_hi ||
-      "Current Affair"
-    );
-  }
-
   return (
     <main className="ca-page">
       <section className="ca-header">
@@ -220,15 +365,25 @@ export default function CurrentAffairsPage() {
 
             <div className="language-buttons">
               <button
-                className={hi ? "lang active" : "lang"}
-                onClick={() => setLanguage("hi")}
+                className={
+                  hi ? "lang active" : "lang"
+                }
+                onClick={() =>
+                  setLanguage("hi")
+                }
               >
                 हिन्दी
               </button>
 
               <button
-                className={!hi ? "lang active" : "lang"}
-                onClick={() => setLanguage("en")}
+                className={
+                  !hi
+                    ? "lang active"
+                    : "lang"
+                }
+                onClick={() =>
+                  setLanguage("en")
+                }
               >
                 English
               </button>
@@ -237,9 +392,7 @@ export default function CurrentAffairsPage() {
 
           <div className="date-card">
             <span>
-              {hi
-                ? "Latest Update"
-                : "Latest Update"}
+              Latest Update
             </span>
 
             <strong>
@@ -247,13 +400,186 @@ export default function CurrentAffairsPage() {
             </strong>
 
             <small>
-              {hi
-                ? "Daily update target: 10:00 AM"
-                : "Daily update target: 10:00 AM"}
+              Daily update: 10:00 AM
             </small>
           </div>
+
+          <button
+            className="notification-button"
+            onClick={() =>
+              setNotificationOpen(
+                !notificationOpen
+              )
+            }
+          >
+            🔔
+            <span>
+              {hi
+                ? "Notifications"
+                : "Notifications"}
+            </span>
+          </button>
         </div>
       </section>
+
+      {notificationOpen && (
+        <section className="notification-panel">
+          <div className="notification-title">
+            <div>
+              <span className="badge">
+                DAILY
+              </span>
+
+              <h2>
+                🔔{" "}
+                {hi
+                  ? "Current Affairs Notification"
+                  : "Current Affairs Notification"}
+              </h2>
+
+              <p>
+                {hi
+                  ? "हर दिन नए UPSC Current Affairs की notification."
+                  : "Get daily notifications for new UPSC Current Affairs."}
+              </p>
+            </div>
+
+            <button
+              className={
+                notificationsEnabled
+                  ? "switch on"
+                  : "switch"
+              }
+              onClick={() => {
+                const next =
+                  !notificationsEnabled;
+
+                setNotificationsEnabled(next);
+
+                saveNotificationSettings({
+                  enabled: next,
+                });
+              }}
+              disabled={notificationSaving}
+            >
+              <span />
+            </button>
+          </div>
+
+          <div className="notification-grid">
+            <div className="setting-box">
+              <label>
+                {hi
+                  ? "Notification Language"
+                  : "Notification Language"}
+              </label>
+
+              <div className="setting-buttons">
+                <button
+                  className={
+                    notificationLanguage ===
+                    "hi"
+                      ? "setting-btn active"
+                      : "setting-btn"
+                  }
+                  onClick={() =>
+                    saveNotificationSettings({
+                      language: "hi",
+                    })
+                  }
+                  disabled={notificationSaving}
+                >
+                  हिन्दी
+                </button>
+
+                <button
+                  className={
+                    notificationLanguage ===
+                    "en"
+                      ? "setting-btn active"
+                      : "setting-btn"
+                  }
+                  onClick={() =>
+                    saveNotificationSettings({
+                      language: "en",
+                    })
+                  }
+                  disabled={notificationSaving}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-box">
+              <label>
+                {hi
+                  ? "Daily Notification Time"
+                  : "Daily Notification Time"}
+              </label>
+
+              <input
+                type="time"
+                value={notificationTime}
+                onChange={(e) =>
+                  setNotificationTime(
+                    e.target.value
+                  )
+                }
+                disabled={
+                  notificationSaving
+                }
+              />
+
+              <button
+                className="save-time"
+                onClick={() =>
+                  saveNotificationSettings({
+                    time: notificationTime,
+                  })
+                }
+                disabled={notificationSaving}
+              >
+                {notificationSaving
+                  ? "Saving..."
+                  : hi
+                  ? "Save Time"
+                  : "Save Time"}
+              </button>
+            </div>
+          </div>
+
+          <div className="notification-info">
+            <strong>
+              {notificationsEnabled
+                ? "🟢 Notifications ON"
+                : "⚪ Notifications OFF"}
+            </strong>
+
+            <span>
+              {hi
+                ? `Daily ${notificationTime} बजे • ${
+                    notificationLanguage ===
+                    "hi"
+                      ? "हिन्दी"
+                      : "English"
+                  }`
+                : `Daily at ${notificationTime} • ${
+                    notificationLanguage ===
+                    "hi"
+                      ? "Hindi"
+                      : "English"
+                  }`}
+            </span>
+          </div>
+
+          {notificationMessage && (
+            <div className="notification-message">
+              {notificationMessage}
+            </div>
+          )}
+        </section>
+      )}
 
       <nav className="filter-row">
         {filters.map((filter) => (
@@ -264,7 +590,9 @@ export default function CurrentAffairsPage() {
                 ? "filter active"
                 : "filter"
             }
-            onClick={() => setActive(filter)}
+            onClick={() =>
+              setActive(filter)
+            }
           >
             {filter}
           </button>
@@ -276,9 +604,11 @@ export default function CurrentAffairsPage() {
               ? "filter active important"
               : "filter important"
           }
-          onClick={() => setActive("Important")}
+          onClick={() =>
+            setActive("Important")
+          }
         >
-          ⭐ {hi ? "Important" : "Important"}
+          ⭐ Important
         </button>
 
         <button
@@ -287,9 +617,11 @@ export default function CurrentAffairsPage() {
               ? "filter active premium"
               : "filter premium"
           }
-          onClick={() => setActive("Premium")}
+          onClick={() =>
+            setActive("Premium")
+          }
         >
-          🔥 {hi ? "Premium Facts" : "Premium Facts"}
+          🔥 Premium Facts
         </button>
       </nav>
 
@@ -328,10 +660,7 @@ export default function CurrentAffairsPage() {
               </span>
 
               <h2>
-                ⭐{" "}
-                {hi
-                  ? "My Important Current Affairs"
-                  : "My Important Current Affairs"}
+                ⭐ My Important Current Affairs
               </h2>
             </div>
 
@@ -367,10 +696,14 @@ export default function CurrentAffairsPage() {
                   item={item}
                   important
                   language={language}
-                  onImportant={toggleImportant}
+                  onImportant={
+                    toggleImportant
+                  }
                   onOpen={setSelected}
                   formatDate={formatDate}
-                  disabled={importantLoading}
+                  disabled={
+                    importantLoading
+                  }
                 />
               ))}
             </div>
@@ -400,8 +733,7 @@ export default function CurrentAffairsPage() {
             </div>
 
             <p>
-              {filteredNews.length}{" "}
-              {hi ? "updates" : "updates"}
+              {filteredNews.length} updates
             </p>
           </div>
 
@@ -421,10 +753,14 @@ export default function CurrentAffairsPage() {
                     Number(item.id)
                   )}
                   language={language}
-                  onImportant={toggleImportant}
+                  onImportant={
+                    toggleImportant
+                  }
                   onOpen={setSelected}
                   formatDate={formatDate}
-                  disabled={importantLoading}
+                  disabled={
+                    importantLoading
+                  }
                 />
               ))}
             </div>
@@ -439,9 +775,13 @@ export default function CurrentAffairsPage() {
           important={importantIds.includes(
             Number(selected.id)
           )}
-          importantLoading={importantLoading}
+          importantLoading={
+            importantLoading
+          }
           onImportant={toggleImportant}
-          onClose={() => setSelected(null)}
+          onClose={() =>
+            setSelected(null)
+          }
         />
       )}
 
@@ -458,7 +798,8 @@ export default function CurrentAffairsPage() {
         .filter-row,
         .news-list,
         .special-section,
-        .section-heading {
+        .section-heading,
+        .notification-panel {
           max-width: 1050px;
           margin-left: auto;
           margin-right: auto;
@@ -474,17 +815,20 @@ export default function CurrentAffairsPage() {
 
         .header-actions {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           align-items: stretch;
+          flex-wrap: wrap;
         }
 
         .language-box,
-        .date-card {
+        .date-card,
+        .notification-button {
           background: #fff;
           border: 1px solid #e4e7ec;
           border-radius: 16px;
           padding: 13px 15px;
-          box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+          box-shadow: 0 4px 16px
+            rgba(16, 24, 40, 0.05);
         }
 
         .language-box > span {
@@ -512,6 +856,20 @@ export default function CurrentAffairsPage() {
           background: #172033;
           color: #fff;
           border-color: #172033;
+        }
+
+        .notification-button {
+          cursor: pointer;
+          font-weight: 800;
+          color: #172033;
+          display: flex;
+          gap: 7px;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .notification-button:hover {
+          background: #f8fafc;
         }
 
         .eyebrow {
@@ -547,6 +905,138 @@ export default function CurrentAffairsPage() {
           display: block;
           margin: 5px 0;
           font-size: 15px;
+        }
+
+        .notification-panel {
+          background: #fff;
+          border: 1px solid #e4e7ec;
+          border-radius: 20px;
+          padding: 20px;
+          margin-bottom: 18px;
+          box-shadow: 0 8px 25px
+            rgba(16, 24, 40, 0.07);
+        }
+
+        .notification-title {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .notification-title h2 {
+          margin: 8px 0 5px;
+          font-size: 21px;
+        }
+
+        .notification-title p {
+          color: #667085;
+          margin: 0;
+        }
+
+        .switch {
+          width: 54px;
+          height: 30px;
+          border: 0;
+          border-radius: 999px;
+          background: #d0d5dd;
+          padding: 3px;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .switch span {
+          display: block;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #fff;
+          transition: 0.2s;
+        }
+
+        .switch.on {
+          background: #172033;
+        }
+
+        .switch.on span {
+          transform: translateX(24px);
+        }
+
+        .notification-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 13px;
+          margin-top: 18px;
+        }
+
+        .setting-box {
+          border: 1px solid #e4e7ec;
+          border-radius: 14px;
+          padding: 15px;
+        }
+
+        .setting-box label {
+          display: block;
+          font-size: 12px;
+          color: #667085;
+          font-weight: 700;
+          margin-bottom: 9px;
+        }
+
+        .setting-buttons {
+          display: flex;
+          gap: 7px;
+        }
+
+        .setting-btn,
+        .save-time {
+          border: 1px solid #dfe3e8;
+          background: #fff;
+          border-radius: 9px;
+          padding: 9px 12px;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .setting-btn.active {
+          background: #172033;
+          color: #fff;
+          border-color: #172033;
+        }
+
+        .setting-box input {
+          border: 1px solid #dfe3e8;
+          border-radius: 9px;
+          padding: 9px;
+          font-size: 15px;
+          margin-right: 7px;
+        }
+
+        .save-time {
+          background: #172033;
+          color: #fff;
+          border-color: #172033;
+        }
+
+        .notification-info {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 13px;
+          padding: 11px 13px;
+          border-radius: 10px;
+          background: #f6f7f9;
+          font-size: 13px;
+        }
+
+        .notification-info span {
+          color: #667085;
+        }
+
+        .notification-message {
+          margin-top: 10px;
+          font-size: 13px;
+          color: #175cd3;
         }
 
         .filter-row {
@@ -620,7 +1110,8 @@ export default function CurrentAffairsPage() {
           border: 1px solid #e4e7ec;
           border-radius: 16px;
           padding: 18px;
-          box-shadow: 0 4px 16px rgba(16, 24, 40, 0.04);
+          box-shadow: 0 4px 16px
+            rgba(16, 24, 40, 0.04);
         }
 
         .topline {
@@ -675,7 +1166,9 @@ export default function CurrentAffairsPage() {
           color: #344054;
         }
 
-        .important-button:disabled {
+        .important-button:disabled,
+        .setting-btn:disabled,
+        .save-time:disabled {
           opacity: 0.6;
           cursor: wait;
         }
@@ -840,7 +1333,10 @@ export default function CurrentAffairsPage() {
 
           .header-actions {
             margin-top: 15px;
-            flex-wrap: wrap;
+          }
+
+          .notification-grid {
+            grid-template-columns: 1fr;
           }
 
           .fact-grid {
@@ -870,11 +1366,9 @@ export default function CurrentAffairsPage() {
             margin-top: 7px;
           }
 
-          .date-card {
-            width: 100%;
-          }
-
-          .language-box {
+          .date-card,
+          .language-box,
+          .notification-button {
             width: 100%;
           }
 
@@ -884,6 +1378,28 @@ export default function CurrentAffairsPage() {
 
           .lang {
             flex: 1;
+          }
+
+          .notification-info {
+            display: block;
+          }
+
+          .notification-info span {
+            display: block;
+            margin-top: 5px;
+          }
+
+          .setting-box input {
+            width: 100%;
+            margin: 0 0 8px;
+          }
+
+          .save-time {
+            width: 100%;
+          }
+
+          .notification-title {
+            align-items: flex-start;
           }
         }
       `}</style>
@@ -907,16 +1423,16 @@ function ArticleCard({
       ? item.title_hi
       : item.title_en) ||
     item.title ||
-    (hi ? item.title_en : item.title_hi) ||
+    (hi
+      ? item.title_en
+      : item.title_hi) ||
     "Current Affair";
 
   const summary =
     (hi
       ? item.why_in_news_hi
       : item.why_in_news_en) ||
-    (hi
-      ? item.why_in_news
-      : item.why_in_news) ||
+    item.why_in_news ||
     (hi
       ? item.background_hi
       : item.background_en) ||
@@ -928,12 +1444,15 @@ function ArticleCard({
     <article className="news-card">
       <div className="topline">
         <span className="badge">
-          {item.gs || item.paper || "UPSC"}
+          {item.gs ||
+            item.paper ||
+            "UPSC"}
         </span>
 
         <span className="meta">
-          {item.subject || "UPSC Current Affairs"} •{" "}
-          {formatDate(item.date)}
+          {item.subject ||
+            "UPSC Current Affairs"}{" "}
+          • {formatDate(item.date)}
         </span>
       </div>
 
@@ -956,7 +1475,9 @@ function ArticleCard({
         <button
           className="important-button"
           disabled={disabled}
-          onClick={() => onImportant(item.id)}
+          onClick={() =>
+            onImportant(item.id)
+          }
         >
           {important
             ? "★ Important"
@@ -1179,33 +1700,21 @@ function ArticleModal({
 
         {why && (
           <>
-            <h3>
-              {hi
-                ? "Why in News"
-                : "Why in News"}
-            </h3>
+            <h3>Why in News</h3>
             <p>{why}</p>
           </>
         )}
 
         {background && (
           <>
-            <h3>
-              {hi
-                ? "Background"
-                : "Background"}
-            </h3>
+            <h3>Background</h3>
             <p>{background}</p>
           </>
         )}
 
         {facts && (
           <>
-            <h3>
-              {hi
-                ? "Key Facts"
-                : "Key Facts"}
-            </h3>
+            <h3>Key Facts</h3>
             <div className="content-block">
               {facts}
             </div>
@@ -1214,11 +1723,7 @@ function ArticleModal({
 
         {prelims && (
           <>
-            <h3>
-              {hi
-                ? "Prelims"
-                : "Prelims"}
-            </h3>
+            <h3>Prelims</h3>
             <div className="content-block">
               {prelims}
             </div>
@@ -1227,11 +1732,7 @@ function ArticleModal({
 
         {mains && (
           <>
-            <h3>
-              {hi
-                ? "Mains Analysis"
-                : "Mains Analysis"}
-            </h3>
+            <h3>Mains Analysis</h3>
             <div className="content-block">
               {mains}
             </div>
@@ -1240,22 +1741,14 @@ function ArticleModal({
 
         {item.static_link && (
           <>
-            <h3>
-              {hi
-                ? "Static Link"
-                : "Static Link"}
-            </h3>
+            <h3>Static Link</h3>
             <p>{item.static_link}</p>
           </>
         )}
 
         {pyqs && (
           <>
-            <h3>
-              {hi
-                ? "Related PYQs"
-                : "Related PYQs"}
-            </h3>
+            <h3>Related PYQs</h3>
             <div className="content-block">
               {pyqs}
             </div>
@@ -1264,11 +1757,7 @@ function ArticleModal({
 
         {mcq && (
           <>
-            <h3>
-              {hi
-                ? "Possible Prelims MCQ"
-                : "Possible Prelims MCQ"}
-            </h3>
+            <h3>Possible Prelims MCQ</h3>
             <div className="content-block">
               {mcq}
             </div>
@@ -1278,10 +1767,9 @@ function ArticleModal({
         {mainsQuestion && (
           <>
             <h3>
-              {hi
-                ? "Possible Mains Question"
-                : "Possible Mains Question"}
+              Possible Mains Question
             </h3>
+
             <div className="content-block">
               {mainsQuestion}
             </div>
@@ -1291,6 +1779,7 @@ function ArticleModal({
         {ethics && (
           <>
             <h3>GS-IV Ethics</h3>
+
             <div className="content-block">
               {ethics}
             </div>
