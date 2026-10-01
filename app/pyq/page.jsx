@@ -132,9 +132,7 @@ export default function PYQPage() {
 
   /* ---------------- PREMIUM ---------------- */
 
-  const [showPremiumTopics, setShowPremiumTopics] =
-    useState(false);
-
+  const [showPremiumTopics, setShowPremiumTopics] = useState(false);
   const [selectedPremiumTopic, setSelectedPremiumTopic] =
     useState(null);
 
@@ -192,21 +190,15 @@ export default function PYQPage() {
         }
 
         if (!data.user) {
-          throw new Error(
-            "User information nahi mili."
-          );
+          throw new Error("User information nahi mili.");
         }
 
         setUser(data.user);
       } catch (err) {
-        console.error(
-          "PYQ authentication error:",
-          err
-        );
+        console.error("PYQ authentication error:", err);
 
         setError(
-          err.message ||
-            "Authentication failed."
+          err.message || "Authentication failed."
         );
       } finally {
         setLoading(false);
@@ -230,26 +222,20 @@ export default function PYQPage() {
       setMainsError("");
 
       try {
-        const response = await fetch(
-          "/api/pyq/mains",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/pyq/mains", {
+          method: "GET",
+          cache: "no-store",
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error ||
-              "Mains PYQ fetch failed"
+            data.error || "Mains PYQ fetch failed"
           );
         }
 
-        const rows = Array.isArray(
-          data.pyqs
-        )
+        const rows = Array.isArray(data.pyqs)
           ? data.pyqs
           : [];
 
@@ -280,15 +266,11 @@ export default function PYQPage() {
           setMainsPYQs(mapped);
         }
       } catch (err) {
-        console.error(
-          "Mains PYQ load error:",
-          err
-        );
+        console.error("Mains PYQ load error:", err);
 
         if (!cancelled) {
           setMainsError(
-            err.message ||
-              "Mains PYQ load failed."
+            err.message || "Mains PYQ load failed."
           );
         }
       } finally {
@@ -314,25 +296,19 @@ export default function PYQPage() {
 
     const loadProgress = async () => {
       try {
-        const webApp =
-          window.Telegram?.WebApp;
+        const webApp = window.Telegram?.WebApp;
 
         if (!webApp?.initData) return;
 
-        const response = await fetch(
-          "/api/pyq/progress",
-          {
-            method: "GET",
-            headers: {
-              Authorization:
-                `tma ${webApp.initData}`,
-            },
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/pyq/progress", {
+          method: "GET",
+          headers: {
+            Authorization: `tma ${webApp.initData}`,
+          },
+          cache: "no-store",
+        });
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           console.error(
@@ -344,9 +320,7 @@ export default function PYQPage() {
 
         const map = {};
 
-        (
-          data.progress || []
-        ).forEach((item) => {
+        (data.progress || []).forEach((item) => {
           map[
             `${item.pyq_type}:${item.pyq_id}`
           ] = item;
@@ -372,10 +346,7 @@ export default function PYQPage() {
 
   /* ---------------- PROGRESS HELPERS ---------------- */
 
-  const getProgress = (
-    pyqId,
-    pyqType
-  ) => {
+  const getProgress = (pyqId, pyqType) => {
     return (
       pyqProgress[
         `${pyqType}:${pyqId}`
@@ -397,12 +368,9 @@ export default function PYQPage() {
     updates = {}
   ) => {
     try {
-      const webApp =
-        window.Telegram?.WebApp;
+      const webApp = window.Telegram?.WebApp;
 
-      if (!webApp?.initData) {
-        return;
-      }
+      if (!webApp?.initData) return;
 
       const old = getProgress(
         pyqId,
@@ -461,14 +429,11 @@ export default function PYQPage() {
             Authorization:
               `tma ${webApp.initData}`,
           },
-          body: JSON.stringify(
-            payload
-          ),
+          body: JSON.stringify(payload),
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -692,73 +657,97 @@ export default function PYQPage() {
 
   /* ---------------- PREMIUM TOPICS ---------------- */
 
-  const premiumTopics = useMemo(() => {
-    const groups = new Map();
+  const premiumTopics =
+    useMemo(() => {
+      const groups =
+        new Map();
 
-    (mainsPYQs || []).forEach((q) => {
-      const rawTopic =
-        String(q.topic || "").trim();
+      (mainsPYQs || []).forEach(
+        (q) => {
+          const rawTopic =
+            String(
+              q.topic || ""
+            ).trim();
 
-      if (!rawTopic) return;
+          if (!rawTopic) return;
 
-      const normalized =
-        rawTopic
-          .toLowerCase()
-          .replace(
-            /[^a-z0-9\s&/-]/g,
-            ""
-          )
-          .replace(
-            /\s+/g,
-            " "
-          )
-          .trim();
+          const normalized =
+            rawTopic
+              .toLowerCase()
+              .replace(
+                /[^a-z0-9\s&/-]/g,
+                ""
+              )
+              .replace(
+                /\s+/g,
+                " "
+              )
+              .trim();
 
-      if (
-        !normalized ||
-        normalized.length < 3
-      ) {
-        return;
-      }
+          if (
+            !normalized ||
+            normalized.length < 3
+          ) {
+            return;
+          }
 
-      if (!groups.has(normalized)) {
-        groups.set(normalized, {
-          key: normalized,
-          label: rawTopic,
-          questions: [],
-        });
-      }
+          if (
+            !groups.has(
+              normalized
+            )
+          ) {
+            groups.set(
+              normalized,
+              {
+                key: normalized,
+                label: rawTopic,
+                questions: [],
+              }
+            );
+          }
 
-      groups
-        .get(normalized)
-        .questions.push(q);
-    });
-
-    return [...groups.values()]
-      .filter(
-        (group) =>
-          group.questions.length >= 2
-      )
-      .sort((a, b) => {
-        if (
-          b.questions.length !==
-          a.questions.length
-        ) {
-          return (
-            b.questions.length -
-            a.questions.length
-          );
+          groups
+            .get(normalized)
+            .questions.push(q);
         }
+      );
 
-        return a.label.localeCompare(
-          b.label
+      return [
+        ...groups.values(),
+      ]
+        .filter(
+          (group) =>
+            group.questions
+              .length >= 2
+        )
+        .sort(
+          (a, b) => {
+            if (
+              b.questions
+                .length !==
+              a.questions
+                .length
+            ) {
+              return (
+                b.questions
+                  .length -
+                a.questions
+                  .length
+              );
+            }
+
+            return a.label.localeCompare(
+              b.label
+            );
+          }
         );
-      });
-  }, [mainsPYQs]);
+    }, [mainsPYQs]);
 
   const selectedPremiumQuestions =
     useMemo(() => {
-      if (!selectedPremiumTopic) {
+      if (
+        !selectedPremiumTopic
+      ) {
         return [];
       }
 
@@ -769,7 +758,10 @@ export default function PYQPage() {
             selectedPremiumTopic
         );
 
-      return topic?.questions || [];
+      return (
+        topic?.questions ||
+        []
+      );
     }, [
       premiumTopics,
       selectedPremiumTopic,
@@ -1218,38 +1210,33 @@ export default function PYQPage() {
             progressLoading={
               progressLoading
             }
-            section={section}
-            showPremiumTopics={
-              showPremiumTopics
-            }
-            setShowPremiumTopics={
-              setShowPremiumTopics
-            }
-            setSelectedPremiumTopic={
-              setSelectedPremiumTopic
-            }
           />
 
-          {/* PREMIUM TOPICS */}
+          {/* PREMIUM BELOW SEARCH */}
 
           {section ===
-            "mains" &&
-            showPremiumTopics && (
-              <PremiumTopics
-                topics={
-                  premiumTopics
-                }
-                selectedTopic={
-                  selectedPremiumTopic
-                }
-                setSelectedTopic={
-                  setSelectedPremiumTopic
-                }
-                selectedQuestions={
-                  selectedPremiumQuestions
-                }
-              />
-            )}
+            "mains" && (
+            <PremiumTopics
+              topics={
+                premiumTopics
+              }
+              showPremiumTopics={
+                showPremiumTopics
+              }
+              setShowPremiumTopics={
+                setShowPremiumTopics
+              }
+              selectedTopic={
+                selectedPremiumTopic
+              }
+              setSelectedTopic={
+                setSelectedPremiumTopic
+              }
+              selectedQuestions={
+                selectedPremiumQuestions
+              }
+            />
+          )}
 
           {/* ---------------- PRELIMS ---------------- */}
 
@@ -2126,8 +2113,9 @@ export default function PYQPage() {
 }
 
 /* =========================================================
-   STABLE SEARCH COMPONENT
-   OUTSIDE PYQPage = keyboard/focus stays stable
+   SEARCH
+   OUTSIDE MAIN COMPONENT
+   SO INPUT DOES NOT REMOUNT
 ========================================================= */
 
 function SearchPanel({
@@ -2141,10 +2129,6 @@ function SearchPanel({
   setShowRevise,
   clearSmartFilters,
   progressLoading,
-  section,
-  showPremiumTopics,
-  setShowPremiumTopics,
-  setSelectedPremiumTopic,
 }) {
   const hasFilters =
     Boolean(searchQuery) ||
@@ -2158,45 +2142,10 @@ function SearchPanel({
     >
       <div
         style={
-          styles.searchHeader
+          styles.searchTitle
         }
       >
-        <div
-          style={
-            styles.searchTitle
-          }
-        >
-          PYQ Search & Revision
-        </div>
-
-        {section ===
-          "mains" && (
-          <button
-            type="button"
-            onClick={() => {
-              const next =
-                !showPremiumTopics;
-
-              setShowPremiumTopics(
-                next
-              );
-
-              if (!next) {
-                setSelectedPremiumTopic(
-                  null
-                );
-              }
-            }}
-            style={{
-              ...styles.premiumMiniButton,
-              ...(showPremiumTopics
-                ? styles.premiumMiniButtonActive
-                : {}),
-            }}
-          >
-            ⭐ Premium
-          </button>
-        )}
+        PYQ Search & Revision
       </div>
 
       <input
@@ -2321,247 +2270,309 @@ function SearchPanel({
 
 /* =========================================================
    PREMIUM TOPICS
-   NO LIMIT — every repeated topic is shown.
-   Minimum 2 PYQs.
+   SEPARATE SECTION BELOW SEARCH
+   ALL REPEATED TOPICS — NO LIMIT
 ========================================================= */
 
 function PremiumTopics({
   topics,
+  showPremiumTopics,
+  setShowPremiumTopics,
   selectedTopic,
   setSelectedTopic,
   selectedQuestions,
 }) {
-  if (!topics.length) {
-    return (
-      <section
-        style={
-          styles.compactPremium
-        }
-      >
-        <div
-          style={
-            styles.compactPremiumTitle
-          }
-        >
-          PREMIUM TOPICS
-        </div>
-
-        <div
-          style={
-            styles.premiumEmpty
-          }
-        >
-          अभी कोई repeated topic
-          उपलब्ध नहीं है।
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section
       style={
-        styles.compactPremium
+        styles.premiumSection
       }
     >
-      <div
+      <button
+        type="button"
+        onClick={() => {
+          const next =
+            !showPremiumTopics;
+
+          setShowPremiumTopics(
+            next
+          );
+
+          if (!next) {
+            setSelectedTopic(
+              null
+            );
+          }
+        }}
         style={
-          styles.compactPremiumHeader
+          styles.premiumMainButton
         }
       >
-        <div>
+        <div
+          style={
+            styles.premiumMainLeft
+          }
+        >
           <div
             style={
-              styles.compactPremiumTitle
+              styles.premiumIcon
             }
           >
-            ⭐ PREMIUM TOPICS
+            ⭐
           </div>
 
-          <div
-            style={
-              styles.compactPremiumSubtitle
-            }
-          >
-            सभी repeated themes ·
-            frequency के अनुसार
+          <div>
+            <div
+              style={
+                styles.premiumMainTitle
+              }
+            >
+              Premium PYQ Themes
+            </div>
+
+            <div
+              style={
+                styles.premiumMainSubtitle
+              }
+            >
+              Repeated topics from
+              previous years
+            </div>
           </div>
         </div>
 
         <div
           style={
-            styles.repeatedCount
+            styles.premiumMainRight
           }
         >
-          {topics.length}
+          <span>
+            {topics.length}
+          </span>
+
+          <span>
+            {showPremiumTopics
+              ? "▲"
+              : "▼"}
+          </span>
         </div>
-      </div>
+      </button>
 
-      <div
-        style={
-          styles.premiumTopicList
-        }
-      >
-        {topics.map((topic) => {
-          const active =
-            selectedTopic ===
-            topic.key;
-
-          return (
-            <button
-              key={topic.key}
-              type="button"
-              onClick={() =>
-                setSelectedTopic(
-                  active
-                    ? null
-                    : topic.key
-                )
-              }
-              style={{
-                ...styles.premiumTopicButton,
-                ...(active
-                  ? styles.premiumTopicActive
-                  : {}),
-              }}
-            >
-              <span
-                style={
-                  styles.premiumTopicName
-                }
-              >
-                {topic.label}
-              </span>
-
-              <span
-                style={
-                  styles.premiumTopicCount
-                }
-              >
-                {topic.questions.length}{" "}
-                PYQs
-                {active
-                  ? " ▲"
-                  : " ▼"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {selectedTopic &&
-        selectedQuestions.length >
-          0 && (
-          <div
-            style={
-              styles.premiumQuestionsInline
-            }
-          >
+      {showPremiumTopics && (
+        <div
+          style={
+            styles.premiumBody
+          }
+        >
+          {!topics.length ? (
             <div
               style={
-                styles.selectedPremiumHeader
+                styles.premiumEmpty
               }
             >
-              <div>
-                <div
-                  style={
-                    styles.selectedPremiumTitle
-                  }
-                >
-                  {
-                    topics.find(
-                      (topic) =>
-                        topic.key ===
-                        selectedTopic
-                    )?.label
-                  }
-                </div>
-
-                <div
-                  style={
-                    styles.selectedPremiumMeta
-                  }
-                >
-                  {
-                    selectedQuestions.length
-                  }{" "}
-                  related PYQs
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedTopic(
-                    null
-                  )
-                }
+              अभी कोई repeated
+              topic उपलब्ध नहीं
+              है।
+            </div>
+          ) : (
+            <>
+              <div
                 style={
-                  styles.closePremiumButton
+                  styles.premiumInfo
                 }
               >
-                ×
-              </button>
-            </div>
+                {topics.length} repeated
+                topics found · सबसे
+                ज्यादा repeated topic
+                ऊपर
+              </div>
 
-            {selectedQuestions.map(
-              (q, index) => (
-                <div
-                  key={`premium-${q.id}-${index}`}
-                  style={
-                    styles.premiumInlineQuestion
+              <div
+                style={
+                  styles.premiumTopicList
+                }
+              >
+                {topics.map(
+                  (topic) => {
+                    const active =
+                      selectedTopic ===
+                      topic.key;
+
+                    return (
+                      <button
+                        key={
+                          topic.key
+                        }
+                        type="button"
+                        onClick={() =>
+                          setSelectedTopic(
+                            active
+                              ? null
+                              : topic.key
+                          )
+                        }
+                        style={{
+                          ...styles.premiumTopicButton,
+                          ...(active
+                            ? styles.premiumTopicActive
+                            : {}),
+                        }}
+                      >
+                        <span
+                          style={
+                            styles.premiumTopicName
+                          }
+                        >
+                          {topic.label}
+                        </span>
+
+                        <span
+                          style={
+                            styles.premiumTopicCount
+                          }
+                        >
+                          {
+                            topic
+                              .questions
+                              .length
+                          }{" "}
+                          PYQs{" "}
+                          {active
+                            ? "▲"
+                            : "→"}
+                        </span>
+                      </button>
+                    );
                   }
-                >
+                )}
+              </div>
+
+              {selectedTopic &&
+                selectedQuestions.length >
+                  0 && (
                   <div
                     style={
-                      styles.meta
+                      styles.premiumQuestions
                     }
                   >
-                    {q.year} ·{" "}
-                    {q.paper}
-                    {q.section
-                      ? ` · ${q.section}`
-                      : ""}
-                  </div>
+                    <div
+                      style={
+                        styles.selectedPremiumHeader
+                      }
+                    >
+                      <div>
+                        <div
+                          style={
+                            styles.selectedPremiumTitle
+                          }
+                        >
+                          {
+                            topics.find(
+                              (topic) =>
+                                topic.key ===
+                                selectedTopic
+                            )?.label
+                          }
+                        </div>
 
-                  <div
-                    style={
-                      styles.premiumQuestionNumber
-                    }
-                  >
-                    PYQ {index + 1}
-                  </div>
+                        <div
+                          style={
+                            styles.selectedPremiumMeta
+                          }
+                        >
+                          {
+                            selectedQuestions.length
+                          }{" "}
+                          related PYQs
+                        </div>
+                      </div>
 
-                  <div
-                    style={
-                      styles.question
-                    }
-                  >
-                    {q.question}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedTopic(
+                            null
+                          )
+                        }
+                        style={
+                          styles.closePremiumButton
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
 
-                  <div
-                    style={
-                      styles.mainsMeta
-                    }
-                  >
-                    <span>
-                      {q.marks ??
-                        "—"}{" "}
-                      Marks
-                    </span>
+                    {selectedQuestions.map(
+                      (
+                        q,
+                        index
+                      ) => (
+                        <div
+                          key={`premium-${q.id}-${index}`}
+                          style={
+                            styles.premiumQuestionCard
+                          }
+                        >
+                          <div
+                            style={
+                              styles.meta
+                            }
+                          >
+                            {q.year} ·{" "}
+                            {
+                              q.paper
+                            }
+                            {q.section
+                              ? ` · ${q.section}`
+                              : ""}
+                          </div>
 
-                    <span>
-                      {q.words
-                        ? `${q.words} Words`
-                        : "Word limit —"}
-                    </span>
+                          <div
+                            style={
+                              styles.premiumQuestionNumber
+                            }
+                          >
+                            PYQ{" "}
+                            {index +
+                              1}
+                          </div>
+
+                          <div
+                            style={
+                              styles.question
+                            }
+                          >
+                            {
+                              q.question
+                            }
+                          </div>
+
+                          <div
+                            style={
+                              styles.mainsMeta
+                            }
+                          >
+                            <span>
+                              {q.marks ??
+                                "—"}{" "}
+                              Marks
+                            </span>
+
+                            <span>
+                              {q.words
+                                ? `${q.words} Words`
+                                : "Word limit —"}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
                   </div>
-                </div>
-              )
-            )}
-          </div>
-        )}
+                )}
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -2798,40 +2809,13 @@ const styles = {
       "1px solid #e5e5e3",
     borderRadius: "20px",
     padding: "16px",
-    marginBottom: "16px",
-  },
-
-  searchHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent:
-      "space-between",
-    gap: "10px",
-    marginBottom: "9px",
+    marginBottom: "10px",
   },
 
   searchTitle: {
     fontSize: "14px",
     fontWeight: "800",
-  },
-
-  premiumMiniButton: {
-    border:
-      "1px solid #222",
-    background: "#111",
-    color: "#fff",
-    borderRadius: "10px",
-    padding:
-      "8px 10px",
-    fontSize: "10px",
-    fontWeight: "800",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-
-  premiumMiniButtonActive: {
-    background: "#fff",
-    color: "#111",
+    marginBottom: "9px",
   },
 
   searchInput: {
@@ -2893,47 +2877,79 @@ const styles = {
 
   /* PREMIUM */
 
-  compactPremium: {
+  premiumSection: {
     background: "#111",
     color: "#fff",
-    borderRadius: "17px",
-    padding: "12px",
-    marginBottom: "14px",
+    borderRadius: "18px",
+    marginBottom: "16px",
+    overflow: "hidden",
   },
 
-  compactPremiumHeader: {
+  premiumMainButton: {
+    width: "100%",
+    border: 0,
+    background: "#111",
+    color: "#fff",
     display: "flex",
     alignItems: "center",
     justifyContent:
       "space-between",
+    gap: "12px",
+    padding: "14px",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+
+  premiumMainLeft: {
+    display: "flex",
+    alignItems: "center",
     gap: "10px",
-    marginBottom: "9px",
+    minWidth: 0,
   },
 
-  compactPremiumTitle: {
-    fontSize: "11px",
-    fontWeight: "900",
-    letterSpacing:
-      "0.8px",
-  },
-
-  compactPremiumSubtitle: {
-    color: "#999",
-    fontSize: "9px",
-    marginTop: "3px",
-  },
-
-  repeatedCount: {
-    minWidth: "30px",
-    height: "30px",
-    borderRadius: "9px",
+  premiumIcon: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "10px",
     background: "#222",
     display: "flex",
     alignItems: "center",
     justifyContent:
       "center",
-    fontSize: "10px",
+    flexShrink: 0,
+  },
+
+  premiumMainTitle: {
+    fontSize: "13px",
     fontWeight: "900",
+  },
+
+  premiumMainSubtitle: {
+    color: "#999",
+    fontSize: "9px",
+    marginTop: "3px",
+  },
+
+  premiumMainRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    color: "#aaa",
+    fontSize: "10px",
+    fontWeight: "800",
+    flexShrink: 0,
+  },
+
+  premiumBody: {
+    borderTop:
+      "1px solid #292929",
+    padding: "12px",
+  },
+
+  premiumInfo: {
+    color: "#888",
+    fontSize: "9px",
+    marginBottom: "8px",
   },
 
   premiumTopicList: {
@@ -2941,7 +2957,6 @@ const styles = {
     gap: "6px",
     maxHeight: "430px",
     overflowY: "auto",
-    paddingRight: "1px",
   },
 
   premiumTopicButton: {
@@ -2955,9 +2970,9 @@ const styles = {
       "1px solid #2c2c2c",
     background: "#1a1a1a",
     color: "#fff",
-    borderRadius: "10px",
+    borderRadius: "11px",
     padding:
-      "9px 10px",
+      "10px 11px",
     textAlign: "left",
     cursor: "pointer",
   },
@@ -2983,21 +2998,22 @@ const styles = {
     flexShrink: 0,
     fontSize: "9px",
     fontWeight: "700",
-    opacity: 0.65,
+    opacity: 0.7,
   },
 
-  premiumQuestionsInline: {
+  premiumQuestions: {
     marginTop: "10px",
     paddingTop: "10px",
     borderTop:
-      "1px solid #2c2c2c",
+      "1px solid #292929",
   },
 
   selectedPremiumHeader: {
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems: "flex-start",
+    alignItems:
+      "flex-start",
     gap: "10px",
     marginBottom: "8px",
   },
@@ -3026,7 +3042,7 @@ const styles = {
     cursor: "pointer",
   },
 
-  premiumInlineQuestion: {
+  premiumQuestionCard: {
     background: "#1b1b1b",
     border:
       "1px solid #2d2d2d",
@@ -3046,7 +3062,7 @@ const styles = {
     color: "#888",
     fontSize: "10px",
     padding:
-      "7px 0 2px",
+      "4px 0",
   },
 
   /* FILTER */
