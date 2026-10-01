@@ -111,6 +111,9 @@ export default function PYQPage() {
   const [mainsPaper, setMainsPaper] = useState("All");
   const [mainsYear, setMainsYear] = useState("All");
 
+  // GS4 subsection
+  const [gs4Section, setGs4Section] = useState("Theory");
+
   const [mainsPYQs, setMainsPYQs] = useState([]);
   const [mainsLoading, setMainsLoading] = useState(false);
   const [mainsError, setMainsError] = useState("");
@@ -314,15 +317,23 @@ export default function PYQPage() {
         mainsYear === "All" ||
         q.year === Number(mainsYear);
 
+      // GS4 only: Theory / Case Study filter
+      const gs4SectionMatch =
+        mainsPaper !== "GS Paper 4" ||
+        gs4Section === "All" ||
+        q.section === gs4Section;
+
       return (
         paperMatch &&
-        yearMatch
+        yearMatch &&
+        gs4SectionMatch
       );
     });
   }, [
     mainsPYQs,
     mainsPaper,
     mainsYear,
+    gs4Section,
   ]);
 
   /* ---------------- PRELIMS PRACTICE ---------------- */
@@ -974,11 +985,22 @@ export default function PYQPage() {
                 >
                   <select
                     value={mainsPaper}
-                    onChange={(e) =>
-                      setMainsPaper(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                      const value =
+                        e.target.value;
+
+                      setMainsPaper(value);
+
+                      // GS4 open hote hi Theory default
+                      if (
+                        value ===
+                        "GS Paper 4"
+                      ) {
+                        setGs4Section(
+                          "Theory"
+                        );
+                      }
+                    }}
                     style={styles.select}
                   >
                     {mainsPapers.map(
@@ -1034,6 +1056,51 @@ export default function PYQPage() {
                   </select>
                 </div>
 
+                {/* GS4 THEORY / CASE STUDIES */}
+
+                {mainsPaper ===
+                  "GS Paper 4" && (
+                  <div
+                    style={
+                      styles.gs4Tabs
+                    }
+                  >
+                    <button
+                      onClick={() =>
+                        setGs4Section(
+                          "Theory"
+                        )
+                      }
+                      style={{
+                        ...styles.gs4Tab,
+                        ...(gs4Section ===
+                        "Theory"
+                          ? styles.gs4ActiveTab
+                          : {}),
+                      }}
+                    >
+                      Theory
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setGs4Section(
+                          "Case Study"
+                        )
+                      }
+                      style={{
+                        ...styles.gs4Tab,
+                        ...(gs4Section ===
+                        "Case Study"
+                          ? styles.gs4ActiveTab
+                          : {}),
+                      }}
+                    >
+                      Case Studies
+                    </button>
+                  </div>
+                )}
+
                 <div
                   style={styles.statsRow}
                 >
@@ -1051,7 +1118,13 @@ export default function PYQPage() {
                 <div
                   style={styles.sectionTitle}
                 >
-                  Mains PYQs
+                  {mainsPaper ===
+                  "GS Paper 4"
+                    ? gs4Section ===
+                      "Case Study"
+                      ? "GS4 Case Studies"
+                      : "GS4 Theory"
+                    : "Mains PYQs"}
                 </div>
 
                 {mainsLoading && (
@@ -1073,8 +1146,8 @@ export default function PYQPage() {
                         styles.answerHint
                       }
                     >
-                      Supabase se questions
-                      load ho rahe hain.
+                      PYQ data load ho
+                      raha hai.
                     </div>
                   </div>
                 )}
@@ -1163,7 +1236,14 @@ export default function PYQPage() {
                           }
                         >
                           {q.year} ·{" "}
-                          {q.paper} ·{" "}
+                          {q.paper}
+                          {q.paper ===
+                            "GS Paper 4" &&
+                          q.section
+                            ? " · " +
+                              q.section
+                            : ""}
+                          {" · "}
                           {q.topic ||
                             "General"}
                         </div>
@@ -1393,6 +1473,34 @@ const styles = {
     border: "1px solid #ddd",
     background: "#fff",
     fontWeight: "600",
+  },
+
+  /* GS4 THEORY / CASE STUDIES TABS */
+
+  gs4Tabs: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "8px",
+    background: "#f0f0ee",
+    padding: "4px",
+    borderRadius: "13px",
+    marginTop: "12px",
+  },
+
+  gs4Tab: {
+    border: 0,
+    background: "transparent",
+    borderRadius: "10px",
+    padding: "10px 8px",
+    fontWeight: "700",
+    fontSize: "12px",
+    color: "#666",
+    cursor: "pointer",
+  },
+
+  gs4ActiveTab: {
+    background: "#111",
+    color: "#fff",
   },
 
   statsRow: {
