@@ -35,12 +35,14 @@ function parseCSV(text) {
     }
 
     if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") i++;
+      if (char === "\r" && next === "\n") {
+        i++;
+      }
 
       row.push(field);
       field = "";
 
-      if (row.some((v) => v.trim() !== "")) {
+      if (row.some((value) => value.trim() !== "")) {
         rows.push(row);
       }
 
@@ -54,14 +56,16 @@ function parseCSV(text) {
   if (field.length > 0 || row.length > 0) {
     row.push(field);
 
-    if (row.some((v) => v.trim() !== "")) {
+    if (row.some((value) => value.trim() !== "")) {
       rows.push(row);
     }
   }
 
-  if (rows.length === 0) return [];
+  if (rows.length === 0) {
+    return [];
+  }
 
-  const headers = rows[0].map((h) => h.trim());
+  const headers = rows[0].map((header) => header.trim());
 
   return rows.slice(1).map((values) => {
     const item = {};
@@ -74,12 +78,35 @@ function parseCSV(text) {
   });
 }
 
+function normalizeSection(value) {
+  const section = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    section === "case study" ||
+    section === "case studies" ||
+    section === "casestudy" ||
+    section === "case-study"
+  ) {
+    return "Case Study";
+  }
+
+  if (section === "theory") {
+    return "Theory";
+  }
+
+  return value ? String(value).trim() : null;
+}
+
 function mapPYQ(row, index, sourceIndex) {
   const marks =
-    row.marks === "" ? null : Number(row.marks);
+    row.marks === "" || row.marks == null
+      ? null
+      : Number(row.marks);
 
   const wordLimit =
-    row.word_limit === ""
+    row.word_limit === "" || row.word_limit == null
       ? null
       : Number(row.word_limit);
 
@@ -88,13 +115,21 @@ function mapPYQ(row, index, sourceIndex) {
 
     year: Number(row.year),
 
-    paper: row.paper,
+    paper: String(row.paper || "").trim(),
 
-    topic: row.topic || null,
+    topic: row.topic
+      ? String(row.topic).trim()
+      : null,
 
-    question: row.question,
+    section: normalizeSection(row.section),
 
-    question_hi: row.question_hi || null,
+    question: row.question
+      ? String(row.question).trim()
+      : "",
+
+    question_hi: row.question_hi
+      ? String(row.question_hi).trim()
+      : null,
 
     marks: Number.isFinite(marks)
       ? marks
@@ -104,11 +139,9 @@ function mapPYQ(row, index, sourceIndex) {
       ? wordLimit
       : null,
 
-    source:
-      row.source_file || "GitHub CSV",
+    source: row.source_file || "GitHub CSV",
 
-    source_file:
-      row.source_file || "GitHub CSV",
+    source_file: row.source_file || "GitHub CSV",
 
     verified:
       String(row.verified).toLowerCase() === "true",
@@ -117,14 +150,11 @@ function mapPYQ(row, index, sourceIndex) {
 
 export async function GET(request) {
   try {
-    const { searchParams } =
-      new URL(request.url);
+    const { searchParams } = new URL(request.url);
 
-    const paper =
-      searchParams.get("paper");
-
-    const year =
-      searchParams.get("year");
+    const paper = searchParams.get("paper");
+    const year = searchParams.get("year");
+    const section = searchParams.get("section");
 
     const responses = await Promise.all(
       CSV_URLS.map((url) =>
@@ -152,7 +182,9 @@ export async function GET(request) {
           error:
             "Mains PYQ CSV fetch failed",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -164,26 +196,29 @@ export async function GET(request) {
 
     let pyqs = [];
 
-    csvTexts.forEach((csvText, sourceIndex) => {
-      const rows = parseCSV(csvText);
+    csvTexts.forEach(
+      (csvText, sourceIndex) => {
+        const rows = parseCSV(csvText);
 
-      const mapped = rows
-        .map((row, index) =>
-          mapPYQ(
-            row,
-            index,
-            sourceIndex
+        const mapped = rows
+          .map((row, index) =>
+            mapPYQ(
+              row,
+              index,
+              sourceIndex
+            )
           )
-        )
-        .filter(
-          (pyq) =>
-            pyq.question &&
-            Number.isFinite(pyq.year)
-        );
+          .filter(
+            (pyq) =>
+              pyq.question &&
+              Number.isFinite(pyq.year)
+          );
 
-      pyqs.push(...mapped);
-    });
+        pyqs.push(...mapped);
+      }
+    );
 
+    // Paper filter
     if (paper && paper !== "All") {
       pyqs = pyqs.filter(
         (pyq) =>
@@ -191,6 +226,7 @@ export async function GET(request) {
       );
     }
 
+    // Year filter
     if (year && year !== "All") {
       pyqs = pyqs.filter(
         (pyq) =>
@@ -199,11 +235,29 @@ export async function GET(request) {
       );
     }
 
+    // Section filter
+    if (section && section !== "All") {
+      const requestedSection =
+        normalizeSection(section);
+
+      pyqs = pyqs.filter(
+        (pyq) =>
+          normalizeSection(
+            pyq.section
+          ) === requestedSection
+      );
+    }
+
+    // Latest year first
     pyqs.sort(
       (a, b) =>
         b.year - a.year ||
-        a.paper.localeCompare(b.paper) ||
-        a.id.localeCompare(b.id)
+        a.paper.localeCompare(
+          b.paper
+        ) ||
+        a.id.localeCompare(
+          b.id
+        )
     );
 
     return NextResponse.json({
@@ -221,7 +275,9 @@ export async function GET(request) {
       {
         error: "Server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
