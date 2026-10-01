@@ -9,25 +9,17 @@ const filters = [
   "GS-III",
   "GS-IV",
   "Prelims",
-  "Mains",
-  "Reports",
-  "Schemes",
-  "International",
-  "Places",
-  "Personalities",
 ];
 
 export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
-  const [search, setSearch] = useState("");
   const [language, setLanguage] = useState("hi");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
-  const [expandedId, setExpandedId] = useState(null);
+  const [selected, setSelected] = useState(null);
 
   const [loading, setLoading] = useState(true);
-  const [importantLoading, setImportantLoading] =
-    useState(false);
+  const [importantLoading, setImportantLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [notificationOpen, setNotificationOpen] =
@@ -251,45 +243,10 @@ export default function CurrentAffairsPage() {
   );
 
   const filteredNews = useMemo(() => {
-    let result = news;
-
-    const query = search.trim().toLowerCase();
-
-    if (query) {
-      result = result.filter((item) => {
-        const searchable = [
-          item.title,
-          item.title_hi,
-          item.title_en,
-          item.subject,
-          item.gs,
-          item.paper,
-          item.source_name,
-          item.why_in_news,
-          item.why_in_news_hi,
-          item.why_in_news_en,
-          item.key_facts,
-          item.key_facts_hi,
-          item.key_facts_en,
-          item.tags,
-          item.report_type,
-          item.government_scheme,
-          item.important_place,
-          item.personalities,
-          item.static_link,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        return searchable.includes(query);
-      });
-    }
-
-    if (active === "Today") return result;
+    if (active === "Today") return news;
 
     if (active === "Prelims") {
-      return result.filter(
+      return news.filter(
         (item) =>
           item.prelims ||
           item.prelims_hi ||
@@ -300,73 +257,18 @@ export default function CurrentAffairsPage() {
       );
     }
 
-    if (active === "Mains") {
-      return result.filter(
-        (item) =>
-          item.mains_analysis ||
-          item.mains_analysis_hi ||
-          item.mains_analysis_en ||
-          item.mains_question ||
-          item.mains_question_hi ||
-          item.mains_question_en
-      );
-    }
-
-    if (active === "Reports") {
-      return result.filter(
-        (item) =>
-          item.report_type ||
-          /report|index|survey|ranking|indicator/i.test(
-            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
-          )
-      );
-    }
-
-    if (active === "Schemes") {
-      return result.filter(
-        (item) =>
-          item.government_scheme ||
-          /scheme|yojana|mission|programme|program/i.test(
-            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
-          )
-      );
-    }
-
-    if (active === "International") {
-      return result.filter(
-        (item) =>
-          item.gs === "GS-II" ||
-          item.paper === "GS-II" ||
-          /international|bilateral|multilateral|foreign|global|g20|un|summit|treaty|agreement/i.test(
-            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
-          )
-      );
-    }
-
-    if (active === "Places") {
-      return result.filter(
-        (item) => item.important_place
-      );
-    }
-
-    if (active === "Personalities") {
-      return result.filter(
-        (item) => item.personalities
-      );
-    }
-
     if (active === "Important") {
-      return result.filter((item) =>
+      return news.filter((item) =>
         importantIds.includes(Number(item.id))
       );
     }
 
-    return result.filter(
+    return news.filter(
       (item) =>
         item.gs === active ||
         item.paper === active
     );
-  }, [active, news, importantIds, search]);
+  }, [active, news, importantIds]);
 
   async function toggleImportant(id) {
     try {
@@ -501,21 +403,6 @@ export default function CurrentAffairsPage() {
               Daily update: 10:00 AM
             </small>
           </div>
-
-          <button
-            className="magazine-button"
-            onClick={() =>
-              (window.location.href =
-                "/current-affairs/magazine")
-            }
-          >
-            📖
-            <span>
-              {hi
-                ? "Monthly Magazine"
-                : "Monthly Magazine"}
-            </span>
-          </button>
 
           <button
             className="notification-button"
@@ -655,6 +542,8 @@ export default function CurrentAffairsPage() {
               >
                 {notificationSaving
                   ? "Saving..."
+                  : hi
+                  ? "Save Time"
                   : "Save Time"}
               </button>
             </div>
@@ -691,43 +580,6 @@ export default function CurrentAffairsPage() {
           )}
         </section>
       )}
-
-      <section className="search-panel">
-        <div className="search-box">
-          <span className="search-icon">⌕</span>
-
-          <input
-            type="search"
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            placeholder={
-              hi
-                ? "Current Affairs खोजें — topic, subject, GS, scheme, report..."
-                : "Search Current Affairs — topic, subject, GS, scheme, report..."
-            }
-          />
-
-          {search && (
-            <button
-              className="clear-search"
-              type="button"
-              onClick={() => setSearch("")}
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        {search && (
-          <div className="search-result-info">
-            {hi
-              ? `"${search}" के लिए ${filteredNews.length} परिणाम`
-              : `${filteredNews.length} result(s) for "${search}"`}
-          </div>
-        )}
-      </section>
 
       <nav className="filter-row">
         {filters.map((filter) => (
@@ -770,17 +622,6 @@ export default function CurrentAffairsPage() {
           }
         >
           🔥 Premium Facts
-        </button>
-
-        <button
-          className="filter refresh-filter"
-          onClick={() => {
-            loadCurrentAffairs();
-            loadImportant();
-          }}
-          disabled={loading}
-        >
-          ↻ Refresh
         </button>
       </nav>
 
@@ -858,8 +699,7 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  expandedId={expandedId}
-                  onExpand={setExpandedId}
+                  onOpen={setSelected}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -916,8 +756,7 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  expandedId={expandedId}
-                  onExpand={setExpandedId}
+                  onOpen={setSelected}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -929,1111 +768,52 @@ export default function CurrentAffairsPage() {
         </section>
       )}
 
+      {selected && (
+        <ArticleModal
+          item={selected}
+          language={language}
+          important={importantIds.includes(
+            Number(selected.id)
+          )}
+          importantLoading={
+            importantLoading
+          }
+          onImportant={toggleImportant}
+          onClose={() =>
+            setSelected(null)
+          }
+        />
+      )}
+
       <style jsx>{`
-        .ca-page {
-          min-height: 100vh;
-          background: #f6f7f9;
-          color: #172033;
-          padding: 28px 18px 60px;
-          font-family: Arial, sans-serif;
-        }
-
-        .ca-header,
-        .filter-row,
-        .news-list,
-        .special-section,
-        .section-heading,
-        .notification-panel {
-          max-width: 1050px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .ca-header {
-          display: flex;
-          justify-content: space-between;
-          gap: 20px;
-          align-items: center;
-          margin-bottom: 22px;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 10px;
-          align-items: stretch;
-          flex-wrap: wrap;
-        }
-
-        .language-box,
-        .date-card,
-        .notification-button {
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 16px;
-          padding: 13px 15px;
-          box-shadow: 0 4px 16px
-            rgba(16, 24, 40, 0.05);
-        }
-
-        .language-box > span {
-          display: block;
-          color: #667085;
-          font-size: 12px;
-          margin-bottom: 7px;
-        }
-
-        .language-buttons {
-          display: flex;
-          gap: 5px;
-        }
-
-        .lang {
-          border: 1px solid #dfe3e8;
-          background: #fff;
-          border-radius: 8px;
-          padding: 7px 10px;
-          cursor: pointer;
-          font-weight: 700;
-        }
-
-        .lang.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .magazine-button {
-          cursor: pointer;
-          font-weight: 800;
-          color: #fff;
-          background: #172033;
-          border: 1px solid #172033;
-          border-radius: 16px;
-          padding: 13px 15px;
-          display: flex;
-          gap: 7px;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 16px
-            rgba(16, 24, 40, 0.08);
-          white-space: nowrap;
-        }
-
-        .magazine-button:hover {
-          background: #25304a;
-          border-color: #25304a;
-        }
-
-        .notification-button {
-          cursor: pointer;
-          font-weight: 800;
-          color: #172033;
-          display: flex;
-          gap: 7px;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .notification-button:hover {
-          background: #f8fafc;
-        }
-
-        .eyebrow {
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.12em;
-          margin: 0 0 6px;
-          color: #667085;
-        }
-
-        h1 {
-          margin: 0;
-          font-size: clamp(28px, 5vw, 42px);
-        }
-
-        .sub {
-          color: #667085;
-          margin: 8px 0 0;
-        }
-
-        .date-card {
-          min-width: 205px;
-        }
-
-        .date-card span,
-        .date-card small {
-          display: block;
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .date-card strong {
-          display: block;
-          margin: 5px 0;
-          font-size: 15px;
-        }
-
-        .notification-panel {
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 20px;
-          padding: 20px;
-          margin-bottom: 18px;
-          box-shadow: 0 8px 25px
-            rgba(16, 24, 40, 0.07);
-        }
-
-        .notification-title {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .notification-title h2 {
-          margin: 8px 0 5px;
-          font-size: 21px;
-        }
-
-        .notification-title p {
-          color: #667085;
-          margin: 0;
-        }
-
-        .switch {
-          width: 54px;
-          height: 30px;
-          border: 0;
-          border-radius: 999px;
-          background: #d0d5dd;
-          padding: 3px;
-          cursor: pointer;
-          flex-shrink: 0;
-        }
-
-        .switch span {
-          display: block;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: #fff;
-          transition: 0.2s;
-        }
-
-        .switch.on {
-          background: #172033;
-        }
-
-        .switch.on span {
-          transform: translateX(24px);
-        }
-
-        .notification-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 13px;
-          margin-top: 18px;
-        }
-
-        .setting-box {
-          border: 1px solid #e4e7ec;
-          border-radius: 14px;
-          padding: 15px;
-        }
-
-        .setting-box label {
-          display: block;
-          font-size: 12px;
-          color: #667085;
-          font-weight: 700;
-          margin-bottom: 9px;
-        }
-
-        .setting-buttons {
-          display: flex;
-          gap: 7px;
-        }
-
-        .setting-btn,
-        .save-time {
-          border: 1px solid #dfe3e8;
-          background: #fff;
-          border-radius: 9px;
-          padding: 9px 12px;
-          cursor: pointer;
-          font-weight: 700;
-        }
-
-        .setting-btn.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .setting-box input {
-          border: 1px solid #dfe3e8;
-          border-radius: 9px;
-          padding: 9px;
-          font-size: 15px;
-          margin-right: 7px;
-        }
-
-        .save-time {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .notification-info {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          margin-top: 13px;
-          padding: 11px 13px;
-          border-radius: 10px;
-          background: #f6f7f9;
-          font-size: 13px;
-        }
-
-        .notification-info span {
-          color: #667085;
-        }
-
-        .notification-message {
-          margin-top: 10px;
-          font-size: 13px;
-          color: #175cd3;
-        }
-
-        .search-panel {
-          max-width: 1050px;
-          margin: 0 auto 10px;
-        }
-
-        .search-box {
-          position: relative;
-          display: flex;
-          align-items: center;
-          background: #fff;
-          border: 1px solid #dfe3e8;
-          border-radius: 14px;
-          min-height: 48px;
-          box-shadow: 0 4px 16px
-            rgba(16, 24, 40, 0.04);
-        }
-
-        .search-icon {
-          padding-left: 15px;
-          color: #667085;
-          font-size: 22px;
-          line-height: 1;
-        }
-
-        .search-box input {
-          flex: 1;
-          width: 100%;
-          border: 0;
-          outline: 0;
-          background: transparent;
-          padding: 13px 12px;
-          font-size: 14px;
-          color: #172033;
-        }
-
-        .search-box input::placeholder {
-          color: #98a2b3;
-        }
-
-        .clear-search {
-          border: 0;
-          background: transparent;
-          color: #667085;
-          font-size: 22px;
-          cursor: pointer;
-          padding: 8px 14px;
-        }
-
-        .search-result-info {
-          color: #667085;
-          font-size: 12px;
-          margin-top: 7px;
-          padding-left: 4px;
-        }
-
-        .filter-row {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding: 3px 0 18px;
-        }
-
-        .filter {
-          border: 1px solid #dfe3e8;
-          background: #fff;
-          border-radius: 999px;
-          padding: 10px 15px;
-          min-height: 42px;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-
-        .filter.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .refresh-filter {
-          font-weight: 800;
-        }
-
-        .refresh-filter:disabled {
-          opacity: 0.6;
-          cursor: wait;
-        }
-
-        .filter.important.active {
-          background: #8a5a00;
-          border-color: #8a5a00;
-        }
-
-        .filter.premium.active {
-          background: #7a263a;
-          border-color: #7a263a;
-        }
-
-        .section-heading {
-          display: flex;
-          justify-content: space-between;
-          align-items: end;
-          gap: 15px;
-          margin-bottom: 14px;
-        }
-
-        .section-heading h2 {
-          margin: 8px 0 0;
-          font-size: 23px;
-        }
-
-        .section-heading p {
-          color: #667085;
-          margin: 0;
-        }
-
-        .badge {
-          display: inline-block;
-          font-size: 11px;
-          font-weight: 800;
-          padding: 5px 9px;
-          border-radius: 999px;
-          background: #eef2f6;
-          color: #475467;
-        }
-
-        .news-list {
-          display: grid;
-          gap: 13px;
-        }
-
-        .news-card {
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 16px;
-          padding: 18px;
-          box-shadow: 0 4px 16px
-            rgba(16, 24, 40, 0.04);
-        }
-
-        .topline {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .meta,
-        .source {
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .news-card h3 {
-          margin: 10px 0 7px;
-          font-size: 19px;
-          line-height: 1.35;
-        }
-
-        .summary {
-          color: #475467;
-          line-height: 1.55;
-          margin: 0 0 13px;
-          white-space: pre-wrap;
-        }
-
-        .card-actions {
-          display: flex;
-          gap: 9px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .read-button,
-        .important-button {
-          border: 0;
-          border-radius: 10px;
-          padding: 10px 13px;
-          cursor: pointer;
-          font-weight: 700;
-        }
-
-        .read-button {
-          background: #172033;
-          color: #fff;
-        }
-
-        .important-button {
-          background: #f3f4f6;
-          color: #344054;
-        }
-
-        .important-button:disabled,
-        .setting-btn:disabled,
-        .save-time:disabled {
-          opacity: 0.6;
-          cursor: wait;
-        }
-
-        .empty,
-        .state-card {
-          background: #fff;
-          border: 1px dashed #d0d5dd;
-          border-radius: 16px;
-          padding: 35px 20px;
-          text-align: center;
-          color: #667085;
-          margin: 15px auto 0;
-          line-height: 1.7;
-          max-width: 1050px;
-        }
-
-        .state-card {
-          border-style: solid;
-        }
-
-        .state-card h2 {
-          color: #172033;
-          margin: 12px 0 5px;
-        }
-
-        .error-card {
-          border-color: #f04438;
-        }
-
-        .loader {
-          width: 32px;
-          height: 32px;
-          margin: auto;
-          border: 4px solid #e4e7ec;
-          border-top-color: #172033;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        /*
-          OLD FACT CARD STYLES
-          Kept for compatibility with any other existing
-          component styles.
-        */
-
-        .fact-grid {
-          max-width: 1050px;
-          margin: auto;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 13px;
-        }
-
-        .fact-card {
-          background: #fff;
-          border: 1px solid #e4e7ec;
-          border-radius: 16px;
-          padding: 17px;
-        }
-
-        .fact-card > span {
-          font-size: 12px;
-          color: #667085;
-          font-weight: 700;
-        }
-
-        .fact-card h3 {
-          font-size: 16px;
-          margin: 9px 0;
-        }
-
-        .fact-card p {
-          color: #475467;
-          line-height: 1.55;
-          white-space: pre-wrap;
-        }
-
-        .fact-card small {
-          color: #667085;
-        }
-
-        /*
-          PREMIUM FACTS - FINAL DESIGN
-        */
-
-        .premium-facts-section {
-          width: 100%;
-          max-width: 1100px;
-          margin: 28px auto;
-          padding: 0 18px 32px;
-        }
-
-        .premium-facts-header {
-          margin-bottom: 18px;
-        }
-
-        .premium-facts-header .premium-label {
-          display: inline-flex;
-          align-items: center;
-          padding: 5px 10px;
-          border-radius: 7px;
-          background: #f3f4f6;
-          color: #667085;
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: 1px;
-          margin-bottom: 8px;
-        }
-
-        .premium-facts-header h2 {
-          margin: 0;
-          color: #172033;
-          font-size: 28px;
-          line-height: 1.2;
-          font-weight: 850;
-        }
-
-        .premium-facts-header p {
-          margin: 8px 0 0;
-          color: #667085;
-          font-size: 14px;
-        }
-
-        .premium-fact-tabs {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 6px;
-          max-width: 460px;
-          margin: 20px 0 16px;
-          padding: 5px;
-          background: #f1f3f6;
-          border-radius: 13px;
-        }
-
-        .premium-fact-tab {
-          border: 0;
-          background: transparent;
-          color: #667085;
-          padding: 11px 15px;
-          border-radius: 9px;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 850;
-          letter-spacing: 0.3px;
-          transition: all 0.2s ease;
-        }
-
-        .premium-fact-tab span {
-          margin-right: 6px;
-        }
-
-        .premium-fact-tab:hover {
-          background: #ffffff;
-          color: #172033;
-        }
-
-        .premium-fact-tab.active {
-          background: #172033;
-          color: #ffffff;
-          box-shadow: 0 3px 10px
-            rgba(23, 32, 51, 0.14);
-        }
-
-        .premium-fact-meta {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-          color: #98a0ad;
-          font-size: 10px;
-          font-weight: 850;
-          letter-spacing: 0.8px;
-        }
-
-        .premium-fact-meta strong {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 27px;
-          height: 27px;
-          padding: 0 7px;
-          border-radius: 50%;
-          background: #f1f3f6;
-          color: #172033;
-          font-size: 10px;
-        }
-
-        .premium-facts-grid {
-          display: grid;
-          grid-template-columns: repeat(
-            2,
-            minmax(0, 1fr)
-          );
-          gap: 13px;
-        }
-
-        .premium-fact-card {
-          min-width: 0;
-          background: #ffffff;
-          border: 1px solid #e6e8ec;
-          border-radius: 15px;
-          padding: 15px;
-          box-shadow: 0 3px 14px
-            rgba(16, 24, 40, 0.04);
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease;
-        }
-
-        .premium-fact-card:hover {
-          transform: translateY(-2px);
-          border-color: #d5d9e0;
-          box-shadow: 0 7px 22px
-            rgba(16, 24, 40, 0.07);
-        }
-
-        .premium-card-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
-        }
-
-        .premium-number {
-          color: #a0a6b1;
-          font-size: 10px;
-          font-weight: 850;
-        }
-
-        .premium-gs {
-          display: inline-flex;
-          align-items: center;
-          padding: 4px 8px;
-          border-radius: 6px;
-          background: #f5f6f8;
-          color: #596273;
-          font-size: 9px;
-          font-weight: 850;
-        }
-
-        .premium-fact-card h3 {
-          margin: 0 0 10px;
-          color: #172033;
-          font-size: 15px;
-          line-height: 1.4;
-          font-weight: 800;
-        }
-
-        .premium-fact-content {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          padding: 10px 11px;
-          border-radius: 9px;
-          background: #f8f9fb;
-        }
-
-        .premium-fact-icon {
-          flex: 0 0 auto;
-          margin-top: 3px;
-          color: #172033;
-          font-size: 8px;
-        }
-
-        .premium-fact-content p {
-          margin: 0;
-          color: #465064;
-          font-size: 12.5px;
-          line-height: 1.5;
-          font-weight: 500;
-        }
-
-        /*
-          PRELIMS:
-          UI always shows only one line.
-        */
-
-        .prelims-card
-          .premium-fact-content
-          p {
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
-          overflow: hidden;
-        }
-
-        /*
-          MAINS:
-          UI always shows maximum two lines.
-        */
-
-        .mains-card
-          .premium-fact-content
-          p {
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          line-clamp: 2;
-          overflow: hidden;
-        }
-
-        .premium-card-footer {
-          margin-top: 10px;
-          padding-top: 9px;
-          border-top: 1px solid #eef0f3;
-        }
-
-        .premium-card-footer span {
-          color: #98a0ad;
-          font-size: 9px;
-          font-weight: 600;
-        }
-
-        .premium-empty {
-          text-align: center;
-          padding: 45px 20px;
-          border: 1px dashed #d9dde4;
-          border-radius: 15px;
-          background: #fafbfc;
-        }
-
-        .premium-empty-icon {
-          margin-bottom: 7px;
-          font-size: 28px;
-        }
-
-        .premium-empty h3 {
-          margin: 0;
-          color: #667085;
-          font-size: 13px;
-          font-weight: 700;
-        }
-
-        .news-card.expanded {
-          border-color: #cfd6e4;
-          box-shadow: 0 10px 30px
-            rgba(16, 24, 40, 0.08);
-        }
-
-        .inline-analysis {
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid #e4e7ec;
-          animation: analysisIn 0.2s ease-out;
-        }
-
-        @keyframes analysisIn {
-          from {
-            opacity: 0;
-            transform: translateY(-4px);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .analysis-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 14px;
-          margin-bottom: 12px;
-        }
-
-        .analysis-kicker {
-          display: block;
-          color: #667085;
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 0.12em;
-          margin-bottom: 5px;
-        }
-
-        .analysis-header h4 {
-          margin: 0;
-          font-size: 18px;
-          line-height: 1.4;
-          color: #172033;
-        }
-
-        .analysis-badge {
-          flex-shrink: 0;
-          border: 1px solid #e4e7ec;
-          background: #f8fafc;
-          border-radius: 999px;
-          padding: 6px 10px;
-          font-size: 11px;
-          font-weight: 800;
-        }
-
-        .inline-source {
-          margin: 0 0 4px;
-        }
-
-        .analysis-block {
-          padding: 15px 0;
-          border-bottom: 1px solid #eef0f3;
-        }
-
-        .analysis-block h5 {
-          margin: 0 0 7px;
-          font-size: 14px;
-          color: #172033;
-        }
-
-        .analysis-block .content-block {
-          color: #475467;
-          font-size: 14px;
-          line-height: 1.7;
-        }
-
-        .inline-premium-box {
-          margin-top: 16px;
-          padding: 15px;
-          border-radius: 14px;
-          background: #fff9ed;
-          border: 1px solid #f0d39b;
-        }
-
-        .premium-label {
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 0.08em;
-          margin-bottom: 7px;
-        }
-
-        .analysis-footer {
-          display: flex;
-          justify-content: flex-end;
-          padding-top: 16px;
-        }
-
-        .modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.55);
-          display: grid;
-          place-items: center;
-          padding: 16px;
-          z-index: 50;
-        }
-
-        .modal {
-          width: min(760px, 100%);
-          max-height: 90vh;
-          overflow: auto;
-          background: #fff;
-          border-radius: 20px;
-          padding: 24px;
-          position: relative;
-        }
-
-        .close {
-          position: absolute;
-          right: 15px;
-          top: 10px;
-          border: 0;
-          background: transparent;
-          font-size: 30px;
-          cursor: pointer;
-        }
-
-        .modal h2 {
-          margin: 12px 35px 5px 0;
-        }
-
-        .modal h3 {
-          margin: 22px 0 8px;
-        }
-
-        .modal p {
-          line-height: 1.65;
-          color: #475467;
-          white-space: pre-wrap;
-        }
-
-        .content-block {
-          white-space: pre-wrap;
-          color: #475467;
-          line-height: 1.65;
-        }
-
-        .source-link {
-          display: inline-block;
-          margin-top: 8px;
-          color: #175cd3;
-          font-size: 13px;
-          font-weight: 700;
-          text-decoration: none;
-        }
-
-        .premium-box {
-          margin: 20px 0;
-          padding: 15px;
-          border-radius: 13px;
-          background: #fff7e8;
-          border: 1px solid #f0d39b;
-        }
-
-        .premium-box p {
-          margin-bottom: 0;
-        }
-
-        .modal-important {
-          margin-top: 12px;
-        }
-
-        @media (max-width: 800px) {
-          .ca-header {
-            display: block;
-          }
-
-          .header-actions {
-            margin-top: 15px;
-          }
-
-          .notification-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .fact-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .premium-facts-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .ca-page {
-            padding: 20px 12px 45px;
-          }
-
-          .section-heading {
-            display: block;
-          }
-
-          .section-heading p {
-            margin-top: 8px;
-          }
-
-          .topline {
-            display: block;
-          }
-
-          .meta {
-            display: block;
-            margin-top: 7px;
-          }
-
-          .date-card,
-          .language-box,
-          .notification-button {
-            width: 100%;
-          }
-
-          .language-buttons {
-            width: 100%;
-          }
-
-          .lang {
-            flex: 1;
-          }
-
-          .notification-info {
-            display: block;
-          }
-
-          .notification-info span {
-            display: block;
-            margin-top: 5px;
-          }
-
-          .setting-box input {
-            width: 100%;
-            margin: 0 0 8px;
-          }
-
-          .save-time {
-            width: 100%;
-          }
-
-          .notification-title {
-            align-items: flex-start;
-          }
-
-          .premium-fact-tabs {
-            width: 100%;
-            max-width: none;
-          }
-
-          .premium-fact-tab {
-            padding: 11px 7px;
-            font-size: 11px;
-          }
-
-          .premium-facts-section {
-            padding: 0 12px 25px;
-            margin-top: 22px;
-          }
-
-          .premium-facts-header h2 {
-            font-size: 24px;
-          }
-
-          .premium-facts-header p {
-            font-size: 12.5px;
-          }
-
-          .premium-fact-card {
-            padding: 14px;
-            border-radius: 13px;
-          }
-
-          .premium-fact-card h3 {
-            font-size: 14px;
-          }
-
-          .premium-fact-content p {
-            font-size: 12px;
-          }
-        }
+        .ca-page{min-height:100vh;background:linear-gradient(180deg,#f8fafc 0%,#f3f5f8 100%);color:#172033;padding:28px 18px 70px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+        .ca-header,.filter-row,.news-list,.special-section,.section-heading,.notification-panel{max-width:1080px;margin-left:auto;margin-right:auto}
+        .ca-header{display:flex;justify-content:space-between;gap:28px;align-items:flex-start;margin-bottom:22px}
+        .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.16em;margin:0 0 9px;color:#667085}
+        .eyebrow:before{content:"";width:22px;height:2px;background:#172033;border-radius:2px}
+        h1{margin:0;font-size:clamp(31px,5vw,46px);line-height:1.04;letter-spacing:-.035em;font-weight:900}
+        .sub{color:#667085;margin:10px 0 0;max-width:610px;line-height:1.55;font-size:14px}
+        .header-actions{display:grid;grid-template-columns:auto auto auto;gap:9px;align-items:stretch}
+        .language-box,.date-card,.notification-button{background:rgba(255,255,255,.88);border:1px solid #e3e7ed;border-radius:15px;box-shadow:0 5px 22px rgba(16,24,40,.045)}
+        .language-box{padding:10px}.language-box>span{display:block;color:#98a0ad;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin:1px 4px 7px}
+        .language-buttons{display:flex;gap:4px}.lang{border:0;background:transparent;color:#667085;border-radius:9px;padding:8px 11px;cursor:pointer;font-size:11px;font-weight:800}.lang.active{background:#172033;color:#fff;box-shadow:0 3px 9px rgba(23,32,51,.16)}
+        .date-card{min-width:190px;padding:11px 14px}.date-card span,.date-card small{display:block;color:#98a0ad;font-size:9px;font-weight:800;letter-spacing:.04em}.date-card strong{display:block;margin:4px 0;font-size:14px;letter-spacing:-.01em}.date-card small{font-weight:600}
+        .notification-button{cursor:pointer;font-weight:850;color:#172033;display:flex;gap:8px;align-items:center;justify-content:center;padding:0 15px;font-size:12px}.notification-button:hover{border-color:#cbd2dc;transform:translateY(-1px)}
+        .notification-panel{background:#fff;border:1px solid #e0e5eb;border-radius:20px;padding:20px;margin-bottom:18px;box-shadow:0 14px 38px rgba(16,24,40,.07)}
+        .notification-title{display:flex;justify-content:space-between;align-items:center;gap:20px}.notification-title h2{margin:8px 0 5px;font-size:21px;letter-spacing:-.02em}.notification-title p{color:#667085;margin:0;font-size:13px}
+        .badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:900;letter-spacing:.08em;padding:5px 9px;border-radius:7px;background:#f0f2f5;color:#596273}.badge:before{content:"";width:4px;height:4px;border-radius:50%;background:#8b95a5}
+        .switch{width:52px;height:29px;border:0;border-radius:999px;background:#d8dde5;padding:3px;cursor:pointer;flex-shrink:0}.switch span{display:block;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:.2s}.switch.on{background:#172033}.switch.on span{transform:translateX(23px)}
+        .notification-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:18px}.setting-box{border:1px solid #e7eaf0;border-radius:14px;padding:15px;background:#fbfcfd}.setting-box label{display:block;font-size:10px;color:#667085;font-weight:850;letter-spacing:.04em;margin-bottom:9px}.setting-buttons{display:flex;gap:7px}.setting-btn,.save-time{border:1px solid #dfe3e8;background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:800;font-size:11px}.setting-btn.active,.save-time{background:#172033;color:#fff;border-color:#172033}.setting-box input{border:1px solid #dfe3e8;border-radius:9px;padding:9px;font-size:14px;margin-right:7px;background:#fff}.notification-info{display:flex;justify-content:space-between;gap:10px;margin-top:13px;padding:11px 13px;border-radius:10px;background:#f5f7fa;font-size:12px}.notification-info span{color:#667085}.notification-message{margin-top:10px;font-size:12px;color:#175cd3}
+        .filter-row{display:flex;gap:7px;overflow-x:auto;padding:3px 2px 20px;scrollbar-width:none}.filter-row::-webkit-scrollbar{display:none}.filter{border:1px solid #dde2e9;background:rgba(255,255,255,.82);color:#667085;border-radius:10px;padding:9px 13px;min-height:38px;white-space:nowrap;cursor:pointer;font-size:11px;font-weight:850;transition:.18s}.filter:hover{border-color:#c5ccd6;color:#172033;transform:translateY(-1px)}.filter.active{background:#172033;color:#fff;border-color:#172033;box-shadow:0 4px 12px rgba(23,32,51,.15)}.filter.important.active{background:#7a5b14;border-color:#7a5b14}.filter.premium.active{background:#57263b;border-color:#57263b}
+        .section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:14px}.section-heading h2{margin:8px 0 0;font-size:24px;letter-spacing:-.025em}.section-heading p{color:#8a93a1;margin:0;font-size:11px;font-weight:750}
+        .news-list{display:grid;gap:12px}.news-card{position:relative;background:rgba(255,255,255,.96);border:1px solid #e1e6ec;border-radius:18px;padding:18px 19px 16px;box-shadow:0 5px 20px rgba(16,24,40,.045);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;overflow:hidden}.news-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#172033;opacity:.0;transition:.2s}.news-card:hover{transform:translateY(-2px);border-color:#d2d8e0;box-shadow:0 12px 30px rgba(16,24,40,.075)}.news-card:hover:before{opacity:1}
+        .topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.meta,.source{color:#8a93a1;font-size:10px;font-weight:650}.news-card h3{margin:11px 0 8px;font-size:19px;line-height:1.35;letter-spacing:-.018em}.summary{color:#596273;line-height:1.62;margin:0 0 15px;white-space:pre-wrap;font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+        .card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eef0f3}.read-button,.important-button{border:0;border-radius:9px;padding:10px 13px;cursor:pointer;font-weight:850;font-size:11px;transition:.18s}.read-button{background:#172033;color:#fff;box-shadow:0 4px 11px rgba(23,32,51,.15)}.read-button:hover{background:#263248;transform:translateY(-1px)}.read-button:after{content:"  →";opacity:.75}.important-button{background:#f2f4f7;color:#344054;border:1px solid #e4e7ec}.important-button:hover{background:#e9edf2}.important-button:disabled,.setting-btn:disabled,.save-time:disabled{opacity:.6;cursor:wait}
+        .source{margin-left:auto}.empty,.state-card{background:#fff;border:1px dashed #d2d8e1;border-radius:17px;padding:38px 20px;text-align:center;color:#667085;margin:15px auto 0;line-height:1.7;max-width:1080px}.state-card{border-style:solid}.state-card h2{color:#172033;margin:12px 0 5px;font-size:18px}.loader{width:30px;height:30px;margin:auto;border:3px solid #e4e8ee;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error-card{border-color:#f04438}
+        .fact-grid{max-width:1080px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.fact-card{background:#fff;border:1px solid #e2e6ec;border-radius:16px;padding:17px;box-shadow:0 5px 18px rgba(16,24,40,.04);transition:.2s}.fact-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,24,40,.07)}.fact-card>span{font-size:9px;color:#7d8795;font-weight:900;letter-spacing:.06em}.fact-card h3{font-size:15px;line-height:1.4;margin:9px 0;color:#172033}.fact-card p{color:#596273;line-height:1.55;font-size:12.5px;white-space:pre-wrap}.fact-card small{color:#98a0ad;font-size:9px}
+        .modal-backdrop{position:fixed;inset:0;background:rgba(8,15,28,.62);backdrop-filter:blur(5px);display:grid;place-items:center;padding:16px;z-index:50}.modal{width:min(820px,100%);max-height:91vh;overflow:auto;background:#f8fafc;border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:0;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.25)}.modal-head{padding:24px 26px 20px;background:#172033;color:#fff}.modal-head .badge{background:rgba(255,255,255,.12);color:#fff}.modal-head .badge:before{background:#fff}.modal-head h2{margin:12px 38px 6px 0;font-size:24px;line-height:1.28;letter-spacing:-.025em}.modal-head .source{color:#b8c0cd}.modal-body{padding:8px 26px 26px}.close{position:absolute;right:16px;top:15px;width:35px;height:35px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:10px;font-size:22px;line-height:1;cursor:pointer;z-index:2}.modal-section{background:#fff;border:1px solid #e3e7ed;border-radius:14px;padding:15px 16px;margin-top:13px}.modal-section h3{margin:0 0 8px;font-size:12px;color:#172033;text-transform:uppercase;letter-spacing:.06em}.modal p{line-height:1.65;color:#596273;white-space:pre-wrap;font-size:13px}.content-block{white-space:pre-wrap;color:#596273;line-height:1.65;font-size:13px}.source-link{display:inline-flex;margin-top:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:8px 10px;border-radius:8px}.premium-box{margin:13px 0;padding:16px;border-radius:14px;background:#fff8e9;border:1px solid #efd69e}.premium-box p{margin-bottom:0}.modal-footer{padding:14px 26px 22px}.modal-important{margin-top:0;width:100%;padding:12px 14px;font-size:11px}
+        @media(max-width:900px){.ca-header{display:block}.header-actions{margin-top:17px;grid-template-columns:1fr 1fr 1fr}.fact-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:650px){.ca-page{padding:20px 12px 48px}.header-actions{grid-template-columns:1fr;gap:8px}.date-card,.language-box,.notification-button{width:100%}.notification-button{min-height:48px}.section-heading{display:block}.section-heading p{margin-top:8px}.topline{display:block}.meta{display:block;margin-top:7px}.source{margin-left:0;width:100%;order:3}.card-actions{align-items:stretch}.read-button,.important-button{flex:1;min-height:40px}.fact-grid{grid-template-columns:1fr}.notification-grid{grid-template-columns:1fr}.notification-info{display:block}.notification-info span{display:block;margin-top:5px}.setting-box input{width:100%;margin:0 0 8px}.save-time{width:100%}.notification-title{align-items:flex-start}.modal-body{padding:7px 14px 20px}.modal-head{padding:20px 17px 17px}.modal-head h2{font-size:20px}.modal-footer{padding:12px 14px 18px}}
       `}</style>
     </main>
   );
@@ -2044,603 +824,137 @@ function ArticleCard({
   important,
   language,
   onImportant,
-  expandedId,
-  onExpand,
+  onOpen,
   formatDate,
   disabled,
 }) {
   const hi = language === "hi";
-
-  const expanded =
-    Number(expandedId) === Number(item.id);
-
   const title =
     (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi) ||
+    (hi ? item.title_en : item.title_hi) ||
     "Current Affair";
-
   const summary =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
+    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
     item.why_in_news ||
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
+    (hi ? item.background_hi : item.background_en) ||
     item.background ||
-    item.key_facts ||
-    "";
+    item.key_facts || "";
 
   return (
-    <article
-      className={
-        expanded
-          ? "news-card expanded"
-          : "news-card"
-      }
-    >
+    <article className="news-card">
       <div className="topline">
-        <span className="badge">
-          {item.gs || item.paper || "UPSC"}
-        </span>
-
+        <span className="badge">{item.gs || item.paper || "UPSC"}</span>
         <span className="meta">
-          {item.subject ||
-            "UPSC Current Affairs"}{" "}
-          • {formatDate(item.date)}
+          {item.subject || "UPSC Current Affairs"} · {formatDate(item.date)}
         </span>
       </div>
-
       <h3>{title}</h3>
-
-      {summary && (
-        <p className="summary">
-          {summary}
-        </p>
-      )}
-
+      <p className="summary">{summary}</p>
       <div className="card-actions">
-        <button
-          className="read-button"
-          onClick={() =>
-            onExpand(
-              expanded ? null : item.id
-            )
-          }
-          aria-expanded={expanded}
-        >
-          {expanded
-            ? hi
-              ? "Analysis बंद करें ↑"
-              : "Close Analysis ↑"
-            : hi
-            ? "पूरा Analysis पढ़ें ↓"
-            : "Read Full Analysis ↓"}
+        <button className="read-button" onClick={() => onOpen(item)}>
+          {hi ? "पूरा Analysis पढ़ें" : "Read Full Analysis"}
         </button>
-
-        <button
-          className="important-button"
-          disabled={disabled}
-          onClick={() =>
-            onImportant(item.id)
-          }
-        >
-          {important
-            ? "★ Important"
-            : "⭐ Add to Important"}
+        <button className="important-button" disabled={disabled} onClick={() => onImportant(item.id)}>
+          {important ? "★ Important" : "☆ Save Important"}
         </button>
-
-        <span className="source">
-          Source:{" "}
-          {item.source_name ||
-            "Not specified"}
-        </span>
+        <span className="source">{item.source_name || "Official Source"}</span>
       </div>
-
-      {expanded && (
-        <ArticleAnalysis
-          item={item}
-          language={language}
-          important={important}
-          importantLoading={disabled}
-          onImportant={onImportant}
-        />
-      )}
     </article>
   );
 }
 
-function ArticleAnalysis({
-  item,
-  language,
-  important,
-  importantLoading,
-  onImportant,
-}) {
-  const hi = language === "hi";
+function PremiumFacts({ news, language, hi }) {
+  const [factType, setFactType] = useState("prelims");
+  const prelimsFacts = news.filter((item) => item.prelims_hi || item.prelims_en || item.prelims);
+  const mainsFacts = news.filter((item) => item.premium_fact_hi || item.premium_fact_en || item.premium_fact);
+  const facts = factType === "prelims" ? prelimsFacts : mainsFacts;
 
-  const title =
-    (hi ? item.title_hi : item.title_en) ||
-    item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi) ||
-    "Current Affair";
-
-  const why =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
-    item.why_in_news;
-
-  const background =
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
-    item.background;
-
-  const facts =
-    (hi
-      ? item.key_facts_hi
-      : item.key_facts_en) ||
-    item.key_facts;
-
-  const prelims =
-    (hi
-      ? item.prelims_hi
-      : item.prelims_en) ||
-    item.prelims;
-
-  const mains =
-    (hi
-      ? item.mains_analysis_hi
-      : item.mains_analysis_en) ||
-    item.mains_analysis;
-
-  const premium =
-    (hi
-      ? item.premium_fact_hi
-      : item.premium_fact_en) ||
-    item.premium_fact;
-
-  const pyqs =
-    (hi
-      ? item.related_pyqs_hi
-      : item.related_pyqs_en) ||
-    item.related_pyqs;
-
-  const mcq =
-    (hi
-      ? item.prelims_mcq_hi
-      : item.prelims_mcq_en) ||
-    item.prelims_mcq;
-
-  const mainsQuestion =
-    (hi
-      ? item.mains_question_hi
-      : item.mains_question_en) ||
-    item.mains_question;
-
-  const ethics =
-    (hi
-      ? item.ethics_angle_hi
-      : item.ethics_angle_en) ||
-    "";
+  function titleOf(item) {
+    return (hi ? item.title_hi : item.title_en) || item.title || (hi ? item.title_en : item.title_hi) || "Current Affair";
+  }
+  function factOf(item) {
+    const raw = (hi ? (factType === "prelims" ? item.prelims_hi : item.premium_fact_hi) : (factType === "prelims" ? item.prelims_en : item.premium_fact_en)) || (factType === "prelims" ? item.prelims : item.premium_fact) || "";
+    return raw.replace(/\s+/g, " ").trim();
+  }
 
   return (
-    <div className="inline-analysis">
-      <div className="analysis-header">
-        <div>
-          <span className="analysis-kicker">
-            DETAILED UPSC ANALYSIS
-          </span>
-
-          <h4>{title}</h4>
-        </div>
-
-        <span className="analysis-badge">
-          {item.gs ||
-            item.paper ||
-            "UPSC"}
-        </span>
+    <section className="special-section">
+      <div className="section-heading">
+        <div><span className="badge">PREMIUM</span><h2>🔥 Premium Facts</h2></div>
+        <p>{facts.length} high-value facts</p>
       </div>
-
-      {item.source_url && (
-        <a
-          className="source-link inline-source"
-          href={item.source_url}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {hi
-            ? "Original Source देखें ↗"
-            : "View Original Source ↗"}
-        </a>
-      )}
-
-      {why && (
-        <AnalysisBlock
-          title="Why in News"
-          text={why}
-        />
-      )}
-
-      {background && (
-        <AnalysisBlock
-          title="Background"
-          text={background}
-        />
-      )}
-
-      {facts && (
-        <AnalysisBlock
-          title="Key Facts"
-          text={facts}
-        />
-      )}
-
-      {prelims && (
-        <AnalysisBlock
-          title="Prelims"
-          text={prelims}
-        />
-      )}
-
-      {mains && (
-        <AnalysisBlock
-          title="Mains Analysis"
-          text={mains}
-        />
-      )}
-
-      {item.static_link && (
-        <AnalysisBlock
-          title="Static Link"
-          text={item.static_link}
-        />
-      )}
-
-      {pyqs && (
-        <AnalysisBlock
-          title="Related PYQs"
-          text={pyqs}
-        />
-      )}
-
-      {mcq && (
-        <AnalysisBlock
-          title="Possible Prelims MCQ"
-          text={mcq}
-        />
-      )}
-
-      {mainsQuestion && (
-        <AnalysisBlock
-          title="Possible Mains Question"
-          text={mainsQuestion}
-        />
-      )}
-
-      {ethics && (
-        <AnalysisBlock
-          title="GS-IV Ethics"
-          text={ethics}
-        />
-      )}
-
-      {premium && (
-        <div className="inline-premium-box">
-          <div className="premium-label">
-            🔥 PREMIUM FACT
-          </div>
-
-          <div className="content-block">
-            {premium}
-          </div>
+      <div className="premium-fact-tabs" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,maxWidth:460,margin:"0 0 16px",padding:5,background:"#eef1f5",borderRadius:12}}>
+        <button type="button" onClick={() => setFactType("prelims")} style={{border:0,borderRadius:9,padding:"11px 14px",fontWeight:850,cursor:"pointer",background:factType === "prelims" ? "#172033" : "transparent",color:factType === "prelims" ? "#fff" : "#667085"}}>📌 PRELIMS</button>
+        <button type="button" onClick={() => setFactType("mains")} style={{border:0,borderRadius:9,padding:"11px 14px",fontWeight:850,cursor:"pointer",background:factType === "mains" ? "#172033" : "transparent",color:factType === "mains" ? "#fff" : "#667085"}}>✍️ MAINS</button>
+      </div>
+      {facts.length === 0 ? (
+        <div className="empty">{factType === "prelims" ? (hi ? "अभी Prelims Facts उपलब्ध नहीं हैं।" : "No Prelims Facts available yet.") : (hi ? "अभी Mains Facts उपलब्ध नहीं हैं।" : "No Mains Facts available yet.")}</div>
+      ) : (
+        <div className="fact-grid">
+          {facts.map((item, index) => (
+            <article className="fact-card" key={item.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <span>{String(index + 1).padStart(2,"0")}</span>
+                <span>{item.gs || item.paper || "UPSC"}</span>
+              </div>
+              <h3>{titleOf(item)}</h3>
+              <p>{factOf(item)}</p>
+              <small>{item.source_name || "Official Source"}</small>
+            </article>
+          ))}
         </div>
       )}
+    </section>
+  );
+}
 
-      <div className="analysis-footer">
-        <button
-          className="important-button"
-          disabled={importantLoading}
-          onClick={() =>
-            onImportant(item.id)
-          }
-        >
-          {important
-            ? "★ Remove from Important"
-            : "⭐ Add to Important"}
-        </button>
-      </div>
+function ArticleModal({ item, language, important, importantLoading, onImportant, onClose }) {
+  const hi = language === "hi";
+  const title = (hi ? item.title_hi : item.title_en) || item.title || (hi ? item.title_en : item.title_hi);
+  const why = (hi ? item.why_in_news_hi : item.why_in_news_en) || item.why_in_news;
+  const background = (hi ? item.background_hi : item.background_en) || item.background;
+  const facts = (hi ? item.key_facts_hi : item.key_facts_en) || item.key_facts;
+  const prelims = (hi ? item.prelims_hi : item.prelims_en) || item.prelims;
+  const mains = (hi ? item.mains_analysis_hi : item.mains_analysis_en) || item.mains_analysis;
+  const premium = (hi ? item.premium_fact_hi : item.premium_fact_en) || item.premium_fact;
+  const pyqs = (hi ? item.related_pyqs_hi : item.related_pyqs_en) || item.related_pyqs;
+  const mcq = (hi ? item.prelims_mcq_hi : item.prelims_mcq_en) || item.prelims_mcq;
+  const mainsQuestion = (hi ? item.mains_question_hi : item.mains_question_en) || item.mains_question;
+  const ethics = (hi ? item.ethics_angle_hi : item.ethics_angle_en) || "";
+
+  const block = (label, content) => content ? <section className="modal-section"><h3>{label}</h3><div className="content-block">{content}</div></section> : null;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <article className="modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close" onClick={onClose}>×</button>
+        <header className="modal-head">
+          <span className="badge">{item.gs || item.paper || "UPSC"}</span>
+          <h2>{title}</h2>
+          <p className="source">{item.source_name || "Official Source"} · {item.date || ""}</p>
+          {item.source_url && <a className="source-link" href={item.source_url} target="_blank" rel="noreferrer">{hi ? "Original Source देखें ↗" : "View Original Source ↗"}</a>}
+        </header>
+        <div className="modal-body">
+          {why && <section className="modal-section"><h3>Why in News</h3><p>{why}</p></section>}
+          {background && <section className="modal-section"><h3>Background</h3><p>{background}</p></section>}
+          {block("Key Facts", facts)}
+          {block("Prelims", prelims)}
+          {block("Mains Analysis", mains)}
+          {item.static_link && block("Static Link", item.static_link)}
+          {block("Related PYQs", pyqs)}
+          {block("Possible Prelims MCQ", mcq)}
+          {block("Possible Mains Question", mainsQuestion)}
+          {block("GS-IV Ethics", ethics)}
+          {premium && <div className="premium-box"><strong>🔥 Premium Fact</strong><p>{premium}</p></div>}
+        </div>
+        <footer className="modal-footer">
+          <button className="important-button modal-important" disabled={importantLoading} onClick={() => onImportant(item.id)}>
+            {important ? "★ Remove from Important" : "☆ Save to Important"}
+          </button>
+        </footer>
+      </article>
     </div>
   );
 }
 
-function AnalysisBlock({
-  title,
-  text,
-}) {
-  return (
-    <section className="analysis-block">
-      <h5>{title}</h5>
-
-      <div className="content-block">
-        {text}
-      </div>
-    </section>
-  );
-}
-
-function PremiumFacts({
-  news,
-  language,
-  hi,
-}) {
-  const [factType, setFactType] =
-    useState("prelims");
-
-  /*
-    PRELIMS:
-    Uses only prelims data.
-  */
-  const prelimsFacts = news.filter(
-    (item) =>
-      item.prelims_hi ||
-      item.prelims_en ||
-      item.prelims
-  );
-
-  /*
-    MAINS:
-    Uses only premium_fact data.
-  */
-  const mainsFacts = news.filter(
-    (item) =>
-      item.premium_fact_hi ||
-      item.premium_fact_en ||
-      item.premium_fact
-  );
-
-  const facts =
-    factType === "prelims"
-      ? prelimsFacts
-      : mainsFacts;
-
-  function getTitle(item) {
-    return (
-      (hi
-        ? item.title_hi
-        : item.title_en) ||
-      item.title ||
-      (hi
-        ? item.title_en
-        : item.title_hi) ||
-      "Current Affair"
-    );
-  }
-
-  /*
-    PRELIMS FACT:
-    Convert existing detailed prelims text
-    into a compact single factual statement.
-  */
-  function getPrelimsFact(item) {
-    const raw =
-      (hi
-        ? item.prelims_hi
-        : item.prelims_en) ||
-      item.prelims ||
-      "";
-
-    const clean = raw
-      .replace(/\s+/g, " ")
-      .replace(/^[-•*]\s*/, "")
-      .trim();
-
-    if (!clean) return "";
-
-    const firstSentence =
-      clean.split(
-        /(?<=[.!?।])\s+/
-      )[0];
-
-    return firstSentence.length > 145
-      ? firstSentence.slice(0, 142) +
-          "..."
-      : firstSentence;
-  }
-
-  /*
-    MAINS FACT:
-    Uses premium_fact directly.
-    CSS limits visible content to two lines.
-  */
-  function getMainsFact(item) {
-    const raw =
-      (hi
-        ? item.premium_fact_hi
-        : item.premium_fact_en) ||
-      item.premium_fact ||
-      "";
-
-    return raw
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  return (
-    <section className="premium-facts-section">
-
-      {/* HEADER */}
-      <div className="premium-facts-header">
-        <div>
-          <span className="premium-label">
-            PREMIUM
-          </span>
-
-          <h2>
-            🔥 Premium Facts
-          </h2>
-
-          <p>
-            {factType === "prelims"
-              ? hi
-                ? "Prelims के लिए short factual revision"
-                : "Short factual revision for Prelims"
-              : hi
-              ? "Mains answers के लिए high-value points"
-              : "High-value points for Mains answers"}
-          </p>
-        </div>
-      </div>
-
-      {/* PRELIMS / MAINS BUTTONS */}
-      <div className="premium-fact-tabs">
-
-        <button
-          type="button"
-          className={
-            factType === "prelims"
-              ? "premium-fact-tab active"
-              : "premium-fact-tab"
-          }
-          onClick={() =>
-            setFactType("prelims")
-          }
-        >
-          <span>📌</span>
-          PRELIMS
-        </button>
-
-        <button
-          type="button"
-          className={
-            factType === "mains"
-              ? "premium-fact-tab active"
-              : "premium-fact-tab"
-          }
-          onClick={() =>
-            setFactType("mains")
-          }
-        >
-          <span>✍️</span>
-          MAINS
-        </button>
-
-      </div>
-
-      {/* COUNT */}
-      <div className="premium-fact-meta">
-        <span>
-          {factType === "prelims"
-            ? "PRELIMS FACTS"
-            : "MAINS FACTS"}
-        </span>
-
-        <strong>
-          {facts.length}
-        </strong>
-      </div>
-
-      {/* EMPTY */}
-      {facts.length === 0 ? (
-
-        <div className="premium-empty">
-          <div className="premium-empty-icon">
-            🔥
-          </div>
-
-          <h3>
-            {factType === "prelims"
-              ? hi
-                ? "अभी Prelims Facts उपलब्ध नहीं हैं"
-                : "No Prelims Facts available"
-              : hi
-              ? "अभी Mains Facts उपलब्ध नहीं हैं"
-              : "No Mains Facts available"}
-          </h3>
-        </div>
-
-      ) : (
-
-        /* FACT CARDS */
-        <div className="premium-facts-grid">
-
-          {facts.map((item, index) => {
-            const title =
-              getTitle(item);
-
-            const fact =
-              factType === "prelims"
-                ? getPrelimsFact(item)
-                : getMainsFact(item);
-
-            return (
-              <article
-                className={
-                  factType === "prelims"
-                    ? "premium-fact-card prelims-card"
-                    : "premium-fact-card mains-card"
-                }
-                key={item.id}
-              >
-
-                {/* CARD TOP */}
-                <div className="premium-card-top">
-
-                  <span className="premium-number">
-                    {String(
-                      index + 1
-                    ).padStart(2, "0")}
-                  </span>
-
-                  <span className="premium-gs">
-                    {item.gs ||
-                      item.paper ||
-                      "UPSC"}
-                  </span>
-
-                </div>
-
-                {/* TITLE */}
-                <h3>
-                  {title}
-                </h3>
-
-                {/* FACT */}
-                <div className="premium-fact-content">
-
-                  <span className="premium-fact-icon">
-                    {factType === "prelims"
-                      ? "◆"
-                      : "→"}
-                  </span>
-
-                  <p>
-                    {fact}
-                  </p>
-
-                </div>
-
-                {/* SOURCE */}
-                <div className="premium-card-footer">
-                  <span>
-                    {item.source_name ||
-                      "Official Source"}
-                  </span>
-                </div>
-
-              </article>
-            );
-          })}
-
-        </div>
-      )}
-
-    </section>
-  );
-}
