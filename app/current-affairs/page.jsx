@@ -786,34 +786,24 @@ export default function CurrentAffairsPage() {
       )}
 
       <style jsx>{`
-        .ca-page{min-height:100vh;background:linear-gradient(180deg,#f8fafc 0%,#f3f5f8 100%);color:#172033;padding:28px 18px 70px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-        .ca-header,.filter-row,.news-list,.special-section,.section-heading,.notification-panel{max-width:1080px;margin-left:auto;margin-right:auto}
-        .ca-header{display:flex;justify-content:space-between;gap:28px;align-items:flex-start;margin-bottom:22px}
-        .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.16em;margin:0 0 9px;color:#667085}
-        .eyebrow:before{content:"";width:22px;height:2px;background:#172033;border-radius:2px}
-        h1{margin:0;font-size:clamp(31px,5vw,46px);line-height:1.04;letter-spacing:-.035em;font-weight:900}
-        .sub{color:#667085;margin:10px 0 0;max-width:610px;line-height:1.55;font-size:14px}
-        .header-actions{display:grid;grid-template-columns:auto auto auto;gap:9px;align-items:stretch}
-        .language-box,.date-card,.notification-button{background:rgba(255,255,255,.88);border:1px solid #e3e7ed;border-radius:15px;box-shadow:0 5px 22px rgba(16,24,40,.045)}
-        .language-box{padding:10px}.language-box>span{display:block;color:#98a0ad;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin:1px 4px 7px}
-        .language-buttons{display:flex;gap:4px}.lang{border:0;background:transparent;color:#667085;border-radius:9px;padding:8px 11px;cursor:pointer;font-size:11px;font-weight:800}.lang.active{background:#172033;color:#fff;box-shadow:0 3px 9px rgba(23,32,51,.16)}
-        .date-card{min-width:190px;padding:11px 14px}.date-card span,.date-card small{display:block;color:#98a0ad;font-size:9px;font-weight:800;letter-spacing:.04em}.date-card strong{display:block;margin:4px 0;font-size:14px;letter-spacing:-.01em}.date-card small{font-weight:600}
-        .notification-button{cursor:pointer;font-weight:850;color:#172033;display:flex;gap:8px;align-items:center;justify-content:center;padding:0 15px;font-size:12px}.notification-button:hover{border-color:#cbd2dc;transform:translateY(-1px)}
-        .notification-panel{background:#fff;border:1px solid #e0e5eb;border-radius:20px;padding:20px;margin-bottom:18px;box-shadow:0 14px 38px rgba(16,24,40,.07)}
-        .notification-title{display:flex;justify-content:space-between;align-items:center;gap:20px}.notification-title h2{margin:8px 0 5px;font-size:21px;letter-spacing:-.02em}.notification-title p{color:#667085;margin:0;font-size:13px}
-        .badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:900;letter-spacing:.08em;padding:5px 9px;border-radius:7px;background:#f0f2f5;color:#596273}.badge:before{content:"";width:4px;height:4px;border-radius:50%;background:#8b95a5}
-        .switch{width:52px;height:29px;border:0;border-radius:999px;background:#d8dde5;padding:3px;cursor:pointer;flex-shrink:0}.switch span{display:block;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:.2s}.switch.on{background:#172033}.switch.on span{transform:translateX(23px)}
-        .notification-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:18px}.setting-box{border:1px solid #e7eaf0;border-radius:14px;padding:15px;background:#fbfcfd}.setting-box label{display:block;font-size:10px;color:#667085;font-weight:850;letter-spacing:.04em;margin-bottom:9px}.setting-buttons{display:flex;gap:7px}.setting-btn,.save-time{border:1px solid #dfe3e8;background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:800;font-size:11px}.setting-btn.active,.save-time{background:#172033;color:#fff;border-color:#172033}.setting-box input{border:1px solid #dfe3e8;border-radius:9px;padding:9px;font-size:14px;margin-right:7px;background:#fff}.notification-info{display:flex;justify-content:space-between;gap:10px;margin-top:13px;padding:11px 13px;border-radius:10px;background:#f5f7fa;font-size:12px}.notification-info span{color:#667085}.notification-message{margin-top:10px;font-size:12px;color:#175cd3}
+        .ca-page{min-height:100vh;background:linear-gradient(180deg,#f8fafc 0%,#f3f5f8 100%);color:#172033;padding:clamp(18px,3vw,32px) clamp(12px,3vw,24px) 72px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-sizing:border-box;overflow-x:hidden}
+        .ca-page *{box-sizing:border-box}
+        .ca-header,.filter-row,.news-list,.special-section,.section-heading,.notification-panel{width:100%;max-width:1080px;margin-left:auto;margin-right:auto}
+        .ca-header{display:flex;justify-content:space-between;gap:28px;align-items:flex-start;margin-bottom:22px}.eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.16em;margin:0 0 9px;color:#667085}.eyebrow:before{content:"";width:22px;height:2px;background:#172033;border-radius:2px}h1{margin:0;font-size:clamp(31px,5vw,46px);line-height:1.04;letter-spacing:-.035em;font-weight:900}.sub{color:#667085;margin:10px 0 0;max-width:610px;line-height:1.55;font-size:14px}
+        .header-actions{display:grid;grid-template-columns:auto auto auto;gap:9px;align-items:stretch}.language-box,.date-card,.notification-button{background:rgba(255,255,255,.9);border:1px solid #e3e7ed;border-radius:15px;box-shadow:0 5px 22px rgba(16,24,40,.045)}.language-box{padding:10px}.language-box>span{display:block;color:#98a0ad;font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin:1px 4px 7px}.language-buttons{display:flex;gap:4px}.lang{border:0;background:transparent;color:#667085;border-radius:9px;padding:8px 11px;cursor:pointer;font-size:11px;font-weight:800}.lang.active{background:#172033;color:#fff;box-shadow:0 3px 9px rgba(23,32,51,.16)}.date-card{min-width:190px;padding:11px 14px}.date-card span,.date-card small{display:block;color:#98a0ad;font-size:9px;font-weight:800;letter-spacing:.04em}.date-card strong{display:block;margin:4px 0;font-size:14px}.notification-button{cursor:pointer;font-weight:850;color:#172033;display:flex;gap:8px;align-items:center;justify-content:center;padding:0 15px;font-size:12px;transition:.18s}.notification-button:hover{border-color:#cbd2dc;transform:translateY(-1px)}
+        .notification-panel{background:#fff;border:1px solid #e0e5eb;border-radius:20px;padding:20px;margin-bottom:18px;box-shadow:0 14px 38px rgba(16,24,40,.07)}.notification-title{display:flex;justify-content:space-between;align-items:center;gap:20px}.notification-title h2{margin:8px 0 5px;font-size:21px}.notification-title p{color:#667085;margin:0;font-size:13px}.badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:900;letter-spacing:.08em;padding:5px 9px;border-radius:7px;background:#f0f2f5;color:#596273}.badge:before{content:"";width:4px;height:4px;border-radius:50%;background:#8b95a5}.premium-badge{background:#f3f0f5;color:#6b3a50}.premium-badge:before{background:#7b3f5d}
+        .switch{width:52px;height:29px;border:0;border-radius:999px;background:#d8dde5;padding:3px;cursor:pointer;flex-shrink:0}.switch span{display:block;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:.2s}.switch.on{background:#172033}.switch.on span{transform:translateX(23px)}.notification-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:18px}.setting-box{border:1px solid #e7eaf0;border-radius:14px;padding:15px;background:#fbfcfd}.setting-box label{display:block;font-size:10px;color:#667085;font-weight:850;margin-bottom:9px}.setting-buttons{display:flex;gap:7px}.setting-btn,.save-time{border:1px solid #dfe3e8;background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:800;font-size:11px}.setting-btn.active,.save-time{background:#172033;color:#fff;border-color:#172033}.setting-box input{border:1px solid #dfe3e8;border-radius:9px;padding:9px;font-size:14px;margin-right:7px;background:#fff}.notification-info{display:flex;justify-content:space-between;gap:10px;margin-top:13px;padding:11px 13px;border-radius:10px;background:#f5f7fa;font-size:12px}.notification-info span{color:#667085}.notification-message{margin-top:10px;font-size:12px;color:#175cd3}
         .filter-row{display:flex;gap:7px;overflow-x:auto;padding:3px 2px 20px;scrollbar-width:none}.filter-row::-webkit-scrollbar{display:none}.filter{border:1px solid #dde2e9;background:rgba(255,255,255,.82);color:#667085;border-radius:10px;padding:9px 13px;min-height:38px;white-space:nowrap;cursor:pointer;font-size:11px;font-weight:850;transition:.18s}.filter:hover{border-color:#c5ccd6;color:#172033;transform:translateY(-1px)}.filter.active{background:#172033;color:#fff;border-color:#172033;box-shadow:0 4px 12px rgba(23,32,51,.15)}.filter.important.active{background:#7a5b14;border-color:#7a5b14}.filter.premium.active{background:#57263b;border-color:#57263b}
-        .section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:14px}.section-heading h2{margin:8px 0 0;font-size:24px;letter-spacing:-.025em}.section-heading p{color:#8a93a1;margin:0;font-size:11px;font-weight:750}
-        .news-list{display:grid;gap:12px}.news-card{position:relative;background:rgba(255,255,255,.96);border:1px solid #e1e6ec;border-radius:18px;padding:18px 19px 16px;box-shadow:0 5px 20px rgba(16,24,40,.045);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;overflow:hidden}.news-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#172033;opacity:.0;transition:.2s}.news-card:hover{transform:translateY(-2px);border-color:#d2d8e0;box-shadow:0 12px 30px rgba(16,24,40,.075)}.news-card:hover:before{opacity:1}
-        .topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.meta,.source{color:#8a93a1;font-size:10px;font-weight:650}.news-card h3{margin:11px 0 8px;font-size:19px;line-height:1.35;letter-spacing:-.018em}.summary{color:#596273;line-height:1.62;margin:0 0 15px;white-space:pre-wrap;font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
-        .card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eef0f3}.read-button,.important-button{border:0;border-radius:9px;padding:10px 13px;cursor:pointer;font-weight:850;font-size:11px;transition:.18s}.read-button{background:#172033;color:#fff;box-shadow:0 4px 11px rgba(23,32,51,.15)}.read-button:hover{background:#263248;transform:translateY(-1px)}.read-button:after{content:"  →";opacity:.75}.important-button{background:#f2f4f7;color:#344054;border:1px solid #e4e7ec}.important-button:hover{background:#e9edf2}.important-button:disabled,.setting-btn:disabled,.save-time:disabled{opacity:.6;cursor:wait}
-        .source{margin-left:auto}.empty,.state-card{background:#fff;border:1px dashed #d2d8e1;border-radius:17px;padding:38px 20px;text-align:center;color:#667085;margin:15px auto 0;line-height:1.7;max-width:1080px}.state-card{border-style:solid}.state-card h2{color:#172033;margin:12px 0 5px;font-size:18px}.loader{width:30px;height:30px;margin:auto;border:3px solid #e4e8ee;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error-card{border-color:#f04438}
-        .fact-grid{max-width:1080px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.fact-card{background:#fff;border:1px solid #e2e6ec;border-radius:16px;padding:17px;box-shadow:0 5px 18px rgba(16,24,40,.04);transition:.2s}.fact-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,24,40,.07)}.fact-card>span{font-size:9px;color:#7d8795;font-weight:900;letter-spacing:.06em}.fact-card h3{font-size:15px;line-height:1.4;margin:9px 0;color:#172033}.fact-card p{color:#596273;line-height:1.55;font-size:12.5px;white-space:pre-wrap}.fact-card small{color:#98a0ad;font-size:9px}
-        .modal-backdrop{position:fixed;inset:0;background:rgba(8,15,28,.62);backdrop-filter:blur(5px);display:grid;place-items:center;padding:16px;z-index:50}.modal{width:min(820px,100%);max-height:91vh;overflow:auto;background:#f8fafc;border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:0;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.25)}.modal-head{padding:24px 26px 20px;background:#172033;color:#fff}.modal-head .badge{background:rgba(255,255,255,.12);color:#fff}.modal-head .badge:before{background:#fff}.modal-head h2{margin:12px 38px 6px 0;font-size:24px;line-height:1.28;letter-spacing:-.025em}.modal-head .source{color:#b8c0cd}.modal-body{padding:8px 26px 26px}.close{position:absolute;right:16px;top:15px;width:35px;height:35px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:10px;font-size:22px;line-height:1;cursor:pointer;z-index:2}.modal-section{background:#fff;border:1px solid #e3e7ed;border-radius:14px;padding:15px 16px;margin-top:13px}.modal-section h3{margin:0 0 8px;font-size:12px;color:#172033;text-transform:uppercase;letter-spacing:.06em}.modal p{line-height:1.65;color:#596273;white-space:pre-wrap;font-size:13px}.content-block{white-space:pre-wrap;color:#596273;line-height:1.65;font-size:13px}.source-link{display:inline-flex;margin-top:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:8px 10px;border-radius:8px}.premium-box{margin:13px 0;padding:16px;border-radius:14px;background:#fff8e9;border:1px solid #efd69e}.premium-box p{margin-bottom:0}.modal-footer{padding:14px 26px 22px}.modal-important{margin-top:0;width:100%;padding:12px 14px;font-size:11px}
-        @media(max-width:900px){.ca-header{display:block}.header-actions{margin-top:17px;grid-template-columns:1fr 1fr 1fr}.fact-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:650px){.ca-page{padding:20px 12px 48px}.header-actions{grid-template-columns:1fr;gap:8px}.date-card,.language-box,.notification-button{width:100%}.notification-button{min-height:48px}.section-heading{display:block}.section-heading p{margin-top:8px}.topline{display:block}.meta{display:block;margin-top:7px}.source{margin-left:0;width:100%;order:3}.card-actions{align-items:stretch}.read-button,.important-button{flex:1;min-height:40px}.fact-grid{grid-template-columns:1fr}.notification-grid{grid-template-columns:1fr}.notification-info{display:block}.notification-info span{display:block;margin-top:5px}.setting-box input{width:100%;margin:0 0 8px}.save-time{width:100%}.notification-title{align-items:flex-start}.modal-body{padding:7px 14px 20px}.modal-head{padding:20px 17px 17px}.modal-head h2{font-size:20px}.modal-footer{padding:12px 14px 18px}}
+        .section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:14px}.section-heading h2{margin:8px 0 0;font-size:24px;letter-spacing:-.025em}.section-heading p{color:#8a93a1;margin:0;font-size:11px;font-weight:750}.premium-heading{align-items:flex-end}.premium-subtitle{margin-top:7px!important;color:#8a93a1!important;font-size:11px!important;font-weight:600!important}
+        .news-list{display:grid;gap:12px}.news-card{position:relative;background:rgba(255,255,255,.97);border:1px solid #e1e6ec;border-radius:18px;padding:18px 19px 16px;box-shadow:0 5px 20px rgba(16,24,40,.045);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;overflow:hidden}.news-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#172033;opacity:0;transition:.2s}.news-card:hover{transform:translateY(-2px);border-color:#d2d8e0;box-shadow:0 12px 30px rgba(16,24,40,.075)}.news-card:hover:before{opacity:1}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.meta,.source{color:#8a93a1;font-size:10px;font-weight:650}.news-card h3{margin:11px 0 8px;font-size:clamp(17px,2vw,20px);line-height:1.4;letter-spacing:-.018em;font-weight:800}.summary{color:#596273;line-height:1.62;margin:0 0 15px;white-space:pre-wrap;font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+        .card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eef0f3}.read-button,.important-button{border:1px solid transparent;border-radius:11px;min-height:41px;padding:0 14px;cursor:pointer;font-weight:850;font-size:11px;display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s}.read-button{background:linear-gradient(135deg,#172033,#263248);color:#fff;box-shadow:0 5px 14px rgba(23,32,51,.16)}.read-button:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(23,32,51,.2)}.button-arrow{font-size:15px;line-height:1;opacity:.8;transition:transform .18s}.read-button:hover .button-arrow{transform:translateX(3px)}.important-button{background:#fff;color:#4b5565;border-color:#dfe4ea;box-shadow:0 2px 7px rgba(16,24,40,.035)}.important-button:hover{background:#f7f8fa;border-color:#cfd5de;transform:translateY(-1px)}.important-button.saved{background:#f8f3e7;border-color:#ead9ad;color:#765710}.important-icon{font-size:15px;line-height:1}.important-button:disabled,.setting-btn:disabled,.save-time:disabled{opacity:.6;cursor:wait}.source{margin-left:auto}
+        .empty,.state-card{background:#fff;border:1px dashed #d2d8e1;border-radius:17px;padding:38px 20px;text-align:center;color:#667085;margin:15px auto 0;line-height:1.7;max-width:1080px}.state-card{border-style:solid}.state-card h2{color:#172033;margin:12px 0 5px;font-size:18px}.loader{width:30px;height:30px;margin:auto;border:3px solid #e4e8ee;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error-card{border-color:#f04438}
+        .fact-grid{max-width:1080px;margin:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.fact-card{background:#fff;border:1px solid #e2e6ec;border-radius:16px;padding:17px;box-shadow:0 5px 18px rgba(16,24,40,.04);transition:.2s}.fact-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,24,40,.07)}
+        .premium-facts-section{margin-top:4px}.premium-count{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 9px;border-radius:8px;background:#f1f2f5;color:#667085;font-size:9px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}.premium-fact-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-width:520px;margin:0 0 17px;padding:5px;background:#eceff3;border:1px solid #e2e5e9;border-radius:14px}.premium-fact-tab{border:0;background:transparent;color:#707987;border-radius:10px;padding:10px 13px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:.18s}.premium-fact-tab:hover{background:#f7f8fa;color:#273142}.premium-fact-tab.active{background:#172033;color:#fff;box-shadow:0 5px 14px rgba(23,32,51,.14)}.premium-fact-tab .tab-icon{width:25px;height:25px;display:grid;place-items:center;border-radius:7px;background:rgba(255,255,255,.14);font-size:10px}.premium-fact-tab:not(.active) .tab-icon{background:#fff}.premium-fact-tab strong{display:block;font-size:10px;letter-spacing:.05em}.premium-fact-tab small{display:block;margin-top:2px;font-size:9px;opacity:.72;font-weight:650}.premium-fact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.premium-fact-card{padding:16px}.premium-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.premium-number{color:#a0a7b2!important;font-size:10px!important;font-weight:900!important;letter-spacing:.05em}.premium-gs{display:inline-flex!important;padding:4px 8px;border-radius:6px;background:#f4f5f7;color:#697382!important;font-size:8px!important;font-weight:900!important;letter-spacing:.04em}.premium-fact-card h3{font-size:15px;line-height:1.42;margin:0 0 11px;color:#172033}.premium-fact-content{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:10px;background:#f8f9fb;border:1px solid #eef0f3}.premium-fact-icon{flex:0 0 auto;margin-top:3px;color:#172033;font-size:8px}.premium-fact-content p{margin:0!important;color:#4e596a!important;line-height:1.55!important;font-size:12px!important;white-space:normal!important}.prelims-fact-card .premium-fact-content p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}.mains-fact-card .premium-fact-content p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}.premium-card-footer{margin-top:10px;padding-top:9px;border-top:1px solid #eef0f3}.premium-card-footer span{color:#98a0ad;font-size:9px;font-weight:650}.premium-empty{padding:48px 20px}.premium-empty-icon{font-size:22px;margin-bottom:7px;color:#98a0ad}
+        .modal-backdrop{position:fixed;inset:0;background:rgba(8,15,28,.62);backdrop-filter:blur(5px);display:grid;place-items:center;padding:16px;z-index:50}.modal{width:min(820px,100%);max-height:91vh;overflow:auto;background:#f8fafc;border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:0;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.25)}.modal-head{padding:24px 26px 20px;background:#172033;color:#fff}.modal-head .badge{background:rgba(255,255,255,.12);color:#fff}.modal-head .badge:before{background:#fff}.modal-head h2{margin:12px 38px 6px 0;font-size:24px;line-height:1.3;letter-spacing:-.025em}.modal-head .source{color:#b8c0cd}.modal-body{padding:8px 26px 26px}.close{position:absolute;right:16px;top:15px;width:35px;height:35px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:10px;font-size:22px;line-height:1;cursor:pointer;z-index:2}.modal-section{background:#fff;border:1px solid #e3e7ed;border-radius:14px;padding:15px 16px;margin-top:13px}.modal-section h3{margin:0 0 8px;font-size:12px;color:#172033;text-transform:uppercase;letter-spacing:.06em}.modal p{line-height:1.65;color:#596273;white-space:pre-wrap;font-size:13px}.content-block{white-space:pre-wrap;color:#596273;line-height:1.65;font-size:13px}.source-link{display:inline-flex;margin-top:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:8px 10px;border-radius:8px}.premium-box{margin:13px 0;padding:16px;border-radius:14px;background:#fff8e9;border:1px solid #efd69e}.premium-box p{margin-bottom:0}.modal-footer{padding:14px 26px 22px}.modal-important{margin-top:0;width:100%}
+        @media(max-width:900px){.ca-header{display:block}.header-actions{margin-top:17px;grid-template-columns:repeat(3,minmax(0,1fr))}.fact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:650px){.ca-page{padding:18px 12px 48px}.ca-header{margin-bottom:18px}.header-actions{grid-template-columns:1fr;gap:8px}.date-card,.language-box,.notification-button{width:100%}.notification-button{min-height:48px}.section-heading{display:block}.section-heading p{margin-top:8px}.premium-heading{display:flex}.premium-heading>div{min-width:0}.premium-heading .premium-count{margin-top:8px}.topline{display:block}.meta{display:block;margin-top:7px}.source{margin-left:0;width:100%;order:3}.card-actions{align-items:stretch}.read-button,.important-button{flex:1;min-height:43px}.fact-grid,.premium-fact-grid{grid-template-columns:1fr}.premium-fact-tabs{max-width:none}.premium-fact-tab{padding:10px 9px}.premium-fact-tab small{font-size:8px}.notification-grid{grid-template-columns:1fr}.notification-info{display:block}.notification-info span{display:block;margin-top:5px}.setting-box input{width:100%;margin:0 0 8px}.save-time{width:100%}.notification-title{align-items:flex-start}.modal-body{padding:7px 14px 20px}.modal-head{padding:20px 17px 17px}.modal-head h2{font-size:20px}.modal-footer{padding:12px 14px 18px}}
+        @media(min-width:651px) and (max-width:1100px){.ca-page{padding-left:clamp(16px,4vw,30px);padding-right:clamp(16px,4vw,30px)}}
       `}</style>
     </main>
   );
@@ -834,12 +824,14 @@ function ArticleCard({
     item.title ||
     (hi ? item.title_en : item.title_hi) ||
     "Current Affair";
+
   const summary =
     (hi ? item.why_in_news_hi : item.why_in_news_en) ||
     item.why_in_news ||
     (hi ? item.background_hi : item.background_en) ||
     item.background ||
-    item.key_facts || "";
+    item.key_facts ||
+    "";
 
   return (
     <article className="news-card">
@@ -849,15 +841,30 @@ function ArticleCard({
           {item.subject || "UPSC Current Affairs"} · {formatDate(item.date)}
         </span>
       </div>
+
       <h3>{title}</h3>
       <p className="summary">{summary}</p>
+
       <div className="card-actions">
-        <button className="read-button" onClick={() => onOpen(item)}>
-          {hi ? "पूरा Analysis पढ़ें" : "Read Full Analysis"}
+        <button
+          type="button"
+          className="read-button"
+          onClick={() => onOpen(item)}
+        >
+          <span>{hi ? "पूरा Analysis पढ़ें" : "Read Full Analysis"}</span>
+          <span className="button-arrow">→</span>
         </button>
-        <button className="important-button" disabled={disabled} onClick={() => onImportant(item.id)}>
-          {important ? "★ Important" : "☆ Save Important"}
+
+        <button
+          type="button"
+          className={important ? "important-button saved" : "important-button"}
+          disabled={disabled}
+          onClick={() => onImportant(item.id)}
+        >
+          <span className="important-icon">{important ? "★" : "☆"}</span>
+          <span>{important ? (hi ? "Important" : "Saved") : (hi ? "Mark Important" : "Mark Important")}</span>
         </button>
+
         <span className="source">{item.source_name || "Official Source"}</span>
       </div>
     </article>
@@ -866,43 +873,163 @@ function ArticleCard({
 
 function PremiumFacts({ news, language, hi }) {
   const [factType, setFactType] = useState("prelims");
-  const prelimsFacts = news.filter((item) => item.prelims_hi || item.prelims_en || item.prelims);
-  const mainsFacts = news.filter((item) => item.premium_fact_hi || item.premium_fact_en || item.premium_fact);
+
+  const prelimsFacts = news.filter(
+    (item) => item.prelims_hi || item.prelims_en || item.prelims
+  );
+
+  const mainsFacts = news.filter(
+    (item) => item.premium_fact_hi || item.premium_fact_en || item.premium_fact
+  );
+
   const facts = factType === "prelims" ? prelimsFacts : mainsFacts;
 
   function titleOf(item) {
-    return (hi ? item.title_hi : item.title_en) || item.title || (hi ? item.title_en : item.title_hi) || "Current Affair";
+    return (
+      (hi ? item.title_hi : item.title_en) ||
+      item.title ||
+      (hi ? item.title_en : item.title_hi) ||
+      "Current Affair"
+    );
   }
-  function factOf(item) {
-    const raw = (hi ? (factType === "prelims" ? item.prelims_hi : item.premium_fact_hi) : (factType === "prelims" ? item.prelims_en : item.premium_fact_en)) || (factType === "prelims" ? item.prelims : item.premium_fact) || "";
-    return raw.replace(/\s+/g, " ").trim();
+
+  function cleanText(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .replace(/^[-•*]\s*/, "")
+      .trim();
+  }
+
+  function getPrelimsFact(item) {
+    const raw = cleanText(
+      (hi ? item.prelims_hi : item.prelims_en) || item.prelims
+    );
+
+    if (!raw) return "";
+
+    // Prelims card intentionally shows one concise factual line.
+    const firstSentence = raw.split(/(?<=[.!?।])\s+/)[0].trim();
+    const compact = firstSentence || raw;
+
+    return compact.length > 170
+      ? `${compact.slice(0, 167).trim()}...`
+      : compact;
+  }
+
+  function getMainsFact(item) {
+    const raw = cleanText(
+      (hi ? item.premium_fact_hi : item.premium_fact_en) || item.premium_fact
+    );
+
+    return raw;
   }
 
   return (
-    <section className="special-section">
-      <div className="section-heading">
-        <div><span className="badge">PREMIUM</span><h2>🔥 Premium Facts</h2></div>
-        <p>{facts.length} high-value facts</p>
+    <section className="special-section premium-facts-section">
+      <div className="section-heading premium-heading">
+        <div>
+          <span className="badge premium-badge">PREMIUM</span>
+          <h2>🔥 Premium Facts</h2>
+          <p className="premium-subtitle">
+            {factType === "prelims"
+              ? hi
+                ? "एक नज़र में Prelims के लिए high-value facts"
+                : "One-line high-value facts for Prelims revision"
+              : hi
+              ? "Mains answers में इस्तेमाल करने योग्य analytical points"
+              : "High-value points to strengthen Mains answers"}
+          </p>
+        </div>
+
+        <span className="premium-count">
+          {facts.length} {factType === "prelims" ? "Prelims" : "Mains"}
+        </span>
       </div>
-      <div className="premium-fact-tabs" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,maxWidth:460,margin:"0 0 16px",padding:5,background:"#eef1f5",borderRadius:12}}>
-        <button type="button" onClick={() => setFactType("prelims")} style={{border:0,borderRadius:9,padding:"11px 14px",fontWeight:850,cursor:"pointer",background:factType === "prelims" ? "#172033" : "transparent",color:factType === "prelims" ? "#fff" : "#667085"}}>📌 PRELIMS</button>
-        <button type="button" onClick={() => setFactType("mains")} style={{border:0,borderRadius:9,padding:"11px 14px",fontWeight:850,cursor:"pointer",background:factType === "mains" ? "#172033" : "transparent",color:factType === "mains" ? "#fff" : "#667085"}}>✍️ MAINS</button>
+
+      <div className="premium-fact-tabs" role="tablist" aria-label="Premium Facts type">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={factType === "prelims"}
+          className={factType === "prelims" ? "premium-fact-tab active" : "premium-fact-tab"}
+          onClick={() => setFactType("prelims")}
+        >
+          <span className="tab-icon">◆</span>
+          <span>
+            <strong>PRELIMS</strong>
+            <small>{hi ? "One-line facts" : "One-line facts"}</small>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={factType === "mains"}
+          className={factType === "mains" ? "premium-fact-tab active" : "premium-fact-tab"}
+          onClick={() => setFactType("mains")}
+        >
+          <span className="tab-icon">→</span>
+          <span>
+            <strong>MAINS</strong>
+            <small>{hi ? "Answer-ready points" : "Answer-ready points"}</small>
+          </span>
+        </button>
       </div>
+
       {facts.length === 0 ? (
-        <div className="empty">{factType === "prelims" ? (hi ? "अभी Prelims Facts उपलब्ध नहीं हैं।" : "No Prelims Facts available yet.") : (hi ? "अभी Mains Facts उपलब्ध नहीं हैं।" : "No Mains Facts available yet.")}</div>
+        <div className="empty premium-empty">
+          <div className="premium-empty-icon">◇</div>
+          <strong>
+            {factType === "prelims"
+              ? hi
+                ? "अभी Prelims Facts उपलब्ध नहीं हैं।"
+                : "No Prelims Facts available yet."
+              : hi
+              ? "अभी Mains Facts उपलब्ध नहीं हैं।"
+              : "No Mains Facts available yet."}
+          </strong>
+        </div>
       ) : (
-        <div className="fact-grid">
-          {facts.map((item, index) => (
-            <article className="fact-card" key={item.id}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span>{String(index + 1).padStart(2,"0")}</span>
-                <span>{item.gs || item.paper || "UPSC"}</span>
-              </div>
-              <h3>{titleOf(item)}</h3>
-              <p>{factOf(item)}</p>
-              <small>{item.source_name || "Official Source"}</small>
-            </article>
-          ))}
+        <div className="fact-grid premium-fact-grid">
+          {facts.map((item, index) => {
+            const fact =
+              factType === "prelims"
+                ? getPrelimsFact(item)
+                : getMainsFact(item);
+
+            return (
+              <article
+                className={
+                  factType === "prelims"
+                    ? "fact-card premium-fact-card prelims-fact-card"
+                    : "fact-card premium-fact-card mains-fact-card"
+                }
+                key={item.id}
+              >
+                <div className="premium-card-top">
+                  <span className="premium-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="premium-gs">
+                    {item.gs || item.paper || "UPSC"}
+                  </span>
+                </div>
+
+                <h3>{titleOf(item)}</h3>
+
+                <div className="premium-fact-content">
+                  <span className="premium-fact-icon">
+                    {factType === "prelims" ? "◆" : "→"}
+                  </span>
+                  <p>{fact}</p>
+                </div>
+
+                <div className="premium-card-footer">
+                  <span>{item.source_name || "Official Source"}</span>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </section>
