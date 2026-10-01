@@ -9,10 +9,17 @@ const filters = [
   "GS-III",
   "GS-IV",
   "Prelims",
+  "Mains",
+  "Reports",
+  "Schemes",
+  "International",
+  "Places",
+  "Personalities",
 ];
 
 export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
+  const [search, setSearch] = useState("");
   const [language, setLanguage] = useState("hi");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
@@ -243,10 +250,45 @@ export default function CurrentAffairsPage() {
   );
 
   const filteredNews = useMemo(() => {
-    if (active === "Today") return news;
+    let result = news;
+
+    const query = search.trim().toLowerCase();
+
+    if (query) {
+      result = result.filter((item) => {
+        const searchable = [
+          item.title,
+          item.title_hi,
+          item.title_en,
+          item.subject,
+          item.gs,
+          item.paper,
+          item.source_name,
+          item.why_in_news,
+          item.why_in_news_hi,
+          item.why_in_news_en,
+          item.key_facts,
+          item.key_facts_hi,
+          item.key_facts_en,
+          item.tags,
+          item.report_type,
+          item.government_scheme,
+          item.important_place,
+          item.personalities,
+          item.static_link,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchable.includes(query);
+      });
+    }
+
+    if (active === "Today") return result;
 
     if (active === "Prelims") {
-      return news.filter(
+      return result.filter(
         (item) =>
           item.prelims ||
           item.prelims_hi ||
@@ -257,18 +299,69 @@ export default function CurrentAffairsPage() {
       );
     }
 
+    if (active === "Mains") {
+      return result.filter(
+        (item) =>
+          item.mains_analysis ||
+          item.mains_analysis_hi ||
+          item.mains_analysis_en ||
+          item.mains_question ||
+          item.mains_question_hi ||
+          item.mains_question_en
+      );
+    }
+
+    if (active === "Reports") {
+      return result.filter(
+        (item) =>
+          item.report_type ||
+          /report|index|survey|ranking|indicator/i.test(
+            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
+          )
+      );
+    }
+
+    if (active === "Schemes") {
+      return result.filter(
+        (item) =>
+          item.government_scheme ||
+          /scheme|yojana|mission|programme|program/i.test(
+            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
+          )
+      );
+    }
+
+    if (active === "International") {
+      return result.filter(
+        (item) =>
+          item.gs === "GS-II" ||
+          item.paper === "GS-II" ||
+          /international|bilateral|multilateral|foreign|global|g20|un|summit|treaty|agreement/i.test(
+            `${item.tags || ""} ${item.subject || ""} ${item.title || ""}`
+          )
+      );
+    }
+
+    if (active === "Places") {
+      return result.filter((item) => item.important_place);
+    }
+
+    if (active === "Personalities") {
+      return result.filter((item) => item.personalities);
+    }
+
     if (active === "Important") {
-      return news.filter((item) =>
+      return result.filter((item) =>
         importantIds.includes(Number(item.id))
       );
     }
 
-    return news.filter(
+    return result.filter(
       (item) =>
         item.gs === active ||
         item.paper === active
     );
-  }, [active, news, importantIds]);
+  }, [active, news, importantIds, search]);
 
   async function toggleImportant(id) {
     try {
@@ -581,6 +674,41 @@ export default function CurrentAffairsPage() {
         </section>
       )}
 
+      <section className="search-panel">
+        <div className="search-box">
+          <span className="search-icon">⌕</span>
+
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={
+              hi
+                ? "Current Affairs खोजें — topic, subject, GS, scheme, report..."
+                : "Search Current Affairs — topic, subject, GS, scheme, report..."
+            }
+          />
+
+          {search && (
+            <button
+              className="clear-search"
+              type="button"
+              onClick={() => setSearch("")}
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {search && (
+          <div className="search-result-info">
+            {hi
+              ? `"${search}" के लिए ${filteredNews.length} परिणाम`
+              : `${filteredNews.length} result(s) for "${search}"`}
+          </div>
+        )}
+      </section>
+
       <nav className="filter-row">
         {filters.map((filter) => (
           <button
@@ -622,6 +750,17 @@ export default function CurrentAffairsPage() {
           }
         >
           🔥 Premium Facts
+        </button>
+
+        <button
+          className="filter refresh-filter"
+          onClick={() => {
+            loadCurrentAffairs();
+            loadImportant();
+          }}
+          disabled={loading}
+        >
+          ↻ Refresh
         </button>
       </nav>
 
@@ -1039,6 +1178,61 @@ export default function CurrentAffairsPage() {
           color: #175cd3;
         }
 
+        .search-panel {
+          max-width: 1050px;
+          margin: 0 auto 10px;
+        }
+
+        .search-box {
+          position: relative;
+          display: flex;
+          align-items: center;
+          background: #fff;
+          border: 1px solid #dfe3e8;
+          border-radius: 14px;
+          min-height: 48px;
+          box-shadow: 0 4px 16px
+            rgba(16, 24, 40, 0.04);
+        }
+
+        .search-icon {
+          padding-left: 15px;
+          color: #667085;
+          font-size: 22px;
+          line-height: 1;
+        }
+
+        .search-box input {
+          flex: 1;
+          width: 100%;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          padding: 13px 12px;
+          font-size: 14px;
+          color: #172033;
+        }
+
+        .search-box input::placeholder {
+          color: #98a2b3;
+        }
+
+        .clear-search {
+          border: 0;
+          background: transparent;
+          color: #667085;
+          font-size: 22px;
+          cursor: pointer;
+          padding: 8px 14px;
+        }
+
+        .search-result-info {
+          color: #667085;
+          font-size: 12px;
+          margin-top: 7px;
+          padding-left: 4px;
+        }
+
         .filter-row {
           display: flex;
           gap: 8px;
@@ -1060,6 +1254,15 @@ export default function CurrentAffairsPage() {
           background: #172033;
           color: #fff;
           border-color: #172033;
+        }
+
+        .refresh-filter {
+          font-weight: 800;
+        }
+
+        .refresh-filter:disabled {
+          opacity: 0.6;
+          cursor: wait;
         }
 
         .filter.important.active {
