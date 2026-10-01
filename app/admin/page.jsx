@@ -11,10 +11,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
-
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("pending");
-
   const [telegramReady, setTelegramReady] = useState(false);
 
   useEffect(() => {
@@ -118,21 +115,43 @@ export default function AdminPage() {
   }
 
   const pendingUsers = useMemo(
-    () => users.filter((user) => user.status === "pending"),
+    () =>
+      users.filter(
+        (user) => user.status === "pending"
+      ),
     [users]
   );
 
   const joinedUsers = useMemo(
-    () => users.filter((user) => user.status === "approved"),
+    () =>
+      users.filter(
+        (user) => user.status === "approved"
+      ),
     [users]
   );
 
-  const filteredPending = useMemo(() => {
+  const bannedUsers = useMemo(
+    () =>
+      users.filter(
+        (user) => user.status === "banned"
+      ),
+    [users]
+  );
+
+  const rejectedUsers = useMemo(
+    () =>
+      users.filter(
+        (user) => user.status === "rejected"
+      ),
+    [users]
+  );
+
+  const filterUsers = (list) => {
     const query = search.trim().toLowerCase();
 
-    return pendingUsers.filter((user) => {
-      if (!query) return true;
+    if (!query) return list;
 
+    return list.filter((user) => {
       return (
         String(user.telegram_id).includes(query) ||
         String(user.first_name || "")
@@ -143,38 +162,11 @@ export default function AdminPage() {
           .includes(query)
       );
     });
-  }, [pendingUsers, search]);
+  };
 
-  const filteredJoined = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return joinedUsers.filter((user) => {
-      if (!query) return true;
-
-      return (
-        String(user.telegram_id).includes(query) ||
-        String(user.first_name || "")
-          .toLowerCase()
-          .includes(query) ||
-        String(user.username || "")
-          .toLowerCase()
-          .includes(query)
-      );
-    });
-  }, [joinedUsers, search]);
-
-  const pendingCount = pendingUsers.length;
-  const joinedCount = joinedUsers.length;
-
-  const rejectedCount = users.filter(
-    (u) => u.status === "rejected"
-  ).length;
-
-  const bannedCount = users.filter(
-    (u) => u.status === "banned"
-  ).length;
-
-  const totalCount = users.length;
+  const filteredPending = filterUsers(pendingUsers);
+  const filteredJoined = filterUsers(joinedUsers);
+  const filteredBanned = filterUsers(bannedUsers);
 
   return (
     <>
@@ -231,8 +223,8 @@ export default function AdminPage() {
               </h1>
 
               <p style={styles.heroText}>
-                Manage access requests and joined users
-                from one place.
+                Manage access, joined users and
+                account security from one place.
               </p>
             </div>
 
@@ -246,32 +238,32 @@ export default function AdminPage() {
           <section style={styles.statsGrid}>
             <StatCard
               label="Total Users"
-              value={totalCount}
+              value={users.length}
               icon="◎"
             />
 
             <StatCard
               label="Pending"
-              value={pendingCount}
+              value={pendingUsers.length}
               icon="◷"
-              active
             />
 
             <StatCard
               label="Joined"
-              value={joinedCount}
+              value={joinedUsers.length}
               icon="✓"
+              active
             />
 
             <StatCard
               label="Rejected"
-              value={rejectedCount}
+              value={rejectedUsers.length}
               icon="×"
             />
 
             <StatCard
               label="Banned"
-              value={bannedCount}
+              value={bannedUsers.length}
               icon="!"
             />
           </section>
@@ -279,7 +271,9 @@ export default function AdminPage() {
           {/* SEARCH */}
           <section style={styles.searchPanel}>
             <div style={styles.searchBox}>
-              <span style={styles.searchIcon}>⌕</span>
+              <span style={styles.searchIcon}>
+                ⌕
+              </span>
 
               <input
                 value={search}
@@ -295,7 +289,9 @@ export default function AdminPage() {
           {/* ERROR */}
           {error && (
             <div style={styles.errorBox}>
-              <strong>Unable to load admin data</strong>
+              <strong>
+                Unable to load admin data
+              </strong>
 
               <div>{error}</div>
 
@@ -336,7 +332,7 @@ export default function AdminPage() {
                   </div>
 
                   <div style={styles.requestCount}>
-                    {pendingCount} pending
+                    {pendingUsers.length} pending
                   </div>
                 </div>
 
@@ -349,7 +345,7 @@ export default function AdminPage() {
                 ) : (
                   <div style={styles.userList}>
                     {filteredPending.map((user) => (
-                      <UserCard
+                      <PendingUserCard
                         key={user.telegram_id}
                         user={user}
                         actionLoading={actionLoading}
@@ -365,7 +361,6 @@ export default function AdminPage() {
                             "rejected"
                           )
                         }
-                        pending
                       />
                     ))}
                   </div>
@@ -385,13 +380,12 @@ export default function AdminPage() {
                     </h2>
 
                     <p style={styles.panelDescription}>
-                      Users who currently have access to
-                      SAMBHAV UPSC.
+                      Users who currently have access.
                     </p>
                   </div>
 
                   <div style={styles.joinedCount}>
-                    {joinedCount} joined
+                    {joinedUsers.length} joined
                   </div>
                 </div>
 
@@ -414,13 +408,61 @@ export default function AdminPage() {
                             "rejected"
                           )
                         }
+                        onBlock={() =>
+                          updateUserStatus(
+                            user.telegram_id,
+                            "banned"
+                          )
+                        }
                       />
                     ))}
                   </div>
                 )}
               </section>
 
-              {/* SECURITY NOTE */}
+              {/* BANNED USERS */}
+              {filteredBanned.length > 0 && (
+                <section style={styles.panel}>
+                  <div style={styles.panelHeader}>
+                    <div>
+                      <div style={styles.panelEyebrow}>
+                        SECURITY
+                      </div>
+
+                      <h2 style={styles.panelTitle}>
+                        Blocked Users
+                      </h2>
+
+                      <p style={styles.panelDescription}>
+                        Users who are permanently blocked
+                        from requesting access.
+                      </p>
+                    </div>
+
+                    <div style={styles.blockedCount}>
+                      {bannedUsers.length} blocked
+                    </div>
+                  </div>
+
+                  <div style={styles.userList}>
+                    {filteredBanned.map((user) => (
+                      <BannedUserCard
+                        key={user.telegram_id}
+                        user={user}
+                        actionLoading={actionLoading}
+                        onUnblock={() =>
+                          updateUserStatus(
+                            user.telegram_id,
+                            "rejected"
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* SECURITY */}
               <section style={styles.securityCard}>
                 <div style={styles.securityIcon}>
                   ✓
@@ -431,11 +473,12 @@ export default function AdminPage() {
                     Access control is active
                   </strong>
 
-                  <p>
-                    Removing a joined user does not delete
-                    their database record. Their access is
-                    changed to rejected, so they can submit
-                    a fresh request later.
+                  <p style={styles.securityText}>
+                    Remove Access keeps the user's record
+                    and allows a fresh request later.
+                    Block User changes the account to
+                    banned status and prevents new
+                    access requests.
                   </p>
                 </div>
               </section>
@@ -444,7 +487,9 @@ export default function AdminPage() {
 
           <footer style={styles.footer}>
             <span>SAMBHAV UPSC</span>
-            <span>Admin Control Center</span>
+            <span>
+              Admin Control Center
+            </span>
           </footer>
         </div>
       </main>
@@ -482,12 +527,11 @@ function StatCard({
   );
 }
 
-function UserCard({
+function PendingUserCard({
   user,
   actionLoading,
   onApprove,
   onReject,
-  pending,
 }) {
   const initials =
     (user.first_name || "U")
@@ -505,62 +549,33 @@ function UserCard({
 
   return (
     <div style={styles.userCard}>
-      <div style={styles.userMain}>
-        <div style={styles.avatar}>
-          {initials}
-        </div>
+      <UserInfo
+        user={user}
+        initials={initials}
+        status="pending"
+      />
 
-        <div style={styles.userInfo}>
-          <div style={styles.userNameRow}>
-            <h3 style={styles.userName}>
-              {user.first_name || "Unknown User"}
-            </h3>
+      <div style={styles.actions}>
+        <button
+          onClick={onReject}
+          disabled={rejecting || approving}
+          style={styles.cancelButton}
+        >
+          {rejecting
+            ? "Cancelling..."
+            : "Cancel"}
+        </button>
 
-            <StatusBadge status={user.status} />
-          </div>
-
-          <div style={styles.userMeta}>
-            {user.username
-              ? `@${user.username}`
-              : "No username"}
-          </div>
-
-          <div style={styles.telegramId}>
-            Telegram ID: {user.telegram_id}
-          </div>
-
-          {user.created_at && (
-            <div style={styles.date}>
-              Requested{" "}
-              {formatDate(user.created_at)}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={onApprove}
+          disabled={rejecting || approving}
+          style={styles.approveButton}
+        >
+          {approving
+            ? "Approving..."
+            : "Approve"}
+        </button>
       </div>
-
-      {pending && (
-        <div style={styles.actions}>
-          <button
-            onClick={onReject}
-            disabled={rejecting || approving}
-            style={styles.cancelButton}
-          >
-            {rejecting
-              ? "Cancelling..."
-              : "Cancel"}
-          </button>
-
-          <button
-            onClick={onApprove}
-            disabled={rejecting || approving}
-            style={styles.approveButton}
-          >
-            {approving
-              ? "Approving..."
-              : "Approve"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -569,6 +584,7 @@ function JoinedUserCard({
   user,
   actionLoading,
   onRemove,
+  onBlock,
 }) {
   const initials =
     (user.first_name || "U")
@@ -580,44 +596,149 @@ function JoinedUserCard({
     actionLoading ===
     `${user.telegram_id}-rejected`;
 
+  const blocking =
+    actionLoading ===
+    `${user.telegram_id}-banned`;
+
   function handleRemove() {
     const confirmed = window.confirm(
       `Remove access from ${
         user.first_name || "this user"
-      }?\n\nTheir account will not be deleted. They will be able to request access again with /start.`
+      }?\n\nThey will be able to request access again with /start.`
     );
 
-    if (!confirmed) return;
+    if (confirmed) {
+      onRemove();
+    }
+  }
 
-    onRemove();
+  function handleBlock() {
+    const confirmed = window.confirm(
+      `Block ${
+        user.first_name || "this user"
+      }?\n\nThey will NOT be able to submit another access request.`
+    );
+
+    if (confirmed) {
+      onBlock();
+    }
   }
 
   return (
     <div style={styles.userCard}>
-      <div style={styles.userMain}>
-        <div style={styles.avatar}>
-          {initials}
+      <UserInfo
+        user={user}
+        initials={initials}
+        status="approved"
+        joined
+      />
+
+      <div style={styles.actions}>
+        <button
+          onClick={handleRemove}
+          disabled={removing || blocking}
+          style={styles.removeButton}
+        >
+          {removing
+            ? "Removing..."
+            : "Remove Access"}
+        </button>
+
+        <button
+          onClick={handleBlock}
+          disabled={removing || blocking}
+          style={styles.blockButton}
+        >
+          {blocking
+            ? "Blocking..."
+            : "Block User"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BannedUserCard({
+  user,
+  actionLoading,
+  onUnblock,
+}) {
+  const initials =
+    (user.first_name || "U")
+      .trim()
+      .charAt(0)
+      .toUpperCase();
+
+  const unblocking =
+    actionLoading ===
+    `${user.telegram_id}-rejected`;
+
+  function handleUnblock() {
+    const confirmed = window.confirm(
+      `Unblock ${
+        user.first_name || "this user"
+      }?\n\nThey will become rejected and can submit a fresh request with /start.`
+    );
+
+    if (confirmed) {
+      onUnblock();
+    }
+  }
+
+  return (
+    <div style={styles.userCard}>
+      <UserInfo
+        user={user}
+        initials={initials}
+        status="banned"
+      />
+
+      <button
+        onClick={handleUnblock}
+        disabled={unblocking}
+        style={styles.unblockButton}
+      >
+        {unblocking
+          ? "Unblocking..."
+          : "Unblock"}
+      </button>
+    </div>
+  );
+}
+
+function UserInfo({
+  user,
+  initials,
+  status,
+  joined,
+}) {
+  return (
+    <div style={styles.userMain}>
+      <div style={styles.avatar}>
+        {initials}
+      </div>
+
+      <div style={styles.userInfo}>
+        <div style={styles.userNameRow}>
+          <h3 style={styles.userName}>
+            {user.first_name ||
+              "Unknown User"}
+          </h3>
+
+          <StatusBadge status={status} />
         </div>
 
-        <div style={styles.userInfo}>
-          <div style={styles.userNameRow}>
-            <h3 style={styles.userName}>
-              {user.first_name || "Unknown User"}
-            </h3>
+        <div style={styles.userMeta}>
+          {user.username
+            ? `@${user.username}`
+            : "No username"}
+        </div>
 
-            <StatusBadge status="approved" />
-          </div>
+        <div style={styles.telegramId}>
+          Telegram ID: {user.telegram_id}
+        </div>
 
-          <div style={styles.userMeta}>
-            {user.username
-              ? `@${user.username}`
-              : "No username"}
-          </div>
-
-          <div style={styles.telegramId}>
-            Telegram ID: {user.telegram_id}
-          </div>
-
+        {joined && (
           <div style={styles.memberDetails}>
             <span>
               Plan: {user.plan || "free"}
@@ -633,19 +754,14 @@ function JoinedUserCard({
               )}
             </span>
           </div>
-        </div>
-      </div>
+        )}
 
-      <div style={styles.actions}>
-        <button
-          onClick={handleRemove}
-          disabled={removing}
-          style={styles.removeButton}
-        >
-          {removing
-            ? "Removing..."
-            : "Remove Access"}
-        </button>
+        {!joined && user.created_at && (
+          <div style={styles.date}>
+            Requested:{" "}
+            {formatDate(user.created_at)}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -657,16 +773,19 @@ function StatusBadge({ status }) {
       text: "Pending",
       style: styles.pendingBadge,
     },
+
     approved: {
       text: "Active",
       style: styles.approvedBadge,
     },
+
     rejected: {
       text: "Rejected",
       style: styles.rejectedBadge,
     },
+
     banned: {
-      text: "Banned",
+      text: "Blocked",
       style: styles.bannedBadge,
     },
   };
@@ -784,7 +903,6 @@ const styles = {
   brand: {
     fontSize: "15px",
     fontWeight: "800",
-    letterSpacing: "0.4px",
   },
 
   subtitle: {
@@ -899,7 +1017,6 @@ const styles = {
     marginTop: "13px",
     fontSize: "30px",
     fontWeight: "800",
-    letterSpacing: "-1px",
   },
 
   searchPanel: {
@@ -963,7 +1080,6 @@ const styles = {
   panelTitle: {
     margin: 0,
     fontSize: "24px",
-    letterSpacing: "-0.7px",
   },
 
   panelDescription: {
@@ -978,7 +1094,6 @@ const styles = {
     padding: "8px 11px",
     fontSize: "11px",
     fontWeight: "800",
-    whiteSpace: "nowrap",
   },
 
   joinedCount: {
@@ -988,7 +1103,15 @@ const styles = {
     padding: "8px 11px",
     fontSize: "11px",
     fontWeight: "800",
-    whiteSpace: "nowrap",
+  },
+
+  blockedCount: {
+    background: "#111",
+    color: "#fff",
+    borderRadius: "999px",
+    padding: "8px 11px",
+    fontSize: "11px",
+    fontWeight: "800",
   },
 
   userList: {
@@ -1058,7 +1181,7 @@ const styles = {
   date: {
     color: "#aaa",
     fontSize: "10px",
-    marginTop: "3px",
+    marginTop: "4px",
   },
 
   memberDetails: {
@@ -1103,6 +1226,7 @@ const styles = {
     justifyContent: "flex-end",
     gap: "8px",
     flexShrink: 0,
+    flexWrap: "wrap",
   },
 
   approveButton: {
@@ -1131,6 +1255,28 @@ const styles = {
     border: "1px solid #d8d8d5",
     background: "#fff",
     color: "#333",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    fontSize: "11px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  blockButton: {
+    border: "none",
+    background: "#111",
+    color: "#fff",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    fontSize: "11px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  unblockButton: {
+    border: "1px solid #111",
+    background: "#fff",
+    color: "#111",
     borderRadius: "10px",
     padding: "10px 14px",
     fontSize: "11px",
@@ -1232,10 +1378,9 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "900",
-    fontSize: "12px",
   },
 
-  securityCard p: {
+  securityText: {
     margin: "5px 0 0",
     color: "#aaa",
     fontSize: "11px",
@@ -1249,6 +1394,5 @@ const styles = {
     color: "#999",
     fontSize: "10px",
     fontWeight: "700",
-    letterSpacing: "0.5px",
   },
 };
