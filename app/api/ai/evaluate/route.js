@@ -1,49 +1,147 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const SYSTEM_INSTRUCTIONS = `
+You are an expert UPSC Civil Services Examination Mains evaluator.
+
+Your job is to evaluate a candidate answer rigorously at UPSC Mains level.
+
+Do NOT give arbitrary praise.
+Do NOT inflate marks.
+Do NOT judge only grammar or language.
+Do NOT assume that an unstated point exists.
+Do NOT invent facts, data, reports, committees, judgments or examples.
+Do NOT claim that your marks are official UPSC marks.
+
+First analyse the QUESTION.
+Then identify its DIRECTIVE.
+Then identify the exact DEMANDS of the question.
+Only then evaluate the candidate answer.
+
+Evaluate:
+
+1. Question demand
+2. Directive handling
+3. Relevance
+4. Demand fulfilment
+5. Content depth
+6. Analytical quality
+7. Breadth of dimensions
+8. Structure
+9. Introduction
+10. Body
+11. Conclusion
+12. Examples
+13. Data where relevant
+14. Constitutional/legal/institutional references where relevant
+15. Current affairs linkage where relevant
+16. Factual accuracy
+17. Balance and nuance
+18. Way forward where demanded
+19. Word-limit discipline
+20. Overall UPSC suitability
+
+DIRECTIVES:
+
+Discuss:
+Cover the issue through balanced and relevant dimensions.
+
+Examine:
+Examine the issue using evidence, causes, effects, limitations and relevant arguments.
+
+Analyse:
+Break the issue into components and establish relationships such as cause-effect, significance, consequences and interlinkages.
+
+Critically Analyse:
+Analyse multiple sides, limitations/counterarguments and arrive at a balanced conclusion.
+
+Evaluate:
+Assess the issue against relevant criteria and provide a reasoned conclusion.
+
+Critically Evaluate:
+Assess merits, limitations and counterarguments before a balanced judgement.
+
+Comment:
+Give a reasoned assessment rather than simple description.
+
+Elucidate:
+Explain clearly with sufficient detail and relevant examples.
+
+Explain:
+Clearly explain the concept/process/causes/significance/consequences demanded by the question.
+
+GS1:
+Consider historical, geographical, social and cultural dimensions where relevant.
+
+GS2:
+Consider Constitution, governance, institutions, federalism, rights, welfare, accountability, judiciary, social justice and international relations where relevant.
+
+GS3:
+Consider economy, agriculture, technology, environment, disaster management, internal security and development dimensions where relevant.
+
+GS4:
+Consider ethical concepts, values, stakeholders, conflicts, integrity, probity, emotional intelligence and practical administrative reasoning where relevant.
+
+CASE STUDY:
+Evaluate stakeholders, ethical issues, competing values, options, consequences, justification, prioritisation and implementation.
+
+ESSAY:
+Evaluate coherence, philosophical depth, multidimensionality, arguments, examples, balance, originality, structure and conclusion.
+
+MARKING:
+
+Never exceed the supplied maximum marks.
+
+10-mark answers generally correspond to approximately 150 words.
+15-mark answers generally correspond to approximately 250 words.
+
+Do not mechanically reduce marks only because of word count.
+Assess whether the word limit affected demand fulfilment.
+
+A technically correct but superficial answer should not receive a high score.
+
+Strong language alone should not produce a high score.
+
+The score MUST be justified.
+
+For missing dimensions:
+Explain why the dimension matters and how the candidate could add it.
+
+For point-level feedback:
+Only discuss points actually present in the candidate answer.
+Do not invent quotations.
+
+Model framework:
+Give a framework, NOT a memorised model answer.
+
+Final improvement plan:
+Give specific changes for the next attempt.
+
+Return ONLY valid JSON matching the supplied schema.
+`;
 
 const EVALUATION_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    overall_score: {
-      type: "number",
-    },
-
-    maximum_marks: {
-      type: "number",
-    },
-
-    overall_assessment: {
-      type: "string",
-    },
+    overall_score: { type: "number" },
+    maximum_marks: { type: "number" },
+    overall_assessment: { type: "string" },
 
     question_analysis: {
       type: "object",
       additionalProperties: false,
       properties: {
-        directive: {
-          type: "string",
-        },
-        core_demand: {
-          type: "string",
-        },
+        directive: { type: "string" },
+        core_demand: { type: "string" },
         keywords: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         expected_dimensions: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
       },
       required: [
@@ -58,20 +156,12 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        score: {
-          type: "number",
-        },
-        maximum: {
-          type: "number",
-        },
-        assessment: {
-          type: "string",
-        },
+        score: { type: "number" },
+        maximum: { type: "number" },
+        assessment: { type: "string" },
         missing_demands: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
       },
       required: [
@@ -86,24 +176,16 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        assessment: {
-          type: "string",
-        },
+        assessment: { type: "string" },
         strengths: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         weaknesses: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
-        improvement: {
-          type: "string",
-        },
+        improvement: { type: "string" },
       },
       required: [
         "assessment",
@@ -117,38 +199,20 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        content_score: {
-          type: "number",
-        },
-        content_maximum: {
-          type: "number",
-        },
-        analysis_score: {
-          type: "number",
-        },
-        analysis_maximum: {
-          type: "number",
-        },
-        structure_score: {
-          type: "number",
-        },
-        structure_maximum: {
-          type: "number",
-        },
-        assessment: {
-          type: "string",
-        },
+        content_score: { type: "number" },
+        content_maximum: { type: "number" },
+        analysis_score: { type: "number" },
+        analysis_maximum: { type: "number" },
+        structure_score: { type: "number" },
+        structure_maximum: { type: "number" },
+        assessment: { type: "string" },
         strengths: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         weaknesses: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
       },
       required: [
@@ -168,26 +232,16 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        score: {
-          type: "number",
-        },
-        maximum: {
-          type: "number",
-        },
-        assessment: {
-          type: "string",
-        },
+        score: { type: "number" },
+        maximum: { type: "number" },
+        assessment: { type: "string" },
         good_examples: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         missing_examples: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
       },
       required: [
@@ -203,20 +257,14 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        assessment: {
-          type: "string",
-        },
+        assessment: { type: "string" },
         possible_errors: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         corrections: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
       },
       required: [
@@ -230,24 +278,16 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        assessment: {
-          type: "string",
-        },
+        assessment: { type: "string" },
         strengths: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
         weaknesses: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
-        improvement: {
-          type: "string",
-        },
+        improvement: { type: "string" },
       },
       required: [
         "assessment",
@@ -263,15 +303,9 @@ const EVALUATION_SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
-          dimension: {
-            type: "string",
-          },
-          why_important: {
-            type: "string",
-          },
-          how_to_add: {
-            type: "string",
-          },
+          dimension: { type: "string" },
+          why_important: { type: "string" },
+          how_to_add: { type: "string" },
         },
         required: [
           "dimension",
@@ -287,15 +321,9 @@ const EVALUATION_SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
-          issue: {
-            type: "string",
-          },
-          type: {
-            type: "string",
-          },
-          improvement: {
-            type: "string",
-          },
+          issue: { type: "string" },
+          type: { type: "string" },
+          improvement: { type: "string" },
         },
         required: [
           "issue",
@@ -309,18 +337,12 @@ const EVALUATION_SCHEMA = {
       type: "object",
       additionalProperties: false,
       properties: {
-        introduction: {
-          type: "string",
-        },
+        introduction: { type: "string" },
         body: {
           type: "array",
-          items: {
-            type: "string",
-          },
+          items: { type: "string" },
         },
-        conclusion: {
-          type: "string",
-        },
+        conclusion: { type: "string" },
       },
       required: [
         "introduction",
@@ -331,21 +353,15 @@ const EVALUATION_SCHEMA = {
 
     model_framework: {
       type: "array",
-      items: {
-        type: "string",
-      },
+      items: { type: "string" },
     },
 
     improvement_plan: {
       type: "array",
-      items: {
-        type: "string",
-      },
+      items: { type: "string" },
     },
 
-    examiner_summary: {
-      type: "string",
-    },
+    examiner_summary: { type: "string" },
   },
 
   required: [
@@ -368,164 +384,22 @@ const EVALUATION_SCHEMA = {
   ],
 };
 
-const SYSTEM_INSTRUCTIONS = `
-You are an expert UPSC Civil Services Examination Mains evaluator.
+function cleanString(value, maxLength) {
+  if (typeof value !== "string") {
+    return "";
+  }
 
-Your task is to evaluate a candidate's answer with a rigorous UPSC-oriented framework.
+  return value.trim().slice(0, maxLength);
+}
 
-IMPORTANT:
-Do NOT give arbitrary praise.
-Do NOT give an inflated score merely because the answer is grammatically good.
-Do NOT evaluate only language quality.
-Do NOT invent facts, data, committee names, judgments, reports or examples.
-Do NOT claim that a particular score is an official UPSC score.
-Your score is an analytical estimate based on the supplied question, marks and answer.
-
-FIRST understand the QUESTION.
-Then understand its DIRECTIVE.
-Then identify every important DEMAND of the question.
-Only after that evaluate the candidate's answer.
-
-Evaluate:
-
-1. Question demand
-2. Directive handling
-3. Relevance
-4. Demand fulfilment
-5. Content depth
-6. Analytical quality
-7. Breadth of dimensions
-8. Structure
-9. Introduction
-10. Body
-11. Conclusion
-12. Examples
-13. Data where genuinely useful
-14. Constitutional/legal/institutional references where relevant
-15. Current affairs linkage where relevant
-16. Factual accuracy
-17. Balance and nuance
-18. Way forward where demanded
-19. Word-limit discipline
-20. Overall UPSC suitability
-
-DIRECTIVE RULES:
-
-Discuss:
-Require balanced explanation and relevant dimensions.
-
-Examine:
-Require examination of the issue with evidence, causes, effects and relevant limitations.
-
-Analyse:
-Break the issue into components and establish relationships such as cause-effect, significance, consequences or interlinkages.
-
-Critically Analyse:
-Analyse both sides, limitations/counterarguments and then arrive at a balanced conclusion.
-
-Evaluate:
-Assess against relevant criteria and reach a reasoned conclusion.
-
-Critically Evaluate:
-Assess merits and limitations and reach a balanced judgement.
-
-Comment:
-Give a reasoned assessment, not merely description.
-
-Elucidate:
-Explain clearly with adequate detail and examples.
-
-Explain:
-Clarify the concept, process, causes, significance or consequences as demanded.
-
-Discuss:
-Do not convert the answer into a one-sided opinion.
-
-GS-SPECIFIC EVALUATION:
-
-GS1:
-Give importance to historical, geographical, social, cultural and spatial dimensions where relevant.
-
-GS2:
-Look for constitutional provisions, institutions, governance, federalism, rights, welfare, judiciary, accountability, international relations and stakeholder dimensions where relevant.
-
-GS3:
-Look for economic, technological, environmental, agricultural, security, disaster-management and development dimensions where relevant.
-
-GS4:
-Evaluate ethical concepts, values, stakeholders, conflicts, justification, emotional intelligence, integrity, probity and practical administrative reasoning as applicable.
-
-ESSAY:
-Evaluate coherence, philosophical depth, multidimensionality, arguments, examples, balance, originality, structure and conclusion.
-
-CASE STUDY:
-Evaluate stakeholders, ethical issues, competing values, options, consequences, justification, prioritisation, implementation and practical administrative feasibility.
-
-MARKING:
-
-Respect the maximum marks supplied by the request.
-
-Never give more than maximum_marks.
-
-A 10-mark answer should normally be evaluated against the expected depth of a 150-word answer.
-
-A 15-mark answer should normally be evaluated against the expected depth of a 250-word answer.
-
-Do not mechanically deduct marks only because an answer is short or long. Consider whether the word limit materially affected demand fulfilment.
-
-SCORING:
-
-Use conservative, discriminating scoring.
-
-A technically correct but superficial answer should not receive a high score.
-
-A well-structured answer with strong language but poor question demand fulfilment should score accordingly.
-
-A concise answer can score well if it covers the core demands effectively.
-
-A factual error should be identified only when reasonably clear from the supplied material or established knowledge. If uncertain, state that it should be verified rather than presenting the correction as certain.
-
-The output must explain WHY the score was given.
-
-MISSING DIMENSIONS:
-
-Identify important dimensions that the candidate actually missed.
-
-For every missing dimension explain:
-- why it matters
-- how the candidate could have incorporated it
-
-POINT-LEVEL FEEDBACK:
-
-Identify specific weaknesses from the candidate answer.
-Do not invent quotations that are not present.
-
-MODEL FRAMEWORK:
-
-Provide a framework for a stronger answer, NOT a memorised model answer.
-
-The framework should show:
-Introduction → dimensions/body → examples/data → way forward if relevant → conclusion.
-
-FINAL IMPROVEMENT PLAN:
-
-Give practical changes the candidate should make in the next attempt.
-
-The final examiner summary should be concise but rigorous.
-`;
-
-function getDirectiveHint(question) {
+function detectDirective(question) {
   const q = question.toLowerCase();
 
-  if (
-    q.includes("critically analyse")
-  ) {
+  if (q.includes("critically analyse")) {
     return "Critically Analyse";
   }
 
-  if (
-    q.includes("critically evaluate")
-  ) {
+  if (q.includes("critically evaluate")) {
     return "Critically Evaluate";
   }
 
@@ -560,23 +434,12 @@ function getDirectiveHint(question) {
   return "Not clearly detected";
 }
 
-function cleanString(value, maxLength) {
-  if (
-    typeof value !== "string"
-  ) {
-    return "";
-  }
-
-  return value
-    .trim()
-    .slice(0, maxLength);
-}
-
 export async function POST(request) {
   try {
-    if (
-      !process.env.OPENAI_API_KEY
-    ) {
+    const apiKey =
+      process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
       return NextResponse.json(
         {
           error:
@@ -589,29 +452,25 @@ export async function POST(request) {
     const body =
       await request.json();
 
-    const question =
-      cleanString(
-        body.question,
-        12000
-      );
+    const question = cleanString(
+      body.question,
+      12000
+    );
 
-    const answer =
-      cleanString(
-        body.answer,
-        30000
-      );
+    const answer = cleanString(
+      body.answer,
+      30000
+    );
 
-    const paper =
-      cleanString(
-        body.paper || "GS",
-        100
-      );
+    const paper = cleanString(
+      body.paper || "GS",
+      100
+    );
 
-    const section =
-      cleanString(
-        body.section || "",
-        100
-      );
+    const section = cleanString(
+      body.section || "",
+      100
+    );
 
     const marks = Number(
       body.marks || 15
@@ -619,9 +478,7 @@ export async function POST(request) {
 
     const wordLimit = Number(
       body.word_limit ||
-        (marks <= 10
-          ? 150
-          : 250)
+        (marks <= 10 ? 150 : 250)
     );
 
     if (!question) {
@@ -659,9 +516,7 @@ export async function POST(request) {
     }
 
     if (
-      !Number.isFinite(
-        wordLimit
-      ) ||
+      !Number.isFinite(wordLimit) ||
       wordLimit <= 0 ||
       wordLimit > 10000
     ) {
@@ -675,11 +530,9 @@ export async function POST(request) {
     }
 
     const directive =
-      getDirectiveHint(
-        question
-      );
+      detectDirective(question);
 
-    const userPrompt = `
+    const userInput = `
 Evaluate this UPSC Mains answer.
 
 PAPER:
@@ -700,59 +553,137 @@ ${question}
 CANDIDATE ANSWER:
 ${answer}
 
-Detected directive:
+DETECTED DIRECTIVE:
 ${directive}
 
-IMPORTANT:
-Evaluate the answer actually supplied.
-Do not assume that the candidate has written points that are not present.
-Do not invent missing examples.
-Do not inflate the score.
-Explain the score through the rubric.
-
-Return only the requested structured evaluation.
+Evaluate only the answer supplied.
+Do not assume missing points were written.
+Do not invent facts.
+Do not inflate marks.
+Explain why the score was awarded.
 `;
 
-    const response =
-      await openai.responses.create(
+    const openaiResponse =
+      await fetch(
+        "https://api.openai.com/v1/responses",
         {
-          model:
-            process.env.OPENAI_EVALUATION_MODEL ||
-            "gpt-5.6-sol",
+          method: "POST",
 
-          instructions:
-            SYSTEM_INSTRUCTIONS,
+          headers: {
+            "Content-Type":
+              "application/json",
 
-          input: userPrompt,
-
-          reasoning: {
-            effort: "high",
+            Authorization:
+              `Bearer ${apiKey}`,
           },
 
-          max_output_tokens:
-            10000,
+          body: JSON.stringify({
+            model:
+              process.env.OPENAI_EVALUATION_MODEL ||
+              "gpt-5.6-sol",
 
-          text: {
-            format: {
-              type: "json_schema",
-              name:
-                "upsc_mains_evaluation",
-              strict: true,
-              schema:
-                EVALUATION_SCHEMA,
+            instructions:
+              SYSTEM_INSTRUCTIONS,
+
+            input: userInput,
+
+            reasoning: {
+              effort: "high",
             },
-          },
+
+            max_output_tokens: 10000,
+
+            text: {
+              format: {
+                type: "json_schema",
+                name:
+                  "upsc_mains_evaluation",
+                strict: true,
+                schema:
+                  EVALUATION_SCHEMA,
+              },
+            },
+          }),
         }
       );
 
-    const output =
-      response.output_text;
+    const responseText =
+      await openaiResponse.text();
 
-    if (!output) {
+    if (!openaiResponse.ok) {
+      console.error(
+        "OpenAI API error:",
+        responseText
+      );
+
       return NextResponse.json(
         {
           error:
-            "AI evaluation returned an empty result.",
+            "OpenAI evaluation request failed.",
+          details:
+            process.env.NODE_ENV ===
+            "development"
+              ? responseText
+              : undefined,
+        },
+        { status: 502 }
+      );
+    }
+
+    let apiData;
+
+    try {
+      apiData =
+        JSON.parse(responseText);
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "OpenAI returned invalid response data.",
+        },
+        { status: 502 }
+      );
+    }
+
+    /*
+     * Responses API output can contain
+     * several output items.
+     * Extract output_text safely.
+     */
+
+    let outputText = "";
+
+    if (
+      typeof apiData.output_text ===
+      "string"
+    ) {
+      outputText =
+        apiData.output_text;
+    }
+
+    if (!outputText) {
+      for (const item of
+        apiData.output || []) {
+        for (const content of
+          item.content || []) {
+          if (
+            content.type ===
+              "output_text" &&
+            typeof content.text ===
+              "string"
+          ) {
+            outputText +=
+              content.text;
+          }
+        }
+      }
+    }
+
+    if (!outputText) {
+      return NextResponse.json(
+        {
+          error:
+            "AI evaluation returned empty output.",
         },
         { status: 502 }
       );
@@ -762,26 +693,25 @@ Return only the requested structured evaluation.
 
     try {
       evaluation =
-        JSON.parse(output);
-    } catch (parseError) {
+        JSON.parse(outputText);
+    } catch (error) {
       console.error(
-        "AI JSON parse error:",
-        parseError
+        "Evaluation JSON parse error:",
+        error,
+        outputText
       );
 
       return NextResponse.json(
         {
           error:
-            "AI evaluation format invalid.",
+            "AI evaluation JSON format invalid.",
         },
         { status: 502 }
       );
     }
 
     /*
-     * Server-side safety check:
-     * AI must never return a score above
-     * the question's maximum marks.
+     * Final server-side score protection.
      */
 
     evaluation.maximum_marks =
@@ -812,17 +742,16 @@ Return only the requested structured evaluation.
           detected_directive:
             directive,
           model:
-            process.env.OPENAI_EVALUATION_MODEL ||
+            process.env
+              .OPENAI_EVALUATION_MODEL ||
             "gpt-5.6-sol",
         },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
-      "AI evaluation error:",
+      "AI evaluation route error:",
       error
     );
 
@@ -832,9 +761,7 @@ Return only the requested structured evaluation.
           error?.message ||
           "AI evaluation failed.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
