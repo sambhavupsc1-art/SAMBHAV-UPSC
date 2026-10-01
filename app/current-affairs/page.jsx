@@ -1,75 +1,73 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const news = [
-  {
-    id: 1,
-    title: "UPSC Centenary: Civil Services and Institutional Reform",
-    paper: "GS-II",
-    subject: "Polity & Governance",
-    source: "PIB",
-    date: "01 Oct 2026",
-    summary:
-      "UPSC centenary-related developments provide a context to study constitutional status, recruitment, transparency and reforms in civil services.",
-    prelims: [
-      "UPSC is a constitutional body under Part XIV of the Constitution.",
-      "Articles 315–323 deal with Public Service Commissions.",
-    ],
-    mains:
-      "Discuss the role of an independent public service commission in maintaining merit, neutrality and accountability in public administration.",
-    premiumFact:
-      "Use constitutional provisions and institutional safeguards as an introduction to answers on civil-service reforms.",
-  },
-  {
-    id: 2,
-    title: "Renewable Energy and Green Energy Corridor",
-    paper: "GS-III",
-    subject: "Environment & Economy",
-    source: "The Hindu",
-    date: "01 Oct 2026",
-    summary:
-      "Transmission infrastructure is important for integrating variable renewable power into the electricity grid.",
-    prelims: [
-      "Green transmission infrastructure supports renewable-energy integration.",
-      "Grid balancing becomes important as the share of variable renewable generation rises.",
-    ],
-    mains:
-      "Examine the infrastructure and grid-management challenges associated with India's renewable-energy transition.",
-    premiumFact:
-      "A current renewable-energy statistic from an official government report can strengthen the introduction or conclusion of a GS-III answer.",
-  },
-  {
-    id: 3,
-    title: "Rabi MSP and Agricultural Pricing",
-    paper: "GS-III",
-    subject: "Agriculture",
-    source: "The Hindu",
-    date: "01 Oct 2026",
-    summary:
-      "Rabi minimum support price developments can be linked with agricultural pricing, farmer income and food-security policy.",
-    prelims: [
-      "MSP is announced for notified agricultural crops.",
-      "Agricultural pricing has implications for production incentives and food security.",
-    ],
-    mains:
-      "Discuss the role and limitations of MSP in improving farm incomes while maintaining food-security objectives.",
-    premiumFact:
-      "Use the latest official MSP data and input-cost context as contemporary evidence in agricultural-policy answers.",
-  },
+const filters = [
+  "Today",
+  "GS-I",
+  "GS-II",
+  "GS-III",
+  "GS-IV",
+  "Prelims",
 ];
-
-const filters = ["Today", "GS-I", "GS-II", "GS-III", "GS-IV", "Prelims"];
 
 export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
+  const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadCurrentAffairs() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch("/api/current-affairs", {
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result?.error || "Current Affairs load nahi ho paye."
+          );
+        }
+
+        setNews(result.data || []);
+      } catch (err) {
+        setError(err.message || "Current Affairs load nahi ho paye.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCurrentAffairs();
+  }, []);
 
   const filteredNews = useMemo(() => {
-    if (active === "Today" || active === "Prelims") return news;
-    return news.filter((item) => item.paper === active);
-  }, [active]);
+    if (active === "Today") {
+      return news;
+    }
+
+    if (active === "Prelims") {
+      return news.filter(
+        (item) =>
+          item.prelims ||
+          item.prelims_mcq ||
+          item.paper?.toUpperCase() === "PRELIMS"
+      );
+    }
+
+    if (active === "Important") {
+      return news.filter((item) => important.includes(item.id));
+    }
+
+    return news.filter((item) => item.gs === active || item.paper === active);
+  }, [active, news, important]);
 
   function toggleImportant(id) {
     setImportant((current) =>
@@ -79,20 +77,50 @@ export default function CurrentAffairsPage() {
     );
   }
 
+  function formatDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function getTodayLabel() {
+    if (!news.length) return "Today's UPSC Current Affairs";
+
+    const latestDate = news[0]?.date;
+
+    if (!latestDate) return "Today's UPSC Current Affairs";
+
+    return formatDate(latestDate);
+  }
+
   return (
     <main className="ca-page">
       <section className="ca-header">
         <div>
           <p className="eyebrow">SAMBHAV UPSC</p>
+
           <h1>Current Affairs</h1>
+
           <p className="sub">
             UPSC-relevant daily current affairs — Prelims + GS-wise Mains
           </p>
         </div>
 
         <div className="date-card">
-          <span>Today's Update</span>
-          <strong>01 October 2026</strong>
+          <span>Latest Update</span>
+
+          <strong>
+            {news.length > 0 ? formatDate(news[0]?.date) : "Loading..."}
+          </strong>
+
           <small>Daily update target: 10:00 AM</small>
         </div>
       </section>
@@ -131,28 +159,40 @@ export default function CurrentAffairsPage() {
         </button>
       </nav>
 
-      {active === "Important" ? (
+      {loading ? (
+        <section className="state-card">
+          <div className="loader"></div>
+          <h2>Current Affairs load ho rahe hain...</h2>
+          <p>Supabase database se latest updates fetch kiye ja rahe hain.</p>
+        </section>
+      ) : error ? (
+        <section className="state-card error-card">
+          <h2>Current Affairs load nahi ho paye</h2>
+          <p>{error}</p>
+        </section>
+      ) : active === "Important" ? (
         <section className="special-section">
           <h2>⭐ My Important Current Affairs</h2>
 
-          {important.length === 0 ? (
+          {filteredNews.length === 0 ? (
             <div className="empty">
               अभी कोई Current Affair Important में नहीं है।
               <br />
               किसी भी news पर ⭐ दबाकर उसे यहाँ save करें।
             </div>
           ) : (
-            news
-              .filter((item) => important.includes(item.id))
-              .map((item) => (
+            <div className="news-list">
+              {filteredNews.map((item) => (
                 <ArticleCard
                   key={item.id}
                   item={item}
                   important={true}
                   onImportant={toggleImportant}
                   onOpen={setSelected}
+                  formatDate={formatDate}
                 />
-              ))
+              ))}
+            </div>
           )}
         </section>
       ) : active === "Premium" ? (
@@ -160,6 +200,7 @@ export default function CurrentAffairsPage() {
           <div className="section-heading">
             <div>
               <span className="badge premium-badge">PREMIUM</span>
+
               <h2>🔥 Premium Facts</h2>
             </div>
 
@@ -169,22 +210,38 @@ export default function CurrentAffairsPage() {
             </p>
           </div>
 
-          <div className="fact-grid">
-            {news.map((item) => (
-              <article className="fact-card" key={item.id}>
-                <span>{item.paper}</span>
-                <h3>{item.title}</h3>
-                <p>{item.premiumFact}</p>
-                <small>Source: {item.source}</small>
-              </article>
-            ))}
-          </div>
+          {news.length === 0 ? (
+            <div className="empty">
+              अभी Premium Facts उपलब्ध नहीं हैं।
+            </div>
+          ) : (
+            <div className="fact-grid">
+              {news
+                .filter((item) => item.premium_fact)
+                .map((item) => (
+                  <article className="fact-card" key={item.id}>
+                    <span>{item.gs || item.paper || "UPSC"}</span>
+
+                    <h3>{item.title}</h3>
+
+                    <p>{item.premium_fact}</p>
+
+                    <small>
+                      Source: {item.source_name || "Official Source"}
+                    </small>
+                  </article>
+                ))}
+            </div>
+          )}
         </section>
       ) : (
         <section>
           <div className="section-heading">
             <div>
-              <span className="badge">01 OCT 2026</span>
+              <span className="badge">
+                {getTodayLabel().toUpperCase()}
+              </span>
+
               <h2>
                 {active === "Today"
                   ? "Today's UPSC Current Affairs"
@@ -192,54 +249,147 @@ export default function CurrentAffairsPage() {
               </h2>
             </div>
 
-            <p>{filteredNews.length} selected updates</p>
+            <p>{filteredNews.length} updates</p>
           </div>
 
-          <div className="news-list">
-            {filteredNews.map((item) => (
-              <ArticleCard
-                key={item.id}
-                item={item}
-                important={important.includes(item.id)}
-                onImportant={toggleImportant}
-                onOpen={setSelected}
-              />
-            ))}
-          </div>
+          {filteredNews.length === 0 ? (
+            <div className="empty">
+              इस category में अभी कोई Current Affair उपलब्ध नहीं है।
+            </div>
+          ) : (
+            <div className="news-list">
+              {filteredNews.map((item) => (
+                <ArticleCard
+                  key={item.id}
+                  item={item}
+                  important={important.includes(item.id)}
+                  onImportant={toggleImportant}
+                  onOpen={setSelected}
+                  formatDate={formatDate}
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
       {selected && (
-        <div className="modal-backdrop" onClick={() => setSelected(null)}>
-          <article className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => setSelected(null)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setSelected(null)}
+        >
+          <article
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="close"
+              onClick={() => setSelected(null)}
+            >
               ×
             </button>
 
-            <span className="badge">{selected.paper}</span>
+            <span className="badge">
+              {selected.gs || selected.paper || "UPSC"}
+            </span>
 
             <h2>{selected.title}</h2>
 
-            <p className="source">Source: {selected.source}</p>
+            <p className="source">
+              Source: {selected.source_name || "Not specified"}
+            </p>
 
-            <h3>Why in News</h3>
-            <p>{selected.summary}</p>
+            {selected.source_url && (
+              <a
+                className="source-link"
+                href={selected.source_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View Original Source
+              </a>
+            )}
 
-            <h3>Prelims</h3>
+            {selected.why_in_news && (
+              <>
+                <h3>Why in News</h3>
+                <p>{selected.why_in_news}</p>
+              </>
+            )}
 
-            <ul>
-              {selected.prelims.map((point) => (
-                <li key={point}>{point}</li>
-              ))}
-            </ul>
+            {selected.background && (
+              <>
+                <h3>Background</h3>
+                <p>{selected.background}</p>
+              </>
+            )}
 
-            <h3>Mains Analysis</h3>
-            <p>{selected.mains}</p>
+            {selected.key_facts && (
+              <>
+                <h3>Key Facts</h3>
+                <p>{selected.key_facts}</p>
+              </>
+            )}
 
-            <div className="premium-box">
-              <strong>🔥 Premium Fact</strong>
-              <p>{selected.premiumFact}</p>
-            </div>
+            {selected.prelims && (
+              <>
+                <h3>Prelims</h3>
+                <div className="content-block">
+                  {selected.prelims}
+                </div>
+              </>
+            )}
+
+            {selected.mains_analysis && (
+              <>
+                <h3>Mains Analysis</h3>
+                <div className="content-block">
+                  {selected.mains_analysis}
+                </div>
+              </>
+            )}
+
+            {selected.static_link && (
+              <>
+                <h3>Static Link</h3>
+                <p>{selected.static_link}</p>
+              </>
+            )}
+
+            {selected.related_pyqs && (
+              <>
+                <h3>Related PYQs</h3>
+                <div className="content-block">
+                  {selected.related_pyqs}
+                </div>
+              </>
+            )}
+
+            {selected.prelims_mcq && (
+              <>
+                <h3>Possible Prelims MCQ</h3>
+                <div className="content-block">
+                  {selected.prelims_mcq}
+                </div>
+              </>
+            )}
+
+            {selected.mains_question && (
+              <>
+                <h3>Possible Mains Question</h3>
+                <div className="content-block">
+                  {selected.mains_question}
+                </div>
+              </>
+            )}
+
+            {selected.premium_fact && (
+              <div className="premium-box">
+                <strong>🔥 Premium Fact</strong>
+
+                <p>{selected.premium_fact}</p>
+              </div>
+            )}
 
             <button
               className="important-button"
@@ -456,19 +606,59 @@ export default function CurrentAffairsPage() {
           margin: 0;
         }
 
+        .source-link {
+          display: inline-block;
+          margin-top: 8px;
+          color: #175cd3;
+          font-size: 13px;
+          font-weight: 700;
+          text-decoration: none;
+        }
+
         .special-section {
           margin-top: 8px;
         }
 
-        .empty {
+        .empty,
+        .state-card {
           background: #fff;
           border: 1px dashed #d0d5dd;
           border-radius: 16px;
           padding: 35px 20px;
           text-align: center;
           color: #667085;
-          margin-top: 15px;
+          margin: 15px auto 0;
           line-height: 1.7;
+          max-width: 1050px;
+        }
+
+        .state-card {
+          border-style: solid;
+        }
+
+        .state-card h2 {
+          color: #172033;
+          margin: 12px 0 5px;
+        }
+
+        .error-card {
+          border-color: #f04438;
+        }
+
+        .loader {
+          width: 32px;
+          height: 32px;
+          margin: auto;
+          border: 4px solid #e4e7ec;
+          border-top-color: #172033;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .fact-grid {
@@ -548,6 +738,12 @@ export default function CurrentAffairsPage() {
           color: #475467;
         }
 
+        .content-block {
+          white-space: pre-wrap;
+          color: #475467;
+          line-height: 1.65;
+        }
+
         .premium-box {
           margin: 20px 0;
           padding: 15px;
@@ -580,28 +776,55 @@ export default function CurrentAffairsPage() {
           .fact-grid {
             grid-template-columns: 1fr;
           }
+
+          .topline {
+            display: block;
+          }
+
+          .meta {
+            display: block;
+            margin-top: 7px;
+          }
         }
       `}</style>
     </main>
   );
 }
 
-function ArticleCard({ item, important, onImportant, onOpen }) {
+function ArticleCard({
+  item,
+  important,
+  onImportant,
+  onOpen,
+  formatDate,
+}) {
   return (
     <article className="news-card">
       <div className="topline">
-        <span className="badge">{item.paper}</span>
+        <span className="badge">
+          {item.gs || item.paper || "UPSC"}
+        </span>
+
         <span className="meta">
-          {item.subject} • {item.date}
+          {item.subject || "UPSC Current Affairs"}{" "}
+          • {formatDate(item.date)}
         </span>
       </div>
 
       <h3>{item.title}</h3>
 
-      <p className="summary">{item.summary}</p>
+      <p className="summary">
+        {item.why_in_news ||
+          item.background ||
+          item.key_facts ||
+          "UPSC-relevant current affair."}
+      </p>
 
       <div className="card-actions">
-        <button className="read-button" onClick={() => onOpen(item)}>
+        <button
+          className="read-button"
+          onClick={() => onOpen(item)}
+        >
           Read Full Analysis
         </button>
 
@@ -612,8 +835,10 @@ function ArticleCard({ item, important, onImportant, onOpen }) {
           {important ? "★ Important" : "⭐ Add to Important"}
         </button>
 
-        <span className="source">Source: {item.source}</span>
+        <span className="source">
+          Source: {item.source_name || "Not specified"}
+        </span>
       </div>
     </article>
   );
-      }
+            }
