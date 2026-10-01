@@ -699,7 +699,12 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  onOpen={setSelected}
+                  onOpen={(article) =>
+                    setSelected((prev) =>
+                      prev?.id === article.id ? null : article
+                    )
+                  }
+                  expanded={selected?.id === item.id}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -756,7 +761,12 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  onOpen={setSelected}
+                  onOpen={(article) =>
+                    setSelected((prev) =>
+                      prev?.id === article.id ? null : article
+                    )
+                  }
+                  expanded={selected?.id === item.id}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -766,23 +776,6 @@ export default function CurrentAffairsPage() {
             </div>
           )}
         </section>
-      )}
-
-      {selected && (
-        <ArticleModal
-          item={selected}
-          language={language}
-          important={importantIds.includes(
-            Number(selected.id)
-          )}
-          importantLoading={
-            importantLoading
-          }
-          onImportant={toggleImportant}
-          onClose={() =>
-            setSelected(null)
-          }
-        />
       )}
 
       <style jsx>{`
@@ -797,10 +790,47 @@ export default function CurrentAffairsPage() {
         .section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:14px}.section-heading h2{margin:8px 0 0;font-size:24px;letter-spacing:-.025em}.section-heading p{color:#8a93a1;margin:0;font-size:11px;font-weight:750}.premium-heading{align-items:flex-end}.premium-subtitle{margin-top:7px!important;color:#8a93a1!important;font-size:11px!important;font-weight:600!important}
         .news-list{display:grid;gap:12px}.news-card{position:relative;background:rgba(255,255,255,.97);border:1px solid #e1e6ec;border-radius:18px;padding:18px 19px 16px;box-shadow:0 5px 20px rgba(16,24,40,.045);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;overflow:hidden}.news-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#172033;opacity:0;transition:.2s}.news-card:hover{transform:translateY(-2px);border-color:#d2d8e0;box-shadow:0 12px 30px rgba(16,24,40,.075)}.news-card:hover:before{opacity:1}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.meta,.source{color:#8a93a1;font-size:10px;font-weight:650}.news-card h3{margin:11px 0 8px;font-size:clamp(17px,2vw,20px);line-height:1.4;letter-spacing:-.018em;font-weight:800}.summary{color:#596273;line-height:1.62;margin:0 0 15px;white-space:pre-wrap;font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
         .card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eef0f3}.read-button,.important-button{border:1px solid transparent;border-radius:11px;min-height:41px;padding:0 14px;cursor:pointer;font-weight:850;font-size:11px;display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s}.read-button{background:linear-gradient(135deg,#172033,#263248);color:#fff;box-shadow:0 5px 14px rgba(23,32,51,.16)}.read-button:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(23,32,51,.2)}.button-arrow{font-size:15px;line-height:1;opacity:.8;transition:transform .18s}.read-button:hover .button-arrow{transform:translateX(3px)}.important-button{background:#fff;color:#4b5565;border-color:#dfe4ea;box-shadow:0 2px 7px rgba(16,24,40,.035)}.important-button:hover{background:#f7f8fa;border-color:#cfd5de;transform:translateY(-1px)}.important-button.saved{background:#f8f3e7;border-color:#ead9ad;color:#765710}.important-icon{font-size:15px;line-height:1}.important-button:disabled,.setting-btn:disabled,.save-time:disabled{opacity:.6;cursor:wait}.source{margin-left:auto}
+        .news-card.is-expanded{border-color:#cfd6df;box-shadow:0 10px 28px rgba(16,24,40,.075)}
+        .read-button.open{background:linear-gradient(135deg,#24314a,#172033)}
+        .button-icon{font-size:12px;line-height:1;opacity:.85}
+        .bookmark-icon{width:17px;height:19px;display:grid;place-items:center}
+        .bookmark-icon svg{width:17px;height:19px;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+        .important-button.saved .bookmark-icon svg{stroke-width:1.45}
+        .inline-analysis{margin:-4px 0 10px;border:1px solid #dfe4eb;border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#fafbfc 100%);box-shadow:0 10px 28px rgba(16,24,40,.07);overflow:hidden;scroll-margin-top:18px;animation:analysisIn .22s ease}
+        @keyframes analysisIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+        .inline-analysis-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:20px 21px 17px;border-bottom:1px solid #edf0f3;background:linear-gradient(135deg,#f9fafc,#fff)}
+        .analysis-kicker{display:inline-flex;align-items:center;gap:7px;font-size:9px;font-weight:900;letter-spacing:.14em;color:#697386}
+        .analysis-kicker:before{content:"";width:18px;height:2px;background:#172033;border-radius:2px}
+        .inline-analysis-head h3{margin:8px 0 5px;font-size:clamp(18px,2.4vw,24px);line-height:1.35;letter-spacing:-.02em;color:#172033}
+        .inline-analysis-head p{margin:0;color:#8a93a1;font-size:10px;font-weight:650}
+        .analysis-close{border:1px solid #e0e5eb;background:#fff;color:#596273;border-radius:10px;min-height:36px;padding:0 11px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;font-weight:850;transition:.18s}
+        .analysis-close span{font-size:17px;line-height:1}.analysis-close:hover{background:#f5f7f9;border-color:#cfd6df;transform:translateY(-1px)}
+        .inline-analysis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;padding:15px}
+        .inline-analysis-section{border:1px solid #e5e9ee;background:#fff;border-radius:13px;padding:14px 15px;min-width:0}
+        .inline-analysis-section.highlight{grid-column:1/-1;background:#f7f9fb;border-color:#dce2e9}
+        .inline-analysis-label{font-size:10px;font-weight:900;letter-spacing:.04em;color:#596273;margin-bottom:8px}
+        .inline-analysis-content{color:#3f4a5a;font-size:12px;line-height:1.72;white-space:pre-wrap}
+        .inline-analysis-section.prelims{border-left:3px solid #7b8797}
+        .inline-analysis-section.mains{border-left:3px solid #172033}
+        .inline-analysis-section.pyq{background:#fbfcfe}
+        .inline-analysis-section.question-card{grid-column:1/-1;background:linear-gradient(135deg,#f7f4ee,#fffdf9);border:1px solid #e7dcc7;position:relative;padding:17px 18px 18px}
+        .inline-analysis-section.question-card:before{content:"QUESTION";position:absolute;right:13px;top:11px;font-size:8px;letter-spacing:.12em;font-weight:900;color:#a18a65}
+        .inline-analysis-section.question-card .inline-analysis-label{color:#7b6440;font-size:11px}
+        .inline-analysis-section.question-card .inline-analysis-content{font-size:14px;line-height:1.68;color:#263142;font-weight:750;letter-spacing:-.005em;padding-right:40px}
+        .inline-analysis-section.mains-question{background:linear-gradient(135deg,#f4f6f9,#ffffff);border-color:#d7dde6}
+        .inline-analysis-section.mains-question .inline-analysis-label{color:#172033}
+        .inline-analysis-section.ethics{background:#fbfaf7;border-color:#e9e3d7}
+        .inline-premium-box{grid-column:1/-1;border:1px solid #ead9ad;border-radius:13px;background:linear-gradient(135deg,#fffaf0,#fff);padding:15px 16px}
+        .inline-premium-title{display:flex;align-items:center;gap:8px;color:#765710;font-size:11px;letter-spacing:.04em;margin-bottom:7px}
+        .inline-premium-title span{font-size:15px}.inline-premium-box p{margin:0;color:#4d4a43;font-size:12px;line-height:1.7;white-space:pre-wrap}
+        .inline-analysis-footer{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 15px 15px;border-top:1px solid #edf0f3;background:#fcfdfe}
+        .inline-source-link{margin-left:auto}
+
         .empty,.state-card{background:#fff;border:1px dashed #d2d8e1;border-radius:17px;padding:38px 20px;text-align:center;color:#667085;margin:15px auto 0;line-height:1.7;max-width:1080px}.state-card{border-style:solid}.state-card h2{color:#172033;margin:12px 0 5px;font-size:18px}.loader{width:30px;height:30px;margin:auto;border:3px solid #e4e8ee;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error-card{border-color:#f04438}
         .fact-grid{max-width:1080px;margin:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.fact-card{background:#fff;border:1px solid #e2e6ec;border-radius:16px;padding:17px;box-shadow:0 5px 18px rgba(16,24,40,.04);transition:.2s}.fact-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,24,40,.07)}
         .premium-facts-section{margin-top:4px}.premium-count{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 9px;border-radius:8px;background:#f1f2f5;color:#667085;font-size:9px;font-weight:850;letter-spacing:.05em;text-transform:uppercase}.premium-fact-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-width:520px;margin:0 0 17px;padding:5px;background:#eceff3;border:1px solid #e2e5e9;border-radius:14px}.premium-fact-tab{border:0;background:transparent;color:#707987;border-radius:10px;padding:10px 13px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:.18s}.premium-fact-tab:hover{background:#f7f8fa;color:#273142}.premium-fact-tab.active{background:#172033;color:#fff;box-shadow:0 5px 14px rgba(23,32,51,.14)}.premium-fact-tab .tab-icon{width:25px;height:25px;display:grid;place-items:center;border-radius:7px;background:rgba(255,255,255,.14);font-size:10px}.premium-fact-tab:not(.active) .tab-icon{background:#fff}.premium-fact-tab strong{display:block;font-size:10px;letter-spacing:.05em}.premium-fact-tab small{display:block;margin-top:2px;font-size:9px;opacity:.72;font-weight:650}.premium-fact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.premium-fact-card{padding:16px}.premium-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.premium-number{color:#a0a7b2!important;font-size:10px!important;font-weight:900!important;letter-spacing:.05em}.premium-gs{display:inline-flex!important;padding:4px 8px;border-radius:6px;background:#f4f5f7;color:#697382!important;font-size:8px!important;font-weight:900!important;letter-spacing:.04em}.premium-fact-card h3{font-size:15px;line-height:1.42;margin:0 0 11px;color:#172033}.premium-fact-content{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:10px;background:#f8f9fb;border:1px solid #eef0f3}.premium-fact-icon{flex:0 0 auto;margin-top:3px;color:#172033;font-size:8px}.premium-fact-content p{margin:0!important;color:#4e596a!important;line-height:1.55!important;font-size:12px!important;white-space:normal!important}.prelims-fact-card .premium-fact-content p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}.mains-fact-card .premium-fact-content p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}.premium-card-footer{margin-top:10px;padding-top:9px;border-top:1px solid #eef0f3}.premium-card-footer span{color:#98a0ad;font-size:9px;font-weight:650}.premium-empty{padding:48px 20px}.premium-empty-icon{font-size:22px;margin-bottom:7px;color:#98a0ad}
         .modal-backdrop{position:fixed;inset:0;background:rgba(8,15,28,.62);backdrop-filter:blur(5px);display:grid;place-items:center;padding:16px;z-index:50}.modal{width:min(820px,100%);max-height:91vh;overflow:auto;background:#f8fafc;border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:0;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.25)}.modal-head{padding:24px 26px 20px;background:#172033;color:#fff}.modal-head .badge{background:rgba(255,255,255,.12);color:#fff}.modal-head .badge:before{background:#fff}.modal-head h2{margin:12px 38px 6px 0;font-size:24px;line-height:1.3;letter-spacing:-.025em}.modal-head .source{color:#b8c0cd}.modal-body{padding:8px 26px 26px}.close{position:absolute;right:16px;top:15px;width:35px;height:35px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:10px;font-size:22px;line-height:1;cursor:pointer;z-index:2}.modal-section{background:#fff;border:1px solid #e3e7ed;border-radius:14px;padding:15px 16px;margin-top:13px}.modal-section h3{margin:0 0 8px;font-size:12px;color:#172033;text-transform:uppercase;letter-spacing:.06em}.modal p{line-height:1.65;color:#596273;white-space:pre-wrap;font-size:13px}.content-block{white-space:pre-wrap;color:#596273;line-height:1.65;font-size:13px}.source-link{display:inline-flex;margin-top:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:8px 10px;border-radius:8px}.premium-box{margin:13px 0;padding:16px;border-radius:14px;background:#fff8e9;border:1px solid #efd69e}.premium-box p{margin-bottom:0}.modal-footer{padding:14px 26px 22px}.modal-important{margin-top:0;width:100%}
+        @media(max-width:900px){.inline-analysis-grid{grid-template-columns:1fr}.inline-analysis-section.highlight,.inline-analysis-section.question-card,.inline-premium-box{grid-column:auto}.inline-source-link{margin-left:0}}
         @media(max-width:900px){.ca-header{display:block}.header-actions{margin-top:17px;grid-template-columns:repeat(3,minmax(0,1fr))}.fact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:650px){.ca-page{padding:18px 12px 48px}.ca-header{margin-bottom:18px}.header-actions{grid-template-columns:1fr;gap:8px}.date-card,.language-box,.notification-button{width:100%}.notification-button{min-height:48px}.section-heading{display:block}.section-heading p{margin-top:8px}.premium-heading{display:flex}.premium-heading>div{min-width:0}.premium-heading .premium-count{margin-top:8px}.topline{display:block}.meta{display:block;margin-top:7px}.source{margin-left:0;width:100%;order:3}.card-actions{align-items:stretch}.read-button,.important-button{flex:1;min-height:43px}.fact-grid,.premium-fact-grid{grid-template-columns:1fr}.premium-fact-tabs{max-width:none}.premium-fact-tab{padding:10px 9px}.premium-fact-tab small{font-size:8px}.notification-grid{grid-template-columns:1fr}.notification-info{display:block}.notification-info span{display:block;margin-top:5px}.setting-box input{width:100%;margin:0 0 8px}.save-time{width:100%}.notification-title{align-items:flex-start}.modal-body{padding:7px 14px 20px}.modal-head{padding:20px 17px 17px}.modal-head h2{font-size:20px}.modal-footer{padding:12px 14px 18px}}
         @media(min-width:651px) and (max-width:1100px){.ca-page{padding-left:clamp(16px,4vw,30px);padding-right:clamp(16px,4vw,30px)}}
@@ -817,6 +847,7 @@ function ArticleCard({
   onOpen,
   formatDate,
   disabled,
+  expanded,
 }) {
   const hi = language === "hi";
   const title =
@@ -834,7 +865,8 @@ function ArticleCard({
     "";
 
   return (
-    <article className="news-card">
+    <>
+      <article className={expanded ? "news-card is-expanded" : "news-card"}>
       <div className="topline">
         <span className="badge">{item.gs || item.paper || "UPSC"}</span>
         <span className="meta">
@@ -848,11 +880,19 @@ function ArticleCard({
       <div className="card-actions">
         <button
           type="button"
-          className="read-button"
+          className={expanded ? "read-button open" : "read-button"}
           onClick={() => onOpen(item)}
+          aria-expanded={expanded}
         >
-          <span>{hi ? "पूरा Analysis पढ़ें" : "Read Full Analysis"}</span>
-          <span className="button-arrow">→</span>
+          <span className="button-icon">
+            {expanded ? "↑" : "↗"}
+          </span>
+          <span>
+            {expanded
+              ? (hi ? "Analysis बंद करें" : "Close Analysis")
+              : (hi ? "पूरा Analysis पढ़ें" : "Read Full Analysis")}
+          </span>
+          <span className="button-arrow">{expanded ? "↑" : "→"}</span>
         </button>
 
         <button
@@ -860,14 +900,31 @@ function ArticleCard({
           className={important ? "important-button saved" : "important-button"}
           disabled={disabled}
           onClick={() => onImportant(item.id)}
+          aria-label={important ? "Remove from Important" : "Save to Important"}
         >
-          <span className="important-icon">{important ? "★" : "☆"}</span>
-          <span>{important ? (hi ? "Important" : "Saved") : (hi ? "Mark Important" : "Mark Important")}</span>
+          <span className="bookmark-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill={important ? "currentColor" : "none"}>
+              <path d="M6.5 4.75A2.25 2.25 0 0 1 8.75 2.5h6.5A2.25 2.25 0 0 1 17.5 4.75V21l-5.5-3.4L6.5 21V4.75Z" />
+            </svg>
+          </span>
+          <span>{important ? (hi ? "Saved" : "Saved") : (hi ? "Important" : "Save")}</span>
         </button>
 
         <span className="source">{item.source_name || "Official Source"}</span>
       </div>
-    </article>
+      </article>
+
+      {expanded && (
+        <ArticleInlineAnalysis
+          item={item}
+          language={language}
+          important={important}
+          importantLoading={disabled}
+          onImportant={onImportant}
+          onClose={() => onOpen(item)}
+        />
+      )}
+    </>
   );
 }
 
@@ -1036,52 +1093,153 @@ function PremiumFacts({ news, language, hi }) {
   );
 }
 
-function ArticleModal({ item, language, important, importantLoading, onImportant, onClose }) {
+function ArticleInlineAnalysis({
+  item,
+  language,
+  important,
+  importantLoading,
+  onImportant,
+  onClose,
+}) {
   const hi = language === "hi";
-  const title = (hi ? item.title_hi : item.title_en) || item.title || (hi ? item.title_en : item.title_hi);
-  const why = (hi ? item.why_in_news_hi : item.why_in_news_en) || item.why_in_news;
-  const background = (hi ? item.background_hi : item.background_en) || item.background;
-  const facts = (hi ? item.key_facts_hi : item.key_facts_en) || item.key_facts;
-  const prelims = (hi ? item.prelims_hi : item.prelims_en) || item.prelims;
-  const mains = (hi ? item.mains_analysis_hi : item.mains_analysis_en) || item.mains_analysis;
-  const premium = (hi ? item.premium_fact_hi : item.premium_fact_en) || item.premium_fact;
-  const pyqs = (hi ? item.related_pyqs_hi : item.related_pyqs_en) || item.related_pyqs;
-  const mcq = (hi ? item.prelims_mcq_hi : item.prelims_mcq_en) || item.prelims_mcq;
-  const mainsQuestion = (hi ? item.mains_question_hi : item.mains_question_en) || item.mains_question;
-  const ethics = (hi ? item.ethics_angle_hi : item.ethics_angle_en) || "";
 
-  const block = (label, content) => content ? <section className="modal-section"><h3>{label}</h3><div className="content-block">{content}</div></section> : null;
+  const title =
+    (hi ? item.title_hi : item.title_en) ||
+    item.title ||
+    (hi ? item.title_en : item.title_hi) ||
+    "Current Affair";
+
+  const why =
+    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
+    item.why_in_news;
+
+  const background =
+    (hi ? item.background_hi : item.background_en) ||
+    item.background;
+
+  const facts =
+    (hi ? item.key_facts_hi : item.key_facts_en) ||
+    item.key_facts;
+
+  const prelims =
+    (hi ? item.prelims_hi : item.prelims_en) ||
+    item.prelims;
+
+  const mains =
+    (hi ? item.mains_analysis_hi : item.mains_analysis_en) ||
+    item.mains_analysis;
+
+  const premium =
+    (hi ? item.premium_fact_hi : item.premium_fact_en) ||
+    item.premium_fact;
+
+  const pyqs =
+    (hi ? item.related_pyqs_hi : item.related_pyqs_en) ||
+    item.related_pyqs;
+
+  const mcq =
+    (hi ? item.prelims_mcq_hi : item.prelims_mcq_en) ||
+    item.prelims_mcq;
+
+  const mainsQuestion =
+    (hi ? item.mains_question_hi : item.mains_question_en) ||
+    item.mains_question;
+
+  const ethics =
+    (hi ? item.ethics_angle_hi : item.ethics_angle_en) ||
+    "";
+
+  const block = (label, content, variant = "") =>
+    content ? (
+      <section className={`inline-analysis-section ${variant}`}>
+        <div className="inline-analysis-label">{label}</div>
+        <div className="inline-analysis-content">{content}</div>
+      </section>
+    ) : null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <article className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="close" onClick={onClose}>×</button>
-        <header className="modal-head">
-          <span className="badge">{item.gs || item.paper || "UPSC"}</span>
-          <h2>{title}</h2>
-          <p className="source">{item.source_name || "Official Source"} · {item.date || ""}</p>
-          {item.source_url && <a className="source-link" href={item.source_url} target="_blank" rel="noreferrer">{hi ? "Original Source देखें ↗" : "View Original Source ↗"}</a>}
-        </header>
-        <div className="modal-body">
-          {why && <section className="modal-section"><h3>Why in News</h3><p>{why}</p></section>}
-          {background && <section className="modal-section"><h3>Background</h3><p>{background}</p></section>}
-          {block("Key Facts", facts)}
-          {block("Prelims", prelims)}
-          {block("Mains Analysis", mains)}
-          {item.static_link && block("Static Link", item.static_link)}
-          {block("Related PYQs", pyqs)}
-          {block("Possible Prelims MCQ", mcq)}
-          {block("Possible Mains Question", mainsQuestion)}
-          {block("GS-IV Ethics", ethics)}
-          {premium && <div className="premium-box"><strong>🔥 Premium Fact</strong><p>{premium}</p></div>}
+    <section className="inline-analysis" aria-label="Full analysis">
+      <div className="inline-analysis-head">
+        <div>
+          <span className="analysis-kicker">
+            {hi ? "DETAILED UPSC ANALYSIS" : "DETAILED UPSC ANALYSIS"}
+          </span>
+          <h3>{title}</h3>
+          <p>
+            {item.source_name || "Official Source"} · {item.date || ""}
+          </p>
         </div>
-        <footer className="modal-footer">
-          <button className="important-button modal-important" disabled={importantLoading} onClick={() => onImportant(item.id)}>
-            {important ? "★ Remove from Important" : "☆ Save to Important"}
-          </button>
-        </footer>
-      </article>
-    </div>
+
+        <button
+          type="button"
+          className="analysis-close"
+          onClick={onClose}
+          aria-label={hi ? "Analysis बंद करें" : "Close analysis"}
+        >
+          <span>×</span>
+          {hi ? "बंद करें" : "Close"}
+        </button>
+      </div>
+
+      <div className="inline-analysis-grid">
+        {why && (
+          <section className="inline-analysis-section highlight">
+            <div className="inline-analysis-label">
+              {hi ? "क्यों चर्चा में?" : "Why in News"}
+            </div>
+            <div className="inline-analysis-content">{why}</div>
+          </section>
+        )}
+
+        {background && block(hi ? "पृष्ठभूमि" : "Background", background)}
+        {facts && block(hi ? "मुख्य तथ्य" : "Key Facts", facts)}
+        {prelims && block(hi ? "Prelims Focus" : "Prelims Focus", prelims, "prelims")}
+        {mains && block(hi ? "Mains Analysis" : "Mains Analysis", mains, "mains")}
+        {item.static_link && block(hi ? "Static Link" : "Static Link", item.static_link)}
+        {pyqs && block(hi ? "Related PYQs" : "Related PYQs", pyqs, "pyq")}
+        {mcq && block(hi ? "Prelims Practice MCQ" : "Prelims Practice MCQ", mcq, "question-card")}
+        {mainsQuestion && block(hi ? "Mains Practice Question" : "Mains Practice Question", mainsQuestion, "question-card mains-question")}
+        {ethics && block(hi ? "GS-IV Ethics Angle" : "GS-IV Ethics Angle", ethics, "ethics")}
+
+        {premium && (
+          <section className="inline-premium-box">
+            <div className="inline-premium-title">
+              <span>✦</span>
+              <strong>{hi ? "Premium Fact" : "Premium Fact"}</strong>
+            </div>
+            <p>{premium}</p>
+          </section>
+        )}
+      </div>
+
+      <div className="inline-analysis-footer">
+        <button
+          type="button"
+          className={important ? "important-button saved" : "important-button"}
+          disabled={importantLoading}
+          onClick={() => onImportant(item.id)}
+        >
+          <span className="bookmark-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill={important ? "currentColor" : "none"}>
+              <path d="M6.5 4.75A2.25 2.25 0 0 1 8.75 2.5h6.5A2.25 2.25 0 0 1 17.5 4.75V21l-5.5-3.4L6.5 21V4.75Z" />
+            </svg>
+          </span>
+          {important
+            ? (hi ? "Important में Saved" : "Saved to Important")
+            : (hi ? "Important में Save करें" : "Save to Important")}
+        </button>
+
+        {item.source_url && (
+          <a
+            className="source-link inline-source-link"
+            href={item.source_url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {hi ? "Original Source देखें ↗" : "View Original Source ↗"}
+          </a>
+        )}
+      </div>
+    </section>
   );
 }
-
