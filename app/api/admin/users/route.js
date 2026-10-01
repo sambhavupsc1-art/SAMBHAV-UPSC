@@ -129,7 +129,10 @@ export async function POST(request) {
       );
     }
 
-    if (!["approved", "rejected"].includes(status)) {
+    // Allowed admin actions
+    if (
+      !["approved", "rejected", "banned"].includes(status)
+    ) {
       return NextResponse.json(
         { error: "Invalid status" },
         { status: 400 }
