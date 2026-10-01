@@ -3,6 +3,10 @@
     {
       "path": "/api/current-affairs/cron",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/current-affairs/magazine/generate",
+      "schedule": "0 0 2 10 *"
     }
   ]
 }
