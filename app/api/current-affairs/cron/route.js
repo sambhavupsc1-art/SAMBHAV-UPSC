@@ -10,6 +10,10 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const PIB_URL =
   "https://www.pib.gov.in/AllReleasem.aspx?lang=1&reg=3";
 
+/* ---------------------------------------
+   SUPABASE
+--------------------------------------- */
+
 async function supabaseRequest(path, options = {}) {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     throw new Error("Supabase environment variables missing.");
@@ -27,6 +31,10 @@ async function supabaseRequest(path, options = {}) {
   });
 }
 
+/* ---------------------------------------
+   DATE - IST
+--------------------------------------- */
+
 function todayIST() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -36,9 +44,16 @@ function todayIST() {
   }).format(new Date());
 }
 
+/* ---------------------------------------
+   HTML HELPERS
+--------------------------------------- */
+
 function decodeHtml(value = "") {
   return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, "$1")
+    .replace(
+      /<!\[CDATA\[([\s\S]*?)\]\]>/gi,
+      "$1"
+    )
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
@@ -57,12 +72,22 @@ function decodeHtml(value = "") {
 
 function stripHtml(value = "") {
   return decodeHtml(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(
+      /<script[\s\S]*?<\/script>/gi,
+      " "
+    )
+    .replace(
+      /<style[\s\S]*?<\/style>/gi,
+      " "
+    )
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/* ---------------------------------------
+   URL NORMALIZATION
+--------------------------------------- */
 
 function normalizeUrl(value = "") {
   let url = decodeHtml(value)
@@ -92,9 +117,12 @@ function normalizeUrl(value = "") {
 --------------------------------------- */
 
 function relevanceScore(title = "", content = "") {
-  const text = `${title} ${content}`.toLowerCase();
+  const text =
+    `${title} ${content}`.toLowerCase();
 
   const keywords = {
+    /* GS-II */
+
     parliament: 5,
     constitution: 5,
     "supreme court": 5,
@@ -102,23 +130,64 @@ function relevanceScore(title = "", content = "") {
     governance: 4,
     policy: 3,
     scheme: 4,
+    legislation: 5,
+    bill: 4,
+    election: 4,
+    federal: 4,
+    "local government": 4,
+    "public administration": 4,
+    transparency: 4,
+    accountability: 4,
+
+    /* Economy */
 
     rbi: 5,
     sebi: 5,
     economy: 4,
+    economic: 3,
     gdp: 5,
     inflation: 5,
     fiscal: 4,
     monetary: 4,
     budget: 4,
     taxation: 4,
+    tax: 3,
+    trade: 4,
+    exports: 4,
+    imports: 4,
+    investment: 4,
+    manufacturing: 4,
+    industry: 4,
+    employment: 4,
+    unemployment: 4,
+    banking: 4,
+    finance: 4,
+    financial: 4,
+    "current account": 5,
+    "balance of payments": 5,
+    subsidy: 4,
+    "public expenditure": 4,
+
+    /* Agriculture */
 
     agriculture: 4,
+    agricultural: 4,
     farmer: 4,
+    farmers: 4,
     crops: 3,
+    crop: 3,
     msp: 5,
     irrigation: 4,
     fertilizer: 4,
+    fertiliser: 4,
+    foodgrain: 4,
+    foodgrains: 4,
+    food: 3,
+    "food security": 5,
+    "agricultural research": 5,
+    storage: 3,
+
+    /* Environment */
 
     environment: 5,
     climate: 5,
@@ -129,11 +198,28 @@ function relevanceScore(title = "", content = "") {
     water: 3,
     river: 3,
     wetland: 4,
+    ecosystem: 5,
+    conservation: 4,
+    "climate change": 5,
+    emissions: 4,
+    carbon: 4,
+    renewable: 4,
+    "green energy": 4,
+    sustainability: 4,
+    sustainable: 3,
+
+    /* Disaster */
 
     disaster: 4,
     earthquake: 4,
     cyclone: 4,
     flood: 4,
+    drought: 4,
+    landslide: 4,
+    tsunami: 5,
+    resilience: 4,
+
+    /* Science & Technology */
 
     isro: 5,
     space: 5,
@@ -144,14 +230,37 @@ function relevanceScore(title = "", content = "") {
     ai: 2,
     biotechnology: 5,
     semiconductor: 5,
+    quantum: 5,
+    genome: 5,
+    genomics: 5,
+    vaccine: 4,
+    research: 4,
+    innovation: 3,
+    digital: 3,
+    cybersecurity: 5,
+    cyber: 4,
+    "digital public infrastructure": 5,
+    "digital india": 5,
+
+    /* Security */
 
     defence: 4,
     defense: 4,
     security: 4,
     terrorism: 5,
+    terrorist: 5,
     border: 4,
+    maritime: 4,
+    navy: 4,
+    naval: 4,
+    military: 4,
     cyber: 4,
     cybersecurity: 5,
+    "internal security": 5,
+    insurgency: 5,
+    extremism: 4,
+
+    /* International Relations */
 
     international: 3,
     "international relations": 5,
@@ -161,54 +270,123 @@ function relevanceScore(title = "", content = "") {
     wto: 4,
     who: 4,
     unesco: 4,
-
     brics: 4,
     sco: 4,
-    g20: 4,
-    quad: 4,
+    g20: 5,
+    quad: 5,
     asean: 4,
     treaty: 4,
     agreement: 4,
     summit: 4,
     "foreign policy": 5,
+    diplomacy: 4,
+    diplomatic: 4,
+    bilateral: 4,
+    multilateral: 4,
+    "strategic partnership": 5,
+
+    /* Social Justice */
 
     education: 3,
     health: 3,
     "public health": 4,
-    "social justice": 5,
+    healthcare: 4,
     tribal: 4,
+    tribes: 4,
     women: 3,
+    child: 3,
+    children: 3,
     "human rights": 4,
+    "social justice": 5,
+    poverty: 4,
+    nutrition: 4,
+    sanitation: 3,
+    welfare: 3,
+    inclusion: 4,
+
+    /* Reports / Data */
 
     report: 3,
     index: 4,
     survey: 4,
     census: 5,
     data: 2,
+    statistics: 4,
+    indicator: 4,
+
+    /* Culture / Geography */
 
     heritage: 4,
     culture: 3,
     history: 3,
     archaeology: 4,
+    archaeological: 4,
+    monument: 3,
     "national park": 4,
-
-    renewable: 4,
-    "green energy": 4,
-    minerals: 4,
+    biosphere: 5,
+    geography: 3,
+    tourism: 2,
+    mineral: 3,
+    minerals: 3,
     mining: 3,
-    digital: 3,
-    innovation: 3,
+
+    /* Governance / Digital */
+
+    telecom: 4,
+    telecommunications: 4,
+    broadband: 4,
+    bharatnet: 5,
+    "digital bharat nidhi": 5,
+    infrastructure: 4,
+    connectivity: 4,
+    "public service": 4,
+    "civil services": 4,
   };
 
   let score = 0;
 
-  for (const [keyword, points] of Object.entries(keywords)) {
+  for (const [keyword, points] of Object.entries(
+    keywords
+  )) {
     if (text.includes(keyword)) {
       score += points;
     }
   }
 
   return score;
+}
+
+/* ---------------------------------------
+   LOW-VALUE PIB NOISE FILTER
+--------------------------------------- */
+
+function isLowValueNoise(title = "", content = "") {
+  const text =
+    `${title} ${content}`.toLowerCase();
+
+  const noisePatterns = [
+    "birthday greetings",
+    "extends birthday greetings",
+    "greetings on the eve",
+    "congratulates indian",
+    "congratulates ",
+    "lauds captain",
+    "immense courage and valour",
+    "courage and valour in saving lives",
+    "meets prime minister",
+    "pays tributes",
+    "tributes to former",
+    "sanskrit subhashitam",
+    "cleanliness drive",
+    "blood donation camp",
+    "shramdaan",
+    "swachhata hi sewa",
+    "swachhata hi seva",
+  ];
+
+  return noisePatterns.some(
+    (pattern) => text.includes(pattern)
+  );
 }
 
 /* ---------------------------------------
@@ -230,32 +408,42 @@ function extractReleaseLinks(html) {
     if (!cleanUrl) return;
 
     if (cleanUrl.startsWith("/")) {
-      cleanUrl = `https://www.pib.gov.in${cleanUrl}`;
+      cleanUrl =
+        `https://www.pib.gov.in${cleanUrl}`;
     } else if (cleanUrl.startsWith("//")) {
       cleanUrl = `https:${cleanUrl}`;
-    } else if (!/^https?:\/\//i.test(cleanUrl)) {
-      cleanUrl = `https://www.pib.gov.in/${cleanUrl}`;
+    } else if (
+      !/^https?:\/\//i.test(cleanUrl)
+    ) {
+      cleanUrl =
+        `https://www.pib.gov.in/${cleanUrl}`;
     }
 
-    const lower = cleanUrl.toLowerCase();
+    const lower =
+      cleanUrl.toLowerCase();
 
     /*
-      PIB uses:
-      PressReleseDetailm.aspx?PRID=XXXX
-
-      "Relese" is intentionally spelled this way
-      because that is how the PIB URL is structured.
-    */
+     * PIB currently uses:
+     * PressReleseDetailm.aspx?PRID=XXXX
+     *
+     * "Relese" spelling is intentional.
+     */
 
     if (
-      !lower.includes("pressrelesedetail") &&
-      !lower.includes("pressreleasedetail") &&
+      !lower.includes(
+        "pressrelesedetail"
+      ) &&
+      !lower.includes(
+        "pressreleasedetail"
+      ) &&
       !lower.includes("prid=")
     ) {
       return;
     }
 
-    if (seen.has(cleanUrl)) return;
+    if (seen.has(cleanUrl)) {
+      return;
+    }
 
     seen.add(cleanUrl);
 
@@ -272,52 +460,53 @@ function extractReleaseLinks(html) {
 
   let match;
 
-  while ((match = anchorRegex.exec(html)) !== null) {
+  while (
+    (match = anchorRegex.exec(html)) !== null
+  ) {
     add(match[1], match[2]);
   }
 
-  /*
-    Handle href attributes even if anchor HTML
-    is unusual.
-  */
+  /* Unusual href formatting */
 
   const hrefRegex =
     /href\s*=\s*["']([^"']*(?:PressReleseDetailm|PressReleaseDetailm)[^"']*)["']/gi;
 
-  while ((match = hrefRegex.exec(html)) !== null) {
+  while (
+    (match = hrefRegex.exec(html)) !== null
+  ) {
     add(match[1], "");
   }
 
-  /*
-    Direct occurrences of PIB release URLs.
-  */
+  /* Direct PIB release URLs */
 
   const directRegex =
     /(?:https?:\/\/)?(?:www\.)?pib\.gov\.in\/PressReleseDetailm\.aspx\?[^"'<> ]+/gi;
 
-  while ((match = directRegex.exec(html)) !== null) {
+  while (
+    (match = directRegex.exec(html)) !== null
+  ) {
     add(match[0], "");
   }
 
-  /*
-    Relative occurrences.
-  */
+  /* Relative release URLs */
 
   const relativeRegex =
     /PressReleseDetailm\.aspx\?[^"'<> )]+/gi;
 
-  while ((match = relativeRegex.exec(html)) !== null) {
+  while (
+    (match = relativeRegex.exec(html)) !== null
+  ) {
     add(match[0], "");
   }
 
-  /*
-    PRID fallback.
-  */
+  /* PRID fallback */
 
   const pridRegex =
     /(?:PressReleseDetailm|PressReleaseDetailm)\.aspx[^"'<>]*?PRID\s*=\s*(\d+)/gi;
 
-  while ((match = pridRegex.exec(html)) !== null) {
+  while (
+    (match = pridRegex.exec(html)) !== null
+  ) {
     add(
       `https://www.pib.gov.in/PressReleseDetailm.aspx?PRID=${match[1]}`,
       ""
@@ -332,16 +521,20 @@ function extractReleaseLinks(html) {
 --------------------------------------- */
 
 async function fetchPIBPage() {
-  const response = await fetch(PIB_URL, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-IN,en;q=0.9",
-    },
-    cache: "no-store",
-  });
+  const response = await fetch(
+    PIB_URL,
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language":
+          "en-IN,en;q=0.9",
+      },
+      cache: "no-store",
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -349,10 +542,18 @@ async function fetchPIBPage() {
     );
   }
 
-  const html = await response.text();
+  const html =
+    await response.text();
 
-  console.log("PIB PAGE STATUS:", response.status);
-  console.log("PIB PAGE LENGTH:", html.length);
+  console.log(
+    "PIB PAGE STATUS:",
+    response.status
+  );
+
+  console.log(
+    "PIB PAGE LENGTH:",
+    html.length
+  );
 
   return html;
 }
@@ -363,16 +564,20 @@ async function fetchPIBPage() {
 
 async function fetchReleaseContent(url) {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-IN,en;q=0.9",
-      },
-      cache: "no-store",
-    });
+    const response = await fetch(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language":
+            "en-IN,en;q=0.9",
+        },
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       console.log(
@@ -384,9 +589,13 @@ async function fetchReleaseContent(url) {
       return "";
     }
 
-    const html = await response.text();
+    const html =
+      await response.text();
 
-    return stripHtml(html).slice(0, 30000);
+    return stripHtml(html).slice(
+      0,
+      30000
+    );
   } catch (error) {
     console.error(
       "Release fetch failed:",
@@ -405,10 +614,11 @@ function removeDuplicates(items) {
   const seen = new Set();
 
   return items.filter((item) => {
-    const key = item.title
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
+    const key =
+      item.title
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
 
     if (!key || seen.has(key)) {
       return false;
@@ -425,7 +635,8 @@ function removeDuplicates(items) {
 --------------------------------------- */
 
 async function collectSources() {
-  const html = await fetchPIBPage();
+  const html =
+    await fetchPIBPage();
 
   const releaseLinks =
     extractReleaseLinks(html);
@@ -442,12 +653,16 @@ async function collectSources() {
 
     console.log(
       "HAS PRESSRELESEDETAIL:",
-      /pressrelesedetail/i.test(html)
+      /pressrelesedetail/i.test(
+        html
+      )
     );
 
     console.log(
       "HAS PRESSRELEASEDETAIL:",
-      /pressreleasedetail/i.test(html)
+      /pressreleasedetail/i.test(
+        html
+      )
     );
 
     console.log(
@@ -455,19 +670,19 @@ async function collectSources() {
       /prid=/i.test(html)
     );
 
-    /*
-      Print a useful HTML sample around PRID
-      if available.
-    */
-
     const pridPosition =
-      html.toLowerCase().indexOf("prid");
+      html
+        .toLowerCase()
+        .indexOf("prid");
 
     if (pridPosition >= 0) {
       console.log(
         "PRID HTML SAMPLE:",
         html.slice(
-          Math.max(0, pridPosition - 500),
+          Math.max(
+            0,
+            pridPosition - 500
+          ),
           pridPosition + 1000
         )
       );
@@ -477,10 +692,8 @@ async function collectSources() {
   }
 
   /*
-    Latest releases first.
-    Limit avoids excessive requests.
-  */
-
+   * Read latest 35 PIB releases.
+   */
   const candidates =
     releaseLinks.slice(0, 35);
 
@@ -502,10 +715,18 @@ async function collectSources() {
         release.title ||
         content.slice(0, 300);
 
-      if (!title) continue;
+      if (!title) {
+        continue;
+      }
 
       const score =
         relevanceScore(
+          title,
+          content
+        );
+
+      const noise =
+        isLowValueNoise(
           title,
           content
         );
@@ -514,22 +735,30 @@ async function collectSources() {
         "PIB RELEASE:",
         title.slice(0, 120),
         "| SCORE:",
-        score
+        score,
+        "| NOISE:",
+        noise
       );
 
       /*
-        Score >= 2 enters the pipeline.
-        Gemini performs the final UPSC
-        relevance and structuring.
-      */
+       * Strongly exclude obvious low-value
+       * PIB ceremonial/news items.
+       */
+      if (noise) {
+        continue;
+      }
 
-      if (score >= 2) {
+      /*
+       * Minimum UPSC relevance.
+       */
+      if (score >= 4) {
         collected.push({
           title,
           description:
             content || title,
           url: release.url,
-          source_url: release.url,
+          source_url:
+            release.url,
           source_name:
             "Press Information Bureau (PIB)",
           score,
@@ -550,7 +779,9 @@ async function collectSources() {
    RUN TRACKING
 --------------------------------------- */
 
-async function createOrResetRun(runDate) {
+async function createOrResetRun(
+  runDate
+) {
   const existingResponse =
     await supabaseRequest(
       `current_affairs_runs?run_date=eq.${runDate}&select=id`,
@@ -575,7 +806,8 @@ async function createOrResetRun(runDate) {
         {
           method: "PATCH",
           headers: {
-            Prefer: "return=minimal",
+            Prefer:
+              "return=minimal",
           },
           body: JSON.stringify({
             status: "started",
@@ -604,7 +836,8 @@ async function createOrResetRun(runDate) {
       {
         method: "POST",
         headers: {
-          Prefer: "return=minimal",
+          Prefer:
+            "return=minimal",
         },
         body: JSON.stringify({
           run_date: runDate,
@@ -622,7 +855,10 @@ async function createOrResetRun(runDate) {
   }
 }
 
-async function updateRun(runDate, values) {
+async function updateRun(
+  runDate,
+  values
+) {
   try {
     const response =
       await supabaseRequest(
@@ -630,9 +866,12 @@ async function updateRun(runDate, values) {
         {
           method: "PATCH",
           headers: {
-            Prefer: "return=minimal",
+            Prefer:
+              "return=minimal",
           },
-          body: JSON.stringify(values),
+          body: JSON.stringify(
+            values
+          ),
         }
       );
 
@@ -651,31 +890,31 @@ async function updateRun(runDate, values) {
 }
 
 /* ---------------------------------------
-   GEMINI / AI ARTICLE CREATION
+   BATCH AI ARTICLE CREATION
 --------------------------------------- */
 
-async function generateArticle(item) {
+async function generateArticleBatch(
+  items
+) {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://sambhav-upsc.vercel.app";
 
-  const response = await fetch(
-    `${baseUrl}/api/current-affairs/ai`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: item.title,
-        content: item.description,
-        source_name: item.source_name,
-        source_url: item.source_url,
-        date: todayIST(),
-      }),
-      cache: "no-store",
-    }
-  );
+  const response =
+    await fetch(
+      `${baseUrl}/api/current-affairs/ai`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          items,
+        }),
+        cache: "no-store",
+      }
+    );
 
   const text =
     await response.text();
@@ -696,7 +935,7 @@ async function generateArticle(item) {
   if (!response.ok) {
     throw new Error(
       data?.error ||
-        "AI article generation failed."
+        "AI batch generation failed."
     );
   }
 
@@ -707,10 +946,17 @@ async function generateArticle(item) {
    CRON GET
 --------------------------------------- */
 
-export async function GET(request) {
-  const runDate = todayIST();
+export async function GET(
+  request
+) {
+  const runDate =
+    todayIST();
 
   try {
+    /* -----------------------------------
+       CRON AUTH
+    ----------------------------------- */
+
     if (!CRON_SECRET) {
       return NextResponse.json(
         {
@@ -718,7 +964,9 @@ export async function GET(request) {
           error:
             "CRON_SECRET environment variable missing.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -736,7 +984,9 @@ export async function GET(request) {
           success: false,
           error: "Unauthorized.",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
@@ -745,9 +995,17 @@ export async function GET(request) {
       runDate
     );
 
+    /* -----------------------------------
+       START RUN
+    ----------------------------------- */
+
     await createOrResetRun(
       runDate
     );
+
+    /* -----------------------------------
+       COLLECT PIB
+    ----------------------------------- */
 
     const collected =
       await collectSources();
@@ -756,6 +1014,10 @@ export async function GET(request) {
       "TOTAL COLLECTED:",
       collected.length
     );
+
+    /* -----------------------------------
+       DEDUPLICATION
+    ----------------------------------- */
 
     const unique =
       removeDuplicates(
@@ -766,6 +1028,10 @@ export async function GET(request) {
       "UNIQUE ARTICLES:",
       unique.length
     );
+
+    /* -----------------------------------
+       SELECT TOP UPSC ARTICLES
+    ----------------------------------- */
 
     const selected =
       unique
@@ -780,6 +1046,20 @@ export async function GET(request) {
       selected.length
     );
 
+    /*
+     * Log exact selected titles.
+     */
+    selected.forEach(
+      (item, index) => {
+        console.log(
+          `SELECTED ${index + 1}:`,
+          item.title,
+          "| SCORE:",
+          item.score
+        );
+      }
+    );
+
     await updateRun(
       runDate,
       {
@@ -788,41 +1068,95 @@ export async function GET(request) {
       }
     );
 
-    let created = 0;
+    /* -----------------------------------
+       NO ARTICLES
+    ----------------------------------- */
 
-    for (const item of selected) {
-      console.log(
-        "PROCESSING:",
-        item.title
+    if (!selected.length) {
+      await updateRun(
+        runDate,
+        {
+          status: "success",
+          articles_found: 0,
+          articles_created: 0,
+          error_message: null,
+          completed_at:
+            new Date().toISOString(),
+        }
       );
 
-      try {
-        const result =
-          await generateArticle(
-            item
-          );
-
-        console.log(
-          "AI RESULT:",
-          item.title,
-          result?.success,
-          result?.duplicate
-        );
-
-        if (
-          result?.success &&
-          !result?.duplicate
-        ) {
-          created++;
+      console.log(
+        "CURRENT AFFAIRS CRON COMPLETE:",
+        {
+          date: runDate,
+          articles_found: 0,
+          articles_created: 0,
         }
-      } catch (error) {
-        console.error(
-          "Article processing failed:",
-          item.title,
-          error.message
-        );
-      }
+      );
+
+      return NextResponse.json({
+        success: true,
+        date: runDate,
+        source:
+          "PIB All Releases",
+        articles_found: 0,
+        articles_created: 0,
+      });
     }
+
+    /* -----------------------------------
+       ONE BATCH GEMINI REQUEST
+    ----------------------------------- */
+
+    let created = 0;
+
+    console.log(
+      "BATCH PROCESSING START:",
+      selected.length,
+      "articles"
+    );
+
+    try {
+      const result =
+        await generateArticleBatch(
+          selected.map(
+            (item) => ({
+              title:
+                item.title,
+              content:
+                item.description,
+              source_name:
+                item.source_name,
+              source_url:
+                item.source_url,
+              date:
+                runDate,
+            })
+          )
+        );
+
+      console.log(
+        "AI BATCH RESULT:",
+        result?.success,
+        result?.articles_received,
+        result?.articles_created
+      );
+
+      created =
+        Number(
+          result?.articles_created ||
+            0
+        );
+    } catch (error) {
+      console.error(
+        "BATCH ARTICLE PROCESSING FAILED:",
+        error.message
+      );
+    }
+
+    /* -----------------------------------
+       COMPLETE RUN
+    ----------------------------------- */
 
     await updateRun(
       runDate,
@@ -882,7 +1216,9 @@ export async function GET(request) {
           error.message ||
           "Current Affairs cron failed.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
-    }
+}
