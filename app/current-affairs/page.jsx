@@ -17,36 +17,62 @@ export default function CurrentAffairsPage() {
   const [important, setImportant] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [importantLoading, setImportantLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadCurrentAffairs() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch("/api/current-affairs", {
-          cache: "no-store",
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result?.error || "Current Affairs load nahi ho paye."
-          );
-        }
-
-        setNews(result.data || []);
-      } catch (err) {
-        setError(err.message || "Current Affairs load nahi ho paye.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadCurrentAffairs();
+    loadImportant();
   }, []);
+
+  async function loadCurrentAffairs() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("/api/current-affairs", {
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.error || "Current Affairs load nahi ho paye."
+        );
+      }
+
+      setNews(result.data || []);
+    } catch (err) {
+      setError(err.message || "Current Affairs load nahi ho paye.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadImportant() {
+    try {
+      const response = await fetch(
+        "/api/current-affairs?mode=important",
+        {
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setImportant(result.data || []);
+      }
+    } catch (error) {
+      console.error("Important Current Affairs load failed:", error);
+    }
+  }
+
+  const importantIds = useMemo(
+    () => important.map((item) => Number(item.current_affair_id)),
+    [important]
+  );
 
   const filteredNews = useMemo(() => {
     if (active === "Today") {
@@ -63,18 +89,63 @@ export default function CurrentAffairsPage() {
     }
 
     if (active === "Important") {
-      return news.filter((item) => important.includes(item.id));
+      return news.filter((item) =>
+        importantIds.includes(Number(item.id))
+      );
     }
 
-    return news.filter((item) => item.gs === active || item.paper === active);
-  }, [active, news, important]);
-
-  function toggleImportant(id) {
-    setImportant((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
+    return news.filter(
+      (item) => item.gs === active || item.paper === active
     );
+  }, [active, news, importantIds]);
+
+  async function toggleImportant(id) {
+    try {
+      setImportantLoading(true);
+
+      const isAlreadyImportant = importantIds.includes(Number(id));
+
+      if (isAlreadyImportant) {
+        const response = await fetch(
+          `/api/current-affairs?mode=important&current_affair_id=${id}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result?.error || "Important remove nahi hua."
+          );
+        }
+      } else {
+        const response = await fetch("/api/current-affairs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            current_affair_id: id,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result?.error || "Important save nahi hua."
+          );
+        }
+      }
+
+      await loadImportant();
+    } catch (error) {
+      alert(error.message || "Important update nahi ho paya.");
+    } finally {
+      setImportantLoading(false);
+    }
   }
 
   function formatDate(value) {
@@ -91,14 +162,10 @@ export default function CurrentAffairsPage() {
     });
   }
 
-  function getTodayLabel() {
-    if (!news.length) return "Today's UPSC Current Affairs";
+  function getLatestDate() {
+    if (!news.length) return "Loading...";
 
-    const latestDate = news[0]?.date;
-
-    if (!latestDate) return "Today's UPSC Current Affairs";
-
-    return formatDate(latestDate);
+    return formatDate(news[0]?.date);
   }
 
   return (
@@ -117,9 +184,7 @@ export default function CurrentAffairsPage() {
         <div className="date-card">
           <span>Latest Update</span>
 
-          <strong>
-            {news.length > 0 ? formatDate(news[0]?.date) : "Loading..."}
-          </strong>
+          <strong>{getLatestDate()}</strong>
 
           <small>Daily update target: 10:00 AM</small>
         </div>
@@ -129,7 +194,9 @@ export default function CurrentAffairsPage() {
         {filters.map((filter) => (
           <button
             key={filter}
-            className={active === filter ? "filter active" : "filter"}
+            className={
+              active === filter ? "filter active" : "filter"
+            }
             onClick={() => setActive(filter)}
           >
             {filter}
@@ -162,17 +229,30 @@ export default function CurrentAffairsPage() {
       {loading ? (
         <section className="state-card">
           <div className="loader"></div>
+
           <h2>Current Affairs load ho rahe hain...</h2>
-          <p>Supabase database se latest updates fetch kiye ja rahe hain.</p>
+
+          <p>
+            Supabase database se latest updates fetch kiye ja rahe hain.
+          </p>
         </section>
       ) : error ? (
         <section className="state-card error-card">
           <h2>Current Affairs load nahi ho paye</h2>
+
           <p>{error}</p>
         </section>
       ) : active === "Important" ? (
         <section className="special-section">
-          <h2>⭐ My Important Current Affairs</h2>
+          <div className="section-heading">
+            <div>
+              <span className="badge">SAVED</span>
+
+              <h2>⭐ My Important Current Affairs</h2>
+            </div>
+
+            <p>{filteredNews.length} saved</p>
+          </div>
 
           {filteredNews.length === 0 ? (
             <div className="empty">
@@ -190,6 +270,7 @@ export default function CurrentAffairsPage() {
                   onImportant={toggleImportant}
                   onOpen={setSelected}
                   formatDate={formatDate}
+                  disabled={importantLoading}
                 />
               ))}
             </div>
@@ -205,12 +286,12 @@ export default function CurrentAffairsPage() {
             </div>
 
             <p>
-              Introduction, Body और Conclusion में उपयोग होने वाले high-value
-              facts.
+              Introduction, Body और Conclusion में उपयोग होने वाले
+              high-value facts.
             </p>
           </div>
 
-          {news.length === 0 ? (
+          {news.filter((item) => item.premium_fact).length === 0 ? (
             <div className="empty">
               अभी Premium Facts उपलब्ध नहीं हैं।
             </div>
@@ -220,14 +301,17 @@ export default function CurrentAffairsPage() {
                 .filter((item) => item.premium_fact)
                 .map((item) => (
                   <article className="fact-card" key={item.id}>
-                    <span>{item.gs || item.paper || "UPSC"}</span>
+                    <span>
+                      {item.gs || item.paper || "UPSC"}
+                    </span>
 
                     <h3>{item.title}</h3>
 
                     <p>{item.premium_fact}</p>
 
                     <small>
-                      Source: {item.source_name || "Official Source"}
+                      Source:{" "}
+                      {item.source_name || "Official Source"}
                     </small>
                   </article>
                 ))}
@@ -239,7 +323,7 @@ export default function CurrentAffairsPage() {
           <div className="section-heading">
             <div>
               <span className="badge">
-                {getTodayLabel().toUpperCase()}
+                {getLatestDate().toUpperCase()}
               </span>
 
               <h2>
@@ -262,10 +346,13 @@ export default function CurrentAffairsPage() {
                 <ArticleCard
                   key={item.id}
                   item={item}
-                  important={important.includes(item.id)}
+                  important={importantIds.includes(
+                    Number(item.id)
+                  )}
                   onImportant={toggleImportant}
                   onOpen={setSelected}
                   formatDate={formatDate}
+                  disabled={importantLoading}
                 />
               ))}
             </div>
@@ -296,7 +383,8 @@ export default function CurrentAffairsPage() {
             <h2>{selected.title}</h2>
 
             <p className="source">
-              Source: {selected.source_name || "Not specified"}
+              Source:{" "}
+              {selected.source_name || "Not specified"}
             </p>
 
             {selected.source_url && (
@@ -392,10 +480,13 @@ export default function CurrentAffairsPage() {
             )}
 
             <button
-              className="important-button"
-              onClick={() => toggleImportant(selected.id)}
+              className="important-button modal-important"
+              disabled={importantLoading}
+              onClick={() =>
+                toggleImportant(selected.id)
+              }
             >
-              {important.includes(selected.id)
+              {importantIds.includes(Number(selected.id))
                 ? "★ Remove from Important"
                 : "⭐ Add to Important"}
             </button>
@@ -600,6 +691,15 @@ export default function CurrentAffairsPage() {
           color: #344054;
         }
 
+        .important-button:disabled {
+          opacity: 0.6;
+          cursor: wait;
+        }
+
+        .modal-important {
+          margin-top: 12px;
+        }
+
         .source {
           color: #667085;
           font-size: 12px;
@@ -797,6 +897,7 @@ function ArticleCard({
   onImportant,
   onOpen,
   formatDate,
+  disabled,
 }) {
   return (
     <article className="news-card">
@@ -806,8 +907,8 @@ function ArticleCard({
         </span>
 
         <span className="meta">
-          {item.subject || "UPSC Current Affairs"}{" "}
-          • {formatDate(item.date)}
+          {item.subject || "UPSC Current Affairs"} •{" "}
+          {formatDate(item.date)}
         </span>
       </div>
 
@@ -830,6 +931,7 @@ function ArticleCard({
 
         <button
           className="important-button"
+          disabled={disabled}
           onClick={() => onImportant(item.id)}
         >
           {important ? "★ Important" : "⭐ Add to Important"}
@@ -841,4 +943,4 @@ function ArticleCard({
       </div>
     </article>
   );
-            }
+}
