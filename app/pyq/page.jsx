@@ -96,59 +96,6 @@ const prelimsPYQs = [
   },
 ];
 
-const mainsPYQs = [
-  {
-    id: 101,
-    year: 2025,
-    paper: "GS Paper 1",
-    topic: "Indian Society",
-    marks: 10,
-    words: 150,
-    question:
-      "Discuss the changing nature of Indian society in the context of urbanisation and migration.",
-  },
-  {
-    id: 102,
-    year: 2025,
-    paper: "GS Paper 2",
-    topic: "Governance",
-    marks: 15,
-    words: 250,
-    question:
-      "Examine the role of citizen participation in strengthening good governance in India.",
-  },
-  {
-    id: 103,
-    year: 2024,
-    paper: "GS Paper 3",
-    topic: "Environment",
-    marks: 15,
-    words: 250,
-    question:
-      "Discuss the challenges associated with balancing economic development and environmental sustainability in India.",
-  },
-  {
-    id: 104,
-    year: 2024,
-    paper: "GS Paper 4",
-    topic: "Ethics",
-    marks: 10,
-    words: 150,
-    question:
-      "Explain the importance of integrity and accountability in public administration.",
-  },
-  {
-    id: 105,
-    year: 2023,
-    paper: "Essay",
-    topic: "Essay",
-    marks: 125,
-    words: 1000,
-    question:
-      "Write an essay on the relationship between individual freedom and social responsibility.",
-  },
-];
-
 export default function PYQPage() {
   const router = useRouter();
 
@@ -158,17 +105,15 @@ export default function PYQPage() {
 
   const [section, setSection] = useState("prelims");
 
-  const [prelimsSubject, setPrelimsSubject] =
-    useState("All");
+  const [prelimsSubject, setPrelimsSubject] = useState("All");
+  const [prelimsYear, setPrelimsYear] = useState("All");
 
-  const [prelimsYear, setPrelimsYear] =
-    useState("All");
+  const [mainsPaper, setMainsPaper] = useState("All");
+  const [mainsYear, setMainsYear] = useState("All");
 
-  const [mainsPaper, setMainsPaper] =
-    useState("All");
-
-  const [mainsYear, setMainsYear] =
-    useState("All");
+  const [mainsPYQs, setMainsPYQs] = useState([]);
+  const [mainsLoading, setMainsLoading] = useState(false);
+  const [mainsError, setMainsError] = useState("");
 
   const [mode, setMode] = useState("browse");
 
@@ -176,6 +121,8 @@ export default function PYQPage() {
   const [selected, setSelected] = useState(null);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
+
+  /* ---------------- AUTH ---------------- */
 
   useEffect(() => {
     let attempts = 0;
@@ -206,25 +153,20 @@ export default function PYQPage() {
       webApp.expand();
 
       try {
-        const response = await fetch(
-          "/api/auth/me",
-          {
-            method: "GET",
-            headers: {
-              Authorization:
-                `tma ${webApp.initData}`,
-              "Cache-Control": "no-cache",
-            },
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          headers: {
+            Authorization: `tma ${webApp.initData}`,
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-store",
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error ||
-              "Authentication failed"
+            data.error || "Authentication failed"
           );
         }
 
@@ -257,6 +199,91 @@ export default function PYQPage() {
     };
   }, []);
 
+  /* ---------------- LOAD MAINS FROM API ---------------- */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMainsPYQs = async () => {
+      setMainsLoading(true);
+      setMainsError("");
+
+      try {
+        const response = await fetch(
+          "/api/pyq/mains",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Mains PYQ fetch failed"
+          );
+        }
+
+        const rows = Array.isArray(data.pyqs)
+          ? data.pyqs
+          : [];
+
+        const mapped = rows.map((q) => ({
+          ...q,
+
+          paper:
+            q.paper === "GS1"
+              ? "GS Paper 1"
+              : q.paper === "GS2"
+              ? "GS Paper 2"
+              : q.paper === "GS3"
+              ? "GS Paper 3"
+              : q.paper === "GS4"
+              ? "GS Paper 4"
+              : q.paper,
+
+          words:
+            q.word_limit ??
+            (Number(q.marks) === 10
+              ? 150
+              : Number(q.marks) === 15
+              ? 250
+              : null),
+        }));
+
+        if (!cancelled) {
+          setMainsPYQs(mapped);
+        }
+      } catch (err) {
+        console.error(
+          "Mains PYQ load error:",
+          err
+        );
+
+        if (!cancelled) {
+          setMainsError(
+            err.message ||
+              "Mains PYQ load failed."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setMainsLoading(false);
+        }
+      }
+    };
+
+    loadMainsPYQs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---------------- FILTERS ---------------- */
+
   const filteredPrelims = useMemo(() => {
     return prelimsPYQs.filter((q) => {
       const subjectMatch =
@@ -267,9 +294,15 @@ export default function PYQPage() {
         prelimsYear === "All" ||
         q.year === Number(prelimsYear);
 
-      return subjectMatch && yearMatch;
+      return (
+        subjectMatch &&
+        yearMatch
+      );
     });
-  }, [prelimsSubject, prelimsYear]);
+  }, [
+    prelimsSubject,
+    prelimsYear,
+  ]);
 
   const filteredMains = useMemo(() => {
     return mainsPYQs.filter((q) => {
@@ -281,19 +314,25 @@ export default function PYQPage() {
         mainsYear === "All" ||
         q.year === Number(mainsYear);
 
-      return paperMatch && yearMatch;
+      return (
+        paperMatch &&
+        yearMatch
+      );
     });
-  }, [mainsPaper, mainsYear]);
+  }, [
+    mainsPYQs,
+    mainsPaper,
+    mainsYear,
+  ]);
 
-  const currentQuestions =
-    section === "prelims"
-      ? filteredPrelims
-      : filteredMains;
+  /* ---------------- PRELIMS PRACTICE ---------------- */
 
   const score = filteredPrelims.reduce(
     (total, q) =>
       total +
-      (answers[q.id] === q.answer ? 1 : 0),
+      (answers[q.id] === q.answer
+        ? 1
+        : 0),
     0
   );
 
@@ -333,7 +372,10 @@ export default function PYQPage() {
       return;
     }
 
-    setCurrent((value) => value + 1);
+    setCurrent(
+      (value) => value + 1
+    );
+
     setSelected(null);
   };
 
@@ -345,6 +387,8 @@ export default function PYQPage() {
     setAnswers({});
     setFinished(false);
   };
+
+  /* ---------------- LOADING ---------------- */
 
   if (loading) {
     return (
@@ -368,6 +412,8 @@ export default function PYQPage() {
       </>
     );
   }
+
+  /* ---------------- AUTH ERROR ---------------- */
 
   if (error || !user) {
     return (
@@ -410,6 +456,8 @@ export default function PYQPage() {
     );
   }
 
+  /* ---------------- ACCESS CHECK ---------------- */
+
   if (user.status !== "approved") {
     return (
       <>
@@ -445,6 +493,8 @@ export default function PYQPage() {
     );
   }
 
+  /* ---------------- MAIN UI ---------------- */
+
   return (
     <>
       <Script
@@ -472,15 +522,13 @@ export default function PYQPage() {
                 PYQ Intelligence
               </div>
 
-              <div
-                style={styles.subtitle}
-              >
+              <div style={styles.subtitle}>
                 UPSC Previous Year Questions
               </div>
             </div>
           </header>
 
-          {/* PRELIMS / MAINS SWITCH */}
+          {/* TABS */}
 
           <div style={styles.tabs}>
             <button
@@ -515,9 +563,7 @@ export default function PYQPage() {
           {/* HERO */}
 
           <section style={styles.hero}>
-            <div
-              style={styles.heroSmall}
-            >
+            <div style={styles.heroSmall}>
               UPSC PYQ INTELLIGENCE
             </div>
 
@@ -534,7 +580,7 @@ export default function PYQPage() {
             </p>
           </section>
 
-          {/* PRELIMS */}
+          {/* ---------------- PRELIMS ---------------- */}
 
           {section === "prelims" && (
             <>
@@ -695,7 +741,9 @@ export default function PYQPage() {
 
                       <button
                         onClick={() =>
-                          setMode("browse")
+                          setMode(
+                            "browse"
+                          )
                         }
                         style={
                           styles.textButton
@@ -883,11 +931,13 @@ export default function PYQPage() {
                     }}
                   >
                     Accuracy{" "}
-                    {Math.round(
-                      (score /
-                        filteredPrelims.length) *
-                        100
-                    )}
+                    {filteredPrelims.length
+                      ? Math.round(
+                          (score /
+                            filteredPrelims.length) *
+                            100
+                        )
+                      : 0}
                     %
                   </p>
 
@@ -906,7 +956,7 @@ export default function PYQPage() {
             </>
           )}
 
-          {/* MAINS */}
+          {/* ---------------- MAINS ---------------- */}
 
           {section === "mains" && (
             <>
@@ -924,11 +974,11 @@ export default function PYQPage() {
                 >
                   <select
                     value={mainsPaper}
-                    onChange={(e) => {
+                    onChange={(e) =>
                       setMainsPaper(
                         e.target.value
-                      );
-                    }}
+                      )
+                    }
                     style={styles.select}
                   >
                     {mainsPapers.map(
@@ -945,28 +995,42 @@ export default function PYQPage() {
 
                   <select
                     value={mainsYear}
-                    onChange={(e) => {
+                    onChange={(e) =>
                       setMainsYear(
                         e.target.value
-                      );
-                    }}
+                      )
+                    }
                     style={styles.select}
                   >
                     <option value="All">
                       All Years
                     </option>
 
-                    <option value="2025">
-                      2025
-                    </option>
-
-                    <option value="2024">
-                      2024
-                    </option>
-
-                    <option value="2023">
-                      2023
-                    </option>
+                    {[
+                      ...new Set(
+                        mainsPYQs
+                          .map(
+                            (q) =>
+                              q.year
+                          )
+                          .filter(Boolean)
+                      ),
+                    ]
+                      .sort(
+                        (a, b) =>
+                          Number(b) -
+                          Number(a)
+                      )
+                      .map(
+                        (year) => (
+                          <option
+                            key={year}
+                            value={year}
+                          >
+                            {year}
+                          </option>
+                        )
+                      )}
                   </select>
                 </div>
 
@@ -974,10 +1038,9 @@ export default function PYQPage() {
                   style={styles.statsRow}
                 >
                   <span>
-                    {
-                      filteredMains.length
-                    }{" "}
-                    Questions
+                    {mainsLoading
+                      ? "Loading..."
+                      : `${filteredMains.length} Questions`}
                   </span>
                 </div>
               </section>
@@ -991,62 +1054,162 @@ export default function PYQPage() {
                   Mains PYQs
                 </div>
 
-                {filteredMains.map(
-                  (q, index) => (
+                {mainsLoading && (
+                  <div
+                    style={
+                      styles.questionCard
+                    }
+                  >
                     <div
-                      key={q.id}
                       style={
-                        styles.mainsCard
+                        styles.question
                       }
                     >
-                      <div
-                        style={
-                          styles.meta
-                        }
-                      >
-                        {q.year} ·{" "}
-                        {q.paper} ·{" "}
-                        {q.topic}
-                      </div>
+                      Loading Mains PYQs...
+                    </div>
 
+                    <div
+                      style={
+                        styles.answerHint
+                      }
+                    >
+                      Supabase se questions
+                      load ho rahe hain.
+                    </div>
+                  </div>
+                )}
+
+                {!mainsLoading &&
+                  mainsError && (
+                    <div
+                      style={
+                        styles.questionCard
+                      }
+                    >
                       <div
                         style={
                           styles.question
                         }
                       >
-                        {index + 1}.{" "}
-                        {q.question}
+                        Mains PYQ load nahi
+                        hua.
                       </div>
 
                       <div
                         style={
-                          styles.mainsMeta
+                          styles.answerHint
                         }
                       >
-                        <span>
-                          {q.marks} Marks
-                        </span>
-
-                        <span>
-                          {q.words} Words
-                        </span>
+                        {mainsError}
                       </div>
 
                       <button
                         onClick={() =>
-                          alert(
-                            "Mains answer writing mode next layer mein connect hoga."
-                          )
+                          window.location.reload()
                         }
-                        style={
-                          styles.primary
-                        }
+                        style={{
+                          ...styles.primary,
+                          marginTop:
+                            "12px",
+                        }}
                       >
-                        Start Answer Writing
+                        Retry
                       </button>
                     </div>
-                  )
-                )}
+                  )}
+
+                {!mainsLoading &&
+                  !mainsError &&
+                  filteredMains.length ===
+                    0 && (
+                    <div
+                      style={
+                        styles.questionCard
+                      }
+                    >
+                      <div
+                        style={
+                          styles.question
+                        }
+                      >
+                        No Mains PYQs found.
+                      </div>
+
+                      <div
+                        style={
+                          styles.answerHint
+                        }
+                      >
+                        Selected filters ke
+                        liye data available
+                        nahi hai.
+                      </div>
+                    </div>
+                  )}
+
+                {!mainsLoading &&
+                  !mainsError &&
+                  filteredMains.map(
+                    (q, index) => (
+                      <div
+                        key={q.id}
+                        style={
+                          styles.mainsCard
+                        }
+                      >
+                        <div
+                          style={
+                            styles.meta
+                          }
+                        >
+                          {q.year} ·{" "}
+                          {q.paper} ·{" "}
+                          {q.topic ||
+                            "General"}
+                        </div>
+
+                        <div
+                          style={
+                            styles.question
+                          }
+                        >
+                          {index + 1}.{" "}
+                          {q.question}
+                        </div>
+
+                        <div
+                          style={
+                            styles.mainsMeta
+                          }
+                        >
+                          <span>
+                            {q.marks ??
+                              "—"}{" "}
+                            Marks
+                          </span>
+
+                          <span>
+                            {q.words
+                              ? `${q.words} Words`
+                              : "Word limit —"}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            alert(
+                              "Mains answer writing mode next layer mein connect hoga."
+                            )
+                          }
+                          style={
+                            styles.primary
+                          }
+                        >
+                          Start Answer Writing
+                        </button>
+                      </div>
+                    )
+                  )}
               </section>
             </>
           )}
@@ -1086,6 +1249,8 @@ export default function PYQPage() {
     </>
   );
 }
+
+/* ---------------- STYLES ---------------- */
 
 const styles = {
   page: {
