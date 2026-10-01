@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 const CSV_URLS = [
   "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/mains_pyqs.csv",
   "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs2_pyqs.csv",
+  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/gs3_pyqs.csv",
 ];
 
 function parseCSV(text) {
@@ -38,7 +39,7 @@ function parseCSV(text) {
       row.push(field);
       field = "";
 
-      if (row.some((value) => value.trim() !== "")) {
+      if (row.some((v) => v.trim() !== "")) {
         rows.push(row);
       }
 
@@ -52,16 +53,14 @@ function parseCSV(text) {
   if (field.length > 0 || row.length > 0) {
     row.push(field);
 
-    if (row.some((value) => value.trim() !== "")) {
+    if (row.some((v) => v.trim() !== "")) {
       rows.push(row);
     }
   }
 
-  if (rows.length === 0) {
-    return [];
-  }
+  if (rows.length === 0) return [];
 
-  const headers = rows[0].map((header) => header.trim());
+  const headers = rows[0].map((h) => h.trim());
 
   return rows.slice(1).map((values) => {
     const item = {};
@@ -74,7 +73,7 @@ function parseCSV(text) {
   });
 }
 
-function mapPYQ(row, index) {
+function mapPYQ(row, index, sourceIndex) {
   const marks =
     row.marks === "" ? null : Number(row.marks);
 
@@ -84,11 +83,16 @@ function mapPYQ(row, index) {
       : Number(row.word_limit);
 
   return {
-    id: `csv-${index + 1}`,
+    id: `csv-${sourceIndex}-${index + 1}`,
+
     year: Number(row.year),
+
     paper: row.paper,
+
     topic: row.topic || null,
+
     question: row.question,
+
     question_hi: row.question_hi || null,
 
     marks: Number.isFinite(marks)
@@ -106,7 +110,7 @@ function mapPYQ(row, index) {
       row.source_file || "GitHub CSV",
 
     verified:
-      row.verified === "true",
+      String(row.verified).toLowerCase() === "true",
   };
 }
 
@@ -132,10 +136,9 @@ export async function GET(request) {
       )
     );
 
-    const failed =
-      responses.find(
-        (response) => !response.ok
-      );
+    const failed = responses.find(
+      (response) => !response.ok
+    );
 
     if (failed) {
       console.error(
@@ -152,42 +155,42 @@ export async function GET(request) {
       );
     }
 
-    const csvTexts =
-      await Promise.all(
-        responses.map(
-          (response) =>
-            response.text()
+    const csvTexts = await Promise.all(
+      responses.map((response) =>
+        response.text()
+      )
+    );
+
+    let pyqs = [];
+
+    csvTexts.forEach((csvText, sourceIndex) => {
+      const rows = parseCSV(csvText);
+
+      const mapped = rows
+        .map((row, index) =>
+          mapPYQ(
+            row,
+            index,
+            sourceIndex
+          )
         )
-      );
+        .filter(
+          (pyq) =>
+            pyq.question &&
+            Number.isFinite(pyq.year)
+        );
 
-    const rows =
-      csvTexts.flatMap(
-        (csvText) =>
-          parseCSV(csvText)
-      );
+      pyqs.push(...mapped);
+    });
 
-    let pyqs = rows
-      .map(mapPYQ)
-      .filter(
-        (pyq) =>
-          pyq.question &&
-          Number.isFinite(pyq.year)
-      );
-
-    if (
-      paper &&
-      paper !== "All"
-    ) {
+    if (paper && paper !== "All") {
       pyqs = pyqs.filter(
         (pyq) =>
           pyq.paper === paper
       );
     }
 
-    if (
-      year &&
-      year !== "All"
-    ) {
+    if (year && year !== "All") {
       pyqs = pyqs.filter(
         (pyq) =>
           String(pyq.year) ===
@@ -198,6 +201,7 @@ export async function GET(request) {
     pyqs.sort(
       (a, b) =>
         b.year - a.year ||
+        a.paper.localeCompare(b.paper) ||
         a.id.localeCompare(b.id)
     );
 
