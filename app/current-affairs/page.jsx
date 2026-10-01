@@ -23,7 +23,7 @@ export default function CurrentAffairsPage() {
   const [language, setLanguage] = useState("hi");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
-  const [selected, setSelected] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [importantLoading, setImportantLoading] = useState(false);
@@ -838,7 +838,8 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  onOpen={setSelected}
+                  expandedId={expandedId}
+                  onExpand={setExpandedId}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -895,7 +896,8 @@ export default function CurrentAffairsPage() {
                   onImportant={
                     toggleImportant
                   }
-                  onOpen={setSelected}
+                  expandedId={expandedId}
+                  onExpand={setExpandedId}
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -905,23 +907,6 @@ export default function CurrentAffairsPage() {
             </div>
           )}
         </section>
-      )}
-
-      {selected && (
-        <ArticleModal
-          item={selected}
-          language={language}
-          important={importantIds.includes(
-            Number(selected.id)
-          )}
-          importantLoading={
-            importantLoading
-          }
-          onImportant={toggleImportant}
-          onClose={() =>
-            setSelected(null)
-          }
-        />
       )}
 
       <style jsx>{`
@@ -1454,6 +1439,99 @@ export default function CurrentAffairsPage() {
           color: #667085;
         }
 
+        .news-card.expanded {
+          border-color: #cfd6e4;
+          box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+        }
+
+        .inline-analysis {
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #e4e7ec;
+          animation: analysisIn 0.2s ease-out;
+        }
+
+        @keyframes analysisIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .analysis-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 14px;
+          margin-bottom: 12px;
+        }
+
+        .analysis-kicker {
+          display: block;
+          color: #667085;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          margin-bottom: 5px;
+        }
+
+        .analysis-header h4 {
+          margin: 0;
+          font-size: 18px;
+          line-height: 1.4;
+          color: #172033;
+        }
+
+        .analysis-badge {
+          flex-shrink: 0;
+          border: 1px solid #e4e7ec;
+          background: #f8fafc;
+          border-radius: 999px;
+          padding: 6px 10px;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .inline-source {
+          margin: 0 0 4px;
+        }
+
+        .analysis-block {
+          padding: 15px 0;
+          border-bottom: 1px solid #eef0f3;
+        }
+
+        .analysis-block h5 {
+          margin: 0 0 7px;
+          font-size: 14px;
+          color: #172033;
+        }
+
+        .analysis-block .content-block {
+          color: #475467;
+          font-size: 14px;
+          line-height: 1.7;
+        }
+
+        .inline-premium-box {
+          margin-top: 16px;
+          padding: 15px;
+          border-radius: 14px;
+          background: #fff9ed;
+          border: 1px solid #f0d39b;
+        }
+
+        .premium-label {
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          margin-bottom: 7px;
+        }
+
+        .analysis-footer {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 16px;
+        }
+
         .modal-backdrop {
           position: fixed;
           inset: 0;
@@ -1615,85 +1693,197 @@ function ArticleCard({
   important,
   language,
   onImportant,
-  onOpen,
+  expandedId,
+  onExpand,
   formatDate,
   disabled,
 }) {
   const hi = language === "hi";
+  const expanded = Number(expandedId) === Number(item.id);
 
   const title =
-    (hi
-      ? item.title_hi
-      : item.title_en) ||
+    (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi) ||
+    (hi ? item.title_en : item.title_hi) ||
     "Current Affair";
 
   const summary =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
+    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
     item.why_in_news ||
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
+    (hi ? item.background_hi : item.background_en) ||
     item.background ||
     item.key_facts ||
     "";
 
   return (
-    <article className="news-card">
+    <article className={expanded ? "news-card expanded" : "news-card"}>
       <div className="topline">
         <span className="badge">
-          {item.gs ||
-            item.paper ||
-            "UPSC"}
+          {item.gs || item.paper || "UPSC"}
         </span>
 
         <span className="meta">
-          {item.subject ||
-            "UPSC Current Affairs"}{" "}
-          • {formatDate(item.date)}
+          {item.subject || "UPSC Current Affairs"} • {formatDate(item.date)}
         </span>
       </div>
 
       <h3>{title}</h3>
 
-      <p className="summary">
-        {summary}
-      </p>
+      {summary && <p className="summary">{summary}</p>}
 
       <div className="card-actions">
         <button
           className="read-button"
-          onClick={() => onOpen(item)}
+          onClick={() =>
+            onExpand(expanded ? null : item.id)
+          }
+          aria-expanded={expanded}
         >
-          {hi
-            ? "पूरा Analysis पढ़ें"
-            : "Read Full Analysis"}
+          {expanded
+            ? hi
+              ? "Analysis बंद करें ↑"
+              : "Close Analysis ↑"
+            : hi
+            ? "पूरा Analysis पढ़ें ↓"
+            : "Read Full Analysis ↓"}
         </button>
 
         <button
           className="important-button"
           disabled={disabled}
-          onClick={() =>
-            onImportant(item.id)
-          }
+          onClick={() => onImportant(item.id)}
         >
-          {important
-            ? "★ Important"
-            : "⭐ Add to Important"}
+          {important ? "★ Important" : "⭐ Add to Important"}
         </button>
 
         <span className="source">
-          Source:{" "}
-          {item.source_name ||
-            "Not specified"}
+          Source: {item.source_name || "Not specified"}
         </span>
       </div>
+
+      {expanded && (
+        <ArticleAnalysis
+          item={item}
+          language={language}
+          important={important}
+          importantLoading={disabled}
+          onImportant={onImportant}
+        />
+      )}
     </article>
+  );
+}
+
+function ArticleAnalysis({
+  item,
+  language,
+  important,
+  importantLoading,
+  onImportant,
+}) {
+  const hi = language === "hi";
+
+  const title =
+    (hi ? item.title_hi : item.title_en) ||
+    item.title ||
+    (hi ? item.title_en : item.title_hi) ||
+    "Current Affair";
+
+  const why =
+    (hi ? item.why_in_news_hi : item.why_in_news_en) ||
+    item.why_in_news;
+  const background =
+    (hi ? item.background_hi : item.background_en) ||
+    item.background;
+  const facts =
+    (hi ? item.key_facts_hi : item.key_facts_en) ||
+    item.key_facts;
+  const prelims =
+    (hi ? item.prelims_hi : item.prelims_en) ||
+    item.prelims;
+  const mains =
+    (hi ? item.mains_analysis_hi : item.mains_analysis_en) ||
+    item.mains_analysis;
+  const premium =
+    (hi ? item.premium_fact_hi : item.premium_fact_en) ||
+    item.premium_fact;
+  const pyqs =
+    (hi ? item.related_pyqs_hi : item.related_pyqs_en) ||
+    item.related_pyqs;
+  const mcq =
+    (hi ? item.prelims_mcq_hi : item.prelims_mcq_en) ||
+    item.prelims_mcq;
+  const mainsQuestion =
+    (hi ? item.mains_question_hi : item.mains_question_en) ||
+    item.mains_question;
+  const ethics =
+    (hi ? item.ethics_angle_hi : item.ethics_angle_en) ||
+    "";
+
+  return (
+    <div className="inline-analysis">
+      <div className="analysis-header">
+        <div>
+          <span className="analysis-kicker">
+            {hi ? "DETAILED UPSC ANALYSIS" : "DETAILED UPSC ANALYSIS"}
+          </span>
+          <h4>{title}</h4>
+        </div>
+        <span className="analysis-badge">
+          {item.gs || item.paper || "UPSC"}
+        </span>
+      </div>
+
+      {item.source_url && (
+        <a
+          className="source-link inline-source"
+          href={item.source_url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {hi ? "Original Source देखें ↗" : "View Original Source ↗"}
+        </a>
+      )}
+
+      {why && <AnalysisBlock title={hi ? "Why in News" : "Why in News"} text={why} />}
+      {background && <AnalysisBlock title={hi ? "Background" : "Background"} text={background} />}
+      {facts && <AnalysisBlock title={hi ? "Key Facts" : "Key Facts"} text={facts} />}
+      {prelims && <AnalysisBlock title={hi ? "Prelims" : "Prelims"} text={prelims} />}
+      {mains && <AnalysisBlock title={hi ? "Mains Analysis" : "Mains Analysis"} text={mains} />}
+      {item.static_link && <AnalysisBlock title={hi ? "Static Link" : "Static Link"} text={item.static_link} />}
+      {pyqs && <AnalysisBlock title={hi ? "Related PYQs" : "Related PYQs"} text={pyqs} />}
+      {mcq && <AnalysisBlock title={hi ? "Possible Prelims MCQ" : "Possible Prelims MCQ"} text={mcq} />}
+      {mainsQuestion && <AnalysisBlock title={hi ? "Possible Mains Question" : "Possible Mains Question"} text={mainsQuestion} />}
+      {ethics && <AnalysisBlock title={hi ? "GS-IV Ethics" : "GS-IV Ethics"} text={ethics} />}
+
+      {premium && (
+        <div className="inline-premium-box">
+          <div className="premium-label">🔥 PREMIUM FACT</div>
+          <div className="content-block">{premium}</div>
+        </div>
+      )}
+
+      <div className="analysis-footer">
+        <button
+          className="important-button"
+          disabled={importantLoading}
+          onClick={() => onImportant(item.id)}
+        >
+          {important
+            ? "★ Remove from Important"
+            : "⭐ Add to Important"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisBlock({ title, text }) {
+  return (
+    <section className="analysis-block">
+      <h5>{title}</h5>
+      <div className="content-block">{text}</div>
+    </section>
   );
 }
 
@@ -1777,240 +1967,3 @@ function PremiumFacts({
   );
 }
 
-function ArticleModal({
-  item,
-  language,
-  important,
-  importantLoading,
-  onImportant,
-  onClose,
-}) {
-  const hi = language === "hi";
-
-  const title =
-    (hi
-      ? item.title_hi
-      : item.title_en) ||
-    item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi);
-
-  const why =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
-    item.why_in_news;
-
-  const background =
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
-    item.background;
-
-  const facts =
-    (hi
-      ? item.key_facts_hi
-      : item.key_facts_en) ||
-    item.key_facts;
-
-  const prelims =
-    (hi
-      ? item.prelims_hi
-      : item.prelims_en) ||
-    item.prelims;
-
-  const mains =
-    (hi
-      ? item.mains_analysis_hi
-      : item.mains_analysis_en) ||
-    item.mains_analysis;
-
-  const premium =
-    (hi
-      ? item.premium_fact_hi
-      : item.premium_fact_en) ||
-    item.premium_fact;
-
-  const pyqs =
-    (hi
-      ? item.related_pyqs_hi
-      : item.related_pyqs_en) ||
-    item.related_pyqs;
-
-  const mcq =
-    (hi
-      ? item.prelims_mcq_hi
-      : item.prelims_mcq_en) ||
-    item.prelims_mcq;
-
-  const mainsQuestion =
-    (hi
-      ? item.mains_question_hi
-      : item.mains_question_en) ||
-    item.mains_question;
-
-  const ethics =
-    (hi
-      ? item.ethics_angle_hi
-      : item.ethics_angle_en) ||
-    "";
-
-  return (
-    <div
-      className="modal-backdrop"
-      onClick={onClose}
-    >
-      <article
-        className="modal"
-        onClick={(e) =>
-          e.stopPropagation()
-        }
-      >
-        <button
-          className="close"
-          onClick={onClose}
-        >
-          ×
-        </button>
-
-        <span className="badge">
-          {item.gs ||
-            item.paper ||
-            "UPSC"}
-        </span>
-
-        <h2>{title}</h2>
-
-        <p className="source">
-          Source:{" "}
-          {item.source_name ||
-            "Not specified"}
-        </p>
-
-        {item.source_url && (
-          <a
-            className="source-link"
-            href={item.source_url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {hi
-              ? "Original Source देखें"
-              : "View Original Source"}
-          </a>
-        )}
-
-        {why && (
-          <>
-            <h3>Why in News</h3>
-            <p>{why}</p>
-          </>
-        )}
-
-        {background && (
-          <>
-            <h3>Background</h3>
-            <p>{background}</p>
-          </>
-        )}
-
-        {facts && (
-          <>
-            <h3>Key Facts</h3>
-            <div className="content-block">
-              {facts}
-            </div>
-          </>
-        )}
-
-        {prelims && (
-          <>
-            <h3>Prelims</h3>
-            <div className="content-block">
-              {prelims}
-            </div>
-          </>
-        )}
-
-        {mains && (
-          <>
-            <h3>Mains Analysis</h3>
-            <div className="content-block">
-              {mains}
-            </div>
-          </>
-        )}
-
-        {item.static_link && (
-          <>
-            <h3>Static Link</h3>
-            <p>{item.static_link}</p>
-          </>
-        )}
-
-        {pyqs && (
-          <>
-            <h3>Related PYQs</h3>
-            <div className="content-block">
-              {pyqs}
-            </div>
-          </>
-        )}
-
-        {mcq && (
-          <>
-            <h3>Possible Prelims MCQ</h3>
-            <div className="content-block">
-              {mcq}
-            </div>
-          </>
-        )}
-
-        {mainsQuestion && (
-          <>
-            <h3>
-              Possible Mains Question
-            </h3>
-
-            <div className="content-block">
-              {mainsQuestion}
-            </div>
-          </>
-        )}
-
-        {ethics && (
-          <>
-            <h3>GS-IV Ethics</h3>
-
-            <div className="content-block">
-              {ethics}
-            </div>
-          </>
-        )}
-
-        {premium && (
-          <div className="premium-box">
-            <strong>
-              🔥 Premium Fact
-            </strong>
-
-            <p>{premium}</p>
-          </div>
-        )}
-
-        <button
-          className="important-button modal-important"
-          disabled={importantLoading}
-          onClick={() =>
-            onImportant(item.id)
-          }
-        >
-          {important
-            ? "★ Remove from Important"
-            : "⭐ Add to Important"}
-        </button>
-      </article>
-    </div>
-  );
-}
