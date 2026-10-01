@@ -5,19 +5,37 @@ export const runtime = "nodejs";
 const SYSTEM_INSTRUCTIONS = `
 You are an expert UPSC Civil Services Examination Mains evaluator.
 
-Your job is to evaluate a candidate answer rigorously at UPSC Mains level.
+The candidate has submitted handwritten answer pages as images.
+
+First read ALL submitted pages in order.
+Treat Page 1, Page 2, Page 3 and Page 4 as one continuous answer.
+
+Do not evaluate a page in isolation.
+
+Carefully reconstruct the candidate's written answer from the images.
+
+If handwriting is unclear:
+- do not invent text
+- explicitly mention uncertainty
+- evaluate only what can reasonably be read
+
+Evaluate at genuine UPSC Mains level.
 
 Do NOT give arbitrary praise.
 Do NOT inflate marks.
-Do NOT judge only grammar or language.
-Do NOT assume that an unstated point exists.
+Do NOT judge only handwriting, grammar or presentation.
 Do NOT invent facts, data, reports, committees, judgments or examples.
-Do NOT claim that your marks are official UPSC marks.
+Do NOT claim that the score is an official UPSC score.
 
-First analyse the QUESTION.
-Then identify its DIRECTIVE.
-Then identify the exact DEMANDS of the question.
-Only then evaluate the candidate answer.
+Analyse the QUESTION first.
+
+Identify:
+1. Directive
+2. Core demand
+3. Keywords
+4. Expected dimensions
+
+Then evaluate the candidate answer.
 
 Evaluate:
 
@@ -33,7 +51,7 @@ Evaluate:
 10. Body
 11. Conclusion
 12. Examples
-13. Data where relevant
+13. Data
 14. Constitutional/legal/institutional references where relevant
 15. Current affairs linkage where relevant
 16. Factual accuracy
@@ -42,56 +60,56 @@ Evaluate:
 19. Word-limit discipline
 20. Overall UPSC suitability
 
-DIRECTIVES:
+For GS1 consider:
+history, geography, society, culture and relevant interdisciplinary dimensions.
+
+For GS2 consider:
+Constitution, governance, Parliament, judiciary, federalism, rights, welfare, accountability, social justice and international relations.
+
+For GS3 consider:
+economy, agriculture, science and technology, environment, disaster management, internal security and development.
+
+For GS4 consider:
+ethical concepts, values, stakeholders, conflicts, integrity, probity, emotional intelligence and practical administrative reasoning.
+
+For case studies:
+stakeholders, ethical issues, competing values, options, consequences, justification and implementation.
+
+For Essay:
+coherence, philosophical depth, multidimensionality, arguments, examples, balance, originality, structure and conclusion.
+
+DIRECTIVE RULES:
 
 Discuss:
-Cover the issue through balanced and relevant dimensions.
+Cover the issue through balanced relevant dimensions.
 
 Examine:
-Examine the issue using evidence, causes, effects, limitations and relevant arguments.
+Examine arguments, causes, effects, limitations and evidence.
 
 Analyse:
-Break the issue into components and establish relationships such as cause-effect, significance, consequences and interlinkages.
+Break the issue into components and establish relationships.
 
 Critically Analyse:
-Analyse multiple sides, limitations/counterarguments and arrive at a balanced conclusion.
+Analyse multiple sides, limitations and counterarguments before a balanced conclusion.
 
 Evaluate:
-Assess the issue against relevant criteria and provide a reasoned conclusion.
+Assess against relevant criteria and provide a reasoned conclusion.
 
 Critically Evaluate:
-Assess merits, limitations and counterarguments before a balanced judgement.
+Assess merits, limitations and counterarguments before a balanced conclusion.
 
 Comment:
-Give a reasoned assessment rather than simple description.
+Give a reasoned assessment.
 
 Elucidate:
-Explain clearly with sufficient detail and relevant examples.
+Explain clearly with sufficient detail and examples.
 
 Explain:
-Clearly explain the concept/process/causes/significance/consequences demanded by the question.
-
-GS1:
-Consider historical, geographical, social and cultural dimensions where relevant.
-
-GS2:
-Consider Constitution, governance, institutions, federalism, rights, welfare, accountability, judiciary, social justice and international relations where relevant.
-
-GS3:
-Consider economy, agriculture, technology, environment, disaster management, internal security and development dimensions where relevant.
-
-GS4:
-Consider ethical concepts, values, stakeholders, conflicts, integrity, probity, emotional intelligence and practical administrative reasoning where relevant.
-
-CASE STUDY:
-Evaluate stakeholders, ethical issues, competing values, options, consequences, justification, prioritisation and implementation.
-
-ESSAY:
-Evaluate coherence, philosophical depth, multidimensionality, arguments, examples, balance, originality, structure and conclusion.
+Clearly explain the demanded concept, process, causes or consequences.
 
 MARKING:
 
-Never exceed the supplied maximum marks.
+Never exceed maximum marks.
 
 10-mark answers generally correspond to approximately 150 words.
 15-mark answers generally correspond to approximately 250 words.
@@ -99,24 +117,18 @@ Never exceed the supplied maximum marks.
 Do not mechanically reduce marks only because of word count.
 Assess whether the word limit affected demand fulfilment.
 
-A technically correct but superficial answer should not receive a high score.
+A superficial answer should not receive a high score.
 
-Strong language alone should not produce a high score.
+Strong handwriting or presentation should not produce a high score.
 
-The score MUST be justified.
+The score must be justified.
 
 For missing dimensions:
-Explain why the dimension matters and how the candidate could add it.
+Explain why the dimension matters and how it could be added.
 
-For point-level feedback:
-Only discuss points actually present in the candidate answer.
-Do not invent quotations.
+Only discuss points actually present in the answer.
 
-Model framework:
-Give a framework, NOT a memorised model answer.
-
-Final improvement plan:
-Give specific changes for the next attempt.
+Do not invent quotations or claims made by the candidate.
 
 Return ONLY valid JSON matching the supplied schema.
 `;
@@ -124,26 +136,48 @@ Return ONLY valid JSON matching the supplied schema.
 const EVALUATION_SCHEMA = {
   type: "object",
   additionalProperties: false,
+
   properties: {
-    overall_score: { type: "number" },
-    maximum_marks: { type: "number" },
-    overall_assessment: { type: "string" },
+    overall_score: {
+      type: "number",
+    },
+
+    maximum_marks: {
+      type: "number",
+    },
+
+    overall_assessment: {
+      type: "string",
+    },
 
     question_analysis: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        directive: { type: "string" },
-        core_demand: { type: "string" },
+        directive: {
+          type: "string",
+        },
+
+        core_demand: {
+          type: "string",
+        },
+
         keywords: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         expected_dimensions: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
       },
+
       required: [
         "directive",
         "core_demand",
@@ -155,15 +189,28 @@ const EVALUATION_SCHEMA = {
     demand_fulfilment: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        score: { type: "number" },
-        maximum: { type: "number" },
-        assessment: { type: "string" },
+        score: {
+          type: "number",
+        },
+
+        maximum: {
+          type: "number",
+        },
+
+        assessment: {
+          type: "string",
+        },
+
         missing_demands: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
       },
+
       required: [
         "score",
         "maximum",
@@ -175,18 +222,31 @@ const EVALUATION_SCHEMA = {
     introduction: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        assessment: { type: "string" },
+        assessment: {
+          type: "string",
+        },
+
         strengths: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         weaknesses: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
-        improvement: { type: "string" },
+
+        improvement: {
+          type: "string",
+        },
       },
+
       required: [
         "assessment",
         "strengths",
@@ -198,23 +258,51 @@ const EVALUATION_SCHEMA = {
     body_analysis: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        content_score: { type: "number" },
-        content_maximum: { type: "number" },
-        analysis_score: { type: "number" },
-        analysis_maximum: { type: "number" },
-        structure_score: { type: "number" },
-        structure_maximum: { type: "number" },
-        assessment: { type: "string" },
+        content_score: {
+          type: "number",
+        },
+
+        content_maximum: {
+          type: "number",
+        },
+
+        analysis_score: {
+          type: "number",
+        },
+
+        analysis_maximum: {
+          type: "number",
+        },
+
+        structure_score: {
+          type: "number",
+        },
+
+        structure_maximum: {
+          type: "number",
+        },
+
+        assessment: {
+          type: "string",
+        },
+
         strengths: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         weaknesses: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
       },
+
       required: [
         "content_score",
         "content_maximum",
@@ -231,19 +319,35 @@ const EVALUATION_SCHEMA = {
     examples_and_data: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        score: { type: "number" },
-        maximum: { type: "number" },
-        assessment: { type: "string" },
+        score: {
+          type: "number",
+        },
+
+        maximum: {
+          type: "number",
+        },
+
+        assessment: {
+          type: "string",
+        },
+
         good_examples: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         missing_examples: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
       },
+
       required: [
         "score",
         "maximum",
@@ -256,17 +360,27 @@ const EVALUATION_SCHEMA = {
     factual_accuracy: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        assessment: { type: "string" },
+        assessment: {
+          type: "string",
+        },
+
         possible_errors: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         corrections: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
       },
+
       required: [
         "assessment",
         "possible_errors",
@@ -277,18 +391,31 @@ const EVALUATION_SCHEMA = {
     conclusion: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        assessment: { type: "string" },
+        assessment: {
+          type: "string",
+        },
+
         strengths: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
+
         weaknesses: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
-        improvement: { type: "string" },
+
+        improvement: {
+          type: "string",
+        },
       },
+
       required: [
         "assessment",
         "strengths",
@@ -299,14 +426,25 @@ const EVALUATION_SCHEMA = {
 
     missing_dimensions: {
       type: "array",
+
       items: {
         type: "object",
         additionalProperties: false,
+
         properties: {
-          dimension: { type: "string" },
-          why_important: { type: "string" },
-          how_to_add: { type: "string" },
+          dimension: {
+            type: "string",
+          },
+
+          why_important: {
+            type: "string",
+          },
+
+          how_to_add: {
+            type: "string",
+          },
         },
+
         required: [
           "dimension",
           "why_important",
@@ -317,14 +455,25 @@ const EVALUATION_SCHEMA = {
 
     point_level_feedback: {
       type: "array",
+
       items: {
         type: "object",
         additionalProperties: false,
+
         properties: {
-          issue: { type: "string" },
-          type: { type: "string" },
-          improvement: { type: "string" },
+          issue: {
+            type: "string",
+          },
+
+          type: {
+            type: "string",
+          },
+
+          improvement: {
+            type: "string",
+          },
         },
+
         required: [
           "issue",
           "type",
@@ -336,14 +485,24 @@ const EVALUATION_SCHEMA = {
     answer_structure: {
       type: "object",
       additionalProperties: false,
+
       properties: {
-        introduction: { type: "string" },
+        introduction: {
+          type: "string",
+        },
+
         body: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string",
+          },
         },
-        conclusion: { type: "string" },
+
+        conclusion: {
+          type: "string",
+        },
       },
+
       required: [
         "introduction",
         "body",
@@ -353,15 +512,21 @@ const EVALUATION_SCHEMA = {
 
     model_framework: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
 
     improvement_plan: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
 
-    examiner_summary: { type: "string" },
+    examiner_summary: {
+      type: "string",
+    },
   },
 
   required: [
@@ -384,57 +549,37 @@ const EVALUATION_SCHEMA = {
   ],
 };
 
-function cleanString(value, maxLength) {
-  if (typeof value !== "string") {
-    return "";
-  }
+/* =========================================================
+   IMAGE -> DATA URL
+========================================================= */
 
-  return value.trim().slice(0, maxLength);
+async function fileToDataUrl(
+  file
+) {
+  const buffer =
+    Buffer.from(
+      await file.arrayBuffer()
+    );
+
+  const base64 =
+    buffer.toString(
+      "base64"
+    );
+
+  const mime =
+    file.type ||
+    "image/jpeg";
+
+  return `data:${mime};base64,${base64}`;
 }
 
-function detectDirective(question) {
-  const q = question.toLowerCase();
+/* =========================================================
+   POST
+========================================================= */
 
-  if (q.includes("critically analyse")) {
-    return "Critically Analyse";
-  }
-
-  if (q.includes("critically evaluate")) {
-    return "Critically Evaluate";
-  }
-
-  if (q.includes("analyse")) {
-    return "Analyse";
-  }
-
-  if (q.includes("evaluate")) {
-    return "Evaluate";
-  }
-
-  if (q.includes("examine")) {
-    return "Examine";
-  }
-
-  if (q.includes("elucidate")) {
-    return "Elucidate";
-  }
-
-  if (q.includes("comment")) {
-    return "Comment";
-  }
-
-  if (q.includes("discuss")) {
-    return "Discuss";
-  }
-
-  if (q.includes("explain")) {
-    return "Explain";
-  }
-
-  return "Not clearly detected";
-}
-
-export async function POST(request) {
+export async function POST(
+  request
+) {
   try {
     const apiKey =
       process.env.OPENAI_API_KEY;
@@ -445,41 +590,52 @@ export async function POST(request) {
           error:
             "OPENAI_API_KEY is missing on the server.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    const body =
-      await request.json();
+    const formData =
+      await request.formData();
 
-    const question = cleanString(
-      body.question,
-      12000
-    );
+    const question =
+      String(
+        formData.get(
+          "question"
+        ) || ""
+      ).trim();
 
-    const answer = cleanString(
-      body.answer,
-      30000
-    );
+    const paper =
+      String(
+        formData.get(
+          "paper"
+        ) || "GS"
+      ).trim();
 
-    const paper = cleanString(
-      body.paper || "GS",
-      100
-    );
+    const section =
+      String(
+        formData.get(
+          "section"
+        ) || ""
+      ).trim();
 
-    const section = cleanString(
-      body.section || "",
-      100
-    );
+    const marks =
+      Number(
+        formData.get(
+          "marks"
+        ) || 15
+      );
 
-    const marks = Number(
-      body.marks || 15
-    );
-
-    const wordLimit = Number(
-      body.word_limit ||
-        (marks <= 10 ? 150 : 250)
-    );
+    const wordLimit =
+      Number(
+        formData.get(
+          "word_limit"
+        ) ||
+          (marks <= 10
+            ? 150
+            : 250)
+      );
 
     if (!question) {
       return NextResponse.json(
@@ -487,53 +643,162 @@ export async function POST(request) {
           error:
             "Question is required.",
         },
-        { status: 400 }
-      );
-    }
-
-    if (!answer) {
-      return NextResponse.json(
         {
-          error:
-            "Answer is required.",
-        },
-        { status: 400 }
+          status: 400,
+        }
       );
     }
 
     if (
-      !Number.isFinite(marks) ||
+      !Number.isFinite(
+        marks
+      ) ||
       marks <= 0 ||
       marks > 100
     ) {
       return NextResponse.json(
         {
           error:
-            "Invalid marks value.",
+            "Invalid marks.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    const imageFiles =
+      [];
+
+    for (
+      let i = 1;
+      i <= 4;
+      i++
+    ) {
+      const file =
+        formData.get(
+          `image_${i}`
+        );
+
+      if (
+        file &&
+        typeof file.arrayBuffer ===
+          "function"
+      ) {
+        imageFiles.push(
+          file
+        );
+      }
+    }
+
     if (
-      !Number.isFinite(wordLimit) ||
-      wordLimit <= 0 ||
-      wordLimit > 10000
+      imageFiles.length ===
+      0
     ) {
       return NextResponse.json(
         {
           error:
-            "Invalid word limit.",
+            "At least one answer image is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const directive =
-      detectDirective(question);
+    if (
+      imageFiles.length >
+      4
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Maximum 4 pages allowed.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-    const userInput = `
-Evaluate this UPSC Mains answer.
+    /* =========================
+       CONVERT IMAGES
+    ========================= */
+
+    const imageInputs =
+      [];
+
+    for (
+      let i = 0;
+      i <
+      imageFiles.length;
+      i++
+    ) {
+      const file =
+        imageFiles[i];
+
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              `Page ${
+                i + 1
+              } is not a valid image.`,
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      if (
+        file.size >
+        8 * 1024 * 1024
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              `Page ${
+                i + 1
+              } exceeds 8MB.`,
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const dataUrl =
+        await fileToDataUrl(
+          file
+        );
+
+      imageInputs.push({
+        type: "input_image",
+        image_url:
+          dataUrl,
+        detail:
+          "high",
+      });
+    }
+
+    /* =========================
+       OPENAI INPUT
+    ========================= */
+
+    const inputContent = [
+      {
+        type: "input_text",
+
+        text: `
+Evaluate the following UPSC Mains handwritten answer.
+
+QUESTION:
+${question}
 
 PAPER:
 ${paper}
@@ -547,21 +812,30 @@ ${marks}
 EXPECTED WORD LIMIT:
 ${wordLimit}
 
-QUESTION:
-${question}
+The following images are the candidate's answer pages.
 
-CANDIDATE ANSWER:
-${answer}
+Read every page carefully and in order.
 
-DETECTED DIRECTIVE:
-${directive}
+Page 1 is followed by Page 2, then Page 3 and Page 4 if supplied.
 
-Evaluate only the answer supplied.
-Do not assume missing points were written.
-Do not invent facts.
-Do not inflate marks.
-Explain why the score was awarded.
-`;
+Treat all pages as ONE continuous answer.
+
+Do not evaluate the handwriting style itself.
+
+Assess the substance of the answer.
+
+If some handwriting is genuinely unreadable, explicitly mention the uncertainty rather than inventing text.
+
+Provide a rigorous UPSC Mains evaluation.
+`,
+      },
+
+      ...imageInputs,
+    ];
+
+    /* =========================
+       OPENAI REQUEST
+    ========================= */
 
     const openaiResponse =
       await fetch(
@@ -579,26 +853,42 @@ Explain why the score was awarded.
 
           body: JSON.stringify({
             model:
-              process.env.OPENAI_EVALUATION_MODEL ||
+              process.env
+                .OPENAI_EVALUATION_MODEL ||
               "gpt-5.6-sol",
 
             instructions:
               SYSTEM_INSTRUCTIONS,
 
-            input: userInput,
+            input: [
+              {
+                role:
+                  "user",
+
+                content:
+                  inputContent,
+              },
+            ],
 
             reasoning: {
-              effort: "high",
+              effort:
+                "high",
             },
 
-            max_output_tokens: 10000,
+            max_output_tokens:
+              10000,
 
             text: {
               format: {
-                type: "json_schema",
+                type:
+                  "json_schema",
+
                 name:
-                  "upsc_mains_evaluation",
-                strict: true,
+                  "upsc_mains_handwritten_evaluation",
+
+                strict:
+                  true,
+
                 schema:
                   EVALUATION_SCHEMA,
               },
@@ -610,7 +900,9 @@ Explain why the score was awarded.
     const responseText =
       await openaiResponse.text();
 
-    if (!openaiResponse.ok) {
+    if (
+      !openaiResponse.ok
+    ) {
       console.error(
         "OpenAI API error:",
         responseText
@@ -620,13 +912,10 @@ Explain why the score was awarded.
         {
           error:
             "OpenAI evaluation request failed.",
-          details:
-            process.env.NODE_ENV ===
-            "development"
-              ? responseText
-              : undefined,
         },
-        { status: 502 }
+        {
+          status: 502,
+        }
       );
     }
 
@@ -634,24 +923,27 @@ Explain why the score was awarded.
 
     try {
       apiData =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
     } catch {
       return NextResponse.json(
         {
           error:
             "OpenAI returned invalid response data.",
         },
-        { status: 502 }
+        {
+          status: 502,
+        }
       );
     }
 
-    /*
-     * Responses API output can contain
-     * several output items.
-     * Extract output_text safely.
-     */
+    /* =========================
+       EXTRACT OUTPUT
+    ========================= */
 
-    let outputText = "";
+    let outputText =
+      "";
 
     if (
       typeof apiData.output_text ===
@@ -661,11 +953,19 @@ Explain why the score was awarded.
         apiData.output_text;
     }
 
-    if (!outputText) {
-      for (const item of
-        apiData.output || []) {
-        for (const content of
-          item.content || []) {
+    if (
+      !outputText
+    ) {
+      for (
+        const item of
+          apiData.output ||
+          []
+      ) {
+        for (
+          const content of
+            item.content ||
+            []
+        ) {
           if (
             content.type ===
               "output_text" &&
@@ -679,21 +979,31 @@ Explain why the score was awarded.
       }
     }
 
-    if (!outputText) {
+    if (
+      !outputText
+    ) {
       return NextResponse.json(
         {
           error:
             "AI evaluation returned empty output.",
         },
-        { status: 502 }
+        {
+          status: 502,
+        }
       );
     }
+
+    /* =========================
+       PARSE JSON
+    ========================= */
 
     let evaluation;
 
     try {
       evaluation =
-        JSON.parse(outputText);
+        JSON.parse(
+          outputText
+        );
     } catch (error) {
       console.error(
         "Evaluation JSON parse error:",
@@ -706,13 +1016,15 @@ Explain why the score was awarded.
           error:
             "AI evaluation JSON format invalid.",
         },
-        { status: 502 }
+        {
+          status: 502,
+        }
       );
     }
 
-    /*
-     * Final server-side score protection.
-     */
+    /* =========================
+       SCORE SAFETY
+    ========================= */
 
     evaluation.maximum_marks =
       marks;
@@ -738,16 +1050,19 @@ Explain why the score was awarded.
           paper,
           section,
           marks,
-          word_limit: wordLimit,
-          detected_directive:
-            directive,
+          word_limit:
+            wordLimit,
+          pages:
+            imageFiles.length,
           model:
             process.env
               .OPENAI_EVALUATION_MODEL ||
             "gpt-5.6-sol",
         },
       },
-      { status: 200 }
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error(
@@ -761,7 +1076,9 @@ Explain why the score was awarded.
           error?.message ||
           "AI evaluation failed.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
-}
+        }
