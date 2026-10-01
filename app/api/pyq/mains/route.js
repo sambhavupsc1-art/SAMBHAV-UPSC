@@ -1,16 +1,118 @@
 import { NextResponse } from "next/server";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
+const CSV_URL =
+  "https://raw.githubusercontent.com/sambhavupsc1-art/SAMBHAV-UPSC/main/data/mains_pyqs.csv";
 
-const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SECRET_KEY;
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"' && quoted && next === '"') {
+      field += '"';
+      i++;
+      continue;
+    }
+
+    if (char === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (char === "," && !quoted) {
+      row.push(field);
+      field = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") i++;
+
+      row.push(field);
+      field = "";
+
+      if (row.some((value) => value.trim() !== "")) {
+        rows.push(row);
+      }
+
+      row = [];
+      continue;
+    }
+
+    field += char;
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+
+    if (row.some((value) => value.trim() !== "")) {
+      rows.push(row);
+    }
+  }
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const headers = rows[0].map((header) => header.trim());
+
+  return rows.slice(1).map((values) => {
+    const item = {};
+
+    headers.forEach((header, index) => {
+      item[header] = (values[index] ?? "").trim();
+    });
+
+    return item;
+  });
+}
+
+function mapPYQ(row, index) {
+  const marks =
+    row.marks === "" ? null : Number(row.marks);
+
+  const wordLimit =
+    row.word_limit === ""
+      ? null
+      : Number(row.word_limit);
+
+  return {
+    id: `csv-${index + 1}`,
+    year: Number(row.year),
+    paper: row.paper,
+    topic: row.topic || null,
+
+    question: row.question,
+    question_hi: row.question_hi || null,
+
+    marks: Number.isFinite(marks)
+      ? marks
+      : null,
+
+    word_limit: Number.isFinite(wordLimit)
+      ? wordLimit
+      : null,
+
+    source:
+      row.source_file || "GitHub CSV",
+
+    source_file:
+      row.source_file || "GitHub CSV",
+
+    verified:
+      row.verified === "true",
+  };
+}
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(
-      request.url
-    );
+    const { searchParams } =
+      new URL(request.url);
 
     const paper =
       searchParams.get("paper");
@@ -18,61 +120,76 @@ export async function GET(request) {
     const year =
       searchParams.get("year");
 
-    let url =
-      `${SUPABASE_URL}/rest/v1/mains_pyqs` +
-      `?select=*` +
-      `&order=year.desc,id.asc`;
+    const response = await fetch(
+      CSV_URL,
+      {
+        cache: "no-store",
+        headers: {
+          Accept: "text/plain",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "GitHub CSV fetch error:",
+        response.status
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Mains PYQ CSV fetch failed",
+        },
+        { status: 500 }
+      );
+    }
+
+    const csvText =
+      await response.text();
+
+    const rows =
+      parseCSV(csvText);
+
+    let pyqs = rows
+      .map(mapPYQ)
+      .filter(
+        (pyq) =>
+          pyq.question &&
+          Number.isFinite(pyq.year)
+      );
 
     if (
       paper &&
       paper !== "All"
     ) {
-      url += `&paper=eq.${encodeURIComponent(
-        paper
-      )}`;
+      pyqs = pyqs.filter(
+        (pyq) =>
+          pyq.paper === paper
+      );
     }
 
     if (
       year &&
       year !== "All"
     ) {
-      url += `&year=eq.${encodeURIComponent(
-        year
-      )}`;
-    }
-
-    const response = await fetch(url, {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_SECRET_KEY}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const errorText =
-        await response.text();
-
-      console.error(
-        "Mains PYQ fetch error:",
-        errorText
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Mains PYQ data fetch failed",
-        },
-        { status: 500 }
+      pyqs = pyqs.filter(
+        (pyq) =>
+          String(pyq.year) ===
+          String(year)
       );
     }
 
-    const pyqs =
-      await response.json();
+    pyqs.sort(
+      (a, b) =>
+        b.year - a.year ||
+        a.id.localeCompare(b.id)
+    );
 
     return NextResponse.json({
       pyqs,
+      source: "github_csv",
+      count: pyqs.length,
     });
   } catch (error) {
     console.error(
