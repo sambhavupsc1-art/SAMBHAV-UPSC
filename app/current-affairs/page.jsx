@@ -1314,6 +1314,251 @@ export default function CurrentAffairsPage() {
           }
         }
 
+        .premium-facts-wrap {
+          max-width: 1120px;
+          margin: 0 auto;
+        }
+
+        .premium-main-heading {
+          background: linear-gradient(135deg, #fff8f5, #fffdf9);
+          border: 1px solid #eaded8;
+          border-radius: 20px;
+          padding: 24px;
+          margin-bottom: 16px;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+        }
+
+        .premium-main-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #f8e8e8;
+          color: #7f1d1d;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: .1em;
+        }
+
+        .premium-main-heading h2 {
+          margin: 10px 0 5px;
+          color: #172033;
+          font-size: clamp(22px, 4vw, 30px);
+          font-weight: 950;
+        }
+
+        .premium-main-heading p {
+          margin: 0;
+          color: #667085;
+          line-height: 1.55;
+        }
+
+        .premium-tabs {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .premium-tab {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-align: left;
+          padding: 14px 16px;
+          border: 1px solid #dfe4eb;
+          border-radius: 15px;
+          background: #fff;
+          color: #172033;
+          cursor: pointer;
+          transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+        }
+
+        .premium-tab:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+        }
+
+        .premium-tab.active {
+          color: #fff;
+          background: #172033;
+          border-color: #172033;
+          box-shadow: 0 10px 24px rgba(23, 32, 51, .16);
+        }
+
+        .premium-tab-number {
+          font-size: 11px;
+          font-weight: 950;
+          opacity: .65;
+        }
+
+        .premium-tab-copy {
+          min-width: 0;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .premium-tab-copy strong {
+          font-size: 13px;
+          letter-spacing: .04em;
+        }
+
+        .premium-tab-copy small {
+          color: #667085;
+          font-size: 11px;
+          line-height: 1.35;
+        }
+
+        .premium-tab.active .premium-tab-copy small {
+          color: rgba(255,255,255,.72);
+        }
+
+        .premium-tab b {
+          min-width: 30px;
+          text-align: center;
+          padding: 5px 7px;
+          border-radius: 999px;
+          background: #f2f4f7;
+          color: #344054;
+          font-size: 11px;
+        }
+
+        .premium-tab.active b {
+          background: rgba(255,255,255,.14);
+          color: #fff;
+        }
+
+        .premium-active-heading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin: 6px 0 14px;
+        }
+
+        .premium-active-label {
+          color: #8b1e2d;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: .1em;
+        }
+
+        .premium-active-heading h3 {
+          margin: 5px 0 4px;
+          color: #172033;
+          font-size: 20px;
+          font-weight: 900;
+        }
+
+        .premium-active-heading p {
+          margin: 0;
+          color: #667085;
+          font-size: 13px;
+        }
+
+        .premium-active-heading > strong {
+          min-width: 42px;
+          text-align: center;
+          padding: 8px 10px;
+          border-radius: 10px;
+          background: #f5f6f8;
+          color: #344054;
+          font-size: 12px;
+        }
+
+        .premium-clean-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .premium-clean-card {
+          background: #fff;
+          border: 1px solid #e1e6ee;
+          border-radius: 17px;
+          padding: 18px;
+          box-shadow: 0 8px 22px rgba(15,23,42,.045);
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .premium-clean-card:hover {
+          transform: translateY(-2px);
+          border-color: #d5dbe4;
+          box-shadow: 0 13px 28px rgba(15,23,42,.07);
+        }
+
+        .premium-clean-meta,
+        .premium-clean-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .premium-type-pill,
+        .premium-gs-pill {
+          display: inline-flex;
+          align-items: center;
+          padding: 5px 8px;
+          border-radius: 8px;
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: .06em;
+        }
+
+        .premium-type-pill {
+          background: #f8e8e8;
+          color: #8b1e2d;
+        }
+
+        .premium-gs-pill {
+          background: #f2f4f7;
+          color: #475467;
+        }
+
+        .premium-clean-card h3 {
+          margin: 14px 0 9px;
+          color: #172033;
+          font-size: 16px;
+          line-height: 1.4;
+          font-weight: 900;
+        }
+
+        .premium-clean-fact {
+          min-height: 68px;
+          margin: 0;
+          color: #475467;
+          font-size: 13.5px;
+          line-height: 1.65;
+        }
+
+        .premium-clean-footer {
+          margin-top: 15px;
+          padding-top: 11px;
+          border-top: 1px solid #edf0f3;
+          color: #98a2b3;
+          font-size: 10px;
+        }
+
+        .premium-clean-footer span:last-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 48%;
+        }
+
+        .premium-clean-empty {
+          padding: 32px 18px;
+          border: 1px dashed #d9dee7;
+          border-radius: 16px;
+          background: #fafbfc;
+          color: #667085;
+          text-align: center;
+        }
+
         .fact-grid {
           max-width: 1050px;
           margin: auto;
@@ -1479,6 +1724,18 @@ export default function CurrentAffairsPage() {
         }
 
         @media (max-width: 800px) {
+          .premium-clean-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .premium-tabs {
+            grid-template-columns: 1fr;
+          }
+
+          .premium-active-heading {
+            align-items: flex-start;
+          }
+
           .ca-header {
             display: block;
           }
@@ -1725,144 +1982,197 @@ function PremiumFacts({
 }) {
   const [tab, setTab] = useState("prelims");
 
-  const prelimsFacts = news.filter(
-    (item) =>
-      item.prelims_hi ||
-      item.prelims_en ||
-      item.prelims
-  );
+  const getText = (item, base, fallback = "") =>
+    (hi
+      ? item[`${base}_hi`] || item[`${base}_en`]
+      : item[`${base}_en`] || item[`${base}_hi`]) ||
+    item[base] ||
+    fallback;
 
-  const mainsFacts = news.filter(
-    (item) =>
-      item.premium_fact_hi ||
-      item.premium_fact_en ||
-      item.premium_fact
-  );
+  const prelimsFacts = news.filter((item) => {
+    const fact = getText(item, "prelims");
+    return Boolean(fact);
+  });
+
+  const mainsFacts = news.filter((item) => {
+    const fact = getText(item, "premium_fact");
+    return Boolean(fact);
+  });
+
+  const facts = tab === "prelims" ? prelimsFacts : mainsFacts;
+
+  function cleanText(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .replace(/^[-•*]\s*/, "")
+      .trim();
+  }
 
   function getPrelimsFact(item) {
-    const text =
-      (hi
-        ? item.prelims_hi
-        : item.prelims_en) ||
-      item.prelims ||
-      "";
+    const raw = cleanText(getText(item, "prelims"));
+    if (!raw) return "";
 
-    return text
-      .split(/[.!?]\s+/)[0]
-      .slice(0, 170);
+    const firstSentence =
+      raw.split(/(?<=[.!?।])\s+/)[0].trim() || raw;
+
+    return firstSentence.length > 190
+      ? `${firstSentence.slice(0, 187).trim()}...`
+      : firstSentence;
   }
 
   function getMainsFact(item) {
-    return (
-      (hi
-        ? item.premium_fact_hi
-        : item.premium_fact_en) ||
-      item.premium_fact ||
-      ""
-    );
+    return cleanText(getText(item, "premium_fact"));
   }
 
-  const facts =
-    tab === "prelims"
-      ? prelimsFacts
-      : mainsFacts;
+  const renderFact = (item) => {
+    const fact =
+      tab === "prelims"
+        ? getPrelimsFact(item)
+        : getMainsFact(item);
 
-  return (
-    <section className="special-section">
-      <div className="section-heading">
-        <div>
-          <span className="badge">
-            PREMIUM
+    const title = getText(item, "title", "Current Affair");
+
+    return (
+      <article
+        className="premium-clean-card"
+        key={`${tab}-${item.id}`}
+      >
+        <div className="premium-clean-meta">
+          <span className="premium-type-pill">
+            {tab === "prelims"
+              ? "PRELIMS FACT"
+              : "MAINS FACT"}
           </span>
-
-          <h2>🔥 Premium Facts</h2>
+          <span className="premium-gs-pill">
+            {item.gs || item.paper || "UPSC"}
+          </span>
         </div>
 
-        <p>
-          {hi
-            ? "Prelims + Mains के high-value facts"
-            : "High-value facts for UPSC"}
-        </p>
+        <h3>{title}</h3>
+        <p className="premium-clean-fact">{fact}</p>
+
+        <div className="premium-clean-footer">
+          <span>
+            {tab === "prelims"
+              ? hi
+                ? "त्वरित पुनरावृत्ति"
+                : "Quick Revision"
+              : hi
+              ? "Mains Answer Use"
+              : "Mains Answer Use"}
+          </span>
+          <span>
+            {item.source_name || "Official Source"}
+          </span>
+        </div>
+      </article>
+    );
+  };
+
+  return (
+    <section className="premium-facts-wrap">
+      <div className="premium-main-heading">
+        <div>
+          <span className="premium-main-badge">PREMIUM</span>
+          <h2>🔥 Premium Facts</h2>
+          <p>
+            {hi
+              ? "UPSC-relevant, सीधे exam में इस्तेमाल होने वाले high-value facts."
+              : "UPSC-relevant high-value facts for direct exam use."}
+          </p>
+        </div>
       </div>
 
-      <div
-        className="premium-fact-tabs"
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 15,
-        }}
-      >
+      <div className="premium-tabs" role="tablist">
         <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "prelims"}
           className={
             tab === "prelims"
-              ? "setting-btn active"
-              : "setting-btn"
+              ? "premium-tab active"
+              : "premium-tab"
           }
-          onClick={() =>
-            setTab("prelims")
-          }
+          onClick={() => setTab("prelims")}
         >
-          Prelims
+          <span className="premium-tab-number">01</span>
+          <span className="premium-tab-copy">
+            <strong>PRELIMS</strong>
+            <small>
+              {hi
+                ? "एक-लाइन factual revision"
+                : "One-line factual revision"}
+            </small>
+          </span>
+          <b>{prelimsFacts.length}</b>
         </button>
 
         <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "mains"}
           className={
             tab === "mains"
-              ? "setting-btn active"
-              : "setting-btn"
+              ? "premium-tab active"
+              : "premium-tab"
           }
-          onClick={() =>
-            setTab("mains")
-          }
+          onClick={() => setTab("mains")}
         >
-          Mains
+          <span className="premium-tab-number">02</span>
+          <span className="premium-tab-copy">
+            <strong>MAINS</strong>
+            <small>
+              {hi
+                ? "Answer-ready points"
+                : "Answer-ready points"}
+            </small>
+          </span>
+          <b>{mainsFacts.length}</b>
         </button>
+      </div>
+
+      <div className="premium-active-heading">
+        <div>
+          <span className="premium-active-label">
+            {tab === "prelims"
+              ? "PRELIMS CURRENT FACTS"
+              : "MAINS CURRENT FACTS"}
+          </span>
+          <h3>
+            {tab === "prelims"
+              ? hi
+                ? "Prelims के लिए Current Facts"
+                : "Current Facts for Prelims"
+              : hi
+              ? "Mains के लिए Current Facts"
+              : "Current Facts for Mains"}
+          </h3>
+          <p>
+            {tab === "prelims"
+              ? hi
+                ? "एक नज़र में याद रखने योग्य factual points."
+                : "Factual points for quick revision." 
+              : hi
+              ? "Mains answers को मजबूत करने वाले high-value points."
+              : "High-value points to strengthen Mains answers."}
+          </p>
+        </div>
+        <strong>{facts.length}</strong>
       </div>
 
       {facts.length === 0 ? (
-        <div className="empty">
-          {hi
-            ? "अभी Premium Facts उपलब्ध नहीं हैं।"
-            : "No Premium Facts available yet."}
+        <div className="premium-clean-empty">
+          {tab === "prelims"
+            ? hi
+              ? "अभी कोई Prelims Premium Fact उपलब्ध नहीं है।"
+              : "No Prelims Premium Facts available yet."
+            : hi
+            ? "अभी कोई Mains Premium Fact उपलब्ध नहीं है।"
+            : "No Mains Premium Facts available yet."}
         </div>
       ) : (
-        <div className="fact-grid">
-          {facts.map((item) => {
-            const fact =
-              tab === "prelims"
-                ? getPrelimsFact(item)
-                : getMainsFact(item);
-
-            return (
-              <article
-                className="fact-card"
-                key={item.id}
-              >
-                <span>
-                  {item.gs ||
-                    item.paper ||
-                    "UPSC"}
-                </span>
-
-                <h3>
-                  {hi
-                    ? item.title_hi ||
-                      item.title
-                    : item.title_en ||
-                      item.title}
-                </h3>
-
-                <p>{fact}</p>
-
-                <small>
-                  Source:{" "}
-                  {item.source_name ||
-                    "Official Source"}
-                </small>
-              </article>
-            );
-          })}
+        <div className="premium-clean-grid">
+          {facts.map(renderFact)}
         </div>
       )}
     </section>
