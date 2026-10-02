@@ -764,7 +764,7 @@ export default function CurrentAffairsPage() {
         </section>
       )}
 
-      <style jsx>{`
+      <style jsx global>{`
         .ca-page {
           min-height: 100vh;
           background:
