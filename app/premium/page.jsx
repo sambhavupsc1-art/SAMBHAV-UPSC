@@ -10,7 +10,8 @@ const plans = [
     price: "₹0",
     period: "FREE",
     duration: "2 days",
-    description: "Experience the complete SAMBHAV Premium platform.",
+    description:
+      "Experience the complete SAMBHAV Premium platform.",
     badge: "FREE",
     featured: true,
   },
@@ -20,7 +21,8 @@ const plans = [
     price: "₹99",
     period: "/ month",
     duration: "1 month",
-    description: "Full Premium access for one month.",
+    description:
+      "Full Premium access for one month.",
   },
   {
     id: "quarterly",
@@ -28,7 +30,8 @@ const plans = [
     price: "₹399",
     period: "/ 3 months",
     duration: "3 months",
-    description: "Premium access for three months.",
+    description:
+      "Premium access for three months.",
     badge: "POPULAR",
   },
   {
@@ -37,7 +40,8 @@ const plans = [
     price: "₹999",
     period: "/ year",
     duration: "1 year",
-    description: "Complete Premium access for one year.",
+    description:
+      "Complete Premium access for one year.",
     badge: "BEST VALUE",
   },
 ];
@@ -71,7 +75,8 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "14px",
-    border: "1px solid rgba(16,16,16,.08)",
+    border:
+      "1px solid rgba(16,16,16,.08)",
     background: "#fffdf9",
     fontSize: "20px",
     cursor: "pointer",
@@ -127,7 +132,8 @@ const styles = {
     marginBottom: "24px",
     position: "relative",
     overflow: "hidden",
-    boxShadow: "0 15px 35px rgba(16,16,16,.14)",
+    boxShadow:
+      "0 15px 35px rgba(16,16,16,.14)",
   },
 
   officerGlow: {
@@ -137,7 +143,8 @@ const styles = {
     borderRadius: "50%",
     right: "-75px",
     top: "-90px",
-    background: "rgba(223,196,119,.08)",
+    background:
+      "rgba(223,196,119,.08)",
   },
 
   officerLabel: {
@@ -182,7 +189,8 @@ const styles = {
   plan: {
     position: "relative",
     background: "#fffdf9",
-    border: "1px solid rgba(16,16,16,.08)",
+    border:
+      "1px solid rgba(16,16,16,.08)",
     borderRadius: "23px",
     padding: "19px",
     cursor: "pointer",
@@ -192,7 +200,8 @@ const styles = {
 
   selectedPlan: {
     border: "2px solid #b89445",
-    boxShadow: "0 10px 28px rgba(184,148,69,.13)",
+    boxShadow:
+      "0 10px 28px rgba(184,148,69,.13)",
   },
 
   demoPlan: {
@@ -294,7 +303,8 @@ const styles = {
     fontSize: "13px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 12px 30px rgba(16,16,16,.18)",
+    boxShadow:
+      "0 12px 30px rgba(16,16,16,.18)",
   },
 
   secure: {
@@ -311,7 +321,8 @@ const styles = {
     borderRadius: "24px",
     padding: "28px",
     textAlign: "center",
-    border: "1px solid rgba(16,16,16,.08)",
+    border:
+      "1px solid rgba(16,16,16,.08)",
   },
 
   error: {
@@ -326,9 +337,14 @@ export default function PremiumPage() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
-  const [selectedPlan, setSelectedPlan] = useState("demo");
-  const [activatingDemo, setActivatingDemo] = useState(false);
-  const [demoMessage, setDemoMessage] = useState("");
+  const [selectedPlan, setSelectedPlan] =
+    useState("demo");
+
+  const [activatingDemo, setActivatingDemo] =
+    useState(false);
+
+  const [demoMessage, setDemoMessage] =
+    useState("");
 
   useEffect(() => {
     let attempts = 0;
@@ -339,7 +355,8 @@ export default function PremiumPage() {
 
       attempts++;
 
-      const webApp = window.Telegram?.WebApp;
+      const webApp =
+        window.Telegram?.WebApp;
 
       if (!webApp?.initData) {
         if (attempts < 30) {
@@ -350,6 +367,7 @@ export default function PremiumPage() {
         setAuthError(
           "Telegram authentication data nahi mila."
         );
+
         setLoading(false);
         return;
       }
@@ -359,16 +377,19 @@ export default function PremiumPage() {
 
       fetch("/api/auth/me", {
         headers: {
-          Authorization: `tma ${webApp.initData}`,
+          Authorization:
+            `tma ${webApp.initData}`,
         },
         cache: "no-store",
       })
         .then(async (response) => {
-          const data = await response.json();
+          const data =
+            await response.json();
 
           if (!response.ok) {
             throw new Error(
-              data.error || "Authentication failed"
+              data.error ||
+                "Authentication failed"
             );
           }
 
@@ -376,7 +397,8 @@ export default function PremiumPage() {
         })
         .catch((error) => {
           setAuthError(
-            error.message || "Authentication failed."
+            error.message ||
+              "Authentication failed."
           );
         })
         .finally(() => {
@@ -392,7 +414,8 @@ export default function PremiumPage() {
   }, []);
 
   const selected = plans.find(
-    (plan) => plan.id === selectedPlan
+    (plan) =>
+      plan.id === selectedPlan
   );
 
   const activateDemo = async () => {
@@ -402,7 +425,8 @@ export default function PremiumPage() {
     setDemoMessage("");
 
     try {
-      const webApp = window.Telegram?.WebApp;
+      const webApp =
+        window.Telegram?.WebApp;
 
       if (!webApp?.initData) {
         throw new Error(
@@ -414,32 +438,86 @@ export default function PremiumPage() {
         "/api/premium/demo",
         {
           method: "POST",
+
           headers: {
-            Authorization: `tma ${webApp.initData}`,
-            "Content-Type": "application/json",
+            Authorization:
+              `tma ${webApp.initData}`,
+            "Content-Type":
+              "application/json",
           },
+
           cache: "no-store",
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
+
+      /*
+       * IMPORTANT:
+       * If the user already has an active
+       * Premium subscription, do not treat
+       * it as a fatal error.
+       *
+       * Send the user directly to
+       * Premium Home.
+       */
+      if (
+        response.status === 409 &&
+        data?.subscription
+      ) {
+        setDemoMessage(
+          "PREMIUM ALREADY ACTIVE"
+        );
+
+        setTimeout(() => {
+          window.location.href =
+            "/premium/home";
+        }, 500);
+
+        return;
+      }
+
+      /*
+       * If the API says the demo was already
+       * used but does not return a subscription,
+       * show the message normally.
+       */
+      if (
+        response.status === 409 &&
+        data?.error?.includes(
+          "already been used"
+        )
+      ) {
+        setDemoMessage(
+          "Your 2-Day Premium Demo has already been used."
+        );
+
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Demo activation failed."
+          data.error ||
+            "Demo activation failed."
         );
       }
 
+      /*
+       * First-time demo activation.
+       */
       setDemoMessage(
         "PREMIUM DEMO ACTIVATED"
       );
 
       setTimeout(() => {
-        window.location.href = "/premium/home";
+        window.location.href =
+          "/premium/home";
       }, 700);
     } catch (error) {
       setDemoMessage(
-        error.message || "Demo activation failed."
+        error.message ||
+          "Demo activation failed."
       );
     } finally {
       setActivatingDemo(false);
@@ -452,6 +530,10 @@ export default function PremiumPage() {
       return;
     }
 
+    /*
+     * Paid plans will use Cashfree later.
+     * No fake payment is performed here.
+     */
     window.location.href =
       `/premium/payment?plan=${selectedPlan}`;
   };
@@ -466,7 +548,9 @@ export default function PremiumPage() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.loadingCard}>
+            <div
+              style={styles.loadingCard}
+            >
               <div style={styles.brand}>
                 SAMBHAV UPSC
               </div>
@@ -491,7 +575,9 @@ export default function PremiumPage() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.loadingCard}>
+            <div
+              style={styles.loadingCard}
+            >
               <div style={styles.brand}>
                 SAMBHAV UPSC
               </div>
@@ -507,7 +593,8 @@ export default function PremiumPage() {
                   marginTop: "22px",
                 }}
                 onClick={() => {
-                  window.location.href = "/";
+                  window.location.href =
+                    "/";
                 }}
               >
                 ← Back to SAMBHAV
@@ -532,7 +619,8 @@ export default function PremiumPage() {
             <button
               style={styles.back}
               onClick={() => {
-                window.location.href = "/";
+                window.location.href =
+                  "/";
               }}
               aria-label="Back"
             >
@@ -543,13 +631,17 @@ export default function PremiumPage() {
               SAMBHAV UPSC
             </div>
 
-            <div style={styles.premiumBadge}>
+            <div
+              style={styles.premiumBadge}
+            >
               ✦ PREMIUM
             </div>
           </header>
 
           <section style={styles.hero}>
-            <div style={styles.crown}>♛</div>
+            <div style={styles.crown}>
+              ♛
+            </div>
 
             <h1 style={styles.heroTitle}>
               Your Preparation.
@@ -558,33 +650,46 @@ export default function PremiumPage() {
             </h1>
 
             <p style={styles.heroSub}>
-              Unlock structured UPSC preparation,
-              intelligent practice and premium
+              Unlock structured UPSC
+              preparation, intelligent
+              practice and premium
               learning tools.
             </p>
           </section>
 
-          <section style={styles.officerCard}>
-            <div style={styles.officerGlow} />
+          <section
+            style={styles.officerCard}
+          >
+            <div
+              style={styles.officerGlow}
+            />
 
-            <div style={styles.officerLabel}>
+            <div
+              style={styles.officerLabel}
+            >
               Officer Access
             </div>
 
-            <div style={styles.officerTitle}>
+            <div
+              style={styles.officerTitle}
+            >
               Welcome,{" "}
               {user.first_name ||
                 user.firstName ||
                 "Aspirant"}
             </div>
 
-            <div style={styles.officerText}>
-              Select your Premium access plan
-              below.
+            <div
+              style={styles.officerText}
+            >
+              Select your Premium access
+              plan below.
             </div>
           </section>
 
-          <div style={styles.sectionTitle}>
+          <div
+            style={styles.sectionTitle}
+          >
             Choose your plan
           </div>
 
@@ -592,6 +697,7 @@ export default function PremiumPage() {
             {plans.map((plan) => {
               const isSelected =
                 selectedPlan === plan.id;
+
               const isDemo =
                 plan.id === "demo";
 
@@ -600,21 +706,26 @@ export default function PremiumPage() {
                   key={plan.id}
                   style={{
                     ...styles.plan,
+
                     ...(isDemo
                       ? styles.demoPlan
                       : {}),
+
                     ...(isSelected
                       ? styles.selectedPlan
                       : {}),
                   }}
                   onClick={() =>
-                    setSelectedPlan(plan.id)
+                    setSelectedPlan(
+                      plan.id
+                    )
                   }
                 >
                   {plan.badge && (
                     <div
                       style={{
                         ...styles.badge,
+
                         ...(isDemo
                           ? styles.demoBadge
                           : {}),
@@ -624,18 +735,29 @@ export default function PremiumPage() {
                     </div>
                   )}
 
-                  <div style={styles.planTitle}>
+                  <div
+                    style={
+                      styles.planTitle
+                    }
+                  >
                     {plan.title}
                   </div>
 
-                  <div style={styles.priceRow}>
-                    <div style={styles.price}>
+                  <div
+                    style={
+                      styles.priceRow
+                    }
+                  >
+                    <div
+                      style={styles.price}
+                    >
                       {plan.price}
                     </div>
 
                     <div
                       style={{
                         ...styles.period,
+
                         ...(isDemo
                           ? styles.demoPeriod
                           : {}),
@@ -648,6 +770,7 @@ export default function PremiumPage() {
                   <div
                     style={{
                       ...styles.duration,
+
                       ...(isDemo
                         ? styles.demoDuration
                         : {}),
@@ -659,6 +782,7 @@ export default function PremiumPage() {
                   <div
                     style={{
                       ...styles.description,
+
                       ...(isDemo
                         ? styles.demoDescription
                         : {}),
@@ -670,6 +794,7 @@ export default function PremiumPage() {
                   <div
                     style={{
                       ...styles.check,
+
                       ...(isDemo
                         ? styles.demoCheck
                         : {}),
@@ -688,16 +813,23 @@ export default function PremiumPage() {
                 marginTop: "15px",
                 padding: "13px",
                 borderRadius: "15px",
+
                 background:
                   demoMessage ===
-                  "PREMIUM DEMO ACTIVATED"
+                  "PREMIUM DEMO ACTIVATED" ||
+                  demoMessage ===
+                  "PREMIUM ALREADY ACTIVE"
                     ? "#eaf7ed"
                     : "#fff0ee",
+
                 color:
                   demoMessage ===
-                  "PREMIUM DEMO ACTIVATED"
+                  "PREMIUM DEMO ACTIVATED" ||
+                  demoMessage ===
+                  "PREMIUM ALREADY ACTIVE"
                     ? "#217a39"
                     : "#b52b22",
+
                 textAlign: "center",
                 fontSize: "11px",
                 fontWeight: "800",
@@ -710,16 +842,21 @@ export default function PremiumPage() {
           <button
             style={{
               ...styles.bottomAction,
-              opacity: activatingDemo ? 0.65 : 1,
+
+              opacity:
+                activatingDemo
+                  ? 0.65
+                  : 1,
             }}
             disabled={activatingDemo}
             onClick={continuePlan}
           >
             {activatingDemo
               ? "Activating..."
-              : selectedPlan === "demo"
+              : selectedPlan ===
+                "demo"
               ? "START FREE DEMO →"
-              : `CONTINUE WITH ${selected.price} →`}
+              : `CONTINUE WITH ${selected?.price} →`}
           </button>
 
           <div style={styles.secure}>
