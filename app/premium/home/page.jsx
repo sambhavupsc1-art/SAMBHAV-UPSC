@@ -486,6 +486,7 @@ export default function PremiumHome() {
   useEffect(() => {
     let attempts = 0;
     let stopped = false;
+    let retryTimer = null;
 
     const authenticate = () => {
       if (stopped) return;
@@ -494,30 +495,100 @@ export default function PremiumHome() {
 
       const webApp = window.Telegram?.WebApp;
 
-      if (!webApp?.initData) {
-        if (attempts < 30) {
-          setTimeout(authenticate, 200);
+      /*
+       * IMPORTANT:
+       *
+       * When Telegram Mini App returns from another internal route,
+       * Telegram WebApp can temporarily expose an empty initData.
+       *
+       * First try live Telegram initData.
+       * If unavailable, use the authenticated value saved in
+       * sessionStorage during the first successful load.
+       */
+      let telegramInitData = webApp?.initData || "";
+
+      if (!telegramInitData) {
+        try {
+          telegramInitData =
+            sessionStorage.getItem(
+              "sambhav_telegram_init_data"
+            ) || "";
+        } catch (storageError) {
+          console.warn(
+            "Unable to read Telegram auth session:",
+            storageError
+          );
+        }
+      }
+
+      /*
+       * Telegram script may still be initializing.
+       * Give it time before showing authentication error.
+       */
+      if (!telegramInitData) {
+        if (attempts < 40) {
+          retryTimer = window.setTimeout(
+            authenticate,
+            250
+          );
           return;
         }
 
         setError(
-          "Telegram authentication data nahi mila."
+          "Telegram authentication data nahi mila. Mini App ko Telegram ke andar se reopen karein."
         );
+
         setLoading(false);
         return;
       }
 
-      webApp.ready();
-      webApp.expand();
+      /*
+       * Telegram WebApp UI setup.
+       */
+      if (webApp) {
+        try {
+          webApp.ready();
+          webApp.expand();
+        } catch (telegramError) {
+          console.warn(
+            "Telegram WebApp setup warning:",
+            telegramError
+          );
+        }
+      }
+
+      /*
+       * Save auth context for navigation/back navigation.
+       *
+       * sessionStorage survives internal route navigation
+       * but is cleared when the Mini App session is closed.
+       */
+      try {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          telegramInitData
+        );
+      } catch (storageError) {
+        console.warn(
+          "Unable to save Telegram auth session:",
+          storageError
+        );
+      }
 
       fetch("/api/auth/me", {
         headers: {
-          Authorization: `tma ${webApp.initData}`,
+          Authorization: `tma ${telegramInitData}`,
         },
         cache: "no-store",
       })
         .then(async (response) => {
-          const data = await response.json();
+          let data = {};
+
+          try {
+            data = await response.json();
+          } catch {
+            data = {};
+          }
 
           if (!response.ok) {
             throw new Error(
@@ -532,10 +603,17 @@ export default function PremiumHome() {
           }
 
           setUser(data.user);
+          setError("");
         })
         .catch((err) => {
+          console.error(
+            "Premium authentication error:",
+            err
+          );
+
           setError(
-            err.message || "Authentication failed."
+            err.message ||
+              "Authentication failed."
           );
         })
         .finally(() => {
@@ -547,6 +625,10 @@ export default function PremiumHome() {
 
     return () => {
       stopped = true;
+
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
     };
   }, []);
 
@@ -560,6 +642,12 @@ export default function PremiumHome() {
 
   const go = (route) => {
     if (!route) return;
+
+    /*
+     * Normal internal navigation.
+     * sessionStorage keeps Telegram auth available
+     * when Premium Home is opened again.
+     */
     window.location.href = route;
   };
 
@@ -646,6 +734,7 @@ export default function PremiumHome() {
                   background: "#101010",
                   color: "#fff",
                   fontWeight: "800",
+                  cursor: "pointer",
                 }}
                 onClick={() => {
                   window.location.href = "/";
@@ -725,6 +814,7 @@ export default function PremiumHome() {
               <div style={styles.statValue}>
                 0%
               </div>
+
               <div style={styles.statLabel}>
                 SYLLABUS
               </div>
@@ -734,6 +824,7 @@ export default function PremiumHome() {
               <div style={styles.statValue}>
                 0
               </div>
+
               <div style={styles.statLabel}>
                 QUESTIONS SOLVED
               </div>
@@ -743,6 +834,7 @@ export default function PremiumHome() {
               <div style={styles.statValue}>
                 0
               </div>
+
               <div style={styles.statLabel}>
                 DAY STREAK
               </div>
@@ -779,8 +871,19 @@ export default function PremiumHome() {
             {modules.map((module) => (
               <div
                 key={module.title}
-                style={styles.module}
-                onClick={() => go(module.route)}
+                style={{
+                  ...styles.module,
+                  opacity: module.route
+                    ? 1
+                    : 0.72,
+                  cursor: module.route
+                    ? "pointer"
+                    : "default",
+                }}
+                onClick={() =>
+                  module.route &&
+                  go(module.route)
+                }
               >
                 <div style={styles.icon}>
                   {module.icon}
@@ -825,7 +928,9 @@ export default function PremiumHome() {
 
             <div style={styles.missionRow}>
               <div style={styles.missionTop}>
-                <span>Solve 25 PYQs</span>
+                <span>
+                  Solve 25 PYQs
+                </span>
 
                 <span style={styles.missionMuted}>
                   0%
@@ -876,12 +981,15 @@ export default function PremiumHome() {
 
               <div style={styles.intelligenceText}>
                 India Governance & Polity
+
                 <div style={styles.intelligenceSub}>
                   Governance • Constitution • Policy
                 </div>
               </div>
 
-              <div style={styles.arrow}>›</div>
+              <div style={styles.arrow}>
+                ›
+              </div>
             </div>
 
             <div style={styles.intelligenceRow}>
@@ -891,12 +999,15 @@ export default function PremiumHome() {
 
               <div style={styles.intelligenceText}>
                 World & International Relations
+
                 <div style={styles.intelligenceSub}>
                   IR • Global Affairs • Diplomacy
                 </div>
               </div>
 
-              <div style={styles.arrow}>›</div>
+              <div style={styles.arrow}>
+                ›
+              </div>
             </div>
 
             <div
@@ -911,12 +1022,15 @@ export default function PremiumHome() {
 
               <div style={styles.intelligenceText}>
                 Economy
+
                 <div style={styles.intelligenceSub}>
                   Economy • Banking • Markets
                 </div>
               </div>
 
-              <div style={styles.arrow}>›</div>
+              <div style={styles.arrow}>
+                ›
+              </div>
             </div>
           </section>
 
@@ -944,7 +1058,10 @@ export default function PremiumHome() {
               ...styles.navActive,
             }}
           >
-            <span style={styles.navIcon}>⌂</span>
+            <span style={styles.navIcon}>
+              ⌂
+            </span>
+
             Home
           </div>
 
@@ -952,7 +1069,10 @@ export default function PremiumHome() {
             style={styles.navItem}
             onClick={() => go("/pyq")}
           >
-            <span style={styles.navIcon}>▣</span>
+            <span style={styles.navIcon}>
+              ▣
+            </span>
+
             Practice
           </div>
 
@@ -962,7 +1082,10 @@ export default function PremiumHome() {
               go("/current-affairs")
             }
           >
-            <span style={styles.navIcon}>▤</span>
+            <span style={styles.navIcon}>
+              ▤
+            </span>
+
             Current
           </div>
 
@@ -972,7 +1095,10 @@ export default function PremiumHome() {
               console.log("AI module");
             }}
           >
-            <span style={styles.navIcon}>✦</span>
+            <span style={styles.navIcon}>
+              ✦
+            </span>
+
             AI
           </div>
 
@@ -980,7 +1106,10 @@ export default function PremiumHome() {
             style={styles.navItem}
             onClick={() => go("/")}
           >
-            <span style={styles.navIcon}>●</span>
+            <span style={styles.navIcon}>
+              ●
+            </span>
+
             Profile
           </div>
         </nav>
