@@ -345,9 +345,7 @@ export default function CurrentAffairsPage() {
     <main className="ca-page">
       <section className="ca-header">
         <div>
-          <p className="eyebrow">
-            SAMBHAV UPSC
-          </p>
+          <p className="eyebrow">SAMBHAV UPSC</p>
 
           <h1>Current Affairs</h1>
 
@@ -412,9 +410,7 @@ export default function CurrentAffairsPage() {
             }
           >
             🔔
-            <span>
-              Notifications
-            </span>
+            <span>Notifications</span>
           </button>
         </div>
       </section>
@@ -688,6 +684,12 @@ export default function CurrentAffairsPage() {
                     toggleImportant
                   }
                   onOpen={setSelected}
+                  expanded={
+                    selected?.id === item.id
+                  }
+                  onClose={() =>
+                    setSelected(null)
+                  }
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -745,6 +747,12 @@ export default function CurrentAffairsPage() {
                     toggleImportant
                   }
                   onOpen={setSelected}
+                  expanded={
+                    selected?.id === item.id
+                  }
+                  onClose={() =>
+                    setSelected(null)
+                  }
                   formatDate={formatDate}
                   disabled={
                     importantLoading
@@ -754,23 +762,6 @@ export default function CurrentAffairsPage() {
             </div>
           )}
         </section>
-      )}
-
-      {selected && (
-        <ArticleModal
-          item={selected}
-          language={language}
-          important={importantIds.includes(
-            Number(selected.id)
-          )}
-          importantLoading={
-            importantLoading
-          }
-          onImportant={toggleImportant}
-          onClose={() =>
-            setSelected(null)
-          }
-        />
       )}
 
       <style jsx>{`
@@ -868,11 +859,6 @@ export default function CurrentAffairsPage() {
           padding: 7px 10px;
           cursor: pointer;
           font-weight: 800;
-          transition: 0.2s ease;
-        }
-
-        .lang:hover {
-          transform: translateY(-1px);
         }
 
         .lang.active {
@@ -889,12 +875,6 @@ export default function CurrentAffairsPage() {
           gap: 7px;
           align-items: center;
           justify-content: center;
-          transition: 0.2s ease;
-        }
-
-        .notification-button:hover {
-          background: #f8fafc;
-          transform: translateY(-1px);
         }
 
         .eyebrow {
@@ -984,8 +964,6 @@ export default function CurrentAffairsPage() {
           border-radius: 50%;
           background: #fff;
           transition: 0.2s;
-          box-shadow: 0 2px 6px
-            rgba(0, 0, 0, 0.15);
         }
 
         .switch.on {
@@ -1097,16 +1075,6 @@ export default function CurrentAffairsPage() {
           white-space: nowrap;
           cursor: pointer;
           font-weight: 800;
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            background 0.18s ease;
-        }
-
-        .filter:hover {
-          transform: translateY(-1px);
-          box-shadow:
-            0 5px 14px rgba(15, 23, 42, 0.08);
         }
 
         .filter.active {
@@ -1177,17 +1145,6 @@ export default function CurrentAffairsPage() {
           box-shadow:
             0 10px 28px rgba(15, 23, 42, 0.055),
             0 2px 5px rgba(15, 23, 42, 0.025);
-          transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease,
-            border-color 0.2s ease;
-        }
-
-        .news-card:hover {
-          transform: translateY(-2px);
-          border-color: #cbd5e1;
-          box-shadow:
-            0 18px 38px rgba(15, 23, 42, 0.09);
         }
 
         .topline {
@@ -1238,9 +1195,6 @@ export default function CurrentAffairsPage() {
           min-height: 44px;
           cursor: pointer;
           font-weight: 850;
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease;
         }
 
         .read-button {
@@ -1251,13 +1205,6 @@ export default function CurrentAffairsPage() {
               #273449
             );
           color: #fff;
-          box-shadow:
-            0 7px 16px rgba(23, 32, 51, 0.16);
-        }
-
-        .read-button:hover,
-        .important-button:hover {
-          transform: translateY(-1px);
         }
 
         .important-button {
@@ -1371,45 +1318,47 @@ export default function CurrentAffairsPage() {
           font-size: 11px;
         }
 
-        .modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background:
-            rgba(15, 23, 42, 0.62);
-          backdrop-filter: blur(6px);
-          display: grid;
-          place-items: center;
-          padding: 16px;
-          z-index: 50;
+        /*
+          IMPORTANT:
+          Analysis is now rendered INSIDE the clicked ArticleCard.
+          These styles replace the old full-screen modal behavior
+          for the inline analysis.
+        */
+
+        .inline-analysis {
+          margin-top: 18px;
+          padding-top: 18px;
+          border-top: 1px solid #e4e7ec;
         }
 
-        .modal {
-          width: min(800px, 100%);
-          max-height: 90vh;
-          overflow: auto;
+        .inline-analysis-card {
+          width: 100%;
+          max-height: none;
+          overflow: visible;
           background:
             linear-gradient(
               180deg,
               #ffffff,
               #fbfcfe
             );
-          border-radius: 24px;
-          padding: 26px;
-          position: relative;
           border: 1px solid #dfe5ec;
+          border-radius: 18px;
+          padding: 20px;
           box-shadow:
-            0 30px 80px rgba(15, 23, 42, 0.25);
+            0 10px 28px rgba(15, 23, 42, 0.07);
         }
 
-        .close {
-          position: absolute;
-          right: 15px;
-          top: 10px;
-          border: 0;
-          background: transparent;
-          font-size: 30px;
+        .inline-analysis-card .close {
+          float: right;
+          width: 36px;
+          height: 36px;
+          border: 1px solid #dfe5ec;
+          border-radius: 10px;
+          background: #f8fafc;
+          color: #475467;
+          font-size: 24px;
+          line-height: 1;
           cursor: pointer;
-          color: #667085;
         }
 
         .modal h2 {
@@ -1463,8 +1412,6 @@ export default function CurrentAffairsPage() {
               #fff4d6
             );
           border: 1px solid #f0d39b;
-          box-shadow:
-            0 7px 20px rgba(138, 90, 0, 0.06);
         }
 
         .premium-box p {
@@ -1578,9 +1525,14 @@ export default function CurrentAffairsPage() {
             width: 100%;
           }
 
-          .modal {
-            padding: 21px;
-            border-radius: 20px;
+          .inline-analysis {
+            margin-top: 15px;
+            padding-top: 15px;
+          }
+
+          .inline-analysis-card {
+            padding: 17px;
+            border-radius: 16px;
           }
         }
       `}</style>
@@ -1594,6 +1546,8 @@ function ArticleCard({
   language,
   onImportant,
   onOpen,
+  expanded,
+  onClose,
   formatDate,
   disabled,
 }) {
@@ -1646,11 +1600,19 @@ function ArticleCard({
       <div className="card-actions">
         <button
           className="read-button"
-          onClick={() => onOpen(item)}
+          onClick={() =>
+            expanded
+              ? onClose()
+              : onOpen(item)
+          }
         >
-          {hi
-            ? "पूरा Analysis पढ़ें"
-            : "Read Full Analysis"}
+          {expanded
+            ? hi
+              ? "Analysis बंद करें"
+              : "Close Analysis"
+            : hi
+              ? "पूरा Analysis पढ़ें"
+              : "Read Full Analysis"}
         </button>
 
         <button
@@ -1675,6 +1637,18 @@ function ArticleCard({
             "Not specified"}
         </span>
       </div>
+
+      {expanded && (
+        <ArticleModal
+          item={item}
+          language={language}
+          important={important}
+          importantLoading={disabled}
+          onImportant={onImportant}
+          onClose={onClose}
+          inline
+        />
+      )}
     </article>
   );
 }
@@ -1837,6 +1811,7 @@ function ArticleModal({
   importantLoading,
   onImportant,
   onClose,
+  inline = false,
 }) {
   const hi = language === "hi";
 
@@ -1911,18 +1886,23 @@ function ArticleModal({
 
   return (
     <div
-      className="modal-backdrop"
-      onClick={onClose}
+      className={
+        inline
+          ? "inline-analysis"
+          : "modal-backdrop"
+      }
     >
       <article
-        className="modal"
-        onClick={(e) =>
-          e.stopPropagation()
+        className={
+          inline
+            ? "modal inline-analysis-card"
+            : "modal"
         }
       >
         <button
           className="close"
           onClick={onClose}
+          aria-label="Close analysis"
         >
           ×
         </button>
