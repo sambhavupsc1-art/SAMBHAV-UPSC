@@ -32,12 +32,19 @@ IMPORTANT RULES:
 4. Do NOT remove facts.
 5. Preserve numbers, dates, names, institutions and technical terms.
 6. Preserve option order A, B, C, D.
-7. Keep important UPSC technical terms in English in brackets where useful.
-8. Use natural Hindi suitable for UPSC preparation.
-9. Translate the explanation faithfully without changing its meaning.
-10. If a term is a proper noun or technical term that should remain English,
-    keep it in English.
-11. Return ONLY valid JSON.
+7. Use natural Hindi suitable for UPSC preparation.
+8. For important UPSC technical terms, write the English term first and
+   immediately give its Hindi equivalent in brackets.
+   Example: Financial Inclusion (वित्तीय समावेशन)
+   Example: Fiscal Deficit (राजकोषीय घाटा)
+9. In the Important Terms / Keywords section, ALWAYS write each important
+   term in this format:
+   English Term (हिंदी अर्थ) — short Hindi meaning.
+10. Do not replace important English technical terminology completely with
+    Hindi when the English term is commonly used in UPSC preparation.
+11. Keep proper nouns, institutions, schemes and standard abbreviations intact.
+12. Translate the explanation faithfully without changing its meaning.
+13. Return ONLY valid JSON.
 
 Required JSON format:
 
