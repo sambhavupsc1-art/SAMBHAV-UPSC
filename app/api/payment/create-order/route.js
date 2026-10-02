@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_ENV = process.env.CASHFREE_ENV || "sandbox";
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SECRET_KEY;
+
+const CASHFREE_APP_ID =
+  process.env.CASHFREE_APP_ID;
+
+const CASHFREE_SECRET_KEY =
+  process.env.CASHFREE_SECRET_KEY;
+
+const CASHFREE_ENV =
+  process.env.CASHFREE_ENV || "sandbox";
 
 const PLANS = {
   monthly: {
     amount: 99,
     durationDays: 30,
   },
+
   quarterly: {
     amount: 399,
     durationDays: 90,
   },
+
   annual: {
     amount: 999,
     durationDays: 365,
@@ -25,9 +35,11 @@ const PLANS = {
 
 export async function POST(request) {
   try {
-    // --------------------------------
-    // 1. Check Cashfree configuration
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * CASHFREE CONFIG CHECK
+     * ----------------------------------------
+     */
 
     if (
       !CASHFREE_APP_ID ||
@@ -35,20 +47,26 @@ export async function POST(request) {
     ) {
       return NextResponse.json(
         {
-          error: "Cashfree payment configuration missing.",
+          error:
+            "Cashfree payment configuration missing.",
         },
         { status: 500 }
       );
     }
 
-    // --------------------------------
-    // 2. Telegram authentication
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * TELEGRAM AUTH
+     * ----------------------------------------
+     */
 
     const authorization =
       request.headers.get("authorization");
 
-    if (!authorization?.startsWith("tma ")) {
+    if (
+      !authorization ||
+      !authorization.startsWith("tma ")
+    ) {
       return NextResponse.json(
         {
           error:
@@ -58,10 +76,13 @@ export async function POST(request) {
       );
     }
 
-    const initData = authorization.slice(4);
+    const initData =
+      authorization.slice(4);
 
     const telegramUser =
-      validateTelegramInitData(initData);
+      validateTelegramInitData(
+        initData
+      );
 
     if (!telegramUser?.id) {
       return NextResponse.json(
@@ -73,65 +94,101 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------
-    // 3. Read selected plan
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * REQUEST BODY
+     * ----------------------------------------
+     */
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
     const plan = body?.plan;
 
-    if (!plan || !PLANS[plan]) {
+    if (
+      !plan ||
+      !PLANS[plan]
+    ) {
       return NextResponse.json(
         {
-          error: "Invalid Premium plan.",
+          error:
+            "Invalid Premium plan.",
         },
         { status: 400 }
       );
     }
 
-    const selectedPlan = PLANS[plan];
+    const selectedPlan =
+      PLANS[plan];
 
-    // --------------------------------
-    // 4. Find approved user
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * FIND USER
+     * ----------------------------------------
+     */
 
-    const userResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramUser.id}&select=id,telegram_id,first_name,username,status,plan`,
-      {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_SECRET_KEY,
-          Authorization:
-            `Bearer ${SUPABASE_SECRET_KEY}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const userResponse =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramUser.id}&select=id,telegram_id,first_name,username,status,plan`,
+        {
+          method: "GET",
+
+          headers: {
+            apikey:
+              SUPABASE_SECRET_KEY,
+
+            Authorization:
+              `Bearer ${SUPABASE_SECRET_KEY}`,
+          },
+
+          cache: "no-store",
+        }
+      );
 
     if (!userResponse.ok) {
+      console.error(
+        "User lookup failed:",
+        await userResponse.text()
+      );
+
       return NextResponse.json(
         {
-          error: "Unable to verify user.",
+          error:
+            "Unable to verify user.",
         },
         { status: 500 }
       );
     }
 
-    const users = await userResponse.json();
+    const users =
+      await userResponse.json();
 
-    if (!users?.length) {
+    if (
+      !users ||
+      !users.length
+    ) {
       return NextResponse.json(
         {
-          error: "User not found.",
+          error:
+            "User not found.",
         },
         { status: 404 }
       );
     }
 
-    const user = users[0];
+    const user =
+      users[0];
 
-    if (user.status !== "approved") {
+    /*
+     * ----------------------------------------
+     * APPROVAL CHECK
+     * ----------------------------------------
+     */
+
+    if (
+      user.status !==
+      "approved"
+    ) {
       return NextResponse.json(
         {
           error:
@@ -141,9 +198,21 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------
-    // 5. Prevent duplicate active subscription
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * ACTIVE SUBSCRIPTION CHECK
+     * ----------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * Active DEMO
+     *     -> Paid purchase ALLOWED
+     *
+     * Active PAID subscription
+     *     -> New purchase BLOCKED
+     *
+     * ----------------------------------------
+     */
 
     const activeSubscriptionResponse =
       await fetch(
@@ -152,35 +221,67 @@ export async function POST(request) {
         )}&select=id,plan,status,expires_at,amount&limit=1`,
         {
           method: "GET",
+
           headers: {
-            apikey: SUPABASE_SECRET_KEY,
+            apikey:
+              SUPABASE_SECRET_KEY,
+
             Authorization:
               `Bearer ${SUPABASE_SECRET_KEY}`,
           },
+
           cache: "no-store",
         }
       );
 
-    if (activeSubscriptionResponse.ok) {
+    if (
+      activeSubscriptionResponse.ok
+    ) {
       const activeSubscriptions =
         await activeSubscriptionResponse.json();
 
-      if (activeSubscriptions?.length) {
-        return NextResponse.json(
-          {
-            error:
-              "You already have an active Premium subscription.",
-            subscription:
-              activeSubscriptions[0],
-          },
-          { status: 409 }
-        );
+      if (
+        activeSubscriptions?.length
+      ) {
+        const activeSubscription =
+          activeSubscriptions[0];
+
+        /*
+         * Active DEMO:
+         *
+         * Allow user to upgrade
+         * to a paid Premium plan.
+         */
+        if (
+          activeSubscription.plan ===
+          "demo"
+        ) {
+          // Continue to Cashfree order creation.
+        } else {
+          /*
+           * Active PAID subscription:
+           *
+           * Block duplicate purchase.
+           */
+          return NextResponse.json(
+            {
+              error:
+                "You already have an active Premium subscription.",
+
+              subscription:
+                activeSubscription,
+            },
+            { status: 409 }
+          );
+        }
       }
     }
 
-    // --------------------------------
-    // 6. Generate unique Cashfree order ID
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * CREATE UNIQUE ORDER ID
+     * ----------------------------------------
+     */
 
     const orderId =
       `sambhav_${plan}_${user.id.slice(
@@ -188,9 +289,11 @@ export async function POST(request) {
         8
       )}_${Date.now()}`;
 
-    // --------------------------------
-    // 7. Return URL
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * RETURN URL
+     * ----------------------------------------
+     */
 
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -200,62 +303,102 @@ export async function POST(request) {
     const returnUrl =
       `${baseUrl}/premium/payment/success?order_id={order_id}`;
 
-    // --------------------------------
-    // 8. Cashfree API URL
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * CASHFREE ENDPOINT
+     * ----------------------------------------
+     */
 
     const cashfreeUrl =
-      CASHFREE_ENV === "production"
+      CASHFREE_ENV ===
+      "production"
         ? "https://api.cashfree.com/pg/orders"
         : "https://sandbox.cashfree.com/pg/orders";
 
-    // --------------------------------
-    // 9. Create Cashfree order
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * CREATE CASHFREE ORDER
+     * ----------------------------------------
+     */
 
     const cashfreeResponse =
-      await fetch(cashfreeUrl, {
-        method: "POST",
-        headers: {
-          "x-client-id": CASHFREE_APP_ID,
-          "x-client-secret":
-            CASHFREE_SECRET_KEY,
-          "x-api-version": "2025-01-01",
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-          order_amount: selectedPlan.amount,
-          order_currency: "INR",
+      await fetch(
+        cashfreeUrl,
+        {
+          method: "POST",
 
-          customer_details: {
-            customer_id:
-              String(user.telegram_id),
-            customer_name:
-              user.first_name ||
-              user.username ||
-              "SAMBHAV User",
+          headers: {
+            "x-client-id":
+              CASHFREE_APP_ID,
 
-            // Sandbox test phone.
-            // Production me actual customer phone
-            // flow add karenge.
-            customer_phone: "9999999999",
+            "x-client-secret":
+              CASHFREE_SECRET_KEY,
+
+            "x-api-version":
+              "2025-01-01",
+
+            Accept:
+              "application/json",
+
+            "Content-Type":
+              "application/json",
           },
 
-          order_meta: {
-            return_url: returnUrl,
-          },
+          body: JSON.stringify({
+            order_id:
+              orderId,
 
-          order_note:
-            `SAMBHAV UPSC ${plan} Premium`,
-        }),
-      });
+            order_amount:
+              selectedPlan.amount,
+
+            order_currency:
+              "INR",
+
+            customer_details: {
+              customer_id:
+                String(
+                  user.telegram_id
+                ),
+
+              customer_name:
+                user.first_name ||
+                user.username ||
+                "SAMBHAV User",
+
+              /*
+               * Cashfree requires
+               * customer phone.
+               *
+               * This is only a placeholder
+               * for Sandbox testing.
+               */
+              customer_phone:
+                "9999999999",
+            },
+
+            order_meta: {
+              return_url:
+                returnUrl,
+            },
+
+            order_note:
+              `SAMBHAV UPSC ${plan} Premium`,
+          }),
+        }
+      );
 
     const cashfreeData =
       await cashfreeResponse.json();
 
-    if (!cashfreeResponse.ok) {
+    /*
+     * ----------------------------------------
+     * CASHFREE ERROR
+     * ----------------------------------------
+     */
+
+    if (
+      !cashfreeResponse.ok
+    ) {
       console.error(
         "Cashfree create order error:",
         cashfreeData
@@ -272,9 +415,11 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------
-    // 10. Save pending subscription
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * PENDING SUBSCRIPTION EXPIRY
+     * ----------------------------------------
+     */
 
     const expiresAt =
       new Date(
@@ -286,34 +431,69 @@ export async function POST(request) {
             1000
       ).toISOString();
 
+    /*
+     * ----------------------------------------
+     * CREATE PENDING SUBSCRIPTION
+     * ----------------------------------------
+     */
+
     const subscriptionResponse =
       await fetch(
         `${SUPABASE_URL}/rest/v1/subscriptions`,
         {
           method: "POST",
+
           headers: {
-            apikey: SUPABASE_SECRET_KEY,
+            apikey:
+              SUPABASE_SECRET_KEY,
+
             Authorization:
               `Bearer ${SUPABASE_SECRET_KEY}`,
+
             "Content-Type":
               "application/json",
-            Prefer: "return=representation",
+
+            Prefer:
+              "return=representation",
           },
+
           body: JSON.stringify({
-            user_id: user.id,
-            plan,
-            status: "pending",
-            payment_id: null,
-            order_id: orderId,
-            amount: selectedPlan.amount,
+            user_id:
+              user.id,
+
+            plan:
+              plan,
+
+            status:
+              "pending",
+
+            payment_id:
+              null,
+
+            order_id:
+              orderId,
+
+            amount:
+              selectedPlan.amount,
+
             started_at:
               new Date().toISOString(),
-            expires_at: expiresAt,
+
+            expires_at:
+              expiresAt,
           }),
         }
       );
 
-    if (!subscriptionResponse.ok) {
+    /*
+     * ----------------------------------------
+     * SUBSCRIPTION INSERT ERROR
+     * ----------------------------------------
+     */
+
+    if (
+      !subscriptionResponse.ok
+    ) {
       console.error(
         "Subscription insert failed:",
         await subscriptionResponse.text()
@@ -323,26 +503,45 @@ export async function POST(request) {
         {
           error:
             "Payment order created but subscription record could not be created.",
-          order_id: orderId,
+
+          order_id:
+            orderId,
         },
         { status: 500 }
       );
     }
 
-    // --------------------------------
-    // 11. Send payment session to frontend
-    // --------------------------------
+    /*
+     * ----------------------------------------
+     * SUCCESS
+     * ----------------------------------------
+     */
 
     return NextResponse.json({
       success: true,
-      order_id: orderId,
-      plan,
-      amount: selectedPlan.amount,
+
+      order_id:
+        orderId,
+
+      plan:
+        plan,
+
+      amount:
+        selectedPlan.amount,
+
       payment_session_id:
         cashfreeData.payment_session_id,
-      environment: CASHFREE_ENV,
+
+      environment:
+        CASHFREE_ENV,
     });
   } catch (error) {
+    /*
+     * ----------------------------------------
+     * INTERNAL ERROR
+     * ----------------------------------------
+     */
+
     console.error(
       "Create payment order error:",
       error
