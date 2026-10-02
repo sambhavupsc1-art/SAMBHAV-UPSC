@@ -8,6 +8,7 @@ export default function PremiumPaymentPage() {
 
   const [plan, setPlan] = useState("monthly");
   const [loading, setLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState("");
 
   const plans = {
@@ -32,9 +33,7 @@ export default function PremiumPaymentPage() {
   };
 
   /*
-   * Read ?plan=monthly / quarterly / annual
-   * without useSearchParams().
-   *
+   * Read plan from URL without useSearchParams().
    * This avoids the Next.js Suspense build error.
    */
   useEffect(() => {
@@ -63,7 +62,7 @@ export default function PremiumPaymentPage() {
   }, []);
 
   /*
-   * Load Cashfree JS SDK.
+   * Load Cashfree SDK.
    */
   useEffect(() => {
     const scriptId = "cashfree-sdk";
@@ -92,21 +91,43 @@ export default function PremiumPaymentPage() {
     document.body.appendChild(script);
   }, []);
 
-  const selected = plans[plan];
-
   /*
-   * Get Telegram authentication data.
+   * Get Telegram raw initData.
+   *
+   * Priority:
+   * 1. Telegram WebApp initData
+   * 2. Previously saved sessionStorage
    */
   const getTelegramInitData = () => {
-    const webApp =
-      window.Telegram?.WebApp;
+    let telegramInitData = "";
 
-    let telegramInitData =
-      webApp?.initData || "";
+    try {
+      const webApp =
+        window.Telegram?.WebApp;
+
+      if (webApp) {
+        try {
+          webApp.ready();
+          webApp.expand();
+        } catch (telegramError) {
+          console.warn(
+            "Telegram WebApp setup warning:",
+            telegramError
+          );
+        }
+
+        telegramInitData =
+          webApp.initData || "";
+      }
+    } catch (error) {
+      console.warn(
+        "Telegram WebApp read failed:",
+        error
+      );
+    }
 
     /*
-     * If Telegram WebApp initData is not
-     * directly available, use the saved session.
+     * Fallback to saved authentication.
      */
     if (!telegramInitData) {
       try {
@@ -116,15 +137,14 @@ export default function PremiumPaymentPage() {
           ) || "";
       } catch (storageError) {
         console.warn(
-          "Telegram auth session read failed:",
+          "Session auth read failed:",
           storageError
         );
       }
     }
 
     /*
-     * Save current initData for internal
-     * navigation / returning to this page.
+     * Save valid Telegram auth.
      */
     if (telegramInitData) {
       try {
@@ -134,7 +154,7 @@ export default function PremiumPaymentPage() {
         );
       } catch (storageError) {
         console.warn(
-          "Telegram auth session save failed:",
+          "Session auth save failed:",
           storageError
         );
       }
@@ -142,6 +162,59 @@ export default function PremiumPaymentPage() {
 
     return telegramInitData;
   };
+
+  /*
+   * Wait for Telegram WebApp auth.
+   *
+   * This is important because Telegram's WebApp
+   * object may become available shortly after
+   * the page starts loading.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const checkTelegramAuth = () => {
+      if (cancelled) return;
+
+      const initData =
+        getTelegramInitData();
+
+      if (initData) {
+        setAuthReady(true);
+        return;
+      }
+
+      /*
+       * Check for up to 10 seconds.
+       */
+      if (attempts < 50) {
+        attempts += 1;
+
+        setTimeout(
+          checkTelegramAuth,
+          200
+        );
+
+        return;
+      }
+
+      /*
+       * Do not immediately show a fatal error.
+       * User can still press Pay and the same
+       * authentication check will run again.
+       */
+      setAuthReady(false);
+    };
+
+    checkTelegramAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selected = plans[plan];
 
   /*
    * Start Cashfree payment.
@@ -154,7 +227,7 @@ export default function PremiumPaymentPage() {
 
     try {
       /*
-       * Telegram auth
+       * Get Telegram authentication.
        */
       const telegramInitData =
         getTelegramInitData();
@@ -166,27 +239,31 @@ export default function PremiumPaymentPage() {
       }
 
       /*
-       * Telegram WebApp setup
+       * Telegram WebApp setup.
        */
-      if (window.Telegram?.WebApp) {
-        try {
-          window.Telegram.WebApp.ready();
-          window.Telegram.WebApp.expand();
-        } catch (telegramError) {
-          console.warn(
-            "Telegram WebApp setup warning:",
-            telegramError
-          );
+      try {
+        const webApp =
+          window.Telegram?.WebApp;
+
+        if (webApp) {
+          webApp.ready();
+          webApp.expand();
         }
+      } catch (telegramError) {
+        console.warn(
+          "Telegram setup warning:",
+          telegramError
+        );
       }
 
       /*
-       * Create order on our backend.
+       * Create Cashfree order through our backend.
        */
       const response = await fetch(
         "/api/payment/create-order",
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json",
@@ -194,15 +271,24 @@ export default function PremiumPaymentPage() {
             Authorization:
               `tma ${telegramInitData}`,
           },
+
           body: JSON.stringify({
             plan,
           }),
+
           cache: "no-store",
         }
       );
 
-      const data =
-        await response.json();
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "Payment server se valid response nahi mila."
+        );
+      }
 
       /*
        * Existing active subscription.
@@ -226,7 +312,7 @@ export default function PremiumPaymentPage() {
       }
 
       /*
-       * Cashfree session ID must exist.
+       * Cashfree session required.
        */
       if (!data?.payment_session_id) {
         throw new Error(
@@ -241,13 +327,13 @@ export default function PremiumPaymentPage() {
 
       while (
         !window.Cashfree &&
-        attempts < 50
+        attempts < 60
       ) {
         await new Promise((resolve) =>
           setTimeout(resolve, 100)
         );
 
-        attempts++;
+        attempts += 1;
       }
 
       if (!window.Cashfree) {
@@ -257,7 +343,7 @@ export default function PremiumPaymentPage() {
       }
 
       /*
-       * Sandbox mode.
+       * Sandbox Cashfree.
        */
       const cashfree =
         window.Cashfree({
@@ -265,22 +351,18 @@ export default function PremiumPaymentPage() {
         });
 
       /*
-       * Open Cashfree checkout.
+       * Open Cashfree Checkout.
        */
-      const checkoutOptions = {
-        paymentSessionId:
-          data.payment_session_id,
-
-        redirectTarget: "_self",
-      };
-
       const checkoutResult =
-        await cashfree.checkout(
-          checkoutOptions
-        );
+        await cashfree.checkout({
+          paymentSessionId:
+            data.payment_session_id,
+
+          redirectTarget: "_self",
+        });
 
       /*
-       * Checkout error.
+       * Cashfree returned an error.
        */
       if (checkoutResult?.error) {
         console.error(
@@ -295,8 +377,8 @@ export default function PremiumPaymentPage() {
       }
 
       /*
-       * If Cashfree returns without redirect,
-       * stop loading so user can retry.
+       * If checkout did not redirect,
+       * allow retry.
        */
       setLoading(false);
     } catch (paymentError) {
@@ -355,7 +437,7 @@ export default function PremiumPaymentPage() {
           </div>
         </div>
 
-        {/* Main Card */}
+        {/* Payment Card */}
         <section className="rounded-3xl border border-[#3b3425] bg-[#0d1016] p-5 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
 
           {/* Selected Plan */}
@@ -379,7 +461,7 @@ export default function PremiumPaymentPage() {
             </div>
           </div>
 
-          {/* Plan Selector */}
+          {/* Plans */}
           <div className="space-y-2">
             {Object.entries(plans).map(
               ([key, item]) => {
@@ -432,7 +514,7 @@ export default function PremiumPaymentPage() {
             )}
           </div>
 
-          {/* Price Summary */}
+          {/* Summary */}
           <div className="my-6 border-t border-[#252932] pt-5">
 
             <div className="flex items-center justify-between text-sm">
@@ -479,7 +561,7 @@ export default function PremiumPaymentPage() {
             </div>
           )}
 
-          {/* Pay */}
+          {/* Pay Button */}
           <button
             onClick={handlePayment}
             disabled={loading}
