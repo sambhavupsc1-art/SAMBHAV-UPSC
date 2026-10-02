@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY ||
   process.env.GOOGLE_GEMINI_API_KEY;
 
-/*
-  Gemini fallback order.
-  One batch = maximum 5 articles.
-*/
+/* ---------------------------------------
+   GEMINI MODELS
+--------------------------------------- */
+
 const GEMINI_MODELS = [
   "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
@@ -24,8 +27,14 @@ const BATCH_SIZE = 5;
    SUPABASE
 --------------------------------------- */
 
-async function supabaseRequest(path, options = {}) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
+async function supabaseRequest(
+  path,
+  options = {}
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_KEY
+  ) {
     throw new Error(
       "Supabase environment variables missing."
     );
@@ -37,8 +46,10 @@ async function supabaseRequest(path, options = {}) {
       ...options,
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
+        Authorization:
+          `Bearer ${SUPABASE_KEY}`,
+        "Content-Type":
+          "application/json",
         ...(options.headers || {}),
       },
       cache: "no-store",
@@ -57,12 +68,22 @@ function cleanJson(text) {
     );
   }
 
-  let cleaned = text
-    .trim()
-    .replace(/^```json/i, "")
-    .replace(/^```/i, "")
-    .replace(/```$/i, "")
-    .trim();
+  let cleaned =
+    String(text)
+      .trim()
+      .replace(
+        /^```json\s*/i,
+        ""
+      )
+      .replace(
+        /^```\s*/i,
+        ""
+      )
+      .replace(
+        /\s*```$/i,
+        ""
+      )
+      .trim();
 
   const first =
     cleaned.indexOf("{");
@@ -72,23 +93,27 @@ function cleanJson(text) {
 
   if (
     first === -1 ||
-    last === -1
+    last === -1 ||
+    last <= first
   ) {
     throw new Error(
       "Gemini response is not valid JSON."
     );
   }
 
-  return JSON.parse(
+  cleaned =
     cleaned.slice(
       first,
       last + 1
-    )
+    );
+
+  return JSON.parse(
+    cleaned
   );
 }
 
 /* ---------------------------------------
-   UPSC AI PROMPT
+   PROMPT
 --------------------------------------- */
 
 function buildPrompt(items) {
@@ -115,51 +140,117 @@ function buildPrompt(items) {
         content:
           String(
             item.content || ""
-          ).slice(0, 9000),
+          ).slice(0, 12000),
       })
     );
 
   return `
-You are the UPSC Current Affairs Editor for SAMBHAV UPSC.
+You are the UPSC Current Affairs Editor for
+SAMBHAV UPSC.
 
-Create ONE structured bilingual UPSC current-affairs record for EACH supplied PIB article.
+IMPORTANT TASK:
 
-STRICT RULES:
+The input already contains articles that have been
+selected by the backend as UPSC-relevant.
+
+DO NOT SELECT OR FILTER ARTICLES AGAIN.
+
+YOU MUST CREATE EXACTLY ONE CURRENT-AFFAIRS RECORD
+FOR EVERY INPUT ARTICLE.
+
+If 5 input articles are supplied, return exactly 5
+article objects.
+
+If 1 input article is supplied, return exactly 1
+article object.
+
+NEVER return fewer articles.
+
+NEVER merge two articles.
+
+NEVER skip an article because you think it is less
+important.
+
+The backend has already performed relevance filtering.
+
+---------------------------------------
+STRICT RULES
+---------------------------------------
 
 1. Return ONLY valid JSON.
-2. Preserve the input index exactly.
-3. Generate BOTH Hindi and English.
-4. Hindi must be natural UPSC-standard Hindi.
-5. English must be UPSC-standard English.
-6. Use ONLY information supported by the supplied PIB article.
-7. Never invent facts.
-8. Never invent statistics.
-9. Never invent schemes.
-10. Never invent reports.
-11. Never invent PYQs.
-12. If information is unavailable, return an empty string.
-13. Keep content concise but useful.
-14. Do not force GS-IV.
-15. Do not force a government scheme.
-16. Do not force a report.
-17. Do not force a PYQ.
 
-GS MAPPING:
+2. Preserve the input index exactly.
+
+3. Create exactly ONE output object for EACH input.
+
+4. Number of output articles MUST equal number of
+   input articles.
+
+5. Use the supplied PIB article as the factual source.
+
+6. Never invent facts.
+
+7. Never invent statistics.
+
+8. Never invent schemes.
+
+9. Never invent reports.
+
+10. Never invent institutions.
+
+11. Never invent locations.
+
+12. Never invent personalities.
+
+13. Never invent PYQs.
+
+14. If a field is not supported by the supplied
+    article, return an empty string.
+
+15. Do not reject an article.
+
+16. Do not merge articles.
+
+17. Do not omit articles.
+
+18. Generate both Hindi and English.
+
+19. Hindi must be natural UPSC-standard Hindi.
+
+20. English must be UPSC-standard English.
+
+21. Keep the content concise but useful.
+
+22. Do not force GS-IV.
+
+23. Do not force a government scheme.
+
+24. Do not force a report.
+
+25. Do not force a PYQ.
+
+---------------------------------------
+GS MAPPING
+---------------------------------------
 
 GS-I:
 History, Art & Culture, Geography, Indian Society
 
 GS-II:
-Polity, Governance, Constitution, Social Justice, International Relations
+Polity, Governance, Constitution, Social Justice,
+International Relations
 
 GS-III:
-Economy, Agriculture, Environment, Science & Technology,
-Internal Security, Disaster Management
+Economy, Agriculture, Environment,
+Science & Technology, Internal Security,
+Disaster Management
 
 GS-IV:
 Ethics, Integrity, Aptitude
 
-FIELDS REQUIRED:
+---------------------------------------
+REQUIRED FIELDS
+---------------------------------------
 
 index
 title_hi
@@ -209,10 +300,11 @@ government_scheme
 ethics_angle_hi
 ethics_angle_en
 
+---------------------------------------
+MAINS ANALYSIS
+---------------------------------------
 
-MAINS ANALYSIS:
-
-Where supported, cover:
+Where supported by the article, cover:
 
 - Significance
 - Implications
@@ -220,45 +312,59 @@ Where supported, cover:
 - Opportunities
 - Way Forward
 
-Do NOT invent any of these.
+Do not invent unsupported information.
 
+---------------------------------------
+PRELIMS MCQ
+---------------------------------------
 
-PRELIMS MCQ:
+Create exactly ONE UPSC-style MCQ for each article.
 
-Create exactly ONE UPSC-style MCQ from the supplied article.
+The MCQ must use only facts contained in that article.
 
-The MCQ must be based only on supplied facts.
+---------------------------------------
+RELATED PYQs
+---------------------------------------
 
+Only provide a genuine PYQ if you are confident it is
+real and relevant.
 
-RELATED PYQS:
+Otherwise return an empty string.
 
-Only provide a genuine PYQ if you are confident it is real and relevant.
+Never fabricate a PYQ.
 
-Otherwise return "".
+---------------------------------------
+PREMIUM FACT
+---------------------------------------
 
+Give one useful UPSC fact supported by the article.
 
-STATIC LINK:
+---------------------------------------
+STATIC LINK
+---------------------------------------
 
 Mention the relevant static UPSC topic.
 
+---------------------------------------
+OUTPUT
+---------------------------------------
 
-PREMIUM FACT:
-
-Give one genuinely useful fact supported by the supplied article.
-
-
-OUTPUT FORMAT:
+Return this exact JSON structure:
 
 {
   "articles": [
     {
       "index": 0,
+
       "title_hi": "",
       "title_en": "",
+
       "date": "",
+
       "gs": "",
       "subject": "",
       "paper": "",
+
       "source_name": "",
       "source_url": "",
 
@@ -303,6 +409,18 @@ OUTPUT FORMAT:
   ]
 }
 
+---------------------------------------
+FINAL VALIDATION
+---------------------------------------
+
+Before returning the answer:
+
+- Count input articles.
+- Count output articles.
+- They MUST be identical.
+- Every input index MUST appear exactly once.
+- Do not skip any index.
+- Do not create extra indexes.
 
 INPUT ARTICLES:
 
@@ -313,7 +431,7 @@ ${JSON.stringify(
 }
 
 /* ---------------------------------------
-   GEMINI GENERATION
+   GEMINI REQUEST
 --------------------------------------- */
 
 async function generateWithGemini(
@@ -325,104 +443,157 @@ async function generateWithGemini(
     );
   }
 
-  let lastError = "";
+  let lastError =
+    "Unknown Gemini error.";
 
   for (
     const model of GEMINI_MODELS
   ) {
-    try {
-      console.log(
-        "GEMINI TRY:",
-        model
-      );
-
-      const response =
-        await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: prompt,
-                    },
-                  ],
-                },
-              ],
-
-              generationConfig: {
-                temperature: 0.15,
-
-                responseMimeType:
-                  "application/json",
-
-                maxOutputTokens:
-                  12000,
-              },
-            }),
-          }
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+      try {
+        console.log(
+          "GEMINI TRY:",
+          model,
+          "ATTEMPT:",
+          attempt
         );
 
-      const result =
-        await response.json();
+        const response =
+          await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
 
-      if (!response.ok) {
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        {
+                          text:
+                            prompt,
+                        },
+                      ],
+                    },
+                  ],
+
+                  generationConfig: {
+                    temperature:
+                      0.1,
+
+                    responseMimeType:
+                      "application/json",
+
+                    maxOutputTokens:
+                      16000,
+                  },
+                }),
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          lastError =
+            result?.error?.message ||
+            `Gemini HTTP ${response.status}`;
+
+          console.error(
+            "GEMINI ERROR:",
+            model,
+            attempt,
+            response.status,
+            lastError
+          );
+
+          const retryable =
+            response.status ===
+              429 ||
+            response.status ===
+              500 ||
+            response.status ===
+              502 ||
+            response.status ===
+              503 ||
+            response.status ===
+              504;
+
+          if (
+            retryable &&
+            attempt < 3
+          ) {
+            await new Promise(
+              (resolve) =>
+                setTimeout(
+                  resolve,
+                  1500 *
+                    attempt
+                )
+            );
+
+            continue;
+          }
+
+          break;
+        }
+
+        const text =
+          result
+            ?.candidates?.[0]
+            ?.content?.parts
+            ?.map(
+              (part) =>
+                part.text ||
+                ""
+            )
+            .join("") ||
+          "";
+
+        const parsed =
+          cleanJson(text);
+
+        console.log(
+          "GEMINI SUCCESS:",
+          model,
+          attempt
+        );
+
+        return parsed;
+      } catch (error) {
         lastError =
-          result?.error?.message ||
-          `Gemini HTTP ${response.status}`;
+          error?.message ||
+          "Unknown Gemini error.";
 
         console.error(
-          "GEMINI ERROR:",
+          "GEMINI MODEL ERROR:",
           model,
-          response.status,
+          attempt,
           lastError
         );
 
-        /*
-          Do NOT retry the same model.
-          Immediately move to fallback model.
-        */
-        continue;
+        if (
+          attempt < 3
+        ) {
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                1500 *
+                  attempt
+              )
+          );
+        }
       }
-
-      const text =
-        result
-          ?.candidates?.[0]
-          ?.content?.parts
-          ?.map(
-            (part) =>
-              part.text || ""
-          )
-          .join("") || "";
-
-      const parsed =
-        cleanJson(text);
-
-      console.log(
-        "GEMINI SUCCESS:",
-        model
-      );
-
-      return parsed;
-
-    } catch (error) {
-      lastError =
-        error?.message ||
-        "Unknown Gemini error";
-
-      console.error(
-        "GEMINI MODEL FAILED:",
-        model,
-        lastError
-      );
     }
   }
 
@@ -474,7 +645,8 @@ function normalizeArticle(
 
     subject:
       String(
-        article.subject || ""
+        article.subject ||
+          ""
       ).trim(),
 
     paper:
@@ -705,6 +877,58 @@ async function saveGeneratedArticles(
   generatedArticles,
   inputs
 ) {
+  const generatedMap =
+    new Map();
+
+  for (
+    const article of
+    generatedArticles
+  ) {
+    const index =
+      Number(
+        article?.index
+      );
+
+    if (
+      Number.isInteger(index)
+    ) {
+      generatedMap.set(
+        index,
+        article
+      );
+    }
+  }
+
+  /*
+   * IMPORTANT:
+   * Every input must have an AI output.
+   */
+
+  const missingIndexes =
+    [];
+
+  for (
+    let i = 0;
+    i < inputs.length;
+    i++
+  ) {
+    if (
+      !generatedMap.has(i)
+    ) {
+      missingIndexes.push(i);
+    }
+  }
+
+  if (
+    missingIndexes.length
+  ) {
+    throw new Error(
+      `AI omitted articles. Missing indexes: ${missingIndexes.join(
+        ", "
+      )}`
+    );
+  }
+
   let created = 0;
 
   for (
@@ -716,23 +940,7 @@ async function saveGeneratedArticles(
       inputs[i];
 
     const aiArticle =
-      generatedArticles.find(
-        (article) =>
-          Number(
-            article.index
-          ) === i
-      ) ||
-      generatedArticles[i];
-
-    if (!aiArticle) {
-      console.error(
-        "AI ARTICLE MISSING:",
-        i,
-        input.title
-      );
-
-      continue;
-    }
+      generatedMap.get(i);
 
     const article =
       normalizeArticle(
@@ -744,13 +952,26 @@ async function saveGeneratedArticles(
       !article.title_hi &&
       !article.title_en
     ) {
-      continue;
+      throw new Error(
+        `AI returned empty title for article index ${i}.`
+      );
     }
 
     /*
-      Duplicate protection
-      using PIB source URL.
-    */
+     * Always preserve original PIB URL.
+     */
+
+    if (
+      !article.source_url
+    ) {
+      article.source_url =
+        input.source_url ||
+        "";
+    }
+
+    /*
+     * Duplicate protection.
+     */
 
     if (
       article.source_url
@@ -762,7 +983,10 @@ async function saveGeneratedArticles(
 
       const duplicateResponse =
         await supabaseRequest(
-          `current_affairs?select=id&source_url=eq.${encodedUrl}&limit=1`
+          `current_affairs?select=id&source_url=eq.${encodedUrl}&limit=1`,
+          {
+            method: "GET",
+          }
         );
 
       if (
@@ -772,7 +996,11 @@ async function saveGeneratedArticles(
           await duplicateResponse.json();
 
         if (
-          duplicates.length
+          Array.isArray(
+            duplicates
+          ) &&
+          duplicates.length >
+            0
         ) {
           console.log(
             "DUPLICATE SKIPPED:",
@@ -792,6 +1020,7 @@ async function saveGeneratedArticles(
 
     console.log(
       "ARTICLE SAVED:",
+      i,
       article.title_en
     );
   }
@@ -809,6 +1038,11 @@ export async function POST(
   try {
     const body =
       await request.json();
+
+    /*
+     * Cron sends:
+     * { items: [...] }
+     */
 
     if (
       !Array.isArray(
@@ -830,23 +1064,29 @@ export async function POST(
     const items =
       body.items;
 
-    if (!items.length) {
+    if (
+      items.length === 0
+    ) {
       return NextResponse.json({
         success: true,
         articles_received: 0,
         articles_created: 0,
+        failed_batches: 0,
       });
     }
+
+    console.log(
+      "CURRENT AFFAIRS AI START:",
+      items.length,
+      "articles"
+    );
 
     let created = 0;
     let failedBatches = 0;
 
     /*
-      IMPORTANT:
-      Cron sends 10 articles.
-      This route processes them
-      as 5 + 5.
-    */
+     * Process in batches of 5.
+     */
 
     for (
       let start = 0;
@@ -872,7 +1112,9 @@ export async function POST(
       try {
         const generated =
           await generateWithGemini(
-            buildPrompt(batch)
+            buildPrompt(
+              batch
+            )
           );
 
         const generatedArticles =
@@ -882,20 +1124,48 @@ export async function POST(
             ? generated.articles
             : [];
 
-        created +=
+        /*
+         * HARD VALIDATION:
+         *
+         * Gemini must return exactly
+         * the same number of articles.
+         */
+
+        if (
+          generatedArticles.length !==
+          batch.length
+        ) {
+          throw new Error(
+            `Gemini returned ${generatedArticles.length} articles for ${batch.length} inputs.`
+          );
+        }
+
+        const batchCreated =
           await saveGeneratedArticles(
             generatedArticles,
             batch
           );
+
+        created +=
+          batchCreated;
+
+        /*
+         * A batch with fewer saved articles
+         * is considered failed.
+         *
+         * Duplicate records are allowed to be skipped
+         * without creating fake replacements.
+         */
 
         console.log(
           "AI BATCH COMPLETE:",
           start + 1,
           "-",
           start +
-            batch.length
+            batch.length,
+          "| CREATED:",
+          batchCreated
         );
-
       } catch (error) {
         failedBatches++;
 
@@ -911,6 +1181,63 @@ export async function POST(
       }
     }
 
+    /*
+     * IMPORTANT:
+     *
+     * success=true ONLY when ALL input articles
+     * were successfully created OR were already
+     * present as duplicates.
+     *
+     * If any batch failed, cron receives
+     * success=false.
+     */
+
+    if (
+      failedBatches > 0 ||
+      created < items.length
+    ) {
+      console.error(
+        "CURRENT AFFAIRS AI INCOMPLETE:",
+        {
+          received:
+            items.length,
+          created,
+          failedBatches,
+        }
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+
+          articles_received:
+            items.length,
+
+          articles_created:
+            created,
+
+          failed_batches:
+            failedBatches,
+
+          error:
+            `AI processing incomplete: ${created}/${items.length} articles created.`,
+        },
+        {
+          status: 503,
+        }
+      );
+    }
+
+    console.log(
+      "CURRENT AFFAIRS AI COMPLETE:",
+      {
+        received:
+          items.length,
+        created,
+        failedBatches,
+      }
+    );
+
     return NextResponse.json({
       success: true,
 
@@ -921,18 +1248,23 @@ export async function POST(
         created,
 
       failed_batches:
-        failedBatches,
+        0,
     });
-
   } catch (error) {
     console.error(
-      "Current Affairs batch AI error:",
+      "Current Affairs AI ERROR:",
       error
     );
 
     return NextResponse.json(
       {
         success: false,
+
+        articles_received: 0,
+
+        articles_created: 0,
+
+        failed_batches: 1,
 
         error:
           error?.message ||
