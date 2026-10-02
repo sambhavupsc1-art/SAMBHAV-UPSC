@@ -56,6 +56,12 @@ export default function PYQPage() {
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
 
+  /* ---------------- PRACTICE CONTROLS ---------------- */
+
+  const [practiceSeconds, setPracticeSeconds] = useState(0);
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [showQuestionGrid, setShowQuestionGrid] = useState(false);
+
   /* ---------------- TRANSLATION ---------------- */
 
   const [language, setLanguage] = useState("en");
@@ -190,7 +196,14 @@ export default function PYQPage() {
             q.correct_option !== null &&
             q.correct_option !== undefined
           ) {
-            answer = Number(q.correct_option);
+            const numericAnswer = Number(q.correct_option);
+
+            // Supabase 2015 data stores correct_option as A=1, B=2, C=3, D=4.
+            // The UI uses zero-based indexes, so convert 1-4 to 0-3.
+            answer =
+              numericAnswer >= 1 && numericAnswer <= 4
+                ? numericAnswer - 1
+                : numericAnswer;
           } else if (typeof answer === "string") {
             const normalized = answer.trim().toUpperCase();
             const answerMap = { A: 0, B: 1, C: 2, D: 3 };
@@ -256,8 +269,8 @@ export default function PYQPage() {
             answer,
             explanation: q.explanation || "",
             explanation_en:
-              q.explanation_en ||
               q.explanation ||
+              q.explanation_en ||
               "",
             explanation_hi: q.explanation_hi || "",
           };
@@ -419,6 +432,24 @@ export default function PYQPage() {
       cancelled = true;
     };
   }, [loading, user]);
+
+  /* ---------------- PRACTICE TIMER ---------------- */
+
+  useEffect(() => {
+    if (
+      mode !== "practice" ||
+      finished ||
+      timerPaused
+    ) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setPracticeSeconds((value) => value + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [mode, finished, timerPaused]);
 
   /* ---------------- PROGRESS HELPERS ---------------- */
 
@@ -885,6 +916,9 @@ export default function PYQPage() {
     setSelected(null);
     setAnswers({});
     setFinished(false);
+    setPracticeSeconds(0);
+    setTimerPaused(false);
+    setShowQuestionGrid(false);
     setLanguage("en");
     setTranslation(null);
     setTranslationQuestionId(null);
@@ -992,8 +1026,8 @@ export default function PYQPage() {
           question: question.question,
           options: question.options || [],
           explanation:
-            question.explanation ||
             question.explanation_en ||
+            question.explanation ||
             "",
         }),
       });
@@ -1033,24 +1067,53 @@ export default function PYQPage() {
     }
   };
 
-  const nextQuestion = () => {
+  const goToQuestion = (targetIndex) => {
     if (
-      current >=
-      filteredPrelims.length -
-        1
+      targetIndex < 0 ||
+      targetIndex >= filteredPrelims.length
     ) {
-      setFinished(true);
       return;
     }
 
-    setCurrent(
-      (value) => value + 1
-    );
+    const targetQuestion =
+      filteredPrelims[targetIndex];
 
-    setSelected(null);
+    setCurrent(targetIndex);
+    setSelected(
+      targetQuestion &&
+        Object.prototype.hasOwnProperty.call(
+          answers,
+          targetQuestion.id
+        )
+        ? answers[targetQuestion.id]
+        : null
+    );
     setTranslation(null);
     setTranslationQuestionId(null);
     setTranslationError("");
+    setShowQuestionGrid(false);
+  };
+
+  const previousQuestion = () => {
+    if (current <= 0) {
+      return;
+    }
+
+    goToQuestion(current - 1);
+  };
+
+  const nextQuestion = () => {
+    if (
+      current >=
+      filteredPrelims.length - 1
+    ) {
+      setFinished(true);
+      setTimerPaused(true);
+      setShowQuestionGrid(false);
+      return;
+    }
+
+    goToQuestion(current + 1);
   };
 
   /* ---------------- FILTER CONTROLS ---------------- */
@@ -1064,6 +1127,9 @@ export default function PYQPage() {
     setSelected(null);
     setAnswers({});
     setFinished(false);
+    setPracticeSeconds(0);
+    setTimerPaused(true);
+    setShowQuestionGrid(false);
 
     setSearchQuery("");
     setShowBookmarks(false);
@@ -1660,35 +1726,33 @@ export default function PYQPage() {
                       styles.section
                     }
                   >
-                    <div
-                      style={
-                        styles.practiceTop
+                    <PracticeHeader
+                      current={current}
+                      total={filteredPrelims.length}
+                      elapsedSeconds={practiceSeconds}
+                      paused={timerPaused}
+                      showGrid={showQuestionGrid}
+                      onTogglePause={() =>
+                        setTimerPaused((value) => !value)
                       }
-                    >
-                      <span>
-                        Question{" "}
-                        {current +
-                          1}{" "}
-                        /{" "}
-                        {
-                          filteredPrelims.length
-                        }
-                      </span>
+                      onToggleGrid={() =>
+                        setShowQuestionGrid((value) => !value)
+                      }
+                      onExit={() => {
+                        setTimerPaused(true);
+                        setShowQuestionGrid(false);
+                        setMode("browse");
+                      }}
+                    />
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMode(
-                            "browse"
-                          )
-                        }
-                        style={
-                          styles.textButton
-                        }
-                      >
-                        Exit
-                      </button>
-                    </div>
+                    {showQuestionGrid && (
+                      <QuestionGrid
+                        questions={filteredPrelims}
+                        current={current}
+                        answers={answers}
+                        onSelect={goToQuestion}
+                      />
+                    )}
 
                     <div
                       style={
@@ -1883,7 +1947,9 @@ export default function PYQPage() {
                               ? translation?.explanation_hi || ""
                               : ""
                           }
+                          onPrevious={previousQuestion}
                           onNext={nextQuestion}
+                          isFirst={current === 0}
                           isLast={
                             current ===
                             filteredPrelims.length - 1
@@ -2837,6 +2903,193 @@ function PremiumTopics({
 
 
 /* =========================================================
+   PYQ PRACTICE HEADER
+========================================================= */
+
+function formatPracticeTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function PracticeHeader({
+  current,
+  total,
+  elapsedSeconds,
+  paused,
+  showGrid,
+  onTogglePause,
+  onToggleGrid,
+  onExit,
+}) {
+  const progress = total
+    ? Math.round(((current + 1) / total) * 100)
+    : 0;
+
+  return (
+    <div style={styles.practiceHeader}>
+      <div style={styles.practiceHeaderTop}>
+        <div>
+          <div style={styles.practiceQuestionCount}>
+            Question {current + 1} / {total}
+          </div>
+
+          <div style={styles.practiceProgressPercent}>
+            {progress}% progress
+          </div>
+        </div>
+
+        <div style={styles.practiceHeaderActions}>
+          <div style={styles.timerBox}>
+            <span style={styles.timerIcon}>⏱</span>
+            <span style={styles.timerText}>
+              {formatPracticeTime(elapsedSeconds)}
+            </span>
+            <button
+              type="button"
+              onClick={onTogglePause}
+              style={styles.timerButton}
+              title={paused ? "Resume timer" : "Pause timer"}
+              aria-label={paused ? "Resume timer" : "Pause timer"}
+            >
+              {paused ? "▶" : "Ⅱ"}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onToggleGrid}
+            style={{
+              ...styles.gridButton,
+              ...(showGrid ? styles.gridButtonActive : {}),
+            }}
+            title="Question grid"
+            aria-label="Question grid"
+          >
+            ▦
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.progressTrack}>
+        <div
+          style={{
+            ...styles.progressFill,
+            width: `${progress}%`,
+          }}
+        />
+      </div>
+
+      <div style={styles.practiceHeaderBottom}>
+        <button
+          type="button"
+          onClick={onExit}
+          style={styles.practiceExitButton}
+        >
+          Exit Practice
+        </button>
+
+        <span style={styles.timerState}>
+          {paused ? "Timer paused" : "Timer running"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   QUESTION GRID
+========================================================= */
+
+function QuestionGrid({
+  questions,
+  current,
+  answers,
+  onSelect,
+}) {
+  return (
+    <div style={styles.questionGridPanel}>
+      <div style={styles.questionGridHeader}>
+        <div>
+          <div style={styles.questionGridTitle}>
+            Question Navigator
+          </div>
+          <div style={styles.questionGridSubtitle}>
+            Tap any question to jump directly.
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.questionGrid}>
+        {questions.map((question, index) => {
+          const answered = Object.prototype.hasOwnProperty.call(
+            answers,
+            question.id
+          );
+          const active = index === current;
+
+          return (
+            <button
+              key={question.id}
+              type="button"
+              onClick={() => onSelect(index)}
+              style={{
+                ...styles.gridQuestion,
+                ...(active ? styles.gridQuestionActive : {}),
+                ...(answered && !active
+                  ? styles.gridQuestionAnswered
+                  : {}),
+              }}
+              title={`Question ${index + 1}`}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={styles.gridLegend}>
+        <span style={styles.legendItem}>
+          <i
+            style={{
+              ...styles.legendDot,
+              ...styles.legendCurrent,
+            }}
+          />
+          Current
+        </span>
+
+        <span style={styles.legendItem}>
+          <i
+            style={{
+              ...styles.legendDot,
+              ...styles.legendAnswered,
+            }}
+          />
+          Answered
+        </span>
+
+        <span style={styles.legendItem}>
+          <i
+            style={{
+              ...styles.legendDot,
+              ...styles.legendUnanswered,
+            }}
+          />
+          Unanswered
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
    PRELIMS EXPLANATION PANEL
 ========================================================= */
 
@@ -2845,15 +3098,11 @@ function ExplanationPanel({
   selected,
   language = "en",
   translatedExplanation = "",
+  onPrevious,
   onNext,
+  isFirst,
   isLast,
 }) {
-  /*
-   * IMPORTANT:
-   * The structured UPSC explanation is stored in `explanation`.
-   * Do not prefer explanation_en here because that field may contain
-   * the older short explanation.
-   */
   const raw = String(
     language === "hi" && translatedExplanation
       ? translatedExplanation
@@ -2866,72 +3115,85 @@ function ExplanationPanel({
 
   const isCorrect = selected === question?.answer;
 
-  const sectionDefinitions = [
-    {
-      key: "asking",
-      patterns: [
-        /What is the question asking\??/i,
-        /प्रश्न क्या पूछ रहा है\??/i,
-      ],
-      title:
-        language === "hi"
-          ? "प्रश्न क्या पूछ रहा है?"
-          : "What is the question asking?",
-    },
-    {
-      key: "correct",
-      patterns: [
-        /Why is the correct answer correct\??/i,
-        /सही उत्तर क्यों सही है\??/i,
-      ],
-      title:
-        language === "hi"
-          ? "सही उत्तर क्यों सही है?"
-          : "Why is the correct answer correct?",
-    },
-    {
-      key: "wrong",
-      patterns: [
-        /Why are the other options incorrect\??/i,
-        /अन्य विकल्प गलत क्यों हैं\??/i,
-      ],
-      title:
-        language === "hi"
-          ? "अन्य विकल्प गलत क्यों हैं?"
-          : "Why are the other options incorrect?",
-    },
-    {
-      key: "takeaway",
-      patterns: [
-        /Key Takeaway\s*:?/i,
-        /मुख्य सीख\s*:?/i,
-      ],
-      title:
-        language === "hi"
-          ? "मुख्य सीख"
-          : "Key Takeaway",
-    },
-    {
-      key: "keywords",
-      patterns: [
-        /Important Terms\s*\/\s*Keywords\s*:?/i,
-        /महत्वपूर्ण शब्द\s*\/\s*कीवर्ड\s*:?/i,
-      ],
-      title:
-        language === "hi"
-          ? "महत्वपूर्ण शब्द / Keywords"
-          : "Important Terms / Keywords",
-    },
-  ];
+  const sectionDefinitions =
+    language === "hi"
+      ? [
+          {
+            key: "asking",
+            patterns: [
+              /What is the question asking\?/i,
+              /प्रश्न क्या पूछ रहा है\?/i,
+            ],
+            title: "प्रश्न क्या पूछ रहा है?",
+          },
+          {
+            key: "correct",
+            patterns: [
+              /Why is the correct answer correct\?/i,
+              /सही उत्तर क्यों सही है\?/i,
+            ],
+            title: "सही उत्तर क्यों सही है?",
+          },
+          {
+            key: "wrong",
+            patterns: [
+              /Why are the other options incorrect\?/i,
+              /अन्य विकल्प गलत क्यों हैं\?/i,
+            ],
+            title: "अन्य विकल्प गलत क्यों हैं?",
+          },
+          {
+            key: "takeaway",
+            patterns: [
+              /Key Takeaway/i,
+              /मुख्य सीख/i,
+            ],
+            title: "मुख्य सीख",
+          },
+          {
+            key: "keywords",
+            patterns: [
+              /Important Terms\s*\/\s*Keywords:?/i,
+              /महत्वपूर्ण शब्द\s*\/\s*कीवर्ड:?/i,
+            ],
+            title: "महत्वपूर्ण शब्द / Keywords",
+          },
+        ]
+      : [
+          {
+            key: "asking",
+            patterns: [/What is the question asking\?/i],
+            title: "What is the question asking?",
+          },
+          {
+            key: "correct",
+            patterns: [/Why is the correct answer correct\?/i],
+            title: "Why is the correct answer correct?",
+          },
+          {
+            key: "wrong",
+            patterns: [/Why are the other options incorrect\?/i],
+            title: "Why are the other options incorrect?",
+          },
+          {
+            key: "takeaway",
+            patterns: [/Key Takeaway/i],
+            title: "Key Takeaway",
+          },
+          {
+            key: "keywords",
+            patterns: [/Important Terms\s*\/\s*Keywords:?/i],
+            title: "Important Terms / Keywords",
+          },
+        ];
 
-  const found = [];
+  const matches = [];
 
   sectionDefinitions.forEach((section) => {
     section.patterns.forEach((pattern) => {
       const match = pattern.exec(raw);
-
       if (match) {
-        found.push({
+        matches.push({
           key: section.key,
           title: section.title,
           index: match.index,
@@ -2941,43 +3203,56 @@ function ExplanationPanel({
     });
   });
 
-  /* Keep only one heading per section and preserve document order. */
-  const uniqueSections = [];
-  const seen = new Set();
-
-  found
-    .sort((a, b) => a.index - b.index)
-    .forEach((item) => {
-      if (!seen.has(item.key)) {
-        seen.add(item.key);
-        uniqueSections.push(item);
-      }
-    });
+  const uniqueMatches = Array.from(
+    new Map(
+      matches.map((item) => [item.key, item])
+    ).values()
+  ).sort((a, b) => a.index - b.index);
 
   const sections = {};
 
-  uniqueSections.forEach((section, index) => {
-    const next = uniqueSections[index + 1];
-
+  uniqueMatches.forEach((section, index) => {
+    const next = uniqueMatches[index + 1];
     let content = raw.slice(
       section.end,
       next ? next.index : raw.length
     );
 
     content = content
-      .replace(/^[\s↓]+/g, "")
-      .replace(/[\s↓]+$/g, "")
+      .replace(/^\s*↓\s*/g, "")
+      .replace(/^\s*:\s*/g, "")
       .trim();
 
     sections[section.key] = content;
   });
 
   const hasStructuredFormat =
-    ["asking", "correct", "wrong", "takeaway", "keywords"]
-      .filter((key) => sections[key])
-      .length >= 2;
+    uniqueMatches.some((item) => item.key === "asking") &&
+    uniqueMatches.some((item) => item.key === "correct") &&
+    uniqueMatches.some((item) => item.key === "wrong");
 
-  const renderParagraphs = (content) => {
+  const fallbackText = raw
+    .replace(/Important Terms\s*\/\s*Keywords:[\s\S]*$/i, "")
+    .replace(/^Explanation\s*:\s*/i, "")
+    .trim();
+
+  const fallbackSentences = fallbackText
+    .split(/(?<=[.!?])\s+/)
+    .filter(Boolean);
+
+  const keywordText = sections.keywords || "";
+
+  const keywords = keywordText
+    .split(/\n+/)
+    .map((item) =>
+      item
+        .replace(/^\s*[-•]\s*/, "")
+        .replace(/^\s*\d+[.)]\s*/, "")
+        .trim()
+    )
+    .filter(Boolean);
+
+  const renderContent = (content) => {
     if (!content) {
       return (
         <p style={styles.explanationParagraph}>
@@ -2994,43 +3269,13 @@ function ExplanationPanel({
       .filter(Boolean)
       .map((paragraph, index) => (
         <p
-          key={`explanation-paragraph-${index}`}
+          key={`section-${index}`}
           style={styles.explanationParagraph}
         >
           {paragraph}
         </p>
       ));
   };
-
-  const keywordText = sections.keywords || "";
-
-  /* Handles both:
-     - Financial Inclusion — ...
-     - - Financial Inclusion — ...
-     - • Financial Inclusion — ...
-     - multiple keywords on separate lines
-  */
-  const keywords = keywordText
-    .split(/\n+/)
-    .map((item) =>
-      item
-        .replace(/^\s*[-•*]+\s*/, "")
-        .trim()
-    )
-    .filter(Boolean);
-
-  const fallbackText = raw
-    .replace(
-      /Important Terms\s*\/\s*Keywords\s*:?[\s\S]*$/i,
-      ""
-    )
-    .replace(/^Explanation\s*:\s*/i, "")
-    .trim();
-
-  const fallbackParagraphs = fallbackText
-    .split(/\n+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 
   const renderKeywords = () => {
     if (!keywords.length) return null;
@@ -3048,12 +3293,12 @@ function ExplanationPanel({
             const separatorIndex = item.indexOf("—");
 
             const term =
-              separatorIndex >= 0
+              separatorIndex > -1
                 ? item.slice(0, separatorIndex).trim()
                 : item;
 
             const meaning =
-              separatorIndex >= 0
+              separatorIndex > -1
                 ? item.slice(separatorIndex + 1).trim()
                 : "";
 
@@ -3127,7 +3372,7 @@ function ExplanationPanel({
                 </div>
 
                 <div style={styles.explanationBody}>
-                  {renderParagraphs(sections[key])}
+                  {renderContent(sections[key])}
                 </div>
               </div>
             );
@@ -3143,19 +3388,19 @@ function ExplanationPanel({
             </div>
 
             <div style={styles.explanationBody}>
-              {fallbackParagraphs.length > 0 ? (
-                fallbackParagraphs.map((paragraph, index) => (
+              {fallbackSentences.length > 0 ? (
+                fallbackSentences.map((sentence, index) => (
                   <p
                     key={`fallback-${index}`}
                     style={styles.explanationParagraph}
                   >
-                    {paragraph}
+                    {sentence}
                   </p>
                 ))
               ) : (
                 <p style={styles.explanationParagraph}>
                   {language === "hi"
-                    ? "व्याख्या अभी उपलब्ध नहीं है।"
+                    ? "Explanation अभी उपलब्ध नहीं है।"
                     : "Explanation is not available yet."}
                 </p>
               )}
@@ -3166,13 +3411,53 @@ function ExplanationPanel({
         </>
       )}
 
-      <button
-        type="button"
-        onClick={onNext}
-        style={styles.primary}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
+          marginTop: "18px",
+        }}
       >
-        {isLast ? "Finish" : "Next Question →"}
-      </button>
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={isFirst || !onPrevious}
+          style={{
+            padding: "12px 18px",
+            borderRadius: "13px",
+            border: "1px solid #e3e3e0",
+            background:
+              isFirst || !onPrevious ? "#f8f8f6" : "#fff",
+            color:
+              isFirst || !onPrevious ? "#aaa" : "#111",
+            fontSize: "12px",
+            fontWeight: "800",
+            cursor:
+              isFirst || !onPrevious ? "not-allowed" : "pointer",
+          }}
+        >
+          ← Previous
+        </button>
+
+        <button
+          type="button"
+          onClick={onNext}
+          style={{
+            padding: "12px 20px",
+            borderRadius: "13px",
+            border: 0,
+            background: "#111",
+            color: "#fff",
+            fontSize: "12px",
+            fontWeight: "800",
+            cursor: "pointer",
+          }}
+        >
+          {isLast ? "Finish" : "Next Question →"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -3847,6 +4132,218 @@ const styles = {
       "8px 10px",
     fontSize: "11px",
     fontWeight: "700",
+  },
+
+  practiceHeader: {
+    background: "#fff",
+    border: "1px solid #e5e5e3",
+    borderRadius: "18px",
+    padding: "14px",
+    marginBottom: "10px",
+  },
+
+  practiceHeaderTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+  },
+
+  practiceQuestionCount: {
+    fontSize: "13px",
+    fontWeight: "900",
+  },
+
+  practiceProgressPercent: {
+    fontSize: "9px",
+    color: "#888",
+    marginTop: "3px",
+    fontWeight: "700",
+  },
+
+  practiceHeaderActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+  },
+
+  timerBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    border: "1px solid #e1e1df",
+    background: "#f7f7f5",
+    borderRadius: "10px",
+    padding: "7px 8px",
+  },
+
+  timerIcon: {
+    fontSize: "12px",
+  },
+
+  timerText: {
+    fontSize: "11px",
+    fontWeight: "900",
+    fontVariantNumeric: "tabular-nums",
+    minWidth: "38px",
+  },
+
+  timerButton: {
+    width: "22px",
+    height: "22px",
+    border: 0,
+    borderRadius: "7px",
+    background: "#111",
+    color: "#fff",
+    fontSize: "9px",
+    fontWeight: "900",
+    cursor: "pointer",
+  },
+
+  gridButton: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "11px",
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#111",
+    fontSize: "19px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  gridButtonActive: {
+    background: "#111",
+    color: "#fff",
+    borderColor: "#111",
+  },
+
+  progressTrack: {
+    width: "100%",
+    height: "4px",
+    background: "#e8e8e5",
+    borderRadius: "999px",
+    overflow: "hidden",
+    marginTop: "12px",
+  },
+
+  progressFill: {
+    height: "100%",
+    background: "#111",
+    borderRadius: "999px",
+    transition: "width 300ms ease",
+  },
+
+  practiceHeaderBottom: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: "9px",
+  },
+
+  practiceExitButton: {
+    border: 0,
+    background: "transparent",
+    color: "#777",
+    padding: "3px 0",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  timerState: {
+    color: "#999",
+    fontSize: "9px",
+    fontWeight: "700",
+  },
+
+  questionGridPanel: {
+    marginTop: "13px",
+    paddingTop: "13px",
+    borderTop: "1px solid #e5e5e3",
+  },
+
+  questionGridHeader: {
+    marginBottom: "10px",
+  },
+
+  questionGridTitle: {
+    fontSize: "12px",
+    fontWeight: "900",
+  },
+
+  questionGridSubtitle: {
+    color: "#888",
+    fontSize: "9px",
+    marginTop: "2px",
+  },
+
+  questionGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(42px, 1fr))",
+    gap: "6px",
+    maxHeight: "250px",
+    overflowY: "auto",
+    paddingRight: "2px",
+  },
+
+  gridQuestion: {
+    minHeight: "38px",
+    borderRadius: "9px",
+    border: "1px solid #ddd",
+    background: "#fafafa",
+    color: "#333",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  gridQuestionActive: {
+    background: "#111",
+    color: "#fff",
+    borderColor: "#111",
+  },
+
+  gridQuestionAnswered: {
+    background: "#e9e9e6",
+    color: "#111",
+    borderColor: "#ccc",
+  },
+
+  gridLegend: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    marginTop: "11px",
+    color: "#777",
+    fontSize: "9px",
+    fontWeight: "700",
+  },
+
+  legendItem: {
+    display: "inline-flex",
+    alignItems: "center",
+  },
+
+  legendDot: {
+    display: "inline-block",
+    width: "8px",
+    height: "8px",
+    borderRadius: "3px",
+    marginRight: "4px",
+  },
+
+  legendCurrent: {
+    background: "#111",
+  },
+
+  legendAnswered: {
+    background: "#ccc",
+  },
+
+  legendUnanswered: {
+    background: "#fafafa",
+    border: "1px solid #ccc",
   },
 
   practiceTop: {
