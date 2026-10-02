@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const SUPABASE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY ||
   process.env.GOOGLE_GEMINI_API_KEY;
-
-/* ---------------------------------------
-   GEMINI MODELS
---------------------------------------- */
 
 const GEMINI_MODELS = [
   "gemini-3.5-flash-lite",
@@ -27,14 +20,8 @@ const BATCH_SIZE = 5;
    SUPABASE
 --------------------------------------- */
 
-async function supabaseRequest(
-  path,
-  options = {}
-) {
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_KEY
-  ) {
+async function supabaseRequest(path, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     throw new Error(
       "Supabase environment variables missing."
     );
@@ -46,10 +33,8 @@ async function supabaseRequest(
       ...options,
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_KEY}`,
-        "Content-Type":
-          "application/json",
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
         ...(options.headers || {}),
       },
       cache: "no-store",
@@ -68,28 +53,15 @@ function cleanJson(text) {
     );
   }
 
-  let cleaned =
-    String(text)
-      .trim()
-      .replace(
-        /^```json\s*/i,
-        ""
-      )
-      .replace(
-        /^```\s*/i,
-        ""
-      )
-      .replace(
-        /\s*```$/i,
-        ""
-      )
-      .trim();
+  let cleaned = String(text)
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 
-  const first =
-    cleaned.indexOf("{");
-
-  const last =
-    cleaned.lastIndexOf("}");
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
 
   if (
     first === -1 ||
@@ -101,15 +73,12 @@ function cleanJson(text) {
     );
   }
 
-  cleaned =
-    cleaned.slice(
-      first,
-      last + 1
-    );
-
-  return JSON.parse(
-    cleaned
+  cleaned = cleaned.slice(
+    first,
+    last + 1
   );
+
+  return JSON.parse(cleaned);
 }
 
 /* ---------------------------------------
@@ -117,32 +86,28 @@ function cleanJson(text) {
 --------------------------------------- */
 
 function buildPrompt(items) {
-  const compactItems =
-    items.map(
-      (item, index) => ({
-        index,
+  const compactItems = items.map(
+    (item, index) => ({
+      index,
 
-        title:
-          String(
-            item.title || ""
-          ).slice(0, 500),
+      title: String(
+        item.title || ""
+      ).slice(0, 500),
 
-        date:
-          item.date || "",
+      date: item.date || "",
 
-        source_name:
-          item.source_name ||
-          "Press Information Bureau (PIB)",
+      source_name:
+        item.source_name ||
+        "Press Information Bureau (PIB)",
 
-        source_url:
-          item.source_url || "",
+      source_url:
+        item.source_url || "",
 
-        content:
-          String(
-            item.content || ""
-          ).slice(0, 12000),
-      })
-    );
+      content: String(
+        item.content || ""
+      ).slice(0, 12000),
+    })
+  );
 
   return `
 You are the UPSC Current Affairs Editor for
@@ -424,9 +389,7 @@ Before returning the answer:
 
 INPUT ARTICLES:
 
-${JSON.stringify(
-    compactItems
-  )}
+${JSON.stringify(compactItems)}
 `;
 }
 
@@ -434,9 +397,7 @@ ${JSON.stringify(
    GEMINI REQUEST
 --------------------------------------- */
 
-async function generateWithGemini(
-  prompt
-) {
+async function generateWithGemini(prompt) {
   if (!GEMINI_API_KEY) {
     throw new Error(
       "GEMINI_API_KEY environment variable missing."
@@ -446,14 +407,8 @@ async function generateWithGemini(
   let lastError =
     "Unknown Gemini error.";
 
-  for (
-    const model of GEMINI_MODELS
-  ) {
-    for (
-      let attempt = 1;
-      attempt <= 3;
-      attempt++
-    ) {
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         console.log(
           "GEMINI TRY:",
@@ -462,43 +417,37 @@ async function generateWithGemini(
           attempt
         );
 
-        const response =
-          await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+            headers: {
+              "Content-Type": "application/json",
+            },
 
-              body:
-                JSON.stringify({
-                  contents: [
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
                     {
-                      parts: [
-                        {
-                          text:
-                            prompt,
-                        },
-                      ],
+                      text: prompt,
                     },
                   ],
+                },
+              ],
 
-                  generationConfig: {
-                    temperature:
-                      0.1,
+              generationConfig: {
+                temperature: 0.1,
 
-                    responseMimeType:
-                      "application/json",
+                responseMimeType:
+                  "application/json",
 
-                    maxOutputTokens:
-                      16000,
-                  },
-                }),
-            }
-          );
+                maxOutputTokens: 16000,
+              },
+            }),
+          }
+        );
 
         const result =
           await response.json();
@@ -517,16 +466,11 @@ async function generateWithGemini(
           );
 
           const retryable =
-            response.status ===
-              429 ||
-            response.status ===
-              500 ||
-            response.status ===
-              502 ||
-            response.status ===
-              503 ||
-            response.status ===
-              504;
+            response.status === 429 ||
+            response.status === 500 ||
+            response.status === 502 ||
+            response.status === 503 ||
+            response.status === 504;
 
           if (
             retryable &&
@@ -536,8 +480,7 @@ async function generateWithGemini(
               (resolve) =>
                 setTimeout(
                   resolve,
-                  1500 *
-                    attempt
+                  1500 * attempt
                 )
             );
 
@@ -548,16 +491,12 @@ async function generateWithGemini(
         }
 
         const text =
-          result
-            ?.candidates?.[0]
-            ?.content?.parts
+          result?.candidates?.[0]?.content?.parts
             ?.map(
               (part) =>
-                part.text ||
-                ""
+                part.text || ""
             )
-            .join("") ||
-          "";
+            .join("") || "";
 
         const parsed =
           cleanJson(text);
@@ -581,15 +520,12 @@ async function generateWithGemini(
           lastError
         );
 
-        if (
-          attempt < 3
-        ) {
+        if (attempt < 3) {
           await new Promise(
             (resolve) =>
               setTimeout(
                 resolve,
-                1500 *
-                  attempt
+                1500 * attempt
               )
           );
         }
@@ -825,8 +761,7 @@ function normalizeArticle(
           ""
       ).trim(),
 
-    is_important:
-      false,
+    is_important: false,
   };
 }
 
@@ -834,9 +769,7 @@ function normalizeArticle(
    SAVE ARTICLE
 --------------------------------------- */
 
-async function saveArticle(
-  article
-) {
+async function saveArticle(article) {
   const response =
     await supabaseRequest(
       "current_affairs",
@@ -849,9 +782,7 @@ async function saveArticle(
         },
 
         body:
-          JSON.stringify(
-            article
-          ),
+          JSON.stringify(article),
       }
     );
 
@@ -864,9 +795,7 @@ async function saveArticle(
     );
   }
 
-  return JSON.parse(
-    text
-  );
+  return JSON.parse(text);
 }
 
 /* ---------------------------------------
@@ -882,12 +811,10 @@ async function saveGeneratedArticles(
 
   for (
     const article of
-    generatedArticles
+      generatedArticles
   ) {
     const index =
-      Number(
-        article?.index
-      );
+      Number(article?.index);
 
     if (
       Number.isInteger(index)
@@ -899,13 +826,7 @@ async function saveGeneratedArticles(
     }
   }
 
-  /*
-   * IMPORTANT:
-   * Every input must have an AI output.
-   */
-
-  const missingIndexes =
-    [];
+  const missingIndexes = [];
 
   for (
     let i = 0;
@@ -970,20 +891,35 @@ async function saveGeneratedArticles(
     }
 
     /*
-     * Duplicate protection.
+     * IMPORTANT FIX:
+     *
+     * Duplicate check is now
+     * source_url + date.
+     *
+     * Same PIB URL on a NEW DATE
+     * is allowed as a new article.
+     *
+     * Same URL on the SAME DATE
+     * is skipped.
      */
 
     if (
-      article.source_url
+      article.source_url &&
+      article.date
     ) {
       const encodedUrl =
         encodeURIComponent(
           article.source_url
         );
 
+      const encodedDate =
+        encodeURIComponent(
+          article.date
+        );
+
       const duplicateResponse =
         await supabaseRequest(
-          `current_affairs?select=id&source_url=eq.${encodedUrl}&limit=1`,
+          `current_affairs?select=id&source_url=eq.${encodedUrl}&date=eq.${encodedDate}&limit=1`,
           {
             method: "GET",
           }
@@ -999,8 +935,7 @@ async function saveGeneratedArticles(
           Array.isArray(
             duplicates
           ) &&
-          duplicates.length >
-            0
+          duplicates.length > 0
         ) {
           console.log(
             "DUPLICATE SKIPPED:",
@@ -1032,17 +967,10 @@ async function saveGeneratedArticles(
    POST
 --------------------------------------- */
 
-export async function POST(
-  request
-) {
+export async function POST(request) {
   try {
     const body =
       await request.json();
-
-    /*
-     * Cron sends:
-     * { items: [...] }
-     */
 
     if (
       !Array.isArray(
@@ -1084,10 +1012,6 @@ export async function POST(
     let created = 0;
     let failedBatches = 0;
 
-    /*
-     * Process in batches of 5.
-     */
-
     for (
       let start = 0;
       start < items.length;
@@ -1124,13 +1048,6 @@ export async function POST(
             ? generated.articles
             : [];
 
-        /*
-         * HARD VALIDATION:
-         *
-         * Gemini must return exactly
-         * the same number of articles.
-         */
-
         if (
           generatedArticles.length !==
           batch.length
@@ -1148,14 +1065,6 @@ export async function POST(
 
         created +=
           batchCreated;
-
-        /*
-         * A batch with fewer saved articles
-         * is considered failed.
-         *
-         * Duplicate records are allowed to be skipped
-         * without creating fake replacements.
-         */
 
         console.log(
           "AI BATCH COMPLETE:",
@@ -1184,12 +1093,9 @@ export async function POST(
     /*
      * IMPORTANT:
      *
-     * success=true ONLY when ALL input articles
-     * were successfully created OR were already
-     * present as duplicates.
-     *
-     * If any batch failed, cron receives
-     * success=false.
+     * success=true only when
+     * every received article has
+     * been created.
      */
 
     if (
@@ -1247,8 +1153,7 @@ export async function POST(
       articles_created:
         created,
 
-      failed_batches:
-        0,
+      failed_batches: 0,
     });
   } catch (error) {
     console.error(
