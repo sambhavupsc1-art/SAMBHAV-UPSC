@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 
 const modules = [
   {
-  title: "Current Affairs",
-  subtitle: "UPSC Current Affairs",
-  icon: "📰",
-  route: "/current-affairs",
-},
+    title: "Current Affairs",
+    subtitle: "UPSC Current Affairs",
+    icon: "📰",
+    route: "/current-affairs",
+  },
   {
     title: "PYQ Intelligence",
     subtitle: "UPSC Previous Year Questions",
@@ -45,7 +45,8 @@ const modules = [
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f5f5f3",
+    background:
+      "linear-gradient(180deg, #f7f7f5 0%, #f3f3f1 100%)",
     color: "#111111",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -64,34 +65,37 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "25px",
+    marginBottom: "27px",
   },
 
   brand: {
     fontSize: "20px",
-    fontWeight: "800",
-    letterSpacing: "-0.6px",
+    fontWeight: "850",
+    letterSpacing: "-0.7px",
   },
 
   brandSub: {
     fontSize: "10px",
-    color: "#8a8a8a",
+    color: "#8b8b8b",
     marginTop: "3px",
-    letterSpacing: "1px",
+    letterSpacing: "1.1px",
     textTransform: "uppercase",
+    fontWeight: "600",
   },
 
   avatar: {
     width: "46px",
     height: "46px",
     borderRadius: "50%",
-    background: "#111111",
+    background:
+      "linear-gradient(145deg, #191919, #050505)",
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: "18px",
-    fontWeight: "700",
+    fontWeight: "750",
+    boxShadow: "0 7px 18px rgba(0,0,0,0.13)",
   },
 
   greeting: {
@@ -102,8 +106,8 @@ const styles = {
     margin: 0,
     fontSize: "29px",
     lineHeight: "1.15",
-    fontWeight: "800",
-    letterSpacing: "-1px",
+    fontWeight: "850",
+    letterSpacing: "-1.1px",
   },
 
   greetingSub: {
@@ -113,26 +117,29 @@ const styles = {
   },
 
   accessCard: {
-    background: "#111111",
+    background:
+      "linear-gradient(145deg, #171717 0%, #0d0d0d 100%)",
     color: "#ffffff",
     borderRadius: "24px",
     padding: "21px",
-    marginBottom: "16px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+    marginBottom: "15px",
+    boxShadow: "0 13px 32px rgba(0,0,0,0.13)",
+    border: "1px solid rgba(255,255,255,0.05)",
   },
 
   accessLabel: {
     fontSize: "10px",
     color: "#a7a7a7",
-    letterSpacing: "1.2px",
+    letterSpacing: "1.3px",
     textTransform: "uppercase",
-    fontWeight: "700",
+    fontWeight: "750",
   },
 
   accessTitle: {
     marginTop: "8px",
     fontSize: "22px",
-    fontWeight: "800",
+    fontWeight: "850",
+    letterSpacing: "-0.4px",
   },
 
   accessSub: {
@@ -149,9 +156,95 @@ const styles = {
     color: "#ffffff",
     padding: "15px",
     fontSize: "14px",
-    fontWeight: "700",
-    marginBottom: "26px",
+    fontWeight: "750",
+    marginBottom: "17px",
     cursor: "pointer",
+    boxShadow: "0 7px 18px rgba(0,0,0,0.08)",
+  },
+
+  premiumCard: {
+    background:
+      "linear-gradient(135deg, #111111 0%, #191919 55%, #252525 100%)",
+    color: "#ffffff",
+    borderRadius: "25px",
+    padding: "21px",
+    marginBottom: "27px",
+    boxShadow: "0 15px 38px rgba(0,0,0,0.15)",
+    position: "relative",
+    overflow: "hidden",
+    cursor: "pointer",
+    border: "1px solid rgba(255,255,255,0.06)",
+  },
+
+  premiumGlow: {
+    position: "absolute",
+    width: "190px",
+    height: "190px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.055)",
+    right: "-75px",
+    top: "-85px",
+    pointerEvents: "none",
+  },
+
+  premiumGlowSmall: {
+    position: "absolute",
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.035)",
+    right: "80px",
+    bottom: "-45px",
+    pointerEvents: "none",
+  },
+
+  premiumBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: "#ffffff",
+    color: "#111111",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  premiumTitle: {
+    marginTop: "13px",
+    fontSize: "20px",
+    fontWeight: "850",
+    letterSpacing: "-0.6px",
+    lineHeight: "1.2",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  premiumSub: {
+    marginTop: "7px",
+    color: "#b9b9b9",
+    fontSize: "11px",
+    lineHeight: "1.55",
+    maxWidth: "315px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  premiumAction: {
+    marginTop: "16px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+    padding: "10px 14px",
+    borderRadius: "13px",
+    background: "#ffffff",
+    color: "#111111",
+    fontSize: "11px",
+    fontWeight: "850",
+    position: "relative",
+    zIndex: 2,
   },
 
   sectionHeader: {
@@ -163,24 +256,26 @@ const styles = {
 
   sectionTitle: {
     fontSize: "21px",
-    fontWeight: "800",
-    letterSpacing: "-0.5px",
+    fontWeight: "850",
+    letterSpacing: "-0.6px",
   },
 
   sectionSmall: {
     fontSize: "11px",
     color: "#999999",
+    fontWeight: "600",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
     gap: "12px",
   },
 
   card: {
     background: "#ffffff",
-    border: "1px solid #e9e9e7",
+    border: "1px solid #e8e8e6",
     borderRadius: "22px",
     padding: "15px",
     minHeight: "108px",
@@ -189,7 +284,10 @@ const styles = {
     gap: "12px",
     boxSizing: "border-box",
     cursor: "pointer",
-    boxShadow: "0 3px 12px rgba(0,0,0,0.035)",
+    boxShadow:
+      "0 5px 16px rgba(0,0,0,0.045)",
+    transition:
+      "transform 0.15s ease, box-shadow 0.15s ease",
   },
 
   iconBox: {
@@ -197,11 +295,14 @@ const styles = {
     height: "46px",
     minWidth: "46px",
     borderRadius: "15px",
-    background: "#111111",
+    background:
+      "linear-gradient(145deg, #181818, #080808)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: "21px",
+    boxShadow:
+      "0 5px 12px rgba(0,0,0,0.12)",
   },
 
   cardContent: {
@@ -213,6 +314,7 @@ const styles = {
     fontSize: "14px",
     fontWeight: "800",
     lineHeight: "1.2",
+    letterSpacing: "-0.15px",
   },
 
   cardSubtitle: {
@@ -233,6 +335,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "17px",
+    fontWeight: "500",
   },
 
   pendingCard: {
@@ -242,16 +345,19 @@ const styles = {
     borderRadius: "24px",
     padding: "30px 22px",
     textAlign: "center",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
   },
 
   welcomeCard: {
     marginTop: "70px",
-    background: "#111111",
+    background:
+      "linear-gradient(145deg, #171717, #090909)",
     color: "#ffffff",
     borderRadius: "26px",
     padding: "30px 22px",
     textAlign: "center",
-    boxShadow: "0 16px 40px rgba(0,0,0,0.14)",
+    boxShadow:
+      "0 18px 42px rgba(0,0,0,0.16)",
   },
 
   welcomeLabel: {
@@ -292,7 +398,8 @@ const styles = {
     marginTop: "14px",
     padding: "11px 14px",
     borderRadius: "15px",
-    background: "linear-gradient(135deg, #222222, #3a3a3a)",
+    background:
+      "linear-gradient(135deg, #222222, #3a3a3a)",
     border: "1px solid #4a4a4a",
     color: "#ffffff",
     fontSize: "11px",
@@ -308,15 +415,18 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(255,255,255,0.96)",
+    background: "rgba(255,255,255,0.97)",
     border: "1px solid #e5e5e3",
     borderRadius: "25px",
-    boxShadow: "0 10px 35px rgba(0,0,0,0.12)",
+    boxShadow:
+      "0 10px 35px rgba(0,0,0,0.12)",
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns:
+      "repeat(4, 1fr)",
     alignItems: "center",
     zIndex: 50,
     backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
   },
 
   navItem: {
@@ -350,7 +460,8 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] =
+    useState(false);
 
   useEffect(() => {
     let attempts = 0;
@@ -361,7 +472,8 @@ export default function Home() {
 
       attempts++;
 
-      const webApp = window.Telegram?.WebApp;
+      const webApp =
+        window.Telegram?.WebApp;
 
       if (!webApp?.initData) {
         if (attempts < 30) {
@@ -369,7 +481,9 @@ export default function Home() {
           return;
         }
 
-        setError("Telegram authentication data nahi mila.");
+        setError(
+          "Telegram authentication data nahi mila."
+        );
         setLoading(false);
         return;
       }
@@ -384,24 +498,32 @@ export default function Home() {
         cache: "no-store",
       })
         .then(async (response) => {
-          const data = await response.json();
+          const data =
+            await response.json();
 
           if (!response.ok) {
             throw new Error(
-              data.error || "Authentication failed"
+              data.error ||
+                "Authentication failed"
             );
           }
 
           setUser(data.user);
-          setIsAdmin(data.isAdmin === true);
+          setIsAdmin(
+            data.isAdmin === true
+          );
 
-          if (data.user?.status === "approved") {
+          if (
+            data.user?.status ===
+            "approved"
+          ) {
             setShowWelcome(true);
           }
         })
         .catch((err) => {
           setError(
-            err.message || "Server connection failed."
+            err.message ||
+              "Server connection failed."
           );
         })
         .finally(() => {
@@ -423,7 +545,8 @@ export default function Home() {
       setShowWelcome(false);
     }, 1200);
 
-    return () => clearTimeout(timer);
+    return () =>
+      clearTimeout(timer);
   }, [showWelcome]);
 
   if (loading) {
@@ -436,12 +559,18 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pendingCard}>
-              <div style={styles.brand}>
+            <div
+              style={styles.pendingCard}
+            >
+              <div
+                style={styles.brand}
+              >
                 SAMBHAV UPSC
               </div>
 
-              <p style={styles.greetingSub}>
+              <p
+                style={styles.greetingSub}
+              >
                 Authenticating...
               </p>
             </div>
@@ -461,8 +590,12 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pendingCard}>
-              <div style={styles.brand}>
+            <div
+              style={styles.pendingCard}
+            >
+              <div
+                style={styles.brand}
+              >
                 SAMBHAV UPSC
               </div>
 
@@ -483,7 +616,10 @@ export default function Home() {
 
   if (!user) return null;
 
-  if (showWelcome && user.status === "approved") {
+  if (
+    showWelcome &&
+    user.status === "approved"
+  ) {
     const firstName =
       user.first_name ||
       user.firstName ||
@@ -491,8 +627,11 @@ export default function Home() {
       "Aspirant";
 
     const isPremium =
-      String(user.plan || "").toLowerCase() === "premium" &&
-      String(user.subscriptionStatus || "").toLowerCase() === "active";
+      String(user.plan || "")
+        .toLowerCase() === "premium" &&
+      String(
+        user.subscriptionStatus || ""
+      ).toLowerCase() === "active";
 
     return (
       <>
@@ -503,24 +642,36 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.welcomeCard}>
-              <div style={styles.welcomeLabel}>
+            <div
+              style={styles.welcomeCard}
+            >
+              <div
+                style={styles.welcomeLabel}
+              >
                 WELCOME
               </div>
 
-              <div style={styles.welcomeTitle}>
+              <div
+                style={styles.welcomeTitle}
+              >
                 SAMBHAV UPSC
               </div>
 
-              <div style={styles.welcomeUser}>
+              <div
+                style={styles.welcomeUser}
+              >
                 {firstName}
               </div>
 
-              <div style={styles.welcomeStatus}>
+              <div
+                style={styles.welcomeStatus}
+              >
                 ✓ APPROVED
               </div>
 
-              <div style={styles.welcomePremium}>
+              <div
+                style={styles.welcomePremium}
+              >
                 {isPremium
                   ? "✦ PREMIUM ACTIVE"
                   : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
@@ -528,7 +679,6 @@ export default function Home() {
             </div>
           </div>
         </main>
-
       </>
     );
   }
@@ -543,8 +693,12 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pendingCard}>
-              <div style={styles.brand}>
+            <div
+              style={styles.pendingCard}
+            >
+              <div
+                style={styles.brand}
+              >
                 SAMBHAV UPSC
               </div>
 
@@ -558,10 +712,14 @@ export default function Home() {
                 Access {user.status}
               </p>
 
-              <p style={styles.greetingSub}>
-                {user.status === "pending"
+              <p
+                style={styles.greetingSub}
+              >
+                {user.status ===
+                "pending"
                   ? "Admin approval pending."
-                  : user.status === "rejected"
+                  : user.status ===
+                    "rejected"
                   ? "Your access request was rejected."
                   : "Your account is currently blocked."}
               </p>
@@ -586,8 +744,13 @@ export default function Home() {
     );
   }
 
-  const firstName = user.first_name || "Aspirant";
-  const initial = firstName.charAt(0).toUpperCase();
+  const firstName =
+    user.first_name ||
+    user.firstName ||
+    "Aspirant";
+
+  const initial =
+    firstName.charAt(0).toUpperCase();
 
   return (
     <>
@@ -598,14 +761,15 @@ export default function Home() {
 
       <main style={styles.page}>
         <div style={styles.container}>
-
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
                 SAMBHAV UPSC
               </div>
 
-              <div style={styles.brandSub}>
+              <div
+                style={styles.brandSub}
+              >
                 UPSC Preparation Platform
               </div>
             </div>
@@ -616,25 +780,37 @@ export default function Home() {
           </header>
 
           <section style={styles.greeting}>
-            <h1 style={styles.greetingTitle}>
+            <h1
+              style={styles.greetingTitle}
+            >
               Hello, {firstName}
             </h1>
 
-            <p style={styles.greetingSub}>
+            <p
+              style={styles.greetingSub}
+            >
               Continue your preparation.
             </p>
           </section>
 
-          <section style={styles.accessCard}>
-            <div style={styles.accessLabel}>
+          <section
+            style={styles.accessCard}
+          >
+            <div
+              style={styles.accessLabel}
+            >
               Officer Access Card
             </div>
 
-            <div style={styles.accessTitle}>
+            <div
+              style={styles.accessTitle}
+            >
               {firstName}
             </div>
 
-            <div style={styles.accessSub}>
+            <div
+              style={styles.accessSub}
+            >
               Clearance: ACTIVE
             </div>
           </section>
@@ -642,18 +818,72 @@ export default function Home() {
           <button
             style={styles.secretaryButton}
             onClick={() =>
-              console.log("AI Secretary coming soon")
+              console.log(
+                "AI Secretary coming soon"
+              )
             }
           >
             ✦ Open AI Secretary →
           </button>
 
-          <div style={styles.sectionHeader}>
-            <div style={styles.sectionTitle}>
+          {/* PREMIUM ENTRY */}
+          <section
+            style={styles.premiumCard}
+            onClick={() => {
+              window.location.href =
+                "/premium";
+            }}
+          >
+            <div
+              style={styles.premiumGlow}
+            />
+
+            <div
+              style={styles.premiumGlowSmall}
+            />
+
+            <div
+              style={styles.premiumBadge}
+            >
+              ✦ PREMIUM ACCESS
+            </div>
+
+            <div
+              style={styles.premiumTitle}
+            >
+              Unlock the Full SAMBHAV
+              Experience
+            </div>
+
+            <div
+              style={styles.premiumSub}
+            >
+              Current Affairs, PYQ
+              Intelligence, Tests, Mains
+              practice, AI evaluation &
+              premium study resources —
+              all in one place.
+            </div>
+
+            <div
+              style={styles.premiumAction}
+            >
+              Explore Batches →
+            </div>
+          </section>
+
+          <div
+            style={styles.sectionHeader}
+          >
+            <div
+              style={styles.sectionTitle}
+            >
               Quick Launch
             </div>
 
-            <div style={styles.sectionSmall}>
+            <div
+              style={styles.sectionSmall}
+            >
               UPSC • 2026
             </div>
           </div>
@@ -673,22 +903,44 @@ export default function Home() {
                     );
                   }
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 9px 22px rgba(0,0,0,0.07)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    "0 5px 16px rgba(0,0,0,0.045)";
+                }}
               >
-                <div style={styles.iconBox}>
+                <div
+                  style={styles.iconBox}
+                >
                   {module.icon}
                 </div>
 
-                <div style={styles.cardContent}>
-                  <div style={styles.cardTitle}>
+                <div
+                  style={styles.cardContent}
+                >
+                  <div
+                    style={styles.cardTitle}
+                  >
                     {module.title}
                   </div>
 
-                  <div style={styles.cardSubtitle}>
+                  <div
+                    style={styles.cardSubtitle}
+                  >
                     {module.subtitle}
                   </div>
                 </div>
 
-                <div style={styles.arrow}>
+                <div
+                  style={styles.arrow}
+                >
                   ›
                 </div>
               </div>
@@ -698,24 +950,48 @@ export default function Home() {
               <div
                 style={styles.card}
                 onClick={() => {
-                  window.location.href = "/admin";
+                  window.location.href =
+                    "/admin";
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 9px 22px rgba(0,0,0,0.07)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform =
+                    "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    "0 5px 16px rgba(0,0,0,0.045)";
                 }}
               >
-                <div style={styles.iconBox}>
+                <div
+                  style={styles.iconBox}
+                >
                   🔐
                 </div>
 
-                <div style={styles.cardContent}>
-                  <div style={styles.cardTitle}>
+                <div
+                  style={styles.cardContent}
+                >
+                  <div
+                    style={styles.cardTitle}
+                  >
                     Admin Panel
                   </div>
 
-                  <div style={styles.cardSubtitle}>
-                    Members • Requests • Approvals
+                  <div
+                    style={styles.cardSubtitle}
+                  >
+                    Members • Requests •
+                    Approvals
                   </div>
                 </div>
 
-                <div style={styles.arrow}>
+                <div
+                  style={styles.arrow}
+                >
                   ›
                 </div>
               </div>
@@ -723,40 +999,64 @@ export default function Home() {
           </section>
         </div>
 
-        <nav style={styles.bottomNav}>
+        <nav
+          style={styles.bottomNav}
+        >
           <div
             style={{
               ...styles.navItem,
               ...styles.navActive,
             }}
           >
-            <span style={styles.navIcon}>⌂</span>
+            <span
+              style={styles.navIcon}
+            >
+              ⌂
+            </span>
             Home
           </div>
 
           <div
             style={styles.navItem}
             onClick={() =>
-              console.log("Current Affairs")
+              console.log(
+                "Current Affairs"
+              )
             }
           >
-            <span style={styles.navIcon}>▤</span>
+            <span
+              style={styles.navIcon}
+            >
+              ▤
+            </span>
             CA
           </div>
 
           <div
             style={styles.navItem}
-            onClick={() => console.log("GS")}
+            onClick={() =>
+              console.log("GS")
+            }
           >
-            <span style={styles.navIcon}>▣</span>
+            <span
+              style={styles.navIcon}
+            >
+              ▣
+            </span>
             GS
           </div>
 
           <div
             style={styles.navItem}
-            onClick={() => console.log("AI")}
+            onClick={() =>
+              console.log("AI")
+            }
           >
-            <span style={styles.navIcon}>▦</span>
+            <span
+              style={styles.navIcon}
+            >
+              ▦
+            </span>
             AI
           </div>
         </nav>
