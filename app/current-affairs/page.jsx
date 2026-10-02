@@ -402,6 +402,17 @@ export default function CurrentAffairsPage() {
           </div>
 
           <button
+            className="magazine-button"
+            onClick={() =>
+              (window.location.href =
+                "/current-affairs/magazine")
+            }
+          >
+            📖
+            <span>Monthly Magazine</span>
+          </button>
+
+          <button
             className="notification-button"
             onClick={() =>
               setNotificationOpen(
@@ -815,9 +826,10 @@ export default function CurrentAffairsPage() {
           flex-wrap: wrap;
         }
 
-        .language-box,
+.language-box,
         .date-card,
-        .notification-button {
+        .notification-button,
+        .magazine-button {
           background: #fff;
           border: 1px solid #dfe5ec;
           border-radius: 14px;
@@ -854,6 +866,30 @@ export default function CurrentAffairsPage() {
           background: #172033;
           color: #fff;
           border-color: #172033;
+        }
+
+.magazine-button {
+          cursor: pointer;
+          font-weight: 850;
+          color: #fff;
+          background: #172033;
+          border: 1px solid #172033;
+          border-radius: 14px;
+          padding: 12px 15px;
+          display: flex;
+          gap: 7px;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+          box-shadow: 0 4px 14px rgba(16, 24, 40, 0.035);
+          white-space: nowrap;
+          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+        }
+
+        .magazine-button:hover {
+          background: #25304a;
+          border-color: #25304a;
+          transform: translateY(-1px);
         }
 
         .notification-button {
@@ -1436,6 +1472,7 @@ export default function CurrentAffairsPage() {
         .lang:focus-visible,
         .setting-btn:focus-visible,
         .notification-button:focus-visible,
+        .magazine-button:focus-visible,
         .close:focus-visible {
           outline: 3px solid rgba(37, 99, 235, 0.18);
           outline-offset: 2px;
@@ -1492,7 +1529,8 @@ export default function CurrentAffairsPage() {
 
           .date-card,
           .language-box,
-          .notification-button {
+          .notification-button,
+          .magazine-button {
             width: 100%;
           }
 
