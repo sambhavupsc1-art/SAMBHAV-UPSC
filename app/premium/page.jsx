@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const plans = [
   {
@@ -333,6 +334,8 @@ const styles = {
 };
 
 export default function PremiumPage() {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState("");
@@ -372,8 +375,31 @@ export default function PremiumPage() {
         return;
       }
 
-      webApp.ready();
-      webApp.expand();
+      try {
+        webApp.ready();
+        webApp.expand();
+      } catch (telegramError) {
+        console.warn(
+          "Telegram WebApp setup warning:",
+          telegramError
+        );
+      }
+
+      /*
+       * Save Telegram authentication data.
+       * Payment page will reuse this.
+       */
+      try {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          webApp.initData
+        );
+      } catch (storageError) {
+        console.warn(
+          "Telegram auth session save failed:",
+          storageError
+        );
+      }
 
       fetch("/api/auth/me", {
         headers: {
@@ -428,9 +454,38 @@ export default function PremiumPage() {
       const webApp =
         window.Telegram?.WebApp;
 
-      if (!webApp?.initData) {
+      let telegramInitData =
+        webApp?.initData || "";
+
+      if (!telegramInitData) {
+        try {
+          telegramInitData =
+            sessionStorage.getItem(
+              "sambhav_telegram_init_data"
+            ) || "";
+        } catch (storageError) {
+          console.warn(
+            "Telegram auth session read failed:",
+            storageError
+          );
+        }
+      }
+
+      if (!telegramInitData) {
         throw new Error(
           "Telegram authentication data nahi mila."
+        );
+      }
+
+      try {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          telegramInitData
+        );
+      } catch (storageError) {
+        console.warn(
+          "Telegram auth session save failed:",
+          storageError
         );
       }
 
@@ -441,7 +496,7 @@ export default function PremiumPage() {
 
           headers: {
             Authorization:
-              `tma ${webApp.initData}`,
+              `tma ${telegramInitData}`,
             "Content-Type":
               "application/json",
           },
@@ -453,15 +508,6 @@ export default function PremiumPage() {
       const data =
         await response.json();
 
-      /*
-       * IMPORTANT:
-       * If the user already has an active
-       * Premium subscription, do not treat
-       * it as a fatal error.
-       *
-       * Send the user directly to
-       * Premium Home.
-       */
       if (
         response.status === 409 &&
         data?.subscription
@@ -478,11 +524,6 @@ export default function PremiumPage() {
         return;
       }
 
-      /*
-       * If the API says the demo was already
-       * used but does not return a subscription,
-       * show the message normally.
-       */
       if (
         response.status === 409 &&
         data?.error?.includes(
@@ -503,9 +544,6 @@ export default function PremiumPage() {
         );
       }
 
-      /*
-       * First-time demo activation.
-       */
       setDemoMessage(
         "PREMIUM DEMO ACTIVATED"
       );
@@ -524,18 +562,41 @@ export default function PremiumPage() {
     }
   };
 
+  /*
+   * IMPORTANT:
+   * Paid plans use Next.js client navigation.
+   * This prevents Telegram Mini App from
+   * reloading the Premium landing page.
+   */
   const continuePlan = () => {
+    try {
+      const webApp =
+        window.Telegram?.WebApp;
+
+      const telegramInitData =
+        webApp?.initData || "";
+
+      if (telegramInitData) {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          telegramInitData
+        );
+      }
+    } catch (storageError) {
+      console.warn(
+        "Telegram auth save before payment failed:",
+        storageError
+      );
+    }
+
     if (selectedPlan === "demo") {
       activateDemo();
       return;
     }
 
-    /*
-     * Paid plans will use Cashfree later.
-     * No fake payment is performed here.
-     */
-    window.location.href =
-      `/premium/payment?plan=${selectedPlan}`;
+    router.push(
+      `/premium/payment?plan=${selectedPlan}`
+    );
   };
 
   if (loading) {
@@ -593,8 +654,7 @@ export default function PremiumPage() {
                   marginTop: "22px",
                 }}
                 onClick={() => {
-                  window.location.href =
-                    "/";
+                  router.push("/");
                 }}
               >
                 ← Back to SAMBHAV
@@ -619,8 +679,7 @@ export default function PremiumPage() {
             <button
               style={styles.back}
               onClick={() => {
-                window.location.href =
-                  "/";
+                router.push("/");
               }}
               aria-label="Back"
             >
@@ -816,17 +875,17 @@ export default function PremiumPage() {
 
                 background:
                   demoMessage ===
-                  "PREMIUM DEMO ACTIVATED" ||
+                    "PREMIUM DEMO ACTIVATED" ||
                   demoMessage ===
-                  "PREMIUM ALREADY ACTIVE"
+                    "PREMIUM ALREADY ACTIVE"
                     ? "#eaf7ed"
                     : "#fff0ee",
 
                 color:
                   demoMessage ===
-                  "PREMIUM DEMO ACTIVATED" ||
+                    "PREMIUM DEMO ACTIVATED" ||
                   demoMessage ===
-                  "PREMIUM ALREADY ACTIVE"
+                    "PREMIUM ALREADY ACTIVE"
                     ? "#217a39"
                     : "#b52b22",
 
@@ -842,7 +901,6 @@ export default function PremiumPage() {
           <button
             style={{
               ...styles.bottomAction,
-
               opacity:
                 activatingDemo
                   ? 0.65
