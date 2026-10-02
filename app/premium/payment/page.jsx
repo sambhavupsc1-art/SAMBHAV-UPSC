@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function PremiumPaymentPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [plan, setPlan] = useState("monthly");
   const [loading, setLoading] = useState(false);
@@ -32,15 +31,29 @@ export default function PremiumPaymentPage() {
   };
 
   useEffect(() => {
-    const selectedPlan = searchParams.get("plan");
+    try {
+      const params = new URLSearchParams(
+        window.location.search
+      );
 
-    if (
-      selectedPlan &&
-      Object.prototype.hasOwnProperty.call(plans, selectedPlan)
-    ) {
-      setPlan(selectedPlan);
+      const selectedPlan = params.get("plan");
+
+      if (
+        selectedPlan &&
+        Object.prototype.hasOwnProperty.call(
+          plans,
+          selectedPlan
+        )
+      ) {
+        setPlan(selectedPlan);
+      }
+    } catch (error) {
+      console.warn(
+        "Payment plan URL read failed:",
+        error
+      );
     }
-  }, [searchParams]);
+  }, []);
 
   const selected = plans[plan];
 
@@ -58,7 +71,9 @@ export default function PremiumPaymentPage() {
 
     setTimeout(() => {
       setLoading(false);
-      alert("Payment gateway setup is being connected.");
+      alert(
+        "Payment gateway setup is being connected."
+      );
     }, 700);
   };
 
@@ -128,49 +143,51 @@ export default function PremiumPaymentPage() {
 
           {/* Plan selector */}
           <div className="space-y-2">
-            {Object.entries(plans).map(([key, item]) => {
-              const active = plan === key;
+            {Object.entries(plans).map(
+              ([key, item]) => {
+                const active = plan === key;
 
-              return (
-                <button
-                  key={key}
-                  onClick={() => setPlan(key)}
-                  className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
-                    active
-                      ? "border-[#b89b57] bg-[#17140d]"
-                      : "border-[#272b32] bg-[#101319]"
-                  }`}
-                >
-                  <div>
-                    <p
-                      className={`text-sm font-semibold ${
-                        active
-                          ? "text-[#e3c77d]"
-                          : "text-[#e5e1d8]"
-                      }`}
-                    >
-                      {item.name}
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#858b95]">
-                      {item.duration}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-lg font-semibold">
-                      ₹{item.price}
-                    </p>
-
-                    {active && (
-                      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-[#bca56a]">
-                        Selected
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setPlan(key)}
+                    className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
+                      active
+                        ? "border-[#b89b57] bg-[#17140d]"
+                        : "border-[#272b32] bg-[#101319]"
+                    }`}
+                  >
+                    <div>
+                      <p
+                        className={`text-sm font-semibold ${
+                          active
+                            ? "text-[#e3c77d]"
+                            : "text-[#e5e1d8]"
+                        }`}
+                      >
+                        {item.name}
                       </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+
+                      <p className="mt-1 text-xs text-[#858b95]">
+                        {item.duration}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-lg font-semibold">
+                        ₹{item.price}
+                      </p>
+
+                      {active && (
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wider text-[#bca56a]">
+                          Selected
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              }
+            )}
           </div>
 
           {/* Price summary */}
@@ -238,7 +255,6 @@ export default function PremiumPaymentPage() {
           </p>
 
           <div className="mt-4 space-y-3">
-
             {[
               "Premium Current Affairs",
               "PYQ Intelligence",
@@ -259,7 +275,6 @@ export default function PremiumPaymentPage() {
                 </span>
               </div>
             ))}
-
           </div>
         </section>
 
