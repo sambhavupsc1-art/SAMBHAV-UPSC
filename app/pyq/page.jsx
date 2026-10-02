@@ -1033,6 +1033,37 @@ export default function PYQPage() {
     }
   };
 
+  const goToQuestion = (targetIndex) => {
+    if (
+      targetIndex < 0 ||
+      targetIndex >= filteredPrelims.length
+    ) {
+      return;
+    }
+
+    const targetQuestion =
+      filteredPrelims[targetIndex];
+
+    setCurrent(targetIndex);
+
+    setSelected(
+      answers[targetQuestion?.id] ??
+        null
+    );
+
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
+  };
+
+  const previousQuestion = () => {
+    if (current <= 0) {
+      return;
+    }
+
+    goToQuestion(current - 1);
+  };
+
   const nextQuestion = () => {
     if (
       current >=
@@ -1043,14 +1074,7 @@ export default function PYQPage() {
       return;
     }
 
-    setCurrent(
-      (value) => value + 1
-    );
-
-    setSelected(null);
-    setTranslation(null);
-    setTranslationQuestionId(null);
-    setTranslationError("");
+    goToQuestion(current + 1);
   };
 
   /* ---------------- FILTER CONTROLS ---------------- */
@@ -1883,7 +1907,9 @@ export default function PYQPage() {
                               ? translation?.explanation_hi || ""
                               : ""
                           }
+                          onPrevious={previousQuestion}
                           onNext={nextQuestion}
+                          isFirst={current === 0}
                           isLast={
                             current ===
                             filteredPrelims.length - 1
@@ -2845,7 +2871,9 @@ function ExplanationPanel({
   selected,
   language = "en",
   translatedExplanation = "",
+  onPrevious,
   onNext,
+  isFirst,
   isLast,
 }) {
   const raw = String(
@@ -2960,13 +2988,29 @@ function ExplanationPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onNext}
-        style={styles.primary}
-      >
-        {isLast ? "Finish" : "Next Question →"}
-      </button>
+      <div style={styles.questionNavigation}>
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={isFirst}
+          style={{
+            ...styles.previousButton,
+            ...(isFirst
+              ? styles.previousButtonDisabled
+              : {}),
+          }}
+        >
+          ← Previous
+        </button>
+
+        <button
+          type="button"
+          onClick={onNext}
+          style={styles.primary}
+        >
+          {isLast ? "Finish" : "Next Question →"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -3854,6 +3898,29 @@ const styles = {
 
   keywordMeaning: {
     color: "#666",
+  },
+
+  questionNavigation: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+    marginTop: "14px",
+  },
+
+  previousButton: {
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    background: "#fff",
+    color: "#111",
+    padding: "11px 15px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  previousButtonDisabled: {
+    opacity: 0.45,
+    cursor: "not-allowed",
   },
 
   resultCard: {
