@@ -244,6 +244,62 @@ const styles = {
     textAlign: "center",
   },
 
+  welcomeCard: {
+    marginTop: "70px",
+    background: "#111111",
+    color: "#ffffff",
+    borderRadius: "26px",
+    padding: "30px 22px",
+    textAlign: "center",
+    boxShadow: "0 16px 40px rgba(0,0,0,0.14)",
+  },
+
+  welcomeLabel: {
+    fontSize: "10px",
+    color: "#a7a7a7",
+    letterSpacing: "2px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+
+  welcomeTitle: {
+    marginTop: "8px",
+    fontSize: "27px",
+    fontWeight: "900",
+    letterSpacing: "-0.8px",
+  },
+
+  welcomeUser: {
+    marginTop: "10px",
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#e8e8e8",
+  },
+
+  welcomeStatus: {
+    display: "inline-block",
+    marginTop: "18px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "#ffffff",
+    color: "#111111",
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing: "0.8px",
+  },
+
+  welcomePremium: {
+    marginTop: "14px",
+    padding: "11px 14px",
+    borderRadius: "15px",
+    background: "linear-gradient(135deg, #222222, #3a3a3a)",
+    border: "1px solid #4a4a4a",
+    color: "#ffffff",
+    fontSize: "11px",
+    fontWeight: "800",
+    letterSpacing: "0.4px",
+  },
+
   bottomNav: {
     position: "fixed",
     left: "50%",
@@ -294,6 +350,7 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     let attempts = 0;
@@ -337,6 +394,10 @@ export default function Home() {
 
           setUser(data.user);
           setIsAdmin(data.isAdmin === true);
+
+          if (data.user?.status === "approved") {
+            setShowWelcome(true);
+          }
         })
         .catch((err) => {
           setError(
@@ -354,6 +415,16 @@ export default function Home() {
       stopped = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!showWelcome) return;
+
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [showWelcome]);
 
   if (loading) {
     return (
@@ -411,6 +482,56 @@ export default function Home() {
   }
 
   if (!user) return null;
+
+  if (showWelcome && user.status === "approved") {
+    const firstName =
+      user.first_name ||
+      user.firstName ||
+      user.name ||
+      "Aspirant";
+
+    const isPremium =
+      String(user.plan || "").toLowerCase() === "premium" &&
+      String(user.subscriptionStatus || "").toLowerCase() === "active";
+
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.container}>
+            <div style={styles.welcomeCard}>
+              <div style={styles.welcomeLabel}>
+                WELCOME
+              </div>
+
+              <div style={styles.welcomeTitle}>
+                SAMBHAV UPSC
+              </div>
+
+              <div style={styles.welcomeUser}>
+                {firstName}
+              </div>
+
+              <div style={styles.welcomeStatus}>
+                ✓ APPROVED
+              </div>
+
+              <div style={styles.welcomePremium}>
+                {isPremium
+                  ? "✦ PREMIUM ACTIVE"
+                  : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
+              </div>
+            </div>
+          </div>
+        </main>
+
+      </>
+    );
+  }
 
   if (user.status !== "approved") {
     return (
