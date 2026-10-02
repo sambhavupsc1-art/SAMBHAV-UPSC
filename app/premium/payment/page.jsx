@@ -1,152 +1,487 @@
 "use client";
 
+import Script from "next/script";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function PremiumPaymentPage() {
-  const router = useRouter();
+const plans = [
+  {
+    id: "demo",
+    title: "2-Day Premium Demo",
+    price: "₹0",
+    period: "FREE",
+    duration: "2 days",
+    description:
+      "Experience the complete SAMBHAV Premium platform.",
+    badge: "FREE",
+    featured: true,
+  },
+  {
+    id: "monthly",
+    title: "Monthly",
+    price: "₹99",
+    period: "/ month",
+    duration: "1 month",
+    description:
+      "Full Premium access for one month.",
+  },
+  {
+    id: "quarterly",
+    title: "Quarterly",
+    price: "₹399",
+    period: "/ 3 months",
+    duration: "3 months",
+    description:
+      "Premium access for three months.",
+    badge: "POPULAR",
+  },
+  {
+    id: "annual",
+    title: "Annual",
+    price: "₹999",
+    period: "/ year",
+    duration: "1 year",
+    description:
+      "Complete Premium access for one year.",
+    badge: "BEST VALUE",
+  },
+];
 
-  const [plan, setPlan] = useState("monthly");
-  const [loading, setLoading] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [error, setError] = useState("");
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f5f2eb",
+    color: "#101010",
+    fontFamily:
+      "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    paddingBottom: "40px",
+  },
 
-  const plans = {
-    monthly: {
-      name: "Monthly Premium",
-      duration: "1 Month",
-      price: 99,
-      description: "Full Premium access for 1 month",
-    },
-    quarterly: {
-      name: "Quarterly Premium",
-      duration: "3 Months",
-      price: 399,
-      description: "Full Premium access for 3 months",
-    },
-    annual: {
-      name: "Annual Premium",
-      duration: "12 Months",
-      price: 999,
-      description: "Full Premium access for 12 months",
-    },
-  };
+  container: {
+    width: "100%",
+    maxWidth: "760px",
+    margin: "0 auto",
+    padding: "20px 16px 45px",
+    boxSizing: "border-box",
+  },
 
-  /*
-   * Read plan from URL without useSearchParams().
-   * This avoids the Next.js Suspense build error.
-   */
+  topBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "28px",
+  },
+
+  back: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "14px",
+    border:
+      "1px solid rgba(16,16,16,.08)",
+    background: "#fffdf9",
+    fontSize: "20px",
+    cursor: "pointer",
+  },
+
+  brand: {
+    fontSize: "15px",
+    fontWeight: "900",
+    letterSpacing: "-.3px",
+  },
+
+  premiumBadge: {
+    padding: "7px 10px",
+    borderRadius: "999px",
+    background: "#101010",
+    color: "#dfc477",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+  },
+
+  hero: {
+    textAlign: "center",
+    marginBottom: "28px",
+  },
+
+  crown: {
+    fontSize: "31px",
+    marginBottom: "9px",
+  },
+
+  heroTitle: {
+    margin: 0,
+    fontSize: "31px",
+    lineHeight: "1.12",
+    fontWeight: "900",
+    letterSpacing: "-1.1px",
+  },
+
+  heroSub: {
+    margin: "10px auto 0",
+    maxWidth: "430px",
+    color: "#77736b",
+    fontSize: "13px",
+    lineHeight: "1.6",
+  },
+
+  officerCard: {
+    background: "#101010",
+    color: "#fff",
+    borderRadius: "25px",
+    padding: "22px",
+    marginBottom: "24px",
+    position: "relative",
+    overflow: "hidden",
+    boxShadow:
+      "0 15px 35px rgba(16,16,16,.14)",
+  },
+
+  officerGlow: {
+    position: "absolute",
+    width: "180px",
+    height: "180px",
+    borderRadius: "50%",
+    right: "-75px",
+    top: "-90px",
+    background:
+      "rgba(223,196,119,.08)",
+  },
+
+  officerLabel: {
+    position: "relative",
+    zIndex: 2,
+    color: "#b9b9b9",
+    fontSize: "9px",
+    fontWeight: "800",
+    letterSpacing: "1.5px",
+    textTransform: "uppercase",
+  },
+
+  officerTitle: {
+    position: "relative",
+    zIndex: 2,
+    marginTop: "8px",
+    fontSize: "20px",
+    fontWeight: "850",
+  },
+
+  officerText: {
+    position: "relative",
+    zIndex: 2,
+    marginTop: "6px",
+    color: "#c8c8c8",
+    fontSize: "11px",
+    lineHeight: "1.5",
+  },
+
+  sectionTitle: {
+    fontSize: "20px",
+    fontWeight: "900",
+    letterSpacing: "-.5px",
+    marginBottom: "13px",
+  },
+
+  plans: {
+    display: "grid",
+    gap: "13px",
+  },
+
+  plan: {
+    position: "relative",
+    background: "#fffdf9",
+    border:
+      "1px solid rgba(16,16,16,.08)",
+    borderRadius: "23px",
+    padding: "19px",
+    cursor: "pointer",
+    boxSizing: "border-box",
+    transition: "all .15s ease",
+  },
+
+  selectedPlan: {
+    border: "2px solid #b89445",
+    boxShadow:
+      "0 10px 28px rgba(184,148,69,.13)",
+  },
+
+  demoPlan: {
+    background: "#101010",
+    color: "#fff",
+    border: "1px solid #101010",
+  },
+
+  badge: {
+    position: "absolute",
+    top: "15px",
+    right: "15px",
+    padding: "6px 9px",
+    borderRadius: "999px",
+    background: "#b89445",
+    color: "#fff",
+    fontSize: "8px",
+    fontWeight: "900",
+    letterSpacing: ".7px",
+  },
+
+  demoBadge: {
+    background: "#fff",
+    color: "#101010",
+  },
+
+  planTitle: {
+    fontSize: "16px",
+    fontWeight: "850",
+    paddingRight: "75px",
+  },
+
+  priceRow: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "5px",
+    marginTop: "12px",
+  },
+
+  price: {
+    fontSize: "29px",
+    fontWeight: "900",
+    letterSpacing: "-1px",
+  },
+
+  period: {
+    fontSize: "10px",
+    color: "#77736b",
+    fontWeight: "700",
+  },
+
+  demoPeriod: {
+    color: "#bcbcbc",
+  },
+
+  duration: {
+    marginTop: "5px",
+    fontSize: "10px",
+    color: "#77736b",
+    fontWeight: "700",
+  },
+
+  demoDuration: {
+    color: "#bdbdbd",
+  },
+
+  description: {
+    marginTop: "9px",
+    fontSize: "11px",
+    color: "#77736b",
+    lineHeight: "1.5",
+  },
+
+  demoDescription: {
+    color: "#bcbcbc",
+  },
+
+  check: {
+    marginTop: "12px",
+    fontSize: "10px",
+    color: "#6f6a61",
+    fontWeight: "700",
+  },
+
+  demoCheck: {
+    color: "#d7d7d7",
+  },
+
+  bottomAction: {
+    position: "sticky",
+    bottom: "12px",
+    marginTop: "22px",
+    background: "#101010",
+    color: "#fff",
+    borderRadius: "17px",
+    padding: "16px",
+    width: "100%",
+    border: "none",
+    fontSize: "13px",
+    fontWeight: "900",
+    cursor: "pointer",
+    boxShadow:
+      "0 12px 30px rgba(16,16,16,.18)",
+  },
+
+  secure: {
+    textAlign: "center",
+    marginTop: "12px",
+    color: "#8a867e",
+    fontSize: "9px",
+    lineHeight: "1.5",
+  },
+
+  loadingCard: {
+    marginTop: "80px",
+    background: "#fffdf9",
+    borderRadius: "24px",
+    padding: "28px",
+    textAlign: "center",
+    border:
+      "1px solid rgba(16,16,16,.08)",
+  },
+
+  error: {
+    marginTop: "10px",
+    color: "#c0392b",
+    fontSize: "12px",
+  },
+};
+
+export default function PremiumPage() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  const [selectedPlan, setSelectedPlan] =
+    useState("demo");
+
+  const [activatingDemo, setActivatingDemo] =
+    useState(false);
+
+  const [demoMessage, setDemoMessage] =
+    useState("");
+
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(
-        window.location.search
-      );
+    let attempts = 0;
+    let stopped = false;
 
-      const selectedPlan = params.get("plan");
+    const authenticate = () => {
+      if (stopped) return;
 
-      if (
-        selectedPlan &&
-        Object.prototype.hasOwnProperty.call(
-          plans,
-          selectedPlan
-        )
-      ) {
-        setPlan(selectedPlan);
+      attempts++;
+
+      const webApp =
+        window.Telegram?.WebApp;
+
+      if (!webApp?.initData) {
+        if (attempts < 30) {
+          setTimeout(authenticate, 200);
+          return;
+        }
+
+        setAuthError(
+          "Telegram authentication data nahi mila."
+        );
+
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.warn(
-        "Payment plan URL read failed:",
-        error
-      );
-    }
-  }, []);
 
-  /*
-   * Load Cashfree SDK.
-   */
-  useEffect(() => {
-    const scriptId = "cashfree-sdk";
+      try {
+        webApp.ready();
+        webApp.expand();
+      } catch (telegramError) {
+        console.warn(
+          "Telegram WebApp setup warning:",
+          telegramError
+        );
+      }
 
-    if (document.getElementById(scriptId)) {
-      return;
-    }
+      /*
+       * IMPORTANT:
+       * Save Telegram authentication data
+       * so internal Premium pages such as
+       * /premium/payment can reuse it.
+       */
+      try {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          webApp.initData
+        );
+      } catch (storageError) {
+        console.warn(
+          "Telegram auth session save failed:",
+          storageError
+        );
+      }
 
-    const script = document.createElement("script");
+      fetch("/api/auth/me", {
+        headers: {
+          Authorization:
+            `tma ${webApp.initData}`,
+        },
+        cache: "no-store",
+      })
+        .then(async (response) => {
+          const data =
+            await response.json();
 
-    script.id = scriptId;
-    script.src =
-      "https://sdk.cashfree.com/js/v3/cashfree.js";
-    script.async = true;
+          if (!response.ok) {
+            throw new Error(
+              data.error ||
+                "Authentication failed"
+            );
+          }
 
-    script.onload = () => {
-      console.log("Cashfree SDK loaded");
+          setUser(data.user);
+        })
+        .catch((error) => {
+          setAuthError(
+            error.message ||
+              "Authentication failed."
+          );
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     };
 
-    script.onerror = () => {
-      console.error(
-        "Cashfree SDK failed to load"
-      );
-    };
+    authenticate();
 
-    document.body.appendChild(script);
+    return () => {
+      stopped = true;
+    };
   }, []);
 
-  /*
-   * Get Telegram raw initData.
-   *
-   * Priority:
-   * 1. Telegram WebApp initData
-   * 2. Previously saved sessionStorage
-   */
-  const getTelegramInitData = () => {
-    let telegramInitData = "";
+  const selected = plans.find(
+    (plan) =>
+      plan.id === selectedPlan
+  );
+
+  const activateDemo = async () => {
+    if (selectedPlan !== "demo") return;
+
+    setActivatingDemo(true);
+    setDemoMessage("");
 
     try {
       const webApp =
         window.Telegram?.WebApp;
 
-      if (webApp) {
+      let telegramInitData =
+        webApp?.initData || "";
+
+      /*
+       * Fallback to saved Telegram auth.
+       */
+      if (!telegramInitData) {
         try {
-          webApp.ready();
-          webApp.expand();
-        } catch (telegramError) {
+          telegramInitData =
+            sessionStorage.getItem(
+              "sambhav_telegram_init_data"
+            ) || "";
+        } catch (storageError) {
           console.warn(
-            "Telegram WebApp setup warning:",
-            telegramError
+            "Telegram auth session read failed:",
+            storageError
           );
         }
-
-        telegramInitData =
-          webApp.initData || "";
       }
-    } catch (error) {
-      console.warn(
-        "Telegram WebApp read failed:",
-        error
-      );
-    }
 
-    /*
-     * Fallback to saved authentication.
-     */
-    if (!telegramInitData) {
-      try {
-        telegramInitData =
-          sessionStorage.getItem(
-            "sambhav_telegram_init_data"
-          ) || "";
-      } catch (storageError) {
-        console.warn(
-          "Session auth read failed:",
-          storageError
+      if (!telegramInitData) {
+        throw new Error(
+          "Telegram authentication data nahi mila."
         );
       }
-    }
 
-    /*
-     * Save valid Telegram auth.
-     */
-    if (telegramInitData) {
+      /*
+       * Keep the latest valid auth saved.
+       */
       try {
         sessionStorage.setItem(
           "sambhav_telegram_init_data",
@@ -154,473 +489,458 @@ export default function PremiumPaymentPage() {
         );
       } catch (storageError) {
         console.warn(
-          "Session auth save failed:",
+          "Telegram auth session save failed:",
           storageError
         );
       }
-    }
 
-    return telegramInitData;
-  };
-
-  /*
-   * Wait for Telegram WebApp auth.
-   *
-   * This is important because Telegram's WebApp
-   * object may become available shortly after
-   * the page starts loading.
-   */
-  useEffect(() => {
-    let cancelled = false;
-    let attempts = 0;
-
-    const checkTelegramAuth = () => {
-      if (cancelled) return;
-
-      const initData =
-        getTelegramInitData();
-
-      if (initData) {
-        setAuthReady(true);
-        return;
-      }
-
-      /*
-       * Check for up to 10 seconds.
-       */
-      if (attempts < 50) {
-        attempts += 1;
-
-        setTimeout(
-          checkTelegramAuth,
-          200
-        );
-
-        return;
-      }
-
-      /*
-       * Do not immediately show a fatal error.
-       * User can still press Pay and the same
-       * authentication check will run again.
-       */
-      setAuthReady(false);
-    };
-
-    checkTelegramAuth();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const selected = plans[plan];
-
-  /*
-   * Start Cashfree payment.
-   */
-  const handlePayment = async () => {
-    if (loading) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      /*
-       * Get Telegram authentication.
-       */
-      const telegramInitData =
-        getTelegramInitData();
-
-      if (!telegramInitData) {
-        throw new Error(
-          "Telegram authentication data nahi mila. SAMBHAV UPSC ko Telegram ke andar se open karein."
-        );
-      }
-
-      /*
-       * Telegram WebApp setup.
-       */
-      try {
-        const webApp =
-          window.Telegram?.WebApp;
-
-        if (webApp) {
-          webApp.ready();
-          webApp.expand();
-        }
-      } catch (telegramError) {
-        console.warn(
-          "Telegram setup warning:",
-          telegramError
-        );
-      }
-
-      /*
-       * Create Cashfree order through our backend.
-       */
       const response = await fetch(
-        "/api/payment/create-order",
+        "/api/premium/demo",
         {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json",
-
             Authorization:
               `tma ${telegramInitData}`,
+            "Content-Type":
+              "application/json",
           },
-
-          body: JSON.stringify({
-            plan,
-          }),
 
           cache: "no-store",
         }
       );
 
-      let data = null;
-
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error(
-          "Payment server se valid response nahi mila."
-        );
-      }
+      const data =
+        await response.json();
 
       /*
-       * Existing active subscription.
+       * Existing active Premium subscription.
        */
       if (
         response.status === 409 &&
         data?.subscription
       ) {
-        router.push("/premium/home");
+        setDemoMessage(
+          "PREMIUM ALREADY ACTIVE"
+        );
+
+        setTimeout(() => {
+          window.location.href =
+            "/premium/home";
+        }, 500);
+
         return;
       }
 
       /*
-       * Backend error.
+       * Demo already used.
        */
+      if (
+        response.status === 409 &&
+        data?.error?.includes(
+          "already been used"
+        )
+      ) {
+        setDemoMessage(
+          "Your 2-Day Premium Demo has already been used."
+        );
+
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(
-          data?.error ||
-            "Payment order create nahi ho saka."
+          data.error ||
+            "Demo activation failed."
         );
       }
 
       /*
-       * Cashfree session required.
+       * First-time demo activation.
        */
-      if (!data?.payment_session_id) {
-        throw new Error(
-          "Cashfree payment session nahi mila."
-        );
-      }
-
-      /*
-       * Wait for Cashfree SDK.
-       */
-      let attempts = 0;
-
-      while (
-        !window.Cashfree &&
-        attempts < 60
-      ) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 100)
-        );
-
-        attempts += 1;
-      }
-
-      if (!window.Cashfree) {
-        throw new Error(
-          "Cashfree Checkout load nahi hua. Please retry karein."
-        );
-      }
-
-      /*
-       * Sandbox Cashfree.
-       */
-      const cashfree =
-        window.Cashfree({
-          mode: "sandbox",
-        });
-
-      /*
-       * Open Cashfree Checkout.
-       */
-      const checkoutResult =
-        await cashfree.checkout({
-          paymentSessionId:
-            data.payment_session_id,
-
-          redirectTarget: "_self",
-        });
-
-      /*
-       * Cashfree returned an error.
-       */
-      if (checkoutResult?.error) {
-        console.error(
-          "Cashfree checkout error:",
-          checkoutResult.error
-        );
-
-        throw new Error(
-          checkoutResult.error?.message ||
-            "Cashfree checkout open nahi ho saka."
-        );
-      }
-
-      /*
-       * If checkout did not redirect,
-       * allow retry.
-       */
-      setLoading(false);
-    } catch (paymentError) {
-      console.error(
-        "Payment error:",
-        paymentError
+      setDemoMessage(
+        "PREMIUM DEMO ACTIVATED"
       );
 
-      setError(
-        paymentError?.message ||
-          "Payment start nahi ho saka."
+      setTimeout(() => {
+        window.location.href =
+          "/premium/home";
+      }, 700);
+    } catch (error) {
+      setDemoMessage(
+        error.message ||
+          "Demo activation failed."
       );
-
-      setLoading(false);
+    } finally {
+      setActivatingDemo(false);
     }
   };
 
-  return (
-    <main className="min-h-screen bg-[#07090d] text-[#f5f1e8]">
-      <div className="mx-auto w-full max-w-md px-5 pb-10 pt-6">
+  const continuePlan = () => {
+    /*
+     * Make sure Telegram auth is saved
+     * before navigating to payment.
+     */
+    try {
+      const webApp =
+        window.Telegram?.WebApp;
 
-        {/* Header */}
-        <div className="mb-7 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#292d35] bg-[#0d1016] text-xl text-[#d9d3c7]"
-          >
-            ←
-          </button>
+      const telegramInitData =
+        webApp?.initData || "";
 
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[#bca56a]">
-              SAMBHAV UPSC
-            </p>
+      if (telegramInitData) {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          telegramInitData
+        );
+      }
+    } catch (storageError) {
+      console.warn(
+        "Telegram auth save before payment failed:",
+        storageError
+      );
+    }
 
-            <h1 className="mt-1 text-xl font-semibold">
-              Premium Checkout
-            </h1>
-          </div>
-        </div>
+    if (selectedPlan === "demo") {
+      activateDemo();
+      return;
+    }
 
-        {/* Security */}
-        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[#302d24] bg-[#0d1015] px-4 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#17140d] text-[#d8b96d]">
-            🔒
-          </div>
+    /*
+     * Paid plans → Cashfree payment page.
+     */
+    window.location.href =
+      `/premium/payment?plan=${selectedPlan}`;
+  };
 
-          <div>
-            <p className="text-sm font-medium">
-              Secure Payment
-            </p>
+  if (loading) {
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
 
-            <p className="mt-0.5 text-xs text-[#8f949d]">
-              Payment is processed through a secure gateway
-            </p>
-          </div>
-        </div>
-
-        {/* Payment Card */}
-        <section className="rounded-3xl border border-[#3b3425] bg-[#0d1016] p-5 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
-
-          {/* Selected Plan */}
-          <div className="mb-5 flex items-start justify-between">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#bca56a]">
-                Selected Plan
-              </p>
-
-              <h2 className="mt-2 text-2xl font-semibold">
-                {selected.name}
-              </h2>
-
-              <p className="mt-1 text-sm text-[#8f949d]">
-                {selected.description}
-              </p>
-            </div>
-
-            <div className="rounded-full border border-[#4a3d20] bg-[#17140d] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#d8b96d]">
-              PREMIUM
-            </div>
-          </div>
-
-          {/* Plans */}
-          <div className="space-y-2">
-            {Object.entries(plans).map(
-              ([key, item]) => {
-                const active =
-                  plan === key;
-
-                return (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setPlan(key);
-                      setError("");
-                    }}
-                    className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
-                      active
-                        ? "border-[#b89b57] bg-[#17140d]"
-                        : "border-[#272b32] bg-[#101319]"
-                    }`}
-                  >
-                    <div>
-                      <p
-                        className={`text-sm font-semibold ${
-                          active
-                            ? "text-[#e3c77d]"
-                            : "text-[#e5e1d8]"
-                        }`}
-                      >
-                        {item.name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-[#858b95]">
-                        {item.duration}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-lg font-semibold">
-                        ₹{item.price}
-                      </p>
-
-                      {active && (
-                        <p className="mt-0.5 text-[10px] uppercase tracking-wider text-[#bca56a]">
-                          Selected
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              }
-            )}
-          </div>
-
-          {/* Summary */}
-          <div className="my-6 border-t border-[#252932] pt-5">
-
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[#8f949d]">
-                Premium Plan
-              </span>
-
-              <span>
-                ₹{selected.price}
-              </span>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-sm">
-              <span className="text-[#8f949d]">
-                Payment Gateway
-              </span>
-
-              <span className="text-[#bca56a]">
-                Cashfree
-              </span>
-            </div>
-
-            <div className="mt-5 flex items-end justify-between border-t border-[#252932] pt-5">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-[#777d87]">
-                  Total Payable
-                </p>
-
-                <p className="mt-1 text-3xl font-semibold">
-                  ₹{selected.price}
-                </p>
+        <main style={styles.page}>
+          <div style={styles.container}>
+            <div
+              style={styles.loadingCard}
+            >
+              <div style={styles.brand}>
+                SAMBHAV UPSC
               </div>
 
-              <span className="pb-1 text-xs text-[#777d87]">
-                INR
-              </span>
+              <p style={styles.heroSub}>
+                Authenticating...
+              </p>
             </div>
           </div>
+        </main>
+      </>
+    );
+  }
 
-          {/* Error */}
-          {error && (
-            <div className="mb-4 rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm leading-5 text-red-300">
-              {error}
+  if (authError || !user) {
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <main style={styles.page}>
+          <div style={styles.container}>
+            <div
+              style={styles.loadingCard}
+            >
+              <div style={styles.brand}>
+                SAMBHAV UPSC
+              </div>
+
+              <div style={styles.error}>
+                {authError ||
+                  "User authentication failed."}
+              </div>
+
+              <button
+                style={{
+                  ...styles.bottomAction,
+                  marginTop: "22px",
+                }}
+                onClick={() => {
+                  window.location.href =
+                    "/";
+                }}
+              >
+                ← Back to SAMBHAV
+              </button>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="beforeInteractive"
+      />
+
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.topBar}>
+            <button
+              style={styles.back}
+              onClick={() => {
+                window.location.href =
+                  "/";
+              }}
+              aria-label="Back"
+            >
+              ‹
+            </button>
+
+            <div style={styles.brand}>
+              SAMBHAV UPSC
+            </div>
+
+            <div
+              style={styles.premiumBadge}
+            >
+              ✦ PREMIUM
+            </div>
+          </header>
+
+          <section style={styles.hero}>
+            <div style={styles.crown}>
+              ♛
+            </div>
+
+            <h1 style={styles.heroTitle}>
+              Your Preparation.
+              <br />
+              Your SAMBHAV.
+            </h1>
+
+            <p style={styles.heroSub}>
+              Unlock structured UPSC
+              preparation, intelligent
+              practice and premium
+              learning tools.
+            </p>
+          </section>
+
+          <section
+            style={styles.officerCard}
+          >
+            <div
+              style={styles.officerGlow}
+            />
+
+            <div
+              style={styles.officerLabel}
+            >
+              Officer Access
+            </div>
+
+            <div
+              style={styles.officerTitle}
+            >
+              Welcome,{" "}
+              {user.first_name ||
+                user.firstName ||
+                "Aspirant"}
+            </div>
+
+            <div
+              style={styles.officerText}
+            >
+              Select your Premium access
+              plan below.
+            </div>
+          </section>
+
+          <div
+            style={styles.sectionTitle}
+          >
+            Choose your plan
+          </div>
+
+          <section style={styles.plans}>
+            {plans.map((plan) => {
+              const isSelected =
+                selectedPlan === plan.id;
+
+              const isDemo =
+                plan.id === "demo";
+
+              return (
+                <div
+                  key={plan.id}
+                  style={{
+                    ...styles.plan,
+
+                    ...(isDemo
+                      ? styles.demoPlan
+                      : {}),
+
+                    ...(isSelected
+                      ? styles.selectedPlan
+                      : {}),
+                  }}
+                  onClick={() =>
+                    setSelectedPlan(
+                      plan.id
+                    )
+                  }
+                >
+                  {plan.badge && (
+                    <div
+                      style={{
+                        ...styles.badge,
+
+                        ...(isDemo
+                          ? styles.demoBadge
+                          : {}),
+                      }}
+                    >
+                      {plan.badge}
+                    </div>
+                  )}
+
+                  <div
+                    style={
+                      styles.planTitle
+                    }
+                  >
+                    {plan.title}
+                  </div>
+
+                  <div
+                    style={
+                      styles.priceRow
+                    }
+                  >
+                    <div
+                      style={styles.price}
+                    >
+                      {plan.price}
+                    </div>
+
+                    <div
+                      style={{
+                        ...styles.period,
+
+                        ...(isDemo
+                          ? styles.demoPeriod
+                          : {}),
+                      }}
+                    >
+                      {plan.period}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.duration,
+
+                      ...(isDemo
+                        ? styles.demoDuration
+                        : {}),
+                    }}
+                  >
+                    {plan.duration}
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.description,
+
+                      ...(isDemo
+                        ? styles.demoDescription
+                        : {}),
+                    }}
+                  >
+                    {plan.description}
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.check,
+
+                      ...(isDemo
+                        ? styles.demoCheck
+                        : {}),
+                    }}
+                  >
+                    ✓ Full Premium access
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {demoMessage && (
+            <div
+              style={{
+                marginTop: "15px",
+                padding: "13px",
+                borderRadius: "15px",
+
+                background:
+                  demoMessage ===
+                    "PREMIUM DEMO ACTIVATED" ||
+                  demoMessage ===
+                    "PREMIUM ALREADY ACTIVE"
+                    ? "#eaf7ed"
+                    : "#fff0ee",
+
+                color:
+                  demoMessage ===
+                    "PREMIUM DEMO ACTIVATED" ||
+                  demoMessage ===
+                    "PREMIUM ALREADY ACTIVE"
+                    ? "#217a39"
+                    : "#b52b22",
+
+                textAlign: "center",
+                fontSize: "11px",
+                fontWeight: "800",
+              }}
+            >
+              {demoMessage}
             </div>
           )}
 
-          {/* Pay Button */}
           <button
-            onClick={handlePayment}
-            disabled={loading}
-            className="w-full rounded-2xl bg-[#c5a45b] px-5 py-4 text-sm font-bold text-[#090a0d] shadow-[0_10px_30px_rgba(197,164,91,0.15)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              ...styles.bottomAction,
+
+              opacity:
+                activatingDemo
+                  ? 0.65
+                  : 1,
+            }}
+            disabled={activatingDemo}
+            onClick={continuePlan}
           >
-            {loading
-              ? "Opening Secure Checkout..."
-              : `Pay ₹${selected.price}`}
+            {activatingDemo
+              ? "Activating..."
+              : selectedPlan ===
+                "demo"
+              ? "START FREE DEMO →"
+              : `CONTINUE WITH ${selected?.price} →`}
           </button>
 
-          <p className="mt-4 text-center text-[11px] leading-5 text-[#707681]">
-            You will be redirected to Cashfree's secure
-            payment checkout.
-          </p>
-        </section>
-
-        {/* Benefits */}
-        <section className="mt-5 rounded-3xl border border-[#252932] bg-[#0b0e13] p-5">
-
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#bca56a]">
-            Premium Includes
-          </p>
-
-          <div className="mt-4 space-y-3">
-            {[
-              "Premium Current Affairs",
-              "PYQ Intelligence",
-              "Mains Answer Analysis",
-              "AI-powered UPSC Preparation",
-              "Premium Study Resources",
-            ].map((item) => (
-              <div
-                key={item}
-                className="flex items-center gap-3"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#17140d] text-xs text-[#d8b96d]">
-                  ✓
-                </span>
-
-                <span className="text-sm text-[#c9cbd0]">
-                  {item}
-                </span>
-              </div>
-            ))}
+          <div style={styles.secure}>
+            {selectedPlan === "demo"
+              ? "No payment required • 2-day Premium access"
+              : "Secure payment • Payment verification required"}
           </div>
-        </section>
-
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#555b65]">
-            SAMBHAV UPSC
-          </p>
-
-          <p className="mt-1 text-[10px] text-[#555b65]">
-            Secure Premium Access
-          </p>
         </div>
-
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
