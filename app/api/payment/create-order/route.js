@@ -377,9 +377,9 @@ export async function POST(request) {
             },
 
             order_meta: {
-              return_url:
-                returnUrl,
-            },
+  return_url: returnUrl,
+  notify_url: `${baseUrl}/api/payment/webhook`,
+},
 
             order_note:
               `SAMBHAV UPSC ${plan} Premium`,
