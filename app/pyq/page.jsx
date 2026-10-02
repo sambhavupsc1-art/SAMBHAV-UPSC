@@ -25,8 +25,6 @@ const mainsPapers = [
   "Essay",
 ];
 
-
-
 export default function PYQPage() {
   const router = useRouter();
 
@@ -39,13 +37,13 @@ export default function PYQPage() {
   const [prelimsSubject, setPrelimsSubject] = useState("All");
   const [prelimsYear, setPrelimsYear] = useState("All");
 
-  const [prelimsPYQs, setPrelimsPYQs] = useState([]);
-  const [prelimsLoading, setPrelimsLoading] = useState(false);
-  const [prelimsError, setPrelimsError] = useState("");
-
   const [mainsPaper, setMainsPaper] = useState("All");
   const [mainsYear, setMainsYear] = useState("All");
   const [gs4Section, setGs4Section] = useState("Theory");
+
+  const [prelimsPYQs, setPrelimsPYQs] = useState([]);
+  const [prelimsLoading, setPrelimsLoading] = useState(false);
+  const [prelimsError, setPrelimsError] = useState("");
 
   const [mainsPYQs, setMainsPYQs] = useState([]);
   const [mainsLoading, setMainsLoading] = useState(false);
@@ -177,7 +175,6 @@ export default function PYQPage() {
         const mapped = rows.map((q, index) => {
           let answer = q.answer;
 
-          // Supabase: correct_option = 0(A), 1(B), 2(C), 3(D)
           if (
             (answer === null ||
               answer === undefined ||
@@ -188,12 +185,7 @@ export default function PYQPage() {
             answer = Number(q.correct_option);
           } else if (typeof answer === "string") {
             const normalized = answer.trim().toUpperCase();
-            const answerMap = {
-              A: 0,
-              B: 1,
-              C: 2,
-              D: 3,
-            };
+            const answerMap = { A: 0, B: 1, C: 2, D: 3 };
 
             if (
               Object.prototype.hasOwnProperty.call(
@@ -210,7 +202,6 @@ export default function PYQPage() {
             }
           }
 
-          // Supabase stores options in option_a ... option_d.
           let options = [];
 
           if (Array.isArray(q.options)) {
@@ -218,9 +209,7 @@ export default function PYQPage() {
           } else if (typeof q.options === "string") {
             try {
               const parsed = JSON.parse(q.options);
-              options = Array.isArray(parsed)
-                ? parsed
-                : [];
+              options = Array.isArray(parsed) ? parsed : [];
             } catch {
               options = [];
             }
@@ -228,17 +217,10 @@ export default function PYQPage() {
 
           if (
             options.length === 0 &&
-            [
-              q.option_a,
-              q.option_b,
-              q.option_c,
-              q.option_d,
-            ].some(
-              (option) =>
-                option !== null &&
-                option !== undefined &&
-                String(option).trim() !== ""
-            )
+            (q.option_a ||
+              q.option_b ||
+              q.option_c ||
+              q.option_d)
           ) {
             options = [
               q.option_a,
@@ -263,10 +245,7 @@ export default function PYQPage() {
             topic: q.topic || "General",
             question: q.question || "",
             options,
-            answer:
-              Number.isFinite(Number(answer))
-                ? Number(answer)
-                : null,
+            answer,
             explanation: q.explanation || "",
           };
         });
@@ -865,12 +844,11 @@ export default function PYQPage() {
     );
 
   const startPractice = () => {
-    const practiceQuestions =
-      filteredPrelims.filter(
-        (q) =>
-          Array.isArray(q.options) &&
-          q.options.length > 0
-      );
+    const practiceQuestions = filteredPrelims.filter(
+      (q) =>
+        Array.isArray(q.options) &&
+        q.options.length > 0
+    );
 
     if (!practiceQuestions.length) {
       return;
@@ -1406,7 +1384,7 @@ export default function PYQPage() {
                       new Set(
                         prelimsPYQs
                           .map((q) => Number(q.year))
-                          .filter(Number.isFinite)
+                          .filter((year) => Number.isFinite(year))
                       )
                     )
                       .sort((a, b) => b - a)
@@ -1427,17 +1405,16 @@ export default function PYQPage() {
                   }
                 >
                   <span>
-                    {
-                      filteredPrelims.length
-                    }{" "}
-                    Questions
+                    {prelimsLoading
+                      ? "Loading Prelims..."
+                      : prelimsError
+                      ? "Prelims data failed to load"
+                      : `${filteredPrelims.length} Questions`}
                   </span>
 
                   <button
                     type="button"
-                    onClick={
-                      startPractice
-                    }
+                    onClick={startPractice}
                     disabled={
                       prelimsLoading ||
                       !filteredPrelims.some(
@@ -1537,7 +1514,7 @@ export default function PYQPage() {
                             }
                           >
                             {Array.isArray(q.options) &&
-                            q.options.length
+                            q.options.length > 0
                               ? `MCQ · ${q.options.length} Options`
                               : "MCQ · Options not available yet"}
                           </div>
@@ -1649,83 +1626,62 @@ export default function PYQPage() {
                         }
                       >
                         {Array.isArray(
-                          filteredPrelims[current].options
+                          filteredPrelims[current]?.options
                         ) &&
                         filteredPrelims[current].options.length > 0 ? (
-                          filteredPrelims[
-                            current
-                          ].options.map(
-                          (
-                            option,
-                            index
-                          ) => {
-                            const correct =
-                              index ===
-                              filteredPrelims[
-                                current
-                              ]
-                                .answer;
+                          filteredPrelims[current].options.map(
+                            (option, index) => {
+                              const correct =
+                                index ===
+                                filteredPrelims[current].answer;
 
-                            const chosen =
-                              selected ===
-                              index;
+                              const chosen =
+                                selected === index;
 
-                            let optionStyle =
-                              styles.option;
+                              let optionStyle =
+                                styles.option;
 
-                            if (
-                              selected !==
-                                null &&
-                              correct
-                            ) {
-                              optionStyle =
-                                {
+                              if (
+                                selected !== null &&
+                                correct
+                              ) {
+                                optionStyle = {
                                   ...styles.option,
                                   ...styles.correct,
                                 };
-                            } else if (
-                              selected !==
-                                null &&
-                              chosen
-                            ) {
-                              optionStyle =
-                                {
+                              } else if (
+                                selected !== null &&
+                                chosen
+                              ) {
+                                optionStyle = {
                                   ...styles.option,
                                   ...styles.wrong,
                                 };
-                            }
+                              }
 
-                            return (
-                              <button
-                                type="button"
-                                key={
-                                  option
-                                }
-                                onClick={() =>
-                                  chooseAnswer(
-                                    index
-                                  )
-                                }
-                                style={
-                                  optionStyle
-                                }
-                              >
-                                <strong>
-                                  {String.fromCharCode(
-                                    65 +
-                                      index
-                                  )}
-                                  .
-                                </strong>
-
-                                <span>
-                                  {
-                                    option
+                              return (
+                                <button
+                                  type="button"
+                                  key={`${filteredPrelims[current].id}-${index}`}
+                                  onClick={() =>
+                                    chooseAnswer(index)
                                   }
-                                </span>
-                              </button>
-                            );
-                          }
+                                  style={optionStyle}
+                                >
+                                  <strong>
+                                    {String.fromCharCode(
+                                      65 + index
+                                    )}
+                                    .
+                                  </strong>
+
+                                  <span>
+                                    {option}
+                                  </span>
+                                </button>
+                              );
+                            }
+                          )
                         ) : (
                           <div style={styles.explanation}>
                             <strong>
