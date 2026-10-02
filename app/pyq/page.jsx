@@ -992,8 +992,8 @@ export default function PYQPage() {
           question: question.question,
           options: question.options || [],
           explanation:
-            question.explanation_en ||
             question.explanation ||
+            question.explanation_en ||
             "",
         }),
       });
@@ -1033,47 +1033,24 @@ export default function PYQPage() {
     }
   };
 
-  const goToQuestion = (targetIndex) => {
-    if (
-      targetIndex < 0 ||
-      targetIndex >= filteredPrelims.length
-    ) {
-      return;
-    }
-
-    const targetQuestion =
-      filteredPrelims[targetIndex];
-
-    setCurrent(targetIndex);
-
-    setSelected(
-      answers[targetQuestion?.id] ??
-        null
-    );
-
-    setTranslation(null);
-    setTranslationQuestionId(null);
-    setTranslationError("");
-  };
-
-  const previousQuestion = () => {
-    if (current <= 0) {
-      return;
-    }
-
-    goToQuestion(current - 1);
-  };
-
   const nextQuestion = () => {
     if (
       current >=
-      filteredPrelims.length - 1
+      filteredPrelims.length -
+        1
     ) {
       setFinished(true);
       return;
     }
 
-    goToQuestion(current + 1);
+    setCurrent(
+      (value) => value + 1
+    );
+
+    setSelected(null);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
   };
 
   /* ---------------- FILTER CONTROLS ---------------- */
@@ -1906,9 +1883,7 @@ export default function PYQPage() {
                               ? translation?.explanation_hi || ""
                               : ""
                           }
-                          onPrevious={previousQuestion}
                           onNext={nextQuestion}
-                          isFirst={current === 0}
                           isLast={
                             current ===
                             filteredPrelims.length - 1
@@ -2870,222 +2845,142 @@ function ExplanationPanel({
   selected,
   language = "en",
   translatedExplanation = "",
-  onPrevious,
   onNext,
-  isFirst,
   isLast,
 }) {
+  /*
+   * IMPORTANT:
+   * The structured UPSC explanation is stored in `explanation`.
+   * Do not prefer explanation_en here because that field may contain
+   * the older short explanation.
+   */
   const raw = String(
     language === "hi" && translatedExplanation
       ? translatedExplanation
-      : question?.explanation_en ||
-        question?.explanation ||
+      : question?.explanation ||
+        question?.explanation_en ||
         ""
   )
     .replace(/\r\n/g, "\n")
     .trim();
 
-  const isCorrect =
-    selected === question?.answer;
+  const isCorrect = selected === question?.answer;
 
-  const sectionDefinitions =
-    language === "hi"
-      ? [
-          {
-            key: "asking",
-            patterns: [
-              /What is the question asking\?/i,
-              /प्रश्न क्या पूछ रहा है\?/i,
-            ],
-            title:
-              "प्रश्न क्या पूछ रहा है?",
-          },
-          {
-            key: "correct",
-            patterns: [
-              /Why is the correct answer correct\?/i,
-              /सही उत्तर क्यों सही है\?/i,
-            ],
-            title:
-              "सही उत्तर क्यों सही है?",
-          },
-          {
-            key: "wrong",
-            patterns: [
-              /Why are the other options incorrect\?/i,
-              /अन्य विकल्प गलत क्यों हैं\?/i,
-            ],
-            title:
-              "अन्य विकल्प गलत क्यों हैं?",
-          },
-          {
-            key: "takeaway",
-            patterns: [
-              /Key Takeaway/i,
-              /मुख्य सीख/i,
-            ],
-            title: "मुख्य सीख",
-          },
-          {
-            key: "keywords",
-            patterns: [
-              /Important Terms\s*\/\s*Keywords:?/i,
-              /महत्वपूर्ण शब्द\s*\/\s*कीवर्ड:?/i,
-            ],
-            title:
-              "महत्वपूर्ण शब्द / Keywords",
-          },
-        ]
-      : [
-          {
-            key: "asking",
-            patterns: [
-              /What is the question asking\?/i,
-            ],
-            title:
-              "What is the question asking?",
-          },
-          {
-            key: "correct",
-            patterns: [
-              /Why is the correct answer correct\?/i,
-            ],
-            title:
-              "Why is the correct answer correct?",
-          },
-          {
-            key: "wrong",
-            patterns: [
-              /Why are the other options incorrect\?/i,
-            ],
-            title:
-              "Why are the other options incorrect?",
-          },
-          {
-            key: "takeaway",
-            patterns: [
-              /Key Takeaway/i,
-            ],
-            title: "Key Takeaway",
-          },
-          {
-            key: "keywords",
-            patterns: [
-              /Important Terms\s*\/\s*Keywords:?/i,
-            ],
-            title:
-              "Important Terms / Keywords",
-          },
-        ];
+  const sectionDefinitions = [
+    {
+      key: "asking",
+      patterns: [
+        /What is the question asking\??/i,
+        /प्रश्न क्या पूछ रहा है\??/i,
+      ],
+      title:
+        language === "hi"
+          ? "प्रश्न क्या पूछ रहा है?"
+          : "What is the question asking?",
+    },
+    {
+      key: "correct",
+      patterns: [
+        /Why is the correct answer correct\??/i,
+        /सही उत्तर क्यों सही है\??/i,
+      ],
+      title:
+        language === "hi"
+          ? "सही उत्तर क्यों सही है?"
+          : "Why is the correct answer correct?",
+    },
+    {
+      key: "wrong",
+      patterns: [
+        /Why are the other options incorrect\??/i,
+        /अन्य विकल्प गलत क्यों हैं\??/i,
+      ],
+      title:
+        language === "hi"
+          ? "अन्य विकल्प गलत क्यों हैं?"
+          : "Why are the other options incorrect?",
+    },
+    {
+      key: "takeaway",
+      patterns: [
+        /Key Takeaway\s*:?/i,
+        /मुख्य सीख\s*:?/i,
+      ],
+      title:
+        language === "hi"
+          ? "मुख्य सीख"
+          : "Key Takeaway",
+    },
+    {
+      key: "keywords",
+      patterns: [
+        /Important Terms\s*\/\s*Keywords\s*:?/i,
+        /महत्वपूर्ण शब्द\s*\/\s*कीवर्ड\s*:?/i,
+      ],
+      title:
+        language === "hi"
+          ? "महत्वपूर्ण शब्द / Keywords"
+          : "Important Terms / Keywords",
+    },
+  ];
 
-  const matches = [];
+  const found = [];
 
-  sectionDefinitions.forEach(
-    (section) => {
-      section.patterns.forEach(
-        (pattern) => {
-          const match =
-            pattern.exec(raw);
+  sectionDefinitions.forEach((section) => {
+    section.patterns.forEach((pattern) => {
+      const match = pattern.exec(raw);
 
-          if (match) {
-            matches.push({
-              key: section.key,
-              title: section.title,
-              index: match.index,
-              end:
-                match.index +
-                match[0].length,
-            });
-          }
-        }
-      );
-    }
-  );
+      if (match) {
+        found.push({
+          key: section.key,
+          title: section.title,
+          index: match.index,
+          end: match.index + match[0].length,
+        });
+      }
+    });
+  });
 
-  const uniqueMatches = Array.from(
-    new Map(
-      matches.map((item) => [
-        item.key,
-        item,
-      ])
-    ).values()
-  ).sort(
-    (a, b) =>
-      a.index - b.index
-  );
+  /* Keep only one heading per section and preserve document order. */
+  const uniqueSections = [];
+  const seen = new Set();
+
+  found
+    .sort((a, b) => a.index - b.index)
+    .forEach((item) => {
+      if (!seen.has(item.key)) {
+        seen.add(item.key);
+        uniqueSections.push(item);
+      }
+    });
 
   const sections = {};
 
-  uniqueMatches.forEach(
-    (section, index) => {
-      const next =
-        uniqueMatches[index + 1];
+  uniqueSections.forEach((section, index) => {
+    const next = uniqueSections[index + 1];
 
-      let content = raw.slice(
-        section.end,
-        next
-          ? next.index
-          : raw.length
-      );
+    let content = raw.slice(
+      section.end,
+      next ? next.index : raw.length
+    );
 
-      content = content
-        .replace(/^\s*↓\s*/g, "")
-        .replace(
-          /^\s*Important Terms\s*\/\s*Keywords:\s*/i,
-          ""
-        )
-        .trim();
-
-      sections[section.key] =
-        content;
-    }
-  );
-
-  const hasStructuredFormat =
-    uniqueMatches.length >= 2;
-
-  const fallbackText =
-    raw
-      .replace(
-        /Important Terms\s*\/\s*Keywords:[\s\S]*$/i,
-        ""
-      )
-      .replace(
-        /^Explanation\s*:\s*/i,
-        ""
-      )
+    content = content
+      .replace(/^[\s↓]+/g, "")
+      .replace(/[\s↓]+$/g, "")
       .trim();
 
-  const fallbackSentences =
-    fallbackText
-      .split(
-        /(?<=[.!?])\s+/
-      )
-      .filter(Boolean);
+    sections[section.key] = content;
+  });
 
-  const keywordText =
-    sections.keywords || "";
+  const hasStructuredFormat =
+    ["asking", "correct", "wrong", "takeaway", "keywords"]
+      .filter((key) => sections[key])
+      .length >= 2;
 
-  const keywords =
-    keywordText
-      .split(
-        /\n\s*[-•]\s*/
-      )
-      .map((item) =>
-        item.trim()
-      )
-      .filter(Boolean);
-
-  const renderContent = (
-    content
-  ) => {
+  const renderParagraphs = (content) => {
     if (!content) {
       return (
-        <p
-          style={
-            styles.explanationParagraph
-          }
-        >
+        <p style={styles.explanationParagraph}>
           {language === "hi"
             ? "जानकारी उपलब्ध नहीं है।"
             : "Information is not available."}
@@ -3095,138 +2990,101 @@ function ExplanationPanel({
 
     return content
       .split(/\n+/)
-      .map((item) =>
-        item.trim()
-      )
+      .map((item) => item.trim())
       .filter(Boolean)
-      .map(
-        (
-          paragraph,
-          index
-        ) => (
-          <p
-            key={`section-${index}`}
-            style={
-              styles.explanationParagraph
-            }
-          >
-            {paragraph}
-          </p>
-        )
-      );
+      .map((paragraph, index) => (
+        <p
+          key={`explanation-paragraph-${index}`}
+          style={styles.explanationParagraph}
+        >
+          {paragraph}
+        </p>
+      ));
   };
 
+  const keywordText = sections.keywords || "";
+
+  /* Handles both:
+     - Financial Inclusion — ...
+     - - Financial Inclusion — ...
+     - • Financial Inclusion — ...
+     - multiple keywords on separate lines
+  */
+  const keywords = keywordText
+    .split(/\n+/)
+    .map((item) =>
+      item
+        .replace(/^\s*[-•*]+\s*/, "")
+        .trim()
+    )
+    .filter(Boolean);
+
+  const fallbackText = raw
+    .replace(
+      /Important Terms\s*\/\s*Keywords\s*:?[\s\S]*$/i,
+      ""
+    )
+    .replace(/^Explanation\s*:\s*/i, "")
+    .trim();
+
+  const fallbackParagraphs = fallbackText
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
   const renderKeywords = () => {
-    if (!keywords.length) {
-      return null;
-    }
+    if (!keywords.length) return null;
 
     return (
-      <div
-        style={
-          styles.keywordSection
-        }
-      >
-        <div
-          style={
-            styles.keywordHeading
-          }
-        >
+      <div style={styles.keywordSection}>
+        <div style={styles.keywordHeading}>
           {language === "hi"
             ? "महत्वपूर्ण शब्द / Keywords"
             : "Important Terms / Keywords"}
         </div>
 
-        <div
-          style={
-            styles.keywordList
-          }
-        >
-          {keywords.map(
-            (
-              item,
-              index
-            ) => {
-              const separatorIndex =
-                item.indexOf(
-                  "—"
-                );
+        <div style={styles.keywordList}>
+          {keywords.map((item, index) => {
+            const separatorIndex = item.indexOf("—");
 
-              const term =
-                separatorIndex >
-                -1
-                  ? item
-                      .slice(
-                        0,
-                        separatorIndex
-                      )
-                      .trim()
-                  : item;
+            const term =
+              separatorIndex >= 0
+                ? item.slice(0, separatorIndex).trim()
+                : item;
 
-              const meaning =
-                separatorIndex >
-                -1
-                  ? item
-                      .slice(
-                        separatorIndex +
-                          1
-                      )
-                      .trim()
-                  : "";
+            const meaning =
+              separatorIndex >= 0
+                ? item.slice(separatorIndex + 1).trim()
+                : "";
 
-              return (
-                <div
-                  key={`keyword-${index}`}
-                  style={
-                    styles.keywordItem
-                  }
-                >
-                  <span
-                    style={
-                      styles.keywordBullet
-                    }
-                  >
-                    •
-                  </span>
+            return (
+              <div
+                key={`keyword-${index}`}
+                style={styles.keywordItem}
+              >
+                <span style={styles.keywordBullet}>•</span>
 
-                  <div
-                    style={
-                      styles.keywordContent
-                    }
-                  >
-                    <strong
-                      style={
-                        styles.keywordTerm
-                      }
-                    >
-                      {term}
-                    </strong>
+                <div style={styles.keywordContent}>
+                  <strong style={styles.keywordTerm}>
+                    {term}
+                  </strong>
 
-                    {meaning && (
-                      <span
-                        style={
-                          styles.keywordMeaning
-                        }
-                      >
-                        {meaning}
-                      </span>
-                    )}
-                  </div>
+                  {meaning && (
+                    <span style={styles.keywordMeaning}>
+                      {meaning}
+                    </span>
+                  )}
                 </div>
-              );
-            }
-          )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   };
 
   return (
-    <div
-      style={
-        styles.explanation
-      }
-    >
+    <div style={styles.explanation}>
       <div
         style={{
           ...styles.explanationStatus,
@@ -3235,14 +3093,8 @@ function ExplanationPanel({
             : styles.explanationStatusWrong),
         }}
       >
-        <span
-          style={
-            styles.explanationStatusDot
-          }
-        >
-          {isCorrect
-            ? "✓"
-            : "!"}
+        <span style={styles.explanationStatusDot}>
+          {isCorrect ? "✓" : "!"}
         </span>
 
         <span>
@@ -3258,103 +3110,52 @@ function ExplanationPanel({
 
       {hasStructuredFormat ? (
         <>
-          {[
-            "asking",
-            "correct",
-            "wrong",
-            "takeaway",
-          ].map(
-            (key) => {
-              const section =
-                sectionDefinitions.find(
-                  (item) =>
-                    item.key ===
-                    key
-                );
+          {["asking", "correct", "wrong", "takeaway"].map((key) => {
+            const section = sectionDefinitions.find(
+              (item) => item.key === key
+            );
 
-              if (
-                !section ||
-                !sections[key]
-              ) {
-                return null;
-              }
+            if (!section || !sections[key]) return null;
 
-              return (
-                <div
-                  key={key}
-                  style={
-                    styles.explanationSection
-                  }
-                >
-                  <div
-                    style={
-                      styles.explanationHeading
-                    }
-                  >
-                    {section.title}
-                  </div>
-
-                  <div
-                    style={
-                      styles.explanationBody
-                    }
-                  >
-                    {renderContent(
-                      sections[key]
-                    )}
-                  </div>
+            return (
+              <div
+                key={key}
+                style={styles.explanationSection}
+              >
+                <div style={styles.explanationHeading}>
+                  {section.title}
                 </div>
-              );
-            }
-          )}
+
+                <div style={styles.explanationBody}>
+                  {renderParagraphs(sections[key])}
+                </div>
+              </div>
+            );
+          })}
 
           {renderKeywords()}
         </>
       ) : (
         <>
-          <div
-            style={
-              styles.explanationSection
-            }
-          >
-            <div
-              style={
-                styles.explanationHeading
-              }
-            >
-              Explanation
+          <div style={styles.explanationSection}>
+            <div style={styles.explanationHeading}>
+              {language === "hi" ? "व्याख्या" : "Explanation"}
             </div>
 
-            <div
-              style={
-                styles.explanationBody
-              }
-            >
-              {fallbackSentences.length >
-              0 ? (
-                fallbackSentences.map(
-                  (
-                    sentence,
-                    index
-                  ) => (
-                    <p
-                      key={`fallback-${index}`}
-                      style={
-                        styles.explanationParagraph
-                      }
-                    >
-                      {sentence}
-                    </p>
-                  )
-                )
+            <div style={styles.explanationBody}>
+              {fallbackParagraphs.length > 0 ? (
+                fallbackParagraphs.map((paragraph, index) => (
+                  <p
+                    key={`fallback-${index}`}
+                    style={styles.explanationParagraph}
+                  >
+                    {paragraph}
+                  </p>
+                ))
               ) : (
-                <p
-                  style={
-                    styles.explanationParagraph
-                  }
-                >
+                <p style={styles.explanationParagraph}>
                   {language === "hi"
-                    ? "Explanation अभी उपलब्ध नहीं है।"
+                    ? "व्याख्या अभी उपलब्ध नहीं है।"
                     : "Explanation is not available yet."}
                 </p>
               )}
@@ -3365,84 +3166,13 @@ function ExplanationPanel({
         </>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent:
-            "space-between",
-          gap: "10px",
-          marginTop: "18px",
-        }}
+      <button
+        type="button"
+        onClick={onNext}
+        style={styles.primary}
       >
-        <button
-          type="button"
-          onClick={
-            onPrevious
-          }
-          disabled={
-            isFirst ||
-            !onPrevious
-          }
-          style={{
-            padding:
-              "12px 18px",
-            borderRadius:
-              "13px",
-            border:
-              "1px solid #e3e3e0",
-            background:
-              isFirst ||
-              !onPrevious
-                ? "#f8f8f6"
-                : "#fff",
-            color:
-              isFirst ||
-              !onPrevious
-                ? "#aaa"
-                : "#111",
-            fontSize:
-              "12px",
-            fontWeight:
-              "800",
-            cursor:
-              isFirst ||
-              !onPrevious
-                ? "not-allowed"
-                : "pointer",
-          }}
-        >
-          ← Previous
-        </button>
-
-        <button
-          type="button"
-          onClick={
-            onNext
-          }
-          style={{
-            padding:
-              "12px 20px",
-            borderRadius:
-              "13px",
-            border: 0,
-            background:
-              "#111",
-            color:
-              "#fff",
-            fontSize:
-              "12px",
-            fontWeight:
-              "800",
-            cursor:
-              "pointer",
-          }}
-        >
-          {isLast
-            ? "Finish"
-            : "Next Question →"}
-        </button>
-      </div>
+        {isLast ? "Finish" : "Next Question →"}
+      </button>
     </div>
   );
 }
