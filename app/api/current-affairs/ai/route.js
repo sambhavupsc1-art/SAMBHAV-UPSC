@@ -851,6 +851,7 @@ async function saveGeneratedArticles(
   }
 
   let created = 0;
+  let skipped = 0;
 
   for (
     let i = 0;
@@ -891,16 +892,13 @@ async function saveGeneratedArticles(
     }
 
     /*
-     * IMPORTANT FIX:
+     * FINAL DUPLICATE RULE:
      *
-     * Duplicate check is now
-     * source_url + date.
+     * Same source URL + SAME DATE
+     * = duplicate
      *
-     * Same PIB URL on a NEW DATE
-     * is allowed as a new article.
-     *
-     * Same URL on the SAME DATE
-     * is skipped.
+     * Same source URL + NEW DATE
+     * = new article
      */
 
     if (
@@ -926,24 +924,33 @@ async function saveGeneratedArticles(
         );
 
       if (
-        duplicateResponse.ok
+        !duplicateResponse.ok
       ) {
-        const duplicates =
-          await duplicateResponse.json();
+        const duplicateError =
+          await duplicateResponse.text();
 
-        if (
-          Array.isArray(
-            duplicates
-          ) &&
-          duplicates.length > 0
-        ) {
-          console.log(
-            "DUPLICATE SKIPPED:",
-            article.title_en
-          );
+        throw new Error(
+          `Duplicate check failed: ${duplicateError}`
+        );
+      }
 
-          continue;
-        }
+      const duplicates =
+        await duplicateResponse.json();
+
+      if (
+        Array.isArray(
+          duplicates
+        ) &&
+        duplicates.length > 0
+      ) {
+        skipped++;
+
+        console.log(
+          "DUPLICATE SKIPPED:",
+          article.title_en
+        );
+
+        continue;
       }
     }
 
@@ -960,7 +967,10 @@ async function saveGeneratedArticles(
     );
   }
 
-  return created;
+  return {
+    created,
+    skipped,
+  };
 }
 
 /* ---------------------------------------
@@ -999,6 +1009,8 @@ export async function POST(request) {
         success: true,
         articles_received: 0,
         articles_created: 0,
+        articles_skipped: 0,
+        articles_processed: 0,
         failed_batches: 0,
       });
     }
@@ -1010,7 +1022,12 @@ export async function POST(request) {
     );
 
     let created = 0;
+    let skipped = 0;
     let failedBatches = 0;
+
+    /* ---------------------------------------
+       PROCESS BATCHES
+    --------------------------------------- */
 
     for (
       let start = 0;
@@ -1048,6 +1065,11 @@ export async function POST(request) {
             ? generated.articles
             : [];
 
+        /*
+         * Gemini MUST return exactly
+         * one article per input.
+         */
+
         if (
           generatedArticles.length !==
           batch.length
@@ -1057,14 +1079,39 @@ export async function POST(request) {
           );
         }
 
-        const batchCreated =
+        const batchResult =
           await saveGeneratedArticles(
             generatedArticles,
             batch
           );
 
         created +=
-          batchCreated;
+          batchResult.created;
+
+        skipped +=
+          batchResult.skipped;
+
+        const batchProcessed =
+          batchResult.created +
+          batchResult.skipped;
+
+        /*
+         * IMPORTANT:
+         *
+         * Duplicate articles are validly processed.
+         * Therefore:
+         *
+         * created + skipped = batch size
+         */
+
+        if (
+          batchProcessed !==
+          batch.length
+        ) {
+          throw new Error(
+            `Batch processing incomplete: ${batchProcessed}/${batch.length}`
+          );
+        }
 
         console.log(
           "AI BATCH COMPLETE:",
@@ -1073,7 +1120,11 @@ export async function POST(request) {
           start +
             batch.length,
           "| CREATED:",
-          batchCreated
+          batchResult.created,
+          "| SKIPPED:",
+          batchResult.skipped,
+          "| PROCESSED:",
+          batchProcessed
         );
       } catch (error) {
         failedBatches++;
@@ -1090,24 +1141,53 @@ export async function POST(request) {
       }
     }
 
+    /* ---------------------------------------
+       FINAL ACCOUNTING
+    --------------------------------------- */
+
+    const processed =
+      created + skipped;
+
+    console.log(
+      "CURRENT AFFAIRS AI SUMMARY:",
+      {
+        received:
+          items.length,
+
+        created,
+
+        skipped,
+
+        processed,
+
+        failedBatches,
+      }
+    );
+
     /*
-     * IMPORTANT:
+     * SUCCESS CONDITIONS:
      *
-     * success=true only when
-     * every received article has
-     * been created.
+     * 1. No batch failed
+     * 2. Every received article was either
+     *    newly created OR already existed
      */
 
     if (
       failedBatches > 0 ||
-      created < items.length
+      processed < items.length
     ) {
       console.error(
         "CURRENT AFFAIRS AI INCOMPLETE:",
         {
           received:
             items.length,
+
           created,
+
+          skipped,
+
+          processed,
+
           failedBatches,
         }
       );
@@ -1122,11 +1202,17 @@ export async function POST(request) {
           articles_created:
             created,
 
+          articles_skipped:
+            skipped,
+
+          articles_processed:
+            processed,
+
           failed_batches:
             failedBatches,
 
           error:
-            `AI processing incomplete: ${created}/${items.length} articles created.`,
+            `AI processing incomplete: ${processed}/${items.length} articles processed.`,
         },
         {
           status: 503,
@@ -1134,12 +1220,22 @@ export async function POST(request) {
       );
     }
 
+    /* ---------------------------------------
+       FINAL SUCCESS
+    --------------------------------------- */
+
     console.log(
       "CURRENT AFFAIRS AI COMPLETE:",
       {
         received:
           items.length,
+
         created,
+
+        skipped,
+
+        processed,
+
         failedBatches,
       }
     );
@@ -1153,11 +1249,17 @@ export async function POST(request) {
       articles_created:
         created,
 
+      articles_skipped:
+        skipped,
+
+      articles_processed:
+        processed,
+
       failed_batches: 0,
     });
   } catch (error) {
     console.error(
-      "Current Affairs AI ERROR:",
+      "CURRENT AFFAIRS AI ERROR:",
       error
     );
 
@@ -1168,6 +1270,10 @@ export async function POST(request) {
         articles_received: 0,
 
         articles_created: 0,
+
+        articles_skipped: 0,
+
+        articles_processed: 0,
 
         failed_batches: 1,
 
