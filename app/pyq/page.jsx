@@ -1703,46 +1703,19 @@ export default function PYQPage() {
 
                       {selected !==
                         null && (
-                        <div
-                          style={
-                            styles.explanation
-                          }
-                        >
-                          <strong>
-                            {selected ===
+                        <ExplanationPanel
+                          question={
                             filteredPrelims[
                               current
                             ]
-                              .answer
-                              ? "Correct"
-                              : "Incorrect"}
-                          </strong>
-
-                          <p>
-                            {
-                              filteredPrelims[
-                                current
-                              ]
-                                .explanation
-                            }
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={
-                              nextQuestion
-                            }
-                            style={
-                              styles.primary
-                            }
-                          >
-                            {current ===
-                            filteredPrelims.length -
-                              1
-                              ? "Finish"
-                              : "Next Question →"}
-                          </button>
-                        </div>
+                          }
+                          selected={selected}
+                          onNext={nextQuestion}
+                          isLast={
+                            current ===
+                            filteredPrelims.length - 1
+                          }
+                        />
                       )}
                     </div>
                   </section>
@@ -2689,6 +2662,136 @@ function PremiumTopics({
   );
 }
 
+
+/* =========================================================
+   PRELIMS EXPLANATION PANEL
+========================================================= */
+
+function ExplanationPanel({
+  question,
+  selected,
+  onNext,
+  isLast,
+}) {
+  const raw = String(question?.explanation || "").trim();
+
+  const [mainText, keywordText] = raw.includes(
+    "Important Terms / Keywords:"
+  )
+    ? raw.split("Important Terms / Keywords:")
+    : [raw, ""];
+
+  const sentences = mainText
+    .replace(/^Explanation\s*:\s*/i, "")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .filter(Boolean);
+
+  const keywords = keywordText
+    .split(/\s+-\s+(?=[A-Z0-9])/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const isCorrect = selected === question?.answer;
+
+  return (
+    <div style={styles.explanation}>
+      <div
+        style={{
+          ...styles.explanationStatus,
+          ...(isCorrect
+            ? styles.explanationStatusCorrect
+            : styles.explanationStatusWrong),
+        }}
+      >
+        <span style={styles.explanationStatusDot}>
+          {isCorrect ? "✓" : "!"}
+        </span>
+
+        <span>
+          {isCorrect ? "Correct Answer" : "Incorrect Answer"}
+        </span>
+      </div>
+
+      <div style={styles.explanationSection}>
+        <div style={styles.explanationHeading}>
+          Explanation
+        </div>
+
+        <div style={styles.explanationBody}>
+          {sentences.length > 0 ? (
+            sentences.map((sentence, index) => (
+              <p
+                key={`explanation-${index}`}
+                style={styles.explanationParagraph}
+              >
+                {sentence}
+              </p>
+            ))
+          ) : (
+            <p style={styles.explanationParagraph}>
+              Explanation is not available yet.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {keywords.length > 0 && (
+        <div style={styles.keywordSection}>
+          <div style={styles.keywordHeading}>
+            Important Terms / Keywords
+          </div>
+
+          <div style={styles.keywordList}>
+            {keywords.map((item, index) => {
+              const separatorIndex = item.indexOf("—");
+
+              const term =
+                separatorIndex > -1
+                  ? item.slice(0, separatorIndex).trim()
+                  : item;
+
+              const meaning =
+                separatorIndex > -1
+                  ? item.slice(separatorIndex + 1).trim()
+                  : "";
+
+              return (
+                <div
+                  key={`keyword-${index}`}
+                  style={styles.keywordItem}
+                >
+                  <span style={styles.keywordBullet}>•</span>
+
+                  <div style={styles.keywordContent}>
+                    <strong style={styles.keywordTerm}>
+                      {term}
+                    </strong>
+
+                    {meaning && (
+                      <span style={styles.keywordMeaning}>
+                        {meaning}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onNext}
+        style={styles.primary}
+      >
+        {isLast ? "Finish" : "Next Question →"}
+      </button>
+    </div>
+  );
+}
+
 /* =========================================================
    QUESTION ACTIONS
 ========================================================= */
@@ -3414,12 +3517,115 @@ const styles = {
   },
 
   explanation: {
-    marginTop: "14px",
-    padding: "13px",
-    borderRadius: "14px",
+    marginTop: "16px",
+    padding: "16px",
+    borderRadius: "16px",
     background: "#f5f5f3",
+    border: "1px solid #e3e3e0",
     fontSize: "12px",
+    lineHeight: "1.6",
+  },
+
+  explanationStatus: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    paddingBottom: "12px",
+    marginBottom: "14px",
+    borderBottom: "1px solid #dededb",
+    fontSize: "13px",
+    fontWeight: "800",
+  },
+
+  explanationStatusCorrect: {
+    color: "#111",
+  },
+
+  explanationStatusWrong: {
+    color: "#555",
+  },
+
+  explanationStatusDot: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    background: "#111",
+    color: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "12px",
+    fontWeight: "900",
+    flexShrink: 0,
+  },
+
+  explanationSection: {
+    marginBottom: "14px",
+  },
+
+  explanationHeading: {
+    fontSize: "13px",
+    fontWeight: "900",
+    marginBottom: "8px",
+    color: "#111",
+  },
+
+  explanationBody: {
+    color: "#333",
+  },
+
+  explanationParagraph: {
+    margin: "0 0 8px",
+    lineHeight: "1.65",
+  },
+
+  keywordSection: {
+    marginTop: "14px",
+    paddingTop: "13px",
+    borderTop: "1px solid #dededb",
+  },
+
+  keywordHeading: {
+    fontSize: "12px",
+    fontWeight: "900",
+    marginBottom: "9px",
+    color: "#111",
+  },
+
+  keywordList: {
+    display: "grid",
+    gap: "8px",
+  },
+
+  keywordItem: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "7px",
+    padding: "8px 9px",
+    borderRadius: "10px",
+    background: "#fff",
+    border: "1px solid #e2e2df",
+  },
+
+  keywordBullet: {
+    fontWeight: "900",
     lineHeight: "1.5",
+  },
+
+  keywordContent: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px 6px",
+    lineHeight: "1.5",
+    minWidth: 0,
+  },
+
+  keywordTerm: {
+    fontWeight: "800",
+  },
+
+  keywordMeaning: {
+    color: "#666",
   },
 
   resultCard: {
