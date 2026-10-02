@@ -1067,8 +1067,7 @@ export default function PYQPage() {
   const nextQuestion = () => {
     if (
       current >=
-      filteredPrelims.length -
-        1
+      filteredPrelims.length - 1
     ) {
       setFinished(true);
       return;
@@ -2879,30 +2878,355 @@ function ExplanationPanel({
   const raw = String(
     language === "hi" && translatedExplanation
       ? translatedExplanation
-      : question?.explanation_en || question?.explanation || ""
-  ).trim();
-
-  const [mainText, keywordText] = raw.includes(
-    "Important Terms / Keywords:"
+      : question?.explanation_en ||
+        question?.explanation ||
+        ""
   )
-    ? raw.split("Important Terms / Keywords:")
-    : [raw, ""];
+    .replace(/\r\n/g, "\n")
+    .trim();
 
-  const sentences = mainText
-    .replace(/^Explanation\s*:\s*/i, "")
-    .trim()
-    .split(/(?<=[.!?])\s+/)
-    .filter(Boolean);
+  const isCorrect =
+    selected === question?.answer;
 
-  const keywords = keywordText
-    .split(/\s+-\s+(?=[A-Z0-9])/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const sectionDefinitions =
+    language === "hi"
+      ? [
+          {
+            key: "asking",
+            patterns: [
+              /What is the question asking\?/i,
+              /प्रश्न क्या पूछ रहा है\?/i,
+            ],
+            title:
+              "प्रश्न क्या पूछ रहा है?",
+          },
+          {
+            key: "correct",
+            patterns: [
+              /Why is the correct answer correct\?/i,
+              /सही उत्तर क्यों सही है\?/i,
+            ],
+            title:
+              "सही उत्तर क्यों सही है?",
+          },
+          {
+            key: "wrong",
+            patterns: [
+              /Why are the other options incorrect\?/i,
+              /अन्य विकल्प गलत क्यों हैं\?/i,
+            ],
+            title:
+              "अन्य विकल्प गलत क्यों हैं?",
+          },
+          {
+            key: "takeaway",
+            patterns: [
+              /Key Takeaway/i,
+              /मुख्य सीख/i,
+            ],
+            title: "मुख्य सीख",
+          },
+          {
+            key: "keywords",
+            patterns: [
+              /Important Terms\s*\/\s*Keywords:?/i,
+              /महत्वपूर्ण शब्द\s*\/\s*कीवर्ड:?/i,
+            ],
+            title:
+              "महत्वपूर्ण शब्द / Keywords",
+          },
+        ]
+      : [
+          {
+            key: "asking",
+            patterns: [
+              /What is the question asking\?/i,
+            ],
+            title:
+              "What is the question asking?",
+          },
+          {
+            key: "correct",
+            patterns: [
+              /Why is the correct answer correct\?/i,
+            ],
+            title:
+              "Why is the correct answer correct?",
+          },
+          {
+            key: "wrong",
+            patterns: [
+              /Why are the other options incorrect\?/i,
+            ],
+            title:
+              "Why are the other options incorrect?",
+          },
+          {
+            key: "takeaway",
+            patterns: [
+              /Key Takeaway/i,
+            ],
+            title: "Key Takeaway",
+          },
+          {
+            key: "keywords",
+            patterns: [
+              /Important Terms\s*\/\s*Keywords:?/i,
+            ],
+            title:
+              "Important Terms / Keywords",
+          },
+        ];
 
-  const isCorrect = selected === question?.answer;
+  const matches = [];
+
+  sectionDefinitions.forEach(
+    (section) => {
+      section.patterns.forEach(
+        (pattern) => {
+          const match =
+            pattern.exec(raw);
+
+          if (match) {
+            matches.push({
+              key: section.key,
+              title: section.title,
+              index: match.index,
+              end:
+                match.index +
+                match[0].length,
+            });
+          }
+        }
+      );
+    }
+  );
+
+  const uniqueMatches = Array.from(
+    new Map(
+      matches.map((item) => [
+        item.key,
+        item,
+      ])
+    ).values()
+  ).sort(
+    (a, b) =>
+      a.index - b.index
+  );
+
+  const sections = {};
+
+  uniqueMatches.forEach(
+    (section, index) => {
+      const next =
+        uniqueMatches[index + 1];
+
+      let content = raw.slice(
+        section.end,
+        next
+          ? next.index
+          : raw.length
+      );
+
+      content = content
+        .replace(/^\s*↓\s*/g, "")
+        .replace(
+          /^\s*Important Terms\s*\/\s*Keywords:\s*/i,
+          ""
+        )
+        .trim();
+
+      sections[section.key] =
+        content;
+    }
+  );
+
+  const hasStructuredFormat =
+    uniqueMatches.length >= 2;
+
+  const fallbackText =
+    raw
+      .replace(
+        /Important Terms\s*\/\s*Keywords:[\s\S]*$/i,
+        ""
+      )
+      .replace(
+        /^Explanation\s*:\s*/i,
+        ""
+      )
+      .trim();
+
+  const fallbackSentences =
+    fallbackText
+      .split(
+        /(?<=[.!?])\s+/
+      )
+      .filter(Boolean);
+
+  const keywordText =
+    sections.keywords || "";
+
+  const keywords =
+    keywordText
+      .split(
+        /\n\s*[-•]\s*/
+      )
+      .map((item) =>
+        item.trim()
+      )
+      .filter(Boolean);
+
+  const renderContent = (
+    content
+  ) => {
+    if (!content) {
+      return (
+        <p
+          style={
+            styles.explanationParagraph
+          }
+        >
+          {language === "hi"
+            ? "जानकारी उपलब्ध नहीं है।"
+            : "Information is not available."}
+        </p>
+      );
+    }
+
+    return content
+      .split(/\n+/)
+      .map((item) =>
+        item.trim()
+      )
+      .filter(Boolean)
+      .map(
+        (
+          paragraph,
+          index
+        ) => (
+          <p
+            key={`section-${index}`}
+            style={
+              styles.explanationParagraph
+            }
+          >
+            {paragraph}
+          </p>
+        )
+      );
+  };
+
+  const renderKeywords = () => {
+    if (!keywords.length) {
+      return null;
+    }
+
+    return (
+      <div
+        style={
+          styles.keywordSection
+        }
+      >
+        <div
+          style={
+            styles.keywordHeading
+          }
+        >
+          {language === "hi"
+            ? "महत्वपूर्ण शब्द / Keywords"
+            : "Important Terms / Keywords"}
+        </div>
+
+        <div
+          style={
+            styles.keywordList
+          }
+        >
+          {keywords.map(
+            (
+              item,
+              index
+            ) => {
+              const separatorIndex =
+                item.indexOf(
+                  "—"
+                );
+
+              const term =
+                separatorIndex >
+                -1
+                  ? item
+                      .slice(
+                        0,
+                        separatorIndex
+                      )
+                      .trim()
+                  : item;
+
+              const meaning =
+                separatorIndex >
+                -1
+                  ? item
+                      .slice(
+                        separatorIndex +
+                          1
+                      )
+                      .trim()
+                  : "";
+
+              return (
+                <div
+                  key={`keyword-${index}`}
+                  style={
+                    styles.keywordItem
+                  }
+                >
+                  <span
+                    style={
+                      styles.keywordBullet
+                    }
+                  >
+                    •
+                  </span>
+
+                  <div
+                    style={
+                      styles.keywordContent
+                    }
+                  >
+                    <strong
+                      style={
+                        styles.keywordTerm
+                      }
+                    >
+                      {term}
+                    </strong>
+
+                    {meaning && (
+                      <span
+                        style={
+                          styles.keywordMeaning
+                        }
+                      >
+                        {meaning}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div style={styles.explanation}>
+    <div
+      style={
+        styles.explanation
+      }
+    >
       <div
         style={{
           ...styles.explanationStatus,
@@ -2911,93 +3235,181 @@ function ExplanationPanel({
             : styles.explanationStatusWrong),
         }}
       >
-        <span style={styles.explanationStatusDot}>
-          {isCorrect ? "✓" : "!"}
+        <span
+          style={
+            styles.explanationStatusDot
+          }
+        >
+          {isCorrect
+            ? "✓"
+            : "!"}
         </span>
 
         <span>
-          {isCorrect ? "Correct Answer" : "Incorrect Answer"}
+          {isCorrect
+            ? language === "hi"
+              ? "सही उत्तर"
+              : "Correct Answer"
+            : language === "hi"
+            ? "गलत उत्तर"
+            : "Incorrect Answer"}
         </span>
       </div>
 
-      <div style={styles.explanationSection}>
-        <div style={styles.explanationHeading}>
-          Explanation
-        </div>
+      {hasStructuredFormat ? (
+        <>
+          {[
+            "asking",
+            "correct",
+            "wrong",
+            "takeaway",
+          ].map(
+            (key) => {
+              const section =
+                sectionDefinitions.find(
+                  (item) =>
+                    item.key ===
+                    key
+                );
 
-        <div style={styles.explanationBody}>
-          {sentences.length > 0 ? (
-            sentences.map((sentence, index) => (
-              <p
-                key={`explanation-${index}`}
-                style={styles.explanationParagraph}
-              >
-                {sentence}
-              </p>
-            ))
-          ) : (
-            <p style={styles.explanationParagraph}>
-              Explanation is not available yet.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {keywords.length > 0 && (
-        <div style={styles.keywordSection}>
-          <div style={styles.keywordHeading}>
-            Important Terms / Keywords
-          </div>
-
-          <div style={styles.keywordList}>
-            {keywords.map((item, index) => {
-              const separatorIndex = item.indexOf("—");
-
-              const term =
-                separatorIndex > -1
-                  ? item.slice(0, separatorIndex).trim()
-                  : item;
-
-              const meaning =
-                separatorIndex > -1
-                  ? item.slice(separatorIndex + 1).trim()
-                  : "";
+              if (
+                !section ||
+                !sections[key]
+              ) {
+                return null;
+              }
 
               return (
                 <div
-                  key={`keyword-${index}`}
-                  style={styles.keywordItem}
+                  key={key}
+                  style={
+                    styles.explanationSection
+                  }
                 >
-                  <span style={styles.keywordBullet}>•</span>
+                  <div
+                    style={
+                      styles.explanationHeading
+                    }
+                  >
+                    {section.title}
+                  </div>
 
-                  <div style={styles.keywordContent}>
-                    <strong style={styles.keywordTerm}>
-                      {term}
-                    </strong>
-
-                    {meaning && (
-                      <span style={styles.keywordMeaning}>
-                        {meaning}
-                      </span>
+                  <div
+                    style={
+                      styles.explanationBody
+                    }
+                  >
+                    {renderContent(
+                      sections[key]
                     )}
                   </div>
                 </div>
               );
-            })}
+            }
+          )}
+
+          {renderKeywords()}
+        </>
+      ) : (
+        <>
+          <div
+            style={
+              styles.explanationSection
+            }
+          >
+            <div
+              style={
+                styles.explanationHeading
+              }
+            >
+              Explanation
+            </div>
+
+            <div
+              style={
+                styles.explanationBody
+              }
+            >
+              {fallbackSentences.length >
+              0 ? (
+                fallbackSentences.map(
+                  (
+                    sentence,
+                    index
+                  ) => (
+                    <p
+                      key={`fallback-${index}`}
+                      style={
+                        styles.explanationParagraph
+                      }
+                    >
+                      {sentence}
+                    </p>
+                  )
+                )
+              ) : (
+                <p
+                  style={
+                    styles.explanationParagraph
+                  }
+                >
+                  {language === "hi"
+                    ? "Explanation अभी उपलब्ध नहीं है।"
+                    : "Explanation is not available yet."}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+
+          {renderKeywords()}
+        </>
       )}
 
-      <div style={styles.questionNavigation}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+          gap: "10px",
+          marginTop: "18px",
+        }}
+      >
         <button
           type="button"
-          onClick={onPrevious}
-          disabled={isFirst}
+          onClick={
+            onPrevious
+          }
+          disabled={
+            isFirst ||
+            !onPrevious
+          }
           style={{
-            ...styles.previousButton,
-            ...(isFirst
-              ? styles.previousButtonDisabled
-              : {}),
+            padding:
+              "12px 18px",
+            borderRadius:
+              "13px",
+            border:
+              "1px solid #e3e3e0",
+            background:
+              isFirst ||
+              !onPrevious
+                ? "#f8f8f6"
+                : "#fff",
+            color:
+              isFirst ||
+              !onPrevious
+                ? "#aaa"
+                : "#111",
+            fontSize:
+              "12px",
+            fontWeight:
+              "800",
+            cursor:
+              isFirst ||
+              !onPrevious
+                ? "not-allowed"
+                : "pointer",
           }}
         >
           ← Previous
@@ -3005,10 +3417,30 @@ function ExplanationPanel({
 
         <button
           type="button"
-          onClick={onNext}
-          style={styles.primary}
+          onClick={
+            onNext
+          }
+          style={{
+            padding:
+              "12px 20px",
+            borderRadius:
+              "13px",
+            border: 0,
+            background:
+              "#111",
+            color:
+              "#fff",
+            fontSize:
+              "12px",
+            fontWeight:
+              "800",
+            cursor:
+              "pointer",
+          }}
         >
-          {isLast ? "Finish" : "Next Question →"}
+          {isLast
+            ? "Finish"
+            : "Next Question →"}
         </button>
       </div>
     </div>
@@ -3898,29 +4330,6 @@ const styles = {
 
   keywordMeaning: {
     color: "#666",
-  },
-
-  questionNavigation: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "8px",
-    marginTop: "14px",
-  },
-
-  previousButton: {
-    border: "1px solid #ddd",
-    borderRadius: "12px",
-    background: "#fff",
-    color: "#111",
-    padding: "11px 15px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  previousButtonDisabled: {
-    opacity: 0.45,
-    cursor: "not-allowed",
   },
 
   resultCard: {
