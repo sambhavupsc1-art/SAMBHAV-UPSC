@@ -60,6 +60,7 @@ export default function PYQPage() {
 
   const [language, setLanguage] = useState("en");
   const [translation, setTranslation] = useState(null);
+  const [translationQuestionId, setTranslationQuestionId] = useState(null);
   const [translationLoading, setTranslationLoading] = useState(false);
   const [translationError, setTranslationError] = useState("");
 
@@ -648,6 +649,20 @@ export default function PYQPage() {
       pyqProgress,
     ]);
 
+  /* ---------------- AUTO TRANSLATION ---------------- */
+
+  useEffect(() => {
+    if (
+      language !== "hi" ||
+      mode !== "practice" ||
+      !filteredPrelims[current]
+    ) {
+      return;
+    }
+
+    ensureTranslation(filteredPrelims[current]);
+  }, [language, mode, current, filteredPrelims]);
+
   const filteredMains =
     useMemo(() => {
       return mainsPYQs.filter(
@@ -872,6 +887,7 @@ export default function PYQPage() {
     setFinished(false);
     setLanguage("en");
     setTranslation(null);
+    setTranslationQuestionId(null);
     setTranslationError("");
     setMode("practice");
   };
@@ -940,23 +956,18 @@ export default function PYQPage() {
     );
   };
 
-  const translateCurrentQuestion = async () => {
-    const question = filteredPrelims[current];
-
+  const ensureTranslation = async (question) => {
     if (!question) return;
 
-    if (translation) {
-      setLanguage((value) =>
-        value === "en" ? "hi" : "en"
-      );
+    if (translationQuestionId === question.id && translation) {
       return;
     }
 
-    setTranslationLoading(true);
     setTranslationError("");
+    setTranslationLoading(true);
 
     try {
-      const cacheKey = `sambhav_translation_${question.id}`;
+      const cacheKey = `sambhav_translation_v2_${question.id}`;
 
       try {
         const cached = sessionStorage.getItem(cacheKey);
@@ -964,7 +975,7 @@ export default function PYQPage() {
           const parsed = JSON.parse(cached);
           if (parsed?.question_hi && Array.isArray(parsed?.options_hi)) {
             setTranslation(parsed);
-            setLanguage("hi");
+            setTranslationQuestionId(question.id);
             return;
           }
         }
@@ -996,7 +1007,7 @@ export default function PYQPage() {
       }
 
       setTranslation(data.translation);
-      setLanguage("hi");
+      setTranslationQuestionId(question.id);
 
       try {
         sessionStorage.setItem(
@@ -1016,6 +1027,12 @@ export default function PYQPage() {
     }
   };
 
+  const selectLanguage = (value) => {
+    if (value === "en" || value === "hi") {
+      setLanguage(value);
+    }
+  };
+
   const nextQuestion = () => {
     if (
       current >=
@@ -1031,8 +1048,8 @@ export default function PYQPage() {
     );
 
     setSelected(null);
-    setLanguage("en");
     setTranslation(null);
+    setTranslationQuestionId(null);
     setTranslationError("");
   };
 
@@ -1707,24 +1724,40 @@ export default function PYQPage() {
                           styles.translationRow
                         }
                       >
-                        <button
-                          type="button"
-                          onClick={translateCurrentQuestion}
-                          disabled={translationLoading}
-                          style={styles.translationButton}
-                        >
-                          {translationLoading
-                            ? "Translating..."
-                            : language === "hi"
-                            ? "English"
-                            : "हिंदी में देखें"}
-                        </button>
+                        <div style={styles.translationToggle}>
+                          <button
+                            type="button"
+                            onClick={() => selectLanguage("en")}
+                            style={{
+                              ...styles.translationOption,
+                              ...(language === "en"
+                                ? styles.translationOptionActive
+                                : {}),
+                            }}
+                          >
+                            English
+                          </button>
 
-                        {language === "hi" && (
-                          <span style={styles.translationLabel}>
-                            Hindi translation
-                          </span>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => selectLanguage("hi")}
+                            disabled={translationLoading}
+                            style={{
+                              ...styles.translationOption,
+                              ...(language === "hi"
+                                ? styles.translationOptionActive
+                                : {}),
+                            }}
+                          >
+                            {translationLoading ? "Translating..." : "हिंदी"}
+                          </button>
+                        </div>
+
+                        <span style={styles.translationLabel}>
+                          {language === "hi"
+                            ? "Hindi mode — next questions auto-translate"
+                            : "English mode"}
+                        </span>
                       </div>
 
                       {translationError && (
@@ -1738,7 +1771,9 @@ export default function PYQPage() {
                           styles.question
                         }
                       >
-                        {language === "hi" && translation?.question_hi
+                        {language === "hi" &&
+                        translationQuestionId === filteredPrelims[current].id &&
+                        translation?.question_hi
                           ? translation.question_hi
                           : filteredPrelims[current].question}
                       </div>
@@ -1784,6 +1819,7 @@ export default function PYQPage() {
 
                               const displayOption =
                                 language === "hi" &&
+                                translationQuestionId === filteredPrelims[current].id &&
                                 Array.isArray(translation?.options_hi) &&
                                 translation.options_hi[index]
                                   ? translation.options_hi[index]
@@ -1841,7 +1877,12 @@ export default function PYQPage() {
                           }
                           selected={selected}
                           language={language}
-                          translatedExplanation={translation?.explanation_hi || ""}
+                          translatedExplanation={
+                            language === "hi" &&
+                            translationQuestionId === filteredPrelims[current].id
+                              ? translation?.explanation_hi || ""
+                              : ""
+                          }
                           onNext={nextQuestion}
                           isLast={
                             current ===
@@ -3662,15 +3703,30 @@ const styles = {
     marginBottom: "10px",
   },
 
-  translationButton: {
-    border: "1px solid #111",
-    background: "#111",
-    color: "#fff",
-    borderRadius: "10px",
-    padding: "8px 12px",
+  translationToggle: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    padding: "3px",
+    borderRadius: "11px",
+    background: "#e9e9e6",
+    border: "1px solid #ddd",
+  },
+
+  translationOption: {
+    border: 0,
+    background: "transparent",
+    color: "#555",
+    borderRadius: "8px",
+    padding: "7px 11px",
     fontSize: "11px",
     fontWeight: "800",
     cursor: "pointer",
+  },
+
+  translationOptionActive: {
+    background: "#111",
+    color: "#fff",
   },
 
   translationLabel: {
