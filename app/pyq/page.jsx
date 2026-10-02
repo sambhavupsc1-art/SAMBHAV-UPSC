@@ -25,77 +25,6 @@ const mainsPapers = [
   "Essay",
 ];
 
-const prelimsPYQs = [
-  {
-    id: 1,
-    year: 2025,
-    subject: "Polity",
-    topic: "Constitution",
-    question:
-      "Which Article of the Constitution primarily deals with protection of life and personal liberty?",
-    options: [
-      "Article 14",
-      "Article 19",
-      "Article 21",
-      "Article 32",
-    ],
-    answer: 2,
-    explanation:
-      "Article 21 provides protection of life and personal liberty.",
-  },
-  {
-    id: 2,
-    year: 2024,
-    subject: "Economy",
-    topic: "Inflation",
-    question:
-      "Which index is primarily used to measure changes in retail prices faced by consumers?",
-    options: [
-      "Consumer Price Index",
-      "Wholesale Price Index",
-      "GDP Deflator",
-      "Index of Industrial Production",
-    ],
-    answer: 0,
-    explanation:
-      "CPI measures changes in the prices of a basket of goods and services consumed by households.",
-  },
-  {
-    id: 3,
-    year: 2024,
-    subject: "Environment",
-    topic: "Biodiversity",
-    question:
-      "A biodiversity hotspot is primarily associated with high endemism and significant habitat loss.",
-    options: [
-      "Both statements are relevant",
-      "Only high endemism",
-      "Only habitat loss",
-      "Neither",
-    ],
-    answer: 0,
-    explanation:
-      "The hotspot concept combines exceptional endemic biodiversity with substantial habitat loss.",
-  },
-  {
-    id: 4,
-    year: 2023,
-    subject: "Geography",
-    topic: "Monsoon",
-    question:
-      "Seasonal reversal of winds is a defining characteristic of which phenomenon?",
-    options: [
-      "Western Disturbance",
-      "Indian Monsoon",
-      "Local Winds",
-      "Jet Stream",
-    ],
-    answer: 1,
-    explanation:
-      "The Indian monsoon involves a large-scale seasonal reversal of wind patterns.",
-  },
-];
-
 export default function PYQPage() {
   const router = useRouter();
 
@@ -111,6 +40,10 @@ export default function PYQPage() {
   const [mainsPaper, setMainsPaper] = useState("All");
   const [mainsYear, setMainsYear] = useState("All");
   const [gs4Section, setGs4Section] = useState("Theory");
+
+  const [prelimsPYQs, setPrelimsPYQs] = useState([]);
+  const [prelimsLoading, setPrelimsLoading] = useState(false);
+  const [prelimsError, setPrelimsError] = useState("");
 
   const [mainsPYQs, setMainsPYQs] = useState([]);
   const [mainsLoading, setMainsLoading] = useState(false);
@@ -209,6 +142,114 @@ export default function PYQPage() {
 
     return () => {
       stopped = true;
+    };
+  }, []);
+
+  /* ---------------- LOAD PRELIMS ---------------- */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPrelimsPYQs = async () => {
+      setPrelimsLoading(true);
+      setPrelimsError("");
+
+      try {
+        const response = await fetch("/api/pyq/prelims", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Prelims PYQ fetch failed"
+          );
+        }
+
+        const rows = Array.isArray(data.pyqs)
+          ? data.pyqs
+          : [];
+
+        const answerMap = {
+          A: 0,
+          B: 1,
+          C: 2,
+          D: 3,
+        };
+
+        const mapped = rows.map((q, index) => {
+          let answer = q.answer;
+
+          if (typeof answer === "string") {
+            const normalized = answer.trim().toUpperCase();
+
+            if (
+              Object.prototype.hasOwnProperty.call(
+                answerMap,
+                normalized
+              )
+            ) {
+              answer = answerMap[normalized];
+            } else if (
+              normalized !== "" &&
+              !Number.isNaN(Number(normalized))
+            ) {
+              answer = Number(normalized);
+            }
+          }
+
+          let options = [];
+
+          if (Array.isArray(q.options)) {
+            options = q.options;
+          } else if (typeof q.options === "string") {
+            try {
+              const parsed = JSON.parse(q.options);
+              options = Array.isArray(parsed) ? parsed : [];
+            } catch {
+              options = [];
+            }
+          }
+
+          return {
+            ...q,
+            id:
+              q.id ??
+              `prelims-${q.year ?? "unknown"}-${index + 1}`,
+            year: Number(q.year),
+            subject: q.subject || "General",
+            topic: q.topic || "General",
+            question: q.question || "",
+            options,
+            answer,
+            explanation: q.explanation || "",
+          };
+        });
+
+        if (!cancelled) {
+          setPrelimsPYQs(mapped);
+        }
+      } catch (err) {
+        console.error("Prelims PYQ load error:", err);
+
+        if (!cancelled) {
+          setPrelimsError(
+            err.message || "Prelims PYQ load failed."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPrelimsLoading(false);
+        }
+      }
+    };
+
+    loadPrelimsPYQs();
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -781,9 +822,14 @@ export default function PYQPage() {
     );
 
   const startPractice = () => {
-    if (
-      !filteredPrelims.length
-    ) {
+    const practiceQuestions =
+      filteredPrelims.filter(
+        (q) =>
+          Array.isArray(q.options) &&
+          q.options.length > 0
+      );
+
+    if (!practiceQuestions.length) {
       return;
     }
 
@@ -1313,17 +1359,25 @@ export default function PYQPage() {
                       All Years
                     </option>
 
-                    <option value="2025">
-                      2025
-                    </option>
-
-                    <option value="2024">
-                      2024
-                    </option>
-
-                    <option value="2023">
-                      2023
-                    </option>
+                    {[
+                      ...new Set(
+                        prelimsPYQs
+                          .map((q) => q.year)
+                          .filter(Boolean)
+                      ),
+                    ]
+                      .sort(
+                        (a, b) =>
+                          Number(b) - Number(a)
+                      )
+                      .map((year) => (
+                        <option
+                          key={year}
+                          value={year}
+                        >
+                          {year}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -1344,11 +1398,32 @@ export default function PYQPage() {
                     onClick={
                       startPractice
                     }
-                    style={
-                      styles.primary
+                    disabled={
+                      prelimsLoading ||
+                      !filteredPrelims.some(
+                        (q) =>
+                          Array.isArray(q.options) &&
+                          q.options.length > 0
+                      )
                     }
+                    style={{
+                      ...styles.primary,
+                      ...((prelimsLoading ||
+                        !filteredPrelims.some(
+                          (q) =>
+                            Array.isArray(q.options) &&
+                            q.options.length > 0
+                        ))
+                        ? {
+                            opacity: 0.5,
+                            cursor: "not-allowed",
+                          }
+                        : {}),
+                    }}
                   >
-                    Start Practice
+                    {prelimsLoading
+                      ? "Loading..."
+                      : "Start Practice"}
                   </button>
                 </div>
               </section>
@@ -1368,8 +1443,47 @@ export default function PYQPage() {
                     Prelims PYQs
                   </div>
 
-                  {filteredPrelims.length ===
-                  0 ? (
+                  {prelimsLoading ? (
+                    <EmptyState
+                      text="Loading Prelims PYQs..."
+                    />
+                  ) : prelimsError ? (
+                    <div
+                      style={
+                        styles.questionCard
+                      }
+                    >
+                      <div
+                        style={
+                          styles.question
+                        }
+                      >
+                        Prelims PYQ load nahi hua.
+                      </div>
+
+                      <div
+                        style={
+                          styles.answerHint
+                        }
+                      >
+                        {prelimsError}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.location.reload()
+                        }
+                        style={{
+                          ...styles.primary,
+                          marginTop: "12px",
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : filteredPrelims.length ===
+                    0 ? (
                     <EmptyState
                       text="No Prelims PYQs found for selected filters."
                     />
@@ -1416,8 +1530,10 @@ export default function PYQPage() {
                               styles.answerHint
                             }
                           >
-                            MCQ · 4
-                            Options
+                            {Array.isArray(q.options) &&
+                            q.options.length
+                              ? `MCQ · ${q.options.length} Options`
+                              : "MCQ · Options not available yet"}
                           </div>
 
                           <ProgressActions
@@ -1521,18 +1637,21 @@ export default function PYQPage() {
                         }
                       </div>
 
-                      <div
-                        style={
-                          styles.options
-                        }
-                      >
-                        {filteredPrelims[
-                          current
-                        ].options.map(
-                          (
-                            option,
-                            index
-                          ) => {
+                      {filteredPrelims[
+                        current
+                      ].options?.length ? (
+                        <div
+                          style={
+                            styles.options
+                          }
+                        >
+                          {filteredPrelims[
+                            current
+                          ].options.map(
+                            (
+                              option,
+                              index
+                            ) => {
                             const correct =
                               index ===
                               filteredPrelims[
@@ -1600,8 +1719,36 @@ export default function PYQPage() {
                               </button>
                             );
                           }
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          style={
+                            styles.explanation
+                          }
+                        >
+                          <strong>
+                            Practice options are not available yet.
+                          </strong>
+
+                          <p>
+                            Is PYQ record me options available nahi hain.
+                            Browse mode me question dekh sakte hain.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMode("browse")
+                            }
+                            style={
+                              styles.primary
+                            }
+                          >
+                            Back to PYQs
+                          </button>
+                        </div>
+                      )}
 
                       {selected !==
                         null && (
