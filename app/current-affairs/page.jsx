@@ -768,18 +768,11 @@ export default function CurrentAffairsPage() {
         .ca-page {
           min-height: 100vh;
           background:
-            radial-gradient(
-              circle at top right,
-              rgba(30, 64, 175, 0.08),
-              transparent 32%
-            ),
-            linear-gradient(
-              180deg,
-              #f8fafc 0%,
-              #f1f5f9 100%
-            );
+            radial-gradient(circle at 8% 0%, rgba(30, 64, 175, 0.055), transparent 28%),
+            radial-gradient(circle at 92% 8%, rgba(15, 23, 42, 0.045), transparent 25%),
+            #f6f8fb;
           color: #172033;
-          padding: 30px 18px 84px;
+          padding: 32px 18px 90px;
           font-family:
             Inter,
             ui-sans-serif,
@@ -804,21 +797,15 @@ export default function CurrentAffairsPage() {
         .ca-header {
           display: flex;
           justify-content: space-between;
-          gap: 22px;
+          gap: 24px;
           align-items: center;
-          margin-bottom: 22px;
-          padding: 24px;
-          background:
-            linear-gradient(
-              135deg,
-              rgba(255, 255, 255, 0.98),
-              rgba(248, 250, 252, 0.96)
-            );
-          border: 1px solid #dfe5ec;
-          border-radius: 24px;
-          box-shadow:
-            0 16px 45px rgba(15, 23, 42, 0.07),
-            0 2px 8px rgba(15, 23, 42, 0.03);
+          margin-bottom: 20px;
+          padding: 26px;
+          background: rgba(255, 255, 255, 0.94);
+          border: 1px solid #e2e7ef;
+          border-radius: 22px;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.065);
+          backdrop-filter: blur(10px);
         }
 
         .header-actions {
@@ -833,18 +820,18 @@ export default function CurrentAffairsPage() {
         .notification-button {
           background: #fff;
           border: 1px solid #dfe5ec;
-          border-radius: 16px;
-          padding: 13px 15px;
-          box-shadow:
-            0 5px 18px rgba(16, 24, 40, 0.05);
+          border-radius: 14px;
+          padding: 12px 14px;
+          box-shadow: 0 4px 14px rgba(16, 24, 40, 0.035);
         }
 
         .language-box > span {
           display: block;
           color: #667085;
-          font-size: 12px;
+          font-size: 11px;
           margin-bottom: 7px;
-          font-weight: 700;
+          font-weight: 800;
+          letter-spacing: 0.02em;
         }
 
         .language-buttons {
@@ -855,10 +842,12 @@ export default function CurrentAffairsPage() {
         .lang {
           border: 1px solid #dfe3e8;
           background: #fff;
-          border-radius: 9px;
+          color: #344054;
+          border-radius: 8px;
           padding: 7px 10px;
           cursor: pointer;
           font-weight: 800;
+          transition: transform 0.16s ease, background 0.16s ease;
         }
 
         .lang.active {
@@ -869,46 +858,49 @@ export default function CurrentAffairsPage() {
 
         .notification-button {
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 850;
           color: #172033;
           display: flex;
           gap: 7px;
           align-items: center;
           justify-content: center;
+          min-height: 44px;
+          transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
 
         .eyebrow {
           font-size: 11px;
           font-weight: 900;
-          letter-spacing: 0.14em;
-          margin: 0 0 7px;
+          letter-spacing: 0.16em;
+          margin: 0 0 8px;
           color: #667085;
         }
 
         h1 {
           margin: 0;
-          font-size: clamp(30px, 5vw, 44px);
-          line-height: 1.05;
-          letter-spacing: -0.035em;
+          font-size: clamp(32px, 5vw, 46px);
+          line-height: 1.02;
+          letter-spacing: -0.04em;
           font-weight: 950;
         }
 
         .sub {
           color: #667085;
-          margin: 10px 0 0;
+          margin: 11px 0 0;
           font-size: 14px;
           line-height: 1.55;
+          max-width: 620px;
         }
 
         .date-card {
-          min-width: 205px;
+          min-width: 190px;
         }
 
         .date-card span,
         .date-card small {
           display: block;
           color: #667085;
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .date-card strong {
@@ -916,16 +908,16 @@ export default function CurrentAffairsPage() {
           margin: 5px 0;
           font-size: 15px;
           font-weight: 900;
+          color: #172033;
         }
 
         .notification-panel {
           background: #fff;
           border: 1px solid #dfe5ec;
-          border-radius: 20px;
+          border-radius: 18px;
           padding: 20px;
           margin-bottom: 18px;
-          box-shadow:
-            0 12px 30px rgba(16, 24, 40, 0.07);
+          box-shadow: 0 12px 30px rgba(16, 24, 40, 0.055);
         }
 
         .notification-title {
@@ -937,13 +929,15 @@ export default function CurrentAffairsPage() {
 
         .notification-title h2 {
           margin: 8px 0 5px;
-          font-size: 21px;
+          font-size: 20px;
           font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .notification-title p {
           color: #667085;
           margin: 0;
+          line-height: 1.55;
         }
 
         .switch {
@@ -963,7 +957,7 @@ export default function CurrentAffairsPage() {
           height: 24px;
           border-radius: 50%;
           background: #fff;
-          transition: 0.2s;
+          transition: transform 0.2s ease;
         }
 
         .switch.on {
@@ -983,14 +977,14 @@ export default function CurrentAffairsPage() {
 
         .setting-box {
           border: 1px solid #e4e7ec;
-          border-radius: 14px;
+          border-radius: 13px;
           padding: 15px;
           background: #fbfcfd;
         }
 
         .setting-box label {
           display: block;
-          font-size: 12px;
+          font-size: 11px;
           color: #667085;
           font-weight: 800;
           margin-bottom: 9px;
@@ -1005,10 +999,12 @@ export default function CurrentAffairsPage() {
         .save-time {
           border: 1px solid #dfe3e8;
           background: #fff;
+          color: #344054;
           border-radius: 9px;
           padding: 9px 12px;
           cursor: pointer;
           font-weight: 800;
+          transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
 
         .setting-btn.active {
@@ -1058,8 +1054,11 @@ export default function CurrentAffairsPage() {
           display: flex;
           gap: 8px;
           overflow-x: auto;
-          padding: 3px 0 20px;
+          padding: 4px 2px 18px;
           scrollbar-width: none;
+          position: sticky;
+          top: 8px;
+          z-index: 8;
         }
 
         .filter-row::-webkit-scrollbar {
@@ -1067,20 +1066,24 @@ export default function CurrentAffairsPage() {
         }
 
         .filter {
-          border: 1px solid #dfe3e8;
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 999px;
+          border: 1px solid #dfe5ec;
+          background: rgba(255, 255, 255, 0.96);
+          color: #344054;
+          border-radius: 10px;
           padding: 10px 15px;
           min-height: 42px;
           white-space: nowrap;
           cursor: pointer;
           font-weight: 800;
+          box-shadow: 0 2px 7px rgba(15, 23, 42, 0.025);
+          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
         }
 
         .filter.active {
           background: #172033;
           color: #fff;
           border-color: #172033;
+          box-shadow: 0 5px 12px rgba(15, 23, 42, 0.13);
         }
 
         .filter.important.active {
@@ -1104,7 +1107,7 @@ export default function CurrentAffairsPage() {
         .section-heading h2 {
           margin: 8px 0 0;
           font-size: 24px;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.025em;
           font-weight: 900;
         }
 
@@ -1133,18 +1136,18 @@ export default function CurrentAffairsPage() {
         }
 
         .news-card {
-          background:
-            linear-gradient(
-              145deg,
-              #ffffff 0%,
-              #fbfcfe 100%
-            );
-          border: 1px solid #dfe5ec;
-          border-radius: 22px;
-          padding: 21px;
-          box-shadow:
-            0 10px 28px rgba(15, 23, 42, 0.055),
-            0 2px 5px rgba(15, 23, 42, 0.025);
+          background: #fff;
+          border: 1px solid #e1e6ee;
+          border-radius: 18px;
+          padding: 22px;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .news-card:hover {
+          transform: translateY(-2px);
+          border-color: #d5dce6;
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.07);
         }
 
         .topline {
@@ -1195,21 +1198,27 @@ export default function CurrentAffairsPage() {
           min-height: 44px;
           cursor: pointer;
           font-weight: 850;
+          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
         }
 
         .read-button {
-          background:
-            linear-gradient(
-              135deg,
-              #172033,
-              #273449
-            );
+          background: #172033;
           color: #fff;
+          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+
+        .read-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 7px 16px rgba(15, 23, 42, 0.16);
         }
 
         .important-button {
           background: #f3f4f6;
           color: #344054;
+        }
+
+        .important-button:hover {
+          transform: translateY(-1px);
         }
 
         .important-button.saved {
@@ -1240,8 +1249,7 @@ export default function CurrentAffairsPage() {
 
         .state-card {
           border-style: solid;
-          box-shadow:
-            0 10px 28px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
         }
 
         .state-card h2 {
@@ -1279,17 +1287,17 @@ export default function CurrentAffairsPage() {
         }
 
         .fact-card {
-          background:
-            linear-gradient(
-              145deg,
-              #fff,
-              #fbfcfe
-            );
-          border: 1px solid #dfe5ec;
-          border-radius: 20px;
+          background: #fff;
+          border: 1px solid #e1e6ee;
+          border-radius: 17px;
           padding: 19px;
-          box-shadow:
-            0 9px 24px rgba(15, 23, 42, 0.055);
+          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .fact-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 13px 28px rgba(15, 23, 42, 0.065);
         }
 
         .fact-card > span {
@@ -1318,34 +1326,23 @@ export default function CurrentAffairsPage() {
           font-size: 11px;
         }
 
-        /*
-          IMPORTANT:
-          Analysis is now rendered INSIDE the clicked ArticleCard.
-          These styles replace the old full-screen modal behavior
-          for the inline analysis.
-        */
-
         .inline-analysis {
-          margin-top: 18px;
-          padding-top: 18px;
-          border-top: 1px solid #e4e7ec;
+          margin-top: 17px;
+          padding-top: 17px;
+          border-top: 1px solid #e3e8ef;
         }
 
         .inline-analysis-card {
           width: 100%;
           max-height: none;
           overflow: visible;
-          background:
-            linear-gradient(
-              180deg,
-              #ffffff,
-              #fbfcfe
-            );
-          border: 1px solid #dfe5ec;
-          border-radius: 18px;
-          padding: 20px;
+          background: #fbfcfe;
+          border: 1px solid #d9e0e9;
+          border-radius: 16px;
+          padding: 22px;
           box-shadow:
-            0 10px 28px rgba(15, 23, 42, 0.07);
+            inset 0 1px 0 rgba(255, 255, 255, 0.8),
+            0 10px 28px rgba(15, 23, 42, 0.055);
         }
 
         .inline-analysis-card .close {
@@ -1354,11 +1351,17 @@ export default function CurrentAffairsPage() {
           height: 36px;
           border: 1px solid #dfe5ec;
           border-radius: 10px;
-          background: #f8fafc;
+          background: #fff;
           color: #475467;
-          font-size: 24px;
+          font-size: 22px;
           line-height: 1;
           cursor: pointer;
+          transition: transform 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .inline-analysis-card .close:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
         }
 
         .modal h2 {
@@ -1370,9 +1373,11 @@ export default function CurrentAffairsPage() {
 
         .modal h3 {
           margin: 24px 0 9px;
+          padding-bottom: 6px;
           font-size: 16px;
           font-weight: 900;
           color: #172033;
+          border-bottom: 1px solid #edf0f3;
         }
 
         .modal p {
@@ -1405,12 +1410,7 @@ export default function CurrentAffairsPage() {
           margin: 22px 0;
           padding: 17px;
           border-radius: 16px;
-          background:
-            linear-gradient(
-              135deg,
-              #fff9eb,
-              #fff4d6
-            );
+          background: linear-gradient(135deg, #fff9eb, #fff4d6);
           border: 1px solid #f0d39b;
         }
 
@@ -1420,6 +1420,25 @@ export default function CurrentAffairsPage() {
 
         .modal-important {
           margin-top: 12px;
+        }
+
+        .filter:hover,
+        .lang:hover,
+        .setting-btn:hover,
+        .setting-btn.active:hover,
+        .notification-button:hover {
+          transform: translateY(-1px);
+        }
+
+        .filter:focus-visible,
+        .read-button:focus-visible,
+        .important-button:focus-visible,
+        .lang:focus-visible,
+        .setting-btn:focus-visible,
+        .notification-button:focus-visible,
+        .close:focus-visible {
+          outline: 3px solid rgba(37, 99, 235, 0.18);
+          outline-offset: 2px;
         }
 
         @media (max-width: 800px) {
@@ -1438,11 +1457,15 @@ export default function CurrentAffairsPage() {
           .fact-grid {
             grid-template-columns: 1fr;
           }
+
+          .filter-row {
+            top: 4px;
+          }
         }
 
         @media (max-width: 600px) {
           .ca-page {
-            padding: 18px 12px 55px;
+            padding: 16px 11px 55px;
           }
 
           .ca-header {
@@ -1505,7 +1528,7 @@ export default function CurrentAffairsPage() {
 
           .news-card {
             padding: 17px;
-            border-radius: 19px;
+            border-radius: 18px;
           }
 
           .news-card h3 {
@@ -1532,7 +1555,11 @@ export default function CurrentAffairsPage() {
 
           .inline-analysis-card {
             padding: 17px;
-            border-radius: 16px;
+            border-radius: 15px;
+          }
+
+          .modal h3 {
+            margin-top: 21px;
           }
         }
       `}</style>
