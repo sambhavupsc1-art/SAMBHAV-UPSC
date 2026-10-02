@@ -72,14 +72,8 @@ function decodeHtml(value = "") {
 
 function stripHtml(value = "") {
   return decodeHtml(value)
-    .replace(
-      /<script[\s\S]*?<\/script>/gi,
-      " "
-    )
-    .replace(
-      /<style[\s\S]*?<\/style>/gi,
-      " "
-    )
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -121,8 +115,6 @@ function relevanceScore(title = "", content = "") {
     `${title} ${content}`.toLowerCase();
 
   const keywords = {
-    /* GS-II */
-
     parliament: 5,
     constitution: 5,
     "supreme court": 5,
@@ -138,8 +130,6 @@ function relevanceScore(title = "", content = "") {
     "public administration": 4,
     transparency: 4,
     accountability: 4,
-
-    /* Economy */
 
     rbi: 5,
     sebi: 5,
@@ -168,8 +158,6 @@ function relevanceScore(title = "", content = "") {
     subsidy: 4,
     "public expenditure": 4,
 
-    /* Agriculture */
-
     agriculture: 4,
     agricultural: 4,
     farmer: 4,
@@ -186,8 +174,6 @@ function relevanceScore(title = "", content = "") {
     "food security": 5,
     "agricultural research": 5,
     storage: 3,
-
-    /* Environment */
 
     environment: 5,
     climate: 5,
@@ -208,8 +194,6 @@ function relevanceScore(title = "", content = "") {
     sustainability: 4,
     sustainable: 3,
 
-    /* Disaster */
-
     disaster: 4,
     earthquake: 4,
     cyclone: 4,
@@ -218,8 +202,6 @@ function relevanceScore(title = "", content = "") {
     landslide: 4,
     tsunami: 5,
     resilience: 4,
-
-    /* Science & Technology */
 
     isro: 5,
     space: 5,
@@ -242,8 +224,6 @@ function relevanceScore(title = "", content = "") {
     "digital public infrastructure": 5,
     "digital india": 5,
 
-    /* Security */
-
     defence: 4,
     defense: 4,
     security: 4,
@@ -254,13 +234,9 @@ function relevanceScore(title = "", content = "") {
     navy: 4,
     naval: 4,
     military: 4,
-    cyber: 4,
-    cybersecurity: 5,
     "internal security": 5,
     insurgency: 5,
     extremism: 4,
-
-    /* International Relations */
 
     international: 3,
     "international relations": 5,
@@ -285,8 +261,6 @@ function relevanceScore(title = "", content = "") {
     multilateral: 4,
     "strategic partnership": 5,
 
-    /* Social Justice */
-
     education: 3,
     health: 3,
     "public health": 4,
@@ -304,8 +278,6 @@ function relevanceScore(title = "", content = "") {
     welfare: 3,
     inclusion: 4,
 
-    /* Reports / Data */
-
     report: 3,
     index: 4,
     survey: 4,
@@ -313,8 +285,6 @@ function relevanceScore(title = "", content = "") {
     data: 2,
     statistics: 4,
     indicator: 4,
-
-    /* Culture / Geography */
 
     heritage: 4,
     culture: 3,
@@ -329,8 +299,6 @@ function relevanceScore(title = "", content = "") {
     mineral: 3,
     minerals: 3,
     mining: 3,
-
-    /* Governance / Digital */
 
     telecom: 4,
     telecommunications: 4,
@@ -422,20 +390,9 @@ function extractReleaseLinks(html) {
     const lower =
       cleanUrl.toLowerCase();
 
-    /*
-     * PIB currently uses:
-     * PressReleseDetailm.aspx?PRID=XXXX
-     *
-     * "Relese" spelling is intentional.
-     */
-
     if (
-      !lower.includes(
-        "pressrelesedetail"
-      ) &&
-      !lower.includes(
-        "pressreleasedetail"
-      ) &&
+      !lower.includes("pressrelesedetail") &&
+      !lower.includes("pressreleasedetail") &&
       !lower.includes("prid=")
     ) {
       return;
@@ -453,8 +410,6 @@ function extractReleaseLinks(html) {
     });
   }
 
-  /* Normal anchor links */
-
   const anchorRegex =
     /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
@@ -466,8 +421,6 @@ function extractReleaseLinks(html) {
     add(match[1], match[2]);
   }
 
-  /* Unusual href formatting */
-
   const hrefRegex =
     /href\s*=\s*["']([^"']*(?:PressReleseDetailm|PressReleaseDetailm)[^"']*)["']/gi;
 
@@ -476,8 +429,6 @@ function extractReleaseLinks(html) {
   ) {
     add(match[1], "");
   }
-
-  /* Direct PIB release URLs */
 
   const directRegex =
     /(?:https?:\/\/)?(?:www\.)?pib\.gov\.in\/PressReleseDetailm\.aspx\?[^"'<> ]+/gi;
@@ -488,8 +439,6 @@ function extractReleaseLinks(html) {
     add(match[0], "");
   }
 
-  /* Relative release URLs */
-
   const relativeRegex =
     /PressReleseDetailm\.aspx\?[^"'<> )]+/gi;
 
@@ -498,8 +447,6 @@ function extractReleaseLinks(html) {
   ) {
     add(match[0], "");
   }
-
-  /* PRID fallback */
 
   const pridRegex =
     /(?:PressReleseDetailm|PressReleaseDetailm)\.aspx[^"'<>]*?PRID\s*=\s*(\d+)/gi;
@@ -653,16 +600,12 @@ async function collectSources() {
 
     console.log(
       "HAS PRESSRELESEDETAIL:",
-      /pressrelesedetail/i.test(
-        html
-      )
+      /pressrelesedetail/i.test(html)
     );
 
     console.log(
       "HAS PRESSRELEASEDETAIL:",
-      /pressreleasedetail/i.test(
-        html
-      )
+      /pressreleasedetail/i.test(html)
     );
 
     console.log(
@@ -691,9 +634,6 @@ async function collectSources() {
     return [];
   }
 
-  /*
-   * Read latest 35 PIB releases.
-   */
   const candidates =
     releaseLinks.slice(0, 35);
 
@@ -740,17 +680,10 @@ async function collectSources() {
         noise
       );
 
-      /*
-       * Strongly exclude obvious low-value
-       * PIB ceremonial/news items.
-       */
       if (noise) {
         continue;
       }
 
-      /*
-       * Minimum UPSC relevance.
-       */
       if (score >= 4) {
         collected.push({
           title,
@@ -935,7 +868,14 @@ async function generateArticleBatch(
   if (!response.ok) {
     throw new Error(
       data?.error ||
-        "AI batch generation failed."
+        `AI batch generation failed with HTTP ${response.status}.`
+    );
+  }
+
+  if (!data?.success) {
+    throw new Error(
+      data?.error ||
+        "AI endpoint reported failure."
     );
   }
 
@@ -1046,9 +986,6 @@ export async function GET(
       selected.length
     );
 
-    /*
-     * Log exact selected titles.
-     */
     selected.forEach(
       (item, index) => {
         console.log(
@@ -1079,7 +1016,8 @@ export async function GET(
           status: "success",
           articles_found: 0,
           articles_created: 0,
-          error_message: null,
+          error_message:
+            "No UPSC-relevant PIB articles found.",
           completed_at:
             new Date().toISOString(),
         }
@@ -1109,6 +1047,7 @@ export async function GET(
     ----------------------------------- */
 
     let created = 0;
+    let aiError = null;
 
     console.log(
       "BATCH PROCESSING START:",
@@ -1147,21 +1086,102 @@ export async function GET(
           result?.articles_created ||
             0
         );
+
+      if (
+        !result?.success ||
+        created <= 0
+      ) {
+        aiError =
+          result?.error ||
+          "AI processing completed without creating articles.";
+      }
     } catch (error) {
+      aiError =
+        error?.message ||
+        "AI batch processing failed.";
+
       console.error(
         "BATCH ARTICLE PROCESSING FAILED:",
-        error.message
+        aiError
       );
     }
 
     /* -----------------------------------
-       COMPLETE RUN
+       STRICT SUCCESS CHECK
+    ----------------------------------- */
+
+    /*
+     * IMPORTANT:
+     *
+     * AI fail OR zero articles created
+     * must NEVER be marked as success.
+     */
+
+    if (
+      aiError ||
+      created <= 0
+    ) {
+      const finalError =
+        aiError ||
+        "AI processing failed or no articles were created.";
+
+      await updateRun(
+        runDate,
+        {
+          status: "failed",
+          articles_found:
+            selected.length,
+          articles_created:
+            created,
+          error_message:
+            finalError,
+          completed_at:
+            new Date().toISOString(),
+        }
+      );
+
+      console.error(
+        "CURRENT AFFAIRS CRON FAILED:",
+        {
+          date: runDate,
+          articles_found:
+            selected.length,
+          articles_created:
+            created,
+          error:
+            finalError,
+        }
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          date: runDate,
+          source:
+            "PIB All Releases",
+          articles_found:
+            selected.length,
+          articles_created:
+            created,
+          error:
+            finalError,
+        },
+        {
+          status: 503,
+        }
+      );
+    }
+
+    /* -----------------------------------
+       SUCCESS
     ----------------------------------- */
 
     await updateRun(
       runDate,
       {
         status: "success",
+        articles_found:
+          selected.length,
         articles_created:
           created,
         error_message: null,
@@ -1202,7 +1222,7 @@ export async function GET(
       {
         status: "failed",
         error_message:
-          error.message ||
+          error?.message ||
           "Unknown error",
         completed_at:
           new Date().toISOString(),
@@ -1213,7 +1233,7 @@ export async function GET(
       {
         success: false,
         error:
-          error.message ||
+          error?.message ||
           "Current Affairs cron failed.",
       },
       {
