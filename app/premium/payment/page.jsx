@@ -8,6 +8,7 @@ export default function PremiumPaymentPage() {
 
   const [plan, setPlan] = useState("monthly");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const plans = {
     monthly: {
@@ -30,6 +31,12 @@ export default function PremiumPaymentPage() {
     },
   };
 
+  /*
+   * Read ?plan=monthly / quarterly / annual
+   * without useSearchParams().
+   *
+   * This avoids the Next.js Suspense build error.
+   */
   useEffect(() => {
     try {
       const params = new URLSearchParams(
@@ -55,26 +62,256 @@ export default function PremiumPaymentPage() {
     }
   }, []);
 
+  /*
+   * Load Cashfree JS SDK.
+   */
+  useEffect(() => {
+    const scriptId = "cashfree-sdk";
+
+    if (document.getElementById(scriptId)) {
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.id = scriptId;
+    script.src =
+      "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.async = true;
+
+    script.onload = () => {
+      console.log("Cashfree SDK loaded");
+    };
+
+    script.onerror = () => {
+      console.error(
+        "Cashfree SDK failed to load"
+      );
+    };
+
+    document.body.appendChild(script);
+  }, []);
+
   const selected = plans[plan];
 
-  const handlePayment = async () => {
-    setLoading(true);
+  /*
+   * Get Telegram authentication data.
+   */
+  const getTelegramInitData = () => {
+    const webApp =
+      window.Telegram?.WebApp;
+
+    let telegramInitData =
+      webApp?.initData || "";
 
     /*
-      Cashfree order creation will be connected here.
+     * If Telegram WebApp initData is not
+     * directly available, use the saved session.
+     */
+    if (!telegramInitData) {
+      try {
+        telegramInitData =
+          sessionStorage.getItem(
+            "sambhav_telegram_init_data"
+          ) || "";
+      } catch (storageError) {
+        console.warn(
+          "Telegram auth session read failed:",
+          storageError
+        );
+      }
+    }
 
-      IMPORTANT:
-      Do not activate Premium from frontend.
-      Premium activation will happen only after
-      backend payment verification.
-    */
+    /*
+     * Save current initData for internal
+     * navigation / returning to this page.
+     */
+    if (telegramInitData) {
+      try {
+        sessionStorage.setItem(
+          "sambhav_telegram_init_data",
+          telegramInitData
+        );
+      } catch (storageError) {
+        console.warn(
+          "Telegram auth session save failed:",
+          storageError
+        );
+      }
+    }
 
-    setTimeout(() => {
-      setLoading(false);
-      alert(
-        "Payment gateway setup is being connected."
+    return telegramInitData;
+  };
+
+  /*
+   * Start Cashfree payment.
+   */
+  const handlePayment = async () => {
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      /*
+       * Telegram auth
+       */
+      const telegramInitData =
+        getTelegramInitData();
+
+      if (!telegramInitData) {
+        throw new Error(
+          "Telegram authentication data nahi mila. SAMBHAV UPSC ko Telegram ke andar se open karein."
+        );
+      }
+
+      /*
+       * Telegram WebApp setup
+       */
+      if (window.Telegram?.WebApp) {
+        try {
+          window.Telegram.WebApp.ready();
+          window.Telegram.WebApp.expand();
+        } catch (telegramError) {
+          console.warn(
+            "Telegram WebApp setup warning:",
+            telegramError
+          );
+        }
+      }
+
+      /*
+       * Create order on our backend.
+       */
+      const response = await fetch(
+        "/api/payment/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `tma ${telegramInitData}`,
+          },
+          body: JSON.stringify({
+            plan,
+          }),
+          cache: "no-store",
+        }
       );
-    }, 700);
+
+      const data =
+        await response.json();
+
+      /*
+       * Existing active subscription.
+       */
+      if (
+        response.status === 409 &&
+        data?.subscription
+      ) {
+        router.push("/premium/home");
+        return;
+      }
+
+      /*
+       * Backend error.
+       */
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Payment order create nahi ho saka."
+        );
+      }
+
+      /*
+       * Cashfree session ID must exist.
+       */
+      if (!data?.payment_session_id) {
+        throw new Error(
+          "Cashfree payment session nahi mila."
+        );
+      }
+
+      /*
+       * Wait for Cashfree SDK.
+       */
+      let attempts = 0;
+
+      while (
+        !window.Cashfree &&
+        attempts < 50
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 100)
+        );
+
+        attempts++;
+      }
+
+      if (!window.Cashfree) {
+        throw new Error(
+          "Cashfree Checkout load nahi hua. Please retry karein."
+        );
+      }
+
+      /*
+       * Sandbox mode.
+       */
+      const cashfree =
+        window.Cashfree({
+          mode: "sandbox",
+        });
+
+      /*
+       * Open Cashfree checkout.
+       */
+      const checkoutOptions = {
+        paymentSessionId:
+          data.payment_session_id,
+
+        redirectTarget: "_self",
+      };
+
+      const checkoutResult =
+        await cashfree.checkout(
+          checkoutOptions
+        );
+
+      /*
+       * Checkout error.
+       */
+      if (checkoutResult?.error) {
+        console.error(
+          "Cashfree checkout error:",
+          checkoutResult.error
+        );
+
+        throw new Error(
+          checkoutResult.error?.message ||
+            "Cashfree checkout open nahi ho saka."
+        );
+      }
+
+      /*
+       * If Cashfree returns without redirect,
+       * stop loading so user can retry.
+       */
+      setLoading(false);
+    } catch (paymentError) {
+      console.error(
+        "Payment error:",
+        paymentError
+      );
+
+      setError(
+        paymentError?.message ||
+          "Payment start nahi ho saka."
+      );
+
+      setLoading(false);
+    }
   };
 
   return (
@@ -101,7 +338,7 @@ export default function PremiumPaymentPage() {
           </div>
         </div>
 
-        {/* Security badge */}
+        {/* Security */}
         <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[#302d24] bg-[#0d1015] px-4 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#17140d] text-[#d8b96d]">
             🔒
@@ -118,9 +355,10 @@ export default function PremiumPaymentPage() {
           </div>
         </div>
 
-        {/* Plan Card */}
+        {/* Main Card */}
         <section className="rounded-3xl border border-[#3b3425] bg-[#0d1016] p-5 shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
 
+          {/* Selected Plan */}
           <div className="mb-5 flex items-start justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#bca56a]">
@@ -141,16 +379,20 @@ export default function PremiumPaymentPage() {
             </div>
           </div>
 
-          {/* Plan selector */}
+          {/* Plan Selector */}
           <div className="space-y-2">
             {Object.entries(plans).map(
               ([key, item]) => {
-                const active = plan === key;
+                const active =
+                  plan === key;
 
                 return (
                   <button
                     key={key}
-                    onClick={() => setPlan(key)}
+                    onClick={() => {
+                      setPlan(key);
+                      setError("");
+                    }}
                     className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
                       active
                         ? "border-[#b89b57] bg-[#17140d]"
@@ -190,7 +432,7 @@ export default function PremiumPaymentPage() {
             )}
           </div>
 
-          {/* Price summary */}
+          {/* Price Summary */}
           <div className="my-6 border-t border-[#252932] pt-5">
 
             <div className="flex items-center justify-between text-sm">
@@ -209,7 +451,7 @@ export default function PremiumPaymentPage() {
               </span>
 
               <span className="text-[#bca56a]">
-                Secure
+                Cashfree
               </span>
             </div>
 
@@ -230,20 +472,27 @@ export default function PremiumPaymentPage() {
             </div>
           </div>
 
-          {/* Pay Button */}
+          {/* Error */}
+          {error && (
+            <div className="mb-4 rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm leading-5 text-red-300">
+              {error}
+            </div>
+          )}
+
+          {/* Pay */}
           <button
             onClick={handlePayment}
             disabled={loading}
             className="w-full rounded-2xl bg-[#c5a45b] px-5 py-4 text-sm font-bold text-[#090a0d] shadow-[0_10px_30px_rgba(197,164,91,0.15)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading
-              ? "Preparing Secure Payment..."
+              ? "Opening Secure Checkout..."
               : `Pay ₹${selected.price}`}
           </button>
 
           <p className="mt-4 text-center text-[11px] leading-5 text-[#707681]">
-            By continuing, you agree to the Premium subscription
-            terms and payment processing conditions.
+            You will be redirected to Cashfree's secure
+            payment checkout.
           </p>
         </section>
 
