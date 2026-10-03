@@ -1668,8 +1668,9 @@ export default function Home() {
 
 
 
+
   /* =========================================================
-     FINAL DASHBOARD — MASTER PREMIUM HOME UI
+     FINAL DASHBOARD — UNIFIED MASTER PREMIUM UI
      ========================================================= */
 
   const firstName =
@@ -1681,69 +1682,14 @@ export default function Home() {
   const initial =
     firstName.charAt(0).toUpperCase();
 
-  const activeSubscription =
-    subscription &&
-    subscription.status === "active" &&
-    subscription.expires_at &&
-    new Date(subscription.expires_at) > new Date();
-
-  const isPremium =
-    Boolean(activeSubscription);
-
-  const isDemo =
-    isPremium &&
-    String(subscription?.plan || "").toLowerCase() === "demo";
-
-  const accessTitle =
-    isPremium
-      ? isDemo
-        ? "Demo Access Active"
-        : "Officer Access Active"
-      : "Preparation Access";
-
-  const accessDescription =
-    isPremium
-      ? isDemo
-        ? "Your 2-Day Premium Demo is currently active."
-        : "Your Premium learning environment is active."
-      : "Your UPSC preparation workspace is ready.";
-
-  const expiryText =
-    subscription?.expires_at
-      ? new Date(subscription.expires_at).toLocaleDateString(
-          "en-IN",
-          {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }
-        )
-      : null;
-
-  const greeting = useMemo(() => {
+  const greeting = (() => {
     const hour = new Date().getHours();
-
     if (hour < 12) return "GOOD MORNING";
     if (hour < 17) return "GOOD AFTERNOON";
     return "GOOD EVENING";
-  }, []);
+  })();
 
-  const handleLogout = async () => {
-    try {
-      setLoggingOut(true);
-
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      window.location.href = "/login";
-    }
-  };
-
-  const modules = [
+  const dashboardModules = [
     {
       title: "Current Affairs",
       subtitle: "Daily • Monthly • MCQs",
@@ -1794,206 +1740,6 @@ export default function Home() {
     },
   ];
 
-  const goToModule = (module) => {
-    if (module.route) {
-      window.location.href = module.route;
-      return;
-    }
-
-    if (!isPremium) {
-      window.location.href = "/premium";
-      return;
-    }
-
-    console.log(`${module.title} coming soon`);
-  };
-
-  if (activeView === "profile") {
-    return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
-        <main style={styles.page}>
-          <div style={styles.container}>
-
-            <header style={styles.header}>
-              <div>
-                <div style={styles.brand}>
-                  SAMBHAV{" "}
-                  <span style={styles.gold}>UPSC</span>
-                </div>
-
-                <div style={styles.brandSub}>
-                  Intelligence • Preparation • Performance
-                </div>
-              </div>
-
-              <div style={styles.avatar}>
-                {initial}
-              </div>
-            </header>
-
-            <section style={styles.greeting}>
-              <div style={styles.eyebrow}>
-                ACCOUNT
-              </div>
-
-              <h1 style={styles.greetingTitle}>
-                Profile
-              </h1>
-
-              <div style={styles.greetingSub}>
-                Your SAMBHAV account and access details.
-              </div>
-            </section>
-
-            <section style={styles.profileCard}>
-              <div style={styles.profileHero}>
-                <div style={styles.profileAvatar}>
-                  {initial}
-                </div>
-
-                <div>
-                  <div style={styles.profileName}>
-                    {firstName}
-                  </div>
-
-                  <div style={styles.profileEmail}>
-                    {user.email || "Telegram Account"}
-                  </div>
-                </div>
-              </div>
-
-              <div style={styles.profileRow}>
-                <span style={styles.profileLabel}>
-                  Account Status
-                </span>
-                <span style={styles.profileValue}>
-                  {String(user.status || "approved").toUpperCase()}
-                </span>
-              </div>
-
-              <div style={styles.profileRow}>
-                <span style={styles.profileLabel}>
-                  Current Plan
-                </span>
-                <span style={styles.profileValue}>
-                  {isPremium
-                    ? isDemo
-                      ? "2-Day Demo"
-                      : "Premium"
-                    : "Free"}
-                </span>
-              </div>
-
-              <div style={styles.profileRow}>
-                <span style={styles.profileLabel}>
-                  Premium Started
-                </span>
-                <span style={styles.profileValue}>
-                  {subscription?.started_at
-                    ? new Date(subscription.started_at).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }
-                      )
-                    : "—"}
-                </span>
-              </div>
-
-              <div style={styles.profileRow}>
-                <span style={styles.profileLabel}>
-                  Premium Expiry
-                </span>
-                <span style={styles.profileValue}>
-                  {expiryText || "—"}
-                </span>
-              </div>
-
-              <div style={styles.profileRow}>
-                <span style={styles.profileLabel}>
-                  Account Created
-                </span>
-                <span style={styles.profileValue}>
-                  {user.created_at
-                    ? new Date(user.created_at).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }
-                      )
-                    : "—"}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                style={{
-                  ...styles.logoutButton,
-                  opacity: loggingOut ? 0.6 : 1,
-                }}
-                onClick={handleLogout}
-                disabled={loggingOut}
-              >
-                {loggingOut ? "LOGGING OUT..." : "LOG OUT"}
-              </button>
-            </section>
-
-          </div>
-
-          <nav style={styles.bottomNav}>
-            {[
-              ["⌂", "Home", "home"],
-              ["◫", "Practice", "practice"],
-              ["▤", "Current", "current"],
-              ["✦", "AI", "ai"],
-              ["◯", "Profile", "profile"],
-            ].map(([icon, label, view]) => (
-              <div
-                key={view}
-                style={{
-                  ...styles.navItem,
-                  ...(activeView === view
-                    ? styles.navActive
-                    : {}),
-                }}
-                onClick={() => {
-                  if (view === "home") {
-                    setActiveView("home");
-                    return;
-                  }
-
-                  if (!isPremium && view !== "profile") {
-                    window.location.href = "/premium";
-                    return;
-                  }
-
-                  if (view === "current") {
-                    window.location.href = "/current-affairs";
-                    return;
-                  }
-
-                  setActiveView(view);
-                }}
-              >
-                <span style={styles.navIcon}>{icon}</span>
-                {label}
-              </div>
-            ))}
-          </nav>
-        </main>
-      </>
-    );
-  }
-
   return (
     <>
       <Script
@@ -2005,11 +1751,14 @@ export default function Home() {
         <div style={styles.container}>
 
           {/* HEADER */}
+
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
-                SAMBHAV{" "}
-                <span style={styles.gold}>UPSC</span>
+                SAMBHAV
+                <span style={styles.brandGold}>
+                  {" "}UPSC
+                </span>
               </div>
 
               <div style={styles.brandSub}>
@@ -2017,18 +1766,15 @@ export default function Home() {
               </div>
             </div>
 
-            <div
-              style={styles.avatar}
-              onClick={() => setActiveView("profile")}
-              title="Profile"
-            >
+            <div style={styles.avatar}>
               {initial}
             </div>
           </header>
 
           {/* GREETING */}
+
           <section style={styles.greeting}>
-            <div style={styles.eyebrow}>
+            <div style={styles.goldLabel}>
               {greeting}
             </div>
 
@@ -2041,57 +1787,85 @@ export default function Home() {
             </div>
           </section>
 
-          {/* MASTER ACCESS CARD */}
+          {/* ACCESS */}
+
           <section style={styles.accessCard}>
             <div style={styles.accessGlow} />
 
             <div style={styles.accessContent}>
-              <div style={styles.accessBadge}>
-                {isPremium
-                  ? "✦ PREMIUM ACCESS"
-                  : "SAMBHAV ACCESS"}
+              <div style={styles.accessLabel}>
+                ✦ SAMBHAV ACCESS
               </div>
 
               <div style={styles.accessTitle}>
-                {accessTitle}
+                Officer Access Card
               </div>
 
-              <div style={styles.accessText}>
-                {accessDescription}
+              <div style={styles.accessSub}>
+                Clearance: ACTIVE • Your preparation workspace is ready.
               </div>
 
               <div style={styles.accessStatus}>
-                {isPremium
-                  ? isDemo
-                    ? `✓ DEMO ACTIVE${expiryText ? ` • UNTIL ${expiryText}` : ""}`
-                    : `✓ PREMIUM ACTIVE${expiryText ? ` • UNTIL ${expiryText}` : ""}`
-                  : "FREE ACCESS"}
+                ✓ ACCESS ACTIVE
               </div>
             </div>
           </section>
 
-          {/* FREE CTA — same dashboard, access changes only */}
-          {!isPremium && (
-            <section style={styles.lockedBanner}>
-              <div style={styles.lockedBannerTitle}>
-                ✦ Unlock Premium Preparation
-              </div>
+          {/* AI SECRETARY */}
 
-              <div style={styles.lockedBannerText}>
-                Get access to Current Affairs, PYQ Intelligence,
-                Mains Practice, AI Evaluation and premium resources.
-              </div>
+          <button
+            style={styles.secretaryButton}
+            onClick={() =>
+              console.log("AI Secretary coming soon")
+            }
+          >
+            ✦
+            <span style={{ marginLeft: "7px" }}>
+              Open SAMBHAV AI Secretary
+            </span>
 
-              <a
-                href="/premium"
-                style={styles.lockedButton}
-              >
-                Explore Premium →
-              </a>
-            </section>
-          )}
+            <span
+              style={{
+                float: "right",
+                color: "#777",
+              }}
+            >
+              →
+            </span>
+          </button>
+
+          {/* PREMIUM */}
+
+          <section
+            style={styles.premiumCard}
+            onClick={() => {
+              window.location.href = "/premium";
+            }}
+          >
+            <div style={styles.premiumGlow} />
+            <div style={styles.premiumGlowSmall} />
+
+            <div style={styles.premiumBadge}>
+              ✦ PREMIUM ACCESS
+            </div>
+
+            <div style={styles.premiumTitleDashboard}>
+              Unlock the Full SAMBHAV Experience
+            </div>
+
+            <div style={styles.premiumSub}>
+              Current Affairs, PYQ Intelligence, Prelims,
+              Mains, AI Evaluation and premium study resources
+              — organised into one focused workspace.
+            </div>
+
+            <div style={styles.premiumAction}>
+              Explore Premium →
+            </div>
+          </section>
 
           {/* STATS */}
+
           <section style={styles.statsGrid}>
             <div style={styles.statCard}>
               <div style={styles.statNumber}>0%</div>
@@ -2110,6 +1884,7 @@ export default function Home() {
           </section>
 
           {/* COUNTDOWN */}
+
           <section style={styles.countdown}>
             <div style={styles.countdownTop}>
               <div style={styles.countdownTitle}>
@@ -2131,6 +1906,7 @@ export default function Home() {
           </section>
 
           {/* TODAY'S MISSION */}
+
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
               Today's Mission
@@ -2190,91 +1966,84 @@ export default function Home() {
             </div>
           </section>
 
-          {/* PREPARATION MODULES */}
+          {/* QUICK LAUNCH */}
+
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
               Your Preparation
             </div>
 
             <div style={styles.sectionSmall}>
-              {isPremium ? "ALL ACCESS" : "PREVIEW"}
+              UPSC WORKSPACE
             </div>
           </div>
 
-          <section style={styles.modulesGrid}>
-            {modules.map((module) => {
-              const locked =
-                !isPremium &&
-                ["Current Affairs",
-                 "PYQ Intelligence",
-                 "Prelims Practice",
-                 "Mock Tests",
-                 "Mains Answer",
-                 "AI Evaluation",
-                 "Study Material",
-                 "My Analytics"].includes(module.title);
+          <section style={styles.grid}>
+            {dashboardModules.map((module) => (
+              <div
+                key={module.title}
+                style={styles.card}
+                onClick={() => {
+                  if (module.route) {
+                    window.location.href =
+                      module.route;
+                  } else {
+                    console.log(
+                      `${module.title} coming soon`
+                    );
+                  }
+                }}
+              >
+                <div style={styles.iconBox}>
+                  {module.icon}
+                </div>
 
-              return (
-                <div
-                  key={module.title}
-                  style={{
-                    ...styles.moduleCard,
-                    opacity: locked ? 0.78 : 1,
-                  }}
-                  onClick={() => goToModule(module)}
-                >
-                  <div style={styles.moduleIcon}>
-                    {module.icon}
-                  </div>
-
-                  {locked && (
-                    <div style={styles.lock}>
-                      🔒
-                    </div>
-                  )}
-
-                  <div style={styles.moduleTitle}>
+                <div style={styles.cardContent}>
+                  <div style={styles.cardTitle}>
                     {module.title}
                   </div>
 
-                  <div style={styles.moduleSubtitle}>
+                  <div style={styles.cardSubtitle}>
                     {module.subtitle}
                   </div>
-
-                  <div style={styles.moduleArrow}>
-                    ›
-                  </div>
                 </div>
-              );
-            })}
+
+                <div style={styles.arrow}>
+                  ›
+                </div>
+              </div>
+            ))}
 
             {isAdmin && (
               <div
-                style={styles.moduleCard}
+                style={styles.card}
                 onClick={() => {
                   window.location.href = "/admin";
                 }}
               >
-                <div style={styles.moduleIcon}>
+                <div style={styles.iconBox}>
                   🔐
                 </div>
 
-                <div style={styles.moduleTitle}>
-                  Admin Panel
+                <div style={styles.cardContent}>
+                  <div style={styles.cardTitle}>
+                    Admin Panel
+                  </div>
+
+                  <div style={styles.cardSubtitle}>
+                    Members • Requests • Approvals
+                  </div>
                 </div>
 
-                <div style={styles.moduleSubtitle}>
-                  Members • Requests • Approvals
-                </div>
-
-                <div style={styles.moduleArrow}>
+                <div style={styles.arrow}>
                   ›
                 </div>
               </div>
             )}
           </section>
 
-          {/* AI SECRETARY */}
+          {/* AI */}
+
           <section style={styles.aiCard}>
             <div style={styles.aiGlow} />
 
@@ -2293,27 +2062,18 @@ export default function Home() {
               </div>
 
               <button
-                style={{
-                  ...styles.aiButton,
-                  opacity: isPremium ? 1 : 0.7,
-                }}
-                onClick={() => {
-                  if (!isPremium) {
-                    window.location.href = "/premium";
-                    return;
-                  }
-
-                  console.log("AI Secretary coming soon");
-                }}
+                style={styles.aiButton}
+                onClick={() =>
+                  console.log("AI Secretary coming soon")
+                }
               >
-                {isPremium
-                  ? "Open AI Secretary →"
-                  : "Unlock AI Secretary →"}
+                Open AI Secretary →
               </button>
             </div>
           </section>
 
           {/* DAILY INTELLIGENCE */}
+
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
               Daily Intelligence
@@ -2340,68 +2100,68 @@ export default function Home() {
             </div>
 
             <a
-              href={
-                isPremium
-                  ? "/current-affairs"
-                  : "/premium"
-              }
+              href="/current-affairs"
               style={styles.intelligenceButton}
             >
-              {isPremium
-                ? "Read Today's Intelligence →"
-                : "Unlock Intelligence →"}
+              Read Today's Intelligence →
             </a>
           </section>
 
         </div>
 
-        {/* MASTER BOTTOM NAV */}
+        {/* BOTTOM NAV */}
+
         <nav style={styles.bottomNav}>
-          {[
-            ["⌂", "Home", "home"],
-            ["◫", "Practice", "practice"],
-            ["▤", "Current", "current"],
-            ["✦", "AI", "ai"],
-            ["◯", "Profile", "profile"],
-          ].map(([icon, label, view]) => (
-            <div
-              key={view}
-              style={{
-                ...styles.navItem,
-                ...(activeView === view
-                  ? styles.navActive
-                  : {}),
-              }}
-              onClick={() => {
-                if (view === "home") {
-                  setActiveView("home");
-                  return;
-                }
 
-                if (view === "profile") {
-                  setActiveView("profile");
-                  return;
-                }
+          <div
+            style={{
+              ...styles.navItem,
+              ...styles.navActive,
+            }}
+          >
+            <span style={styles.navIcon}>
+              ⌂
+            </span>
+            Home
+          </div>
 
-                if (!isPremium) {
-                  window.location.href = "/premium";
-                  return;
-                }
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("Practice")
+            }
+          >
+            <span style={styles.navIcon}>
+              ◫
+            </span>
+            Practice
+          </div>
 
-                if (view === "current") {
-                  window.location.href = "/current-affairs";
-                  return;
-                }
+          <div
+            style={styles.navItem}
+            onClick={() => {
+              window.location.href =
+                "/current-affairs";
+            }}
+          >
+            <span style={styles.navIcon}>
+              ▤
+            </span>
+            Current
+          </div>
 
-                setActiveView(view);
-              }}
-            >
-              <span style={styles.navIcon}>
-                {icon}
-              </span>
-              {label}
-            </div>
-          ))}
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("AI")
+            }
+          >
+            <span style={styles.navIcon}>
+              ✦
+            </span>
+            AI
+          </div>
+
         </nav>
 
       </main>
