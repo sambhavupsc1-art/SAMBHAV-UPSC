@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const filters = [
   "Today",
@@ -29,6 +30,8 @@ function isEthicsExample(item) {
 }
 
 export default function CurrentAffairsPage() {
+  const router = useRouter();
+
   const [active, setActive] = useState("Today");
   const [activeSource, setActiveSource] = useState("all");
   const [language, setLanguage] = useState("hi");
@@ -261,10 +264,12 @@ export default function CurrentAffairsPage() {
     [important]
   );
 
-  const sourceFilteredNews = useMemo(
-    () => news.filter(sourceMatches),
-    [news, activeSource]
-  );
+  const sourceFilteredNews = useMemo(() => {
+    if (activeSource === "all") return news;
+    return news.filter(
+      (item) => getSourceKey(item) === activeSource
+    );
+  }, [news, activeSource]);
 
   const filteredNews = useMemo(() => {
     const base = sourceFilteredNews;
@@ -399,6 +404,22 @@ export default function CurrentAffairsPage() {
 
   return (
     <main className="ca-page">
+      <button
+        type="button"
+        className="page-back-button"
+        onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push("/");
+          }
+        }}
+        aria-label="Go back"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Back</span>
+      </button>
+
       <section className="ca-header">
         <div>
           <p className="eyebrow">SAMBHAV UPSC</p>
@@ -868,7 +889,36 @@ export default function CurrentAffairsPage() {
       )}
 
       <style jsx global>{`
-        .ca-page {
+        /* ---------- PAGE BACK BUTTON ---------- */
+.page-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 9px 14px;
+  border: 1px solid #e2e7ef;
+  border-radius: 11px;
+  background: #fff;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.page-back-button:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.page-back-button span:first-child {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ca-page {
           min-height: 100vh;
           background:
             radial-gradient(circle at 8% 0%, rgba(30, 64, 175, 0.055), transparent 28%),
@@ -1991,6 +2041,12 @@ export default function CurrentAffairsPage() {
         }
 
         @media (max-width: 600px) {
+  .page-back-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+    margin-bottom: 10px;
+  }
           .ca-page { width:100%; max-width:100%; min-width:0; padding:12px 10px 48px; overflow-x:hidden; }
           .ca-header { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:17px; padding:17px; border-radius:18px; }
           h1 { font-size:clamp(29px,9vw,38px); }
