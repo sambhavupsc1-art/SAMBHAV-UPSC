@@ -46,7 +46,7 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg, #f7f7f5 0%, #f3f3f1 100%)",
+      "linear-gradient(180deg, #f8f7f3 0%, #f1f0ec 100%)",
     color: "#111111",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
@@ -70,83 +70,105 @@ const styles = {
 
   brand: {
     fontSize: "20px",
-    fontWeight: "850",
+    fontWeight: "900",
     letterSpacing: "-0.7px",
   },
 
+  brandGold: {
+    color: "#9b7b2f",
+  },
+
   brandSub: {
-    fontSize: "10px",
+    fontSize: "9px",
     color: "#8b8b8b",
-    marginTop: "3px",
-    letterSpacing: "1.1px",
+    marginTop: "4px",
+    letterSpacing: "1.3px",
     textTransform: "uppercase",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   avatar: {
-    width: "46px",
-    height: "46px",
+    width: "44px",
+    height: "44px",
     borderRadius: "50%",
     background:
       "linear-gradient(145deg, #191919, #050505)",
-    color: "#ffffff",
+    color: "#d6bd79",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "18px",
-    fontWeight: "750",
+    fontSize: "17px",
+    fontWeight: "850",
     boxShadow: "0 7px 18px rgba(0,0,0,0.13)",
   },
 
+  /* ================= PUBLIC LANDING ================= */
+
   landingHero: {
     background:
-      "linear-gradient(145deg, #111111 0%, #191919 55%, #252525 100%)",
+      "linear-gradient(145deg, #0b0b0b 0%, #151515 53%, #252525 100%)",
     color: "#ffffff",
-    borderRadius: "30px",
-    padding: "32px 24px",
-    marginBottom: "18px",
-    boxShadow: "0 18px 42px rgba(0,0,0,0.16)",
+    borderRadius: "31px",
+    padding: "30px 23px 25px",
+    marginBottom: "20px",
+    boxShadow: "0 22px 48px rgba(0,0,0,0.17)",
     position: "relative",
     overflow: "hidden",
   },
 
   landingGlow: {
     position: "absolute",
-    width: "240px",
-    height: "240px",
+    width: "270px",
+    height: "270px",
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.055)",
-    right: "-100px",
-    top: "-100px",
+    background:
+      "radial-gradient(circle, rgba(190,157,76,0.25), rgba(190,157,76,0) 70%)",
+    right: "-120px",
+    top: "-120px",
+    pointerEvents: "none",
+  },
+
+  landingGlow2: {
+    position: "absolute",
+    width: "160px",
+    height: "160px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.035)",
+    left: "-95px",
+    bottom: "-100px",
     pointerEvents: "none",
   },
 
   landingEyebrow: {
-    fontSize: "10px",
-    fontWeight: "850",
-    letterSpacing: "1.8px",
-    color: "#bdbdbd",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1.7px",
+    color: "#d2ba76",
     textTransform: "uppercase",
     position: "relative",
     zIndex: 2,
   },
 
   landingTitle: {
-    margin: "12px 0 0",
-    fontSize: "38px",
-    lineHeight: "1.05",
-    fontWeight: "900",
-    letterSpacing: "-1.5px",
+    margin: "17px 0 0",
+    fontSize: "42px",
+    lineHeight: "1.01",
+    fontWeight: "950",
+    letterSpacing: "-1.8px",
     position: "relative",
     zIndex: 2,
   },
 
+  landingGold: {
+    color: "#d6bd79",
+  },
+
   landingText: {
-    marginTop: "13px",
-    color: "#c2c2c2",
-    fontSize: "14px",
-    lineHeight: "1.65",
-    maxWidth: "540px",
+    marginTop: "15px",
+    color: "#bcbcbc",
+    fontSize: "13px",
+    lineHeight: "1.7",
+    maxWidth: "560px",
     position: "relative",
     zIndex: 2,
   },
@@ -154,7 +176,7 @@ const styles = {
   landingButtons: {
     display: "flex",
     flexWrap: "wrap",
-    gap: "10px",
+    gap: "9px",
     marginTop: "22px",
     position: "relative",
     zIndex: 2,
@@ -164,71 +186,108 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "13px 18px",
-    borderRadius: "15px",
+    padding: "13px 17px",
+    borderRadius: "14px",
     background: "#ffffff",
     color: "#111111",
     textDecoration: "none",
-    fontSize: "12px",
-    fontWeight: "850",
+    fontSize: "11px",
+    fontWeight: "900",
   },
 
   secondaryButton: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "13px 18px",
-    borderRadius: "15px",
-    background: "rgba(255,255,255,0.08)",
+    padding: "13px 17px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.07)",
     border: "1px solid rgba(255,255,255,0.12)",
     color: "#ffffff",
     textDecoration: "none",
-    fontSize: "12px",
-    fontWeight: "750",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+
+  heroStats: {
+    display: "flex",
+    gap: "24px",
+    flexWrap: "wrap",
+    marginTop: "25px",
+    paddingTop: "17px",
+    borderTop: "1px solid rgba(255,255,255,0.09)",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  heroStatNumber: {
+    fontSize: "16px",
+    fontWeight: "900",
+  },
+
+  heroStatText: {
+    marginTop: "3px",
+    color: "#777777",
+    fontSize: "8px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    fontWeight: "700",
   },
 
   landingSection: {
-    marginTop: "25px",
+    marginTop: "39px",
+  },
+
+  goldLabel: {
+    color: "#9b7b2f",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1.6px",
+    textTransform: "uppercase",
   },
 
   landingSectionTitle: {
-    fontSize: "22px",
-    fontWeight: "850",
-    letterSpacing: "-0.6px",
+    marginTop: "7px",
+    fontSize: "27px",
+    lineHeight: "1.12",
+    fontWeight: "900",
+    letterSpacing: "-0.9px",
   },
 
   landingSectionSub: {
-    marginTop: "6px",
+    marginTop: "8px",
     color: "#777777",
-    fontSize: "13px",
-    lineHeight: "1.5",
+    fontSize: "12px",
+    lineHeight: "1.6",
+    maxWidth: "560px",
   },
 
   featureGrid: {
     display: "grid",
     gridTemplateColumns:
       "repeat(2, minmax(0, 1fr))",
-    gap: "12px",
-    marginTop: "14px",
+    gap: "11px",
+    marginTop: "17px",
   },
 
   featureCard: {
     background: "#ffffff",
-    border: "1px solid #e8e8e6",
+    border: "1px solid #e5e3de",
     borderRadius: "21px",
-    padding: "17px",
-    minHeight: "128px",
+    padding: "16px",
+    minHeight: "140px",
     boxSizing: "border-box",
     boxShadow:
-      "0 5px 16px rgba(0,0,0,0.045)",
+      "0 7px 20px rgba(0,0,0,0.045)",
   },
 
   featureIcon: {
-    width: "44px",
-    height: "44px",
+    width: "43px",
+    height: "43px",
     borderRadius: "14px",
     background:
       "linear-gradient(145deg, #181818, #080808)",
+    color: "#d6bd79",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -238,67 +297,257 @@ const styles = {
   featureTitle: {
     marginTop: "12px",
     fontSize: "14px",
-    fontWeight: "850",
+    fontWeight: "900",
   },
 
   featureText: {
     marginTop: "5px",
     fontSize: "10px",
     color: "#858585",
-    lineHeight: "1.4",
+    lineHeight: "1.45",
   },
 
-  pricingGrid: {
+  /* ================= DASHBOARD PREVIEW ================= */
+
+  previewOuter: {
+    marginTop: "17px",
+    background:
+      "linear-gradient(145deg,#171717,#0a0a0a)",
+    borderRadius: "27px",
+    padding: "16px",
+    boxShadow:
+      "0 20px 43px rgba(0,0,0,0.16)",
+    overflow: "hidden",
+  },
+
+  previewHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "3px 3px 14px",
+  },
+
+  previewBrand: {
+    color: "#ffffff",
+    fontSize: "13px",
+    fontWeight: "900",
+  },
+
+  previewSub: {
+    marginTop: "3px",
+    color: "#777777",
+    fontSize: "7px",
+    letterSpacing: "1.1px",
+    fontWeight: "700",
+  },
+
+  previewAvatar: {
+    width: "31px",
+    height: "31px",
+    borderRadius: "50%",
+    background: "#f2efe7",
+    color: "#111111",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "11px",
+    fontWeight: "900",
+  },
+
+  previewMainCard: {
+    background:
+      "linear-gradient(145deg,#252525,#151515)",
+    borderRadius: "19px",
+    padding: "17px",
+    border:
+      "1px solid rgba(255,255,255,0.07)",
+  },
+
+  previewLabel: {
+    color: "#8d8d8d",
+    fontSize: "8px",
+    letterSpacing: "1.2px",
+    fontWeight: "800",
+  },
+
+  previewTitle: {
+    marginTop: "7px",
+    color: "#ffffff",
+    fontSize: "20px",
+    fontWeight: "900",
+  },
+
+  previewDescription: {
+    marginTop: "5px",
+    color: "#858585",
+    fontSize: "9px",
+  },
+
+  previewMiniGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(3, minmax(0, 1fr))",
+    gap: "7px",
+    marginTop: "16px",
+  },
+
+  previewMini: {
+    background:
+      "rgba(255,255,255,0.055)",
+    border:
+      "1px solid rgba(255,255,255,0.06)",
+    borderRadius: "11px",
+    padding: "11px 4px",
+    textAlign: "center",
+    color: "#d6bd79",
+    fontSize: "8px",
+    fontWeight: "850",
+  },
+
+  previewModules: {
     display: "grid",
     gridTemplateColumns:
       "repeat(2, minmax(0, 1fr))",
-    gap: "12px",
-    marginTop: "14px",
+    gap: "7px",
+    marginTop: "9px",
   },
 
-  pricingCard: {
-    background: "#ffffff",
-    border: "1px solid #e4e4e2",
-    borderRadius: "21px",
-    padding: "18px",
-    boxSizing: "border-box",
+  previewModule: {
+    padding: "10px",
+    borderRadius: "12px",
+    background:
+      "rgba(255,255,255,0.045)",
+    color: "#aaaaaa",
+    fontSize: "8px",
+    fontWeight: "750",
   },
 
-  pricingName: {
-    fontSize: "13px",
-    fontWeight: "800",
+  /* ================= PREMIUM ================= */
+
+  premiumLandingCard: {
+    marginTop: "39px",
+    background:
+      "linear-gradient(145deg,#eee6d2,#e3dac1)",
+    border:
+      "1px solid #d7ccb0",
+    borderRadius: "27px",
+    padding: "23px",
+    position: "relative",
+    overflow: "hidden",
   },
 
-  pricingPrice: {
-    marginTop: "10px",
-    fontSize: "26px",
-    fontWeight: "900",
+  premiumLandingGlow: {
+    position: "absolute",
+    width: "190px",
+    height: "190px",
+    borderRadius: "50%",
+    right: "-95px",
+    top: "-95px",
+    background:
+      "rgba(255,255,255,0.45)",
+  },
+
+  premiumLandingContent: {
+    position: "relative",
+    zIndex: 2,
+  },
+
+  premiumLabel: {
+    color: "#806425",
+    fontSize: "9px",
+    fontWeight: "950",
+    letterSpacing: "1.5px",
+  },
+
+  premiumTitle: {
+    marginTop: "8px",
+    fontSize: "25px",
+    lineHeight: "1.12",
+    fontWeight: "950",
     letterSpacing: "-0.8px",
   },
 
-  pricingDuration: {
-    marginTop: "3px",
-    color: "#888888",
-    fontSize: "10px",
+  premiumText: {
+    marginTop: "9px",
+    color: "#6f685a",
+    fontSize: "11px",
+    lineHeight: "1.6",
+    maxWidth: "520px",
   },
 
-  pricingButton: {
-    display: "block",
-    marginTop: "14px",
-    padding: "10px",
-    borderRadius: "12px",
-    background: "#111111",
-    color: "#ffffff",
-    textAlign: "center",
-    textDecoration: "none",
-    fontSize: "10px",
+  premiumPills: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "7px",
+    marginTop: "15px",
+  },
+
+  premiumPill: {
+    padding: "7px 9px",
+    borderRadius: "999px",
+    background:
+      "rgba(255,255,255,0.55)",
+    border:
+      "1px solid rgba(130,110,70,0.13)",
+    color: "#5f584b",
+    fontSize: "8px",
     fontWeight: "800",
   },
 
+  premiumButton: {
+    display: "inline-flex",
+    marginTop: "18px",
+    padding: "12px 15px",
+    borderRadius: "13px",
+    background: "#111111",
+    color: "#ffffff",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "900",
+  },
+
+  /* ================= CTA ================= */
+
+  finalCTA: {
+    marginTop: "42px",
+    textAlign: "center",
+    padding: "8px 8px 0",
+  },
+
+  finalTitle: {
+    marginTop: "8px",
+    fontSize: "29px",
+    lineHeight: "1.08",
+    fontWeight: "950",
+    letterSpacing: "-1px",
+  },
+
+  finalText: {
+    margin: "10px auto 0",
+    maxWidth: "470px",
+    color: "#777777",
+    fontSize: "11px",
+    lineHeight: "1.6",
+  },
+
+  finalButton: {
+    display: "inline-flex",
+    marginTop: "18px",
+    padding: "14px 22px",
+    borderRadius: "15px",
+    background: "#111111",
+    color: "#ffffff",
+    textDecoration: "none",
+    fontSize: "11px",
+    fontWeight: "900",
+    boxShadow:
+      "0 10px 25px rgba(0,0,0,0.13)",
+  },
+
   publicFooter: {
-    marginTop: "32px",
-    paddingTop: "22px",
-    borderTop: "1px solid #dfdfdd",
+    marginTop: "48px",
+    paddingTop: "20px",
+    borderTop: "1px solid #dedcd6",
   },
 
   footerLinks: {
@@ -310,15 +559,17 @@ const styles = {
   footerLink: {
     color: "#666666",
     textDecoration: "none",
-    fontSize: "10px",
-    fontWeight: "650",
+    fontSize: "9px",
+    fontWeight: "700",
   },
 
   footerCopy: {
-    marginTop: "14px",
+    marginTop: "13px",
     color: "#999999",
-    fontSize: "9px",
+    fontSize: "8px",
   },
+
+  /* ================= DASHBOARD ================= */
 
   greeting: {
     marginBottom: "20px",
@@ -346,7 +597,8 @@ const styles = {
     padding: "21px",
     marginBottom: "15px",
     boxShadow: "0 13px 32px rgba(0,0,0,0.13)",
-    border: "1px solid rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.05)",
   },
 
   accessLabel: {
@@ -394,7 +646,8 @@ const styles = {
     position: "relative",
     overflow: "hidden",
     cursor: "pointer",
-    border: "1px solid rgba(255,255,255,0.06)",
+    border:
+      "1px solid rgba(255,255,255,0.06)",
   },
 
   premiumGlow: {
@@ -402,7 +655,8 @@ const styles = {
     width: "190px",
     height: "190px",
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.055)",
+    background:
+      "rgba(255,255,255,0.055)",
     right: "-75px",
     top: "-85px",
   },
@@ -412,7 +666,8 @@ const styles = {
     width: "80px",
     height: "80px",
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.035)",
+    background:
+      "rgba(255,255,255,0.035)",
     right: "80px",
     bottom: "-45px",
   },
@@ -430,7 +685,7 @@ const styles = {
     zIndex: 2,
   },
 
-  premiumTitle: {
+  premiumTitleDashboard: {
     marginTop: "13px",
     fontSize: "20px",
     fontWeight: "850",
@@ -553,7 +808,8 @@ const styles = {
     borderRadius: "24px",
     padding: "30px 22px",
     textAlign: "center",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
+    boxShadow:
+      "0 8px 25px rgba(0,0,0,0.05)",
   },
 
   welcomeCard: {
@@ -697,103 +953,107 @@ const styles = {
   },
 };
 
+
+/* =========================================================
+   PUBLIC LANDING PAGE
+   ========================================================= */
+
 function PublicLanding() {
   const features = [
     {
-      icon: "📰",
+      icon: "◈",
       title: "Current Affairs",
-      text: "UPSC-focused current affairs and revision support.",
+      text:
+        "Daily UPSC-focused intelligence with exam-oriented revision.",
     },
     {
-      icon: "🎯",
+      icon: "◎",
       title: "PYQ Intelligence",
-      text: "Previous Year Questions with structured practice.",
+      text:
+        "Understand previous year questions beyond simple practice.",
     },
     {
-      icon: "📝",
-      title: "Prelims",
-      text: "Practice and test-oriented preparation.",
+      icon: "▣",
+      title: "Prelims Practice",
+      text:
+        "Structured practice designed around UPSC preparation.",
     },
     {
-      icon: "✍️",
-      title: "Mains",
-      text: "Answer-writing practice and preparation tools.",
-    },
-    {
-      icon: "🤖",
-      title: "AI Evaluation",
-      text: "AI-assisted analysis for Mains answer practice.",
-    },
-    {
-      icon: "📚",
-      title: "Study Material",
-      text: "Notes, PDFs and preparation resources.",
+      icon: "✎",
+      title: "Mains Practice",
+      text:
+        "Build answer-writing discipline with focused practice.",
     },
   ];
 
-  const plans = [
-    {
-      name: "2-Day Demo",
-      price: "₹0",
-      duration: "2 Days",
-    },
-    {
-      name: "Monthly",
-      price: "₹99",
-      duration: "30 Days",
-    },
-    {
-      name: "Quarterly",
-      price: "₹399",
-      duration: "90 Days",
-    },
-    {
-      name: "Annual",
-      price: "₹999",
-      duration: "365 Days",
-    },
+  const systemCards = [
+    "Current Affairs",
+    "PYQ Intelligence",
+    "Prelims Practice",
+    "Mains Answer Writing",
+    "AI Evaluation",
+    "Study Material",
   ];
 
   return (
     <>
       <main style={styles.page}>
         <div style={styles.container}>
+
+          {/* HEADER */}
+
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
-                SAMBHAV UPSC
+                SAMBHAV
+                <span style={styles.brandGold}>
+                  {" "}UPSC
+                </span>
               </div>
 
               <div style={styles.brandSub}>
-                UPSC Preparation Platform
+                Intelligence • Preparation • Performance
               </div>
             </div>
 
-            <div style={styles.avatar}>
-              ✦
-            </div>
+            <a
+              href="/login"
+              style={{
+                ...styles.secondaryButton,
+                background: "#111111",
+                border: "none",
+                padding: "11px 15px",
+              }}
+            >
+              Sign In
+            </a>
           </header>
+
+
+          {/* HERO */}
 
           <section style={styles.landingHero}>
             <div style={styles.landingGlow} />
+            <div style={styles.landingGlow2} />
 
             <div style={styles.landingEyebrow}>
-              UPSC • PREPARATION • 2026
+              ✦ AI-POWERED UPSC PREPARATION
             </div>
 
             <h1 style={styles.landingTitle}>
-              Your Complete
+              Prepare with clarity.
               <br />
-              UPSC Preparation
-              <br />
-              Platform.
+
+              <span style={styles.landingGold}>
+                Perform with SAMBHAV.
+              </span>
             </h1>
 
             <p style={styles.landingText}>
-              SAMBHAV UPSC brings current affairs,
-              PYQs, Prelims, Mains, CSAT, study
-              material and AI-assisted learning
-              tools together in one platform.
+              A focused UPSC preparation system bringing
+              Current Affairs, PYQs, Prelims, Mains,
+              AI-assisted learning and study resources
+              into one professional platform.
             </p>
 
             <div style={styles.landingButtons}>
@@ -801,30 +1061,72 @@ function PublicLanding() {
                 href="/login"
                 style={styles.primaryButton}
               >
-                Login / Get Started →
+                Start Preparing →
               </a>
 
               <a
                 href="/pricing"
                 style={styles.secondaryButton}
               >
-                View Plans
+                Explore Plans
               </a>
+            </div>
+
+            <div style={styles.heroStats}>
+              <div>
+                <div style={styles.heroStatNumber}>
+                  01
+                </div>
+
+                <div style={styles.heroStatText}>
+                  Focused
+                </div>
+              </div>
+
+              <div>
+                <div style={styles.heroStatNumber}>
+                  02
+                </div>
+
+                <div style={styles.heroStatText}>
+                  Structured
+                </div>
+              </div>
+
+              <div>
+                <div style={styles.heroStatNumber}>
+                  03
+                </div>
+
+                <div style={styles.heroStatText}>
+                  Intelligent
+                </div>
+              </div>
             </div>
           </section>
 
+
+          {/* SYSTEM */}
+
           <section style={styles.landingSection}>
+            <div style={styles.goldLabel}>
+              THE SAMBHAV SYSTEM
+            </div>
+
             <div style={styles.landingSectionTitle}>
-              Everything for UPSC
+              One platform.
+              <br />
+              One preparation system.
             </div>
 
             <div style={styles.landingSectionSub}>
-              Structured tools for different stages of your
-              preparation.
+              Instead of jumping between multiple tools,
+              organise your preparation inside one
+              structured workspace.
             </div>
 
             <div style={styles.featureGrid}>
-              {features.map((feature) => (
+              {features.map((feature, index) => (
                 <div
                   key={feature.title}
                   style={styles.featureCard}
@@ -840,83 +1142,195 @@ function PublicLanding() {
                   <div style={styles.featureText}>
                     {feature.text}
                   </div>
+
+                  <div
+                    style={{
+                      marginTop: "9px",
+                      color: "#b1b1b1",
+                      fontSize: "8px",
+                      fontWeight: "800",
+                    }}
+                  >
+                    0{index + 1}
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
+
+          {/* DASHBOARD PREVIEW */}
+
           <section style={styles.landingSection}>
+            <div style={styles.goldLabel}>
+              INSIDE SAMBHAV
+            </div>
+
             <div style={styles.landingSectionTitle}>
-              Premium Plans
+              Your preparation,
+              <br />
+              organised in one dashboard.
             </div>
 
             <div style={styles.landingSectionSub}>
-              Choose the plan that fits your preparation.
+              Everything important stays inside your
+              preparation workspace.
             </div>
 
-            <div style={styles.pricingGrid}>
-              {plans.map((plan) => (
-                <div
-                  key={plan.name}
-                  style={styles.pricingCard}
-                >
-                  <div style={styles.pricingName}>
-                    {plan.name}
+            <div style={styles.previewOuter}>
+
+              <div style={styles.previewHeader}>
+                <div>
+                  <div style={styles.previewBrand}>
+                    SAMBHAV UPSC
                   </div>
 
-                  <div style={styles.pricingPrice}>
-                    {plan.price}
+                  <div style={styles.previewSub}>
+                    COMMAND CENTRE
                   </div>
-
-                  <div style={styles.pricingDuration}>
-                    {plan.duration}
-                  </div>
-
-                  <a
-                    href="/pricing"
-                    style={styles.pricingButton}
-                  >
-                    View Plan
-                  </a>
                 </div>
-              ))}
+
+                <div style={styles.previewAvatar}>
+                  A
+                </div>
+              </div>
+
+              <div style={styles.previewMainCard}>
+                <div style={styles.previewLabel}>
+                  TODAY'S PREPARATION
+                </div>
+
+                <div style={styles.previewTitle}>
+                  Stay consistent.
+                </div>
+
+                <div style={styles.previewDescription}>
+                  Your preparation system is ready.
+                </div>
+
+                <div style={styles.previewMiniGrid}>
+                  <div style={styles.previewMini}>
+                    CA
+                  </div>
+
+                  <div style={styles.previewMini}>
+                    PYQ
+                  </div>
+
+                  <div style={styles.previewMini}>
+                    MAINS
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.previewModules}>
+                {systemCards.map((item) => (
+                  <div
+                    key={item}
+                    style={styles.previewModule}
+                  >
+                    {item}
+
+                    <span
+                      style={{
+                        float: "right",
+                        color: "#555555",
+                      }}
+                    >
+                      →
+                    </span>
+                  </div>
+                ))}
+              </div>
+
             </div>
           </section>
 
-          <section style={styles.landingSection}>
-            <div style={styles.landingHero}>
-              <div style={styles.landingGlow} />
 
-              <div style={styles.landingEyebrow}>
-                START YOUR PREPARATION
+          {/* PREMIUM */}
+
+          <section
+            style={styles.premiumLandingCard}
+          >
+            <div
+              style={styles.premiumLandingGlow}
+            />
+
+            <div
+              style={styles.premiumLandingContent}
+            >
+              <div style={styles.premiumLabel}>
+                PREMIUM ACCESS
               </div>
 
-              <div
-                style={{
-                  ...styles.landingTitle,
-                  fontSize: "28px",
-                }}
-              >
-                Build your UPSC
+              <div style={styles.premiumTitle}>
+                Built for serious
                 <br />
-                preparation with SAMBHAV.
+                UPSC preparation.
               </div>
 
-              <p style={styles.landingText}>
-                Create your account, complete verification
-                and get access to the SAMBHAV UPSC platform.
-              </p>
-
-              <div style={styles.landingButtons}>
-                <a
-                  href="/login"
-                  style={styles.primaryButton}
-                >
-                  Get Started →
-                </a>
+              <div style={styles.premiumText}>
+                Unlock the complete SAMBHAV experience
+                and bring your preparation tools into
+                one focused workspace.
               </div>
+
+              <div style={styles.premiumPills}>
+                <span style={styles.premiumPill}>
+                  ✓ Daily Intelligence
+                </span>
+
+                <span style={styles.premiumPill}>
+                  ✓ PYQ Intelligence
+                </span>
+
+                <span style={styles.premiumPill}>
+                  ✓ Mains Practice
+                </span>
+
+                <span style={styles.premiumPill}>
+                  ✓ AI Learning
+                </span>
+              </div>
+
+              <a
+                href="/pricing"
+                style={styles.premiumButton}
+              >
+                Explore Premium →
+              </a>
             </div>
           </section>
+
+
+          {/* FINAL CTA */}
+
+          <section style={styles.finalCTA}>
+            <div style={styles.goldLabel}>
+              YOUR NEXT STEP
+            </div>
+
+            <div style={styles.finalTitle}>
+              Start your preparation
+              <br />
+              with SAMBHAV.
+            </div>
+
+            <div style={styles.finalText}>
+              Create your account and enter your
+              personalised UPSC preparation workspace.
+            </div>
+
+            <a
+              href="/login"
+              style={styles.finalButton}
+            >
+              Create Account →
+            </a>
+          </section>
+
+
+          {/* FOOTER */}
 
           <footer style={styles.publicFooter}>
             <div style={styles.footerLinks}>
@@ -945,21 +1359,21 @@ function PublicLanding() {
                 href="/privacy"
                 style={styles.footerLink}
               >
-                Privacy Policy
+                Privacy
               </a>
 
               <a
                 href="/terms"
                 style={styles.footerLink}
               >
-                Terms & Conditions
+                Terms
               </a>
 
               <a
                 href="/refund"
                 style={styles.footerLink}
               >
-                Refund & Cancellation
+                Refund
               </a>
             </div>
 
@@ -968,11 +1382,17 @@ function PublicLanding() {
               All rights reserved.
             </div>
           </footer>
+
         </div>
       </main>
     </>
   );
 }
+
+
+/* =========================================================
+   MAIN HOME
+   ========================================================= */
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -984,21 +1404,10 @@ export default function Home() {
   const [showWelcome, setShowWelcome] =
     useState(false);
 
-  /*
-   * ==========================================
-   * AUTHENTICATION
-   * ==========================================
-   *
-   * Priority:
-   *
-   * 1. Email session cookie
-   * 2. Telegram initData
-   * 3. Public landing
-   *
-   * This keeps both authentication systems
-   * working without requiring Telegram for
-   * normal browser users.
-   */
+
+  /* =====================================================
+     AUTHENTICATION
+     ===================================================== */
 
   useEffect(() => {
     let stopped = false;
@@ -1007,14 +1416,10 @@ export default function Home() {
       if (stopped) return;
 
       try {
-        /*
-         * ==========================================
-         * 1. EMAIL SESSION
-         * ==========================================
-         *
-         * Browser automatically sends the
-         * HTTP-only sambhav_session cookie.
-         */
+
+        /* ===============================================
+           1. EMAIL SESSION
+           =============================================== */
 
         const emailResponse = await fetch(
           "/api/auth/me",
@@ -1030,10 +1435,6 @@ export default function Home() {
             () => ({})
           );
 
-        /*
-         * Valid email session
-         */
-
         if (
           emailResponse.ok &&
           emailData?.user
@@ -1042,9 +1443,7 @@ export default function Home() {
 
           setTelegramMode(false);
 
-          setUser(
-            emailData.user
-          );
+          setUser(emailData.user);
 
           setIsAdmin(
             emailData.isAdmin === true
@@ -1058,22 +1457,17 @@ export default function Home() {
           }
 
           setLoading(false);
+
           return;
         }
 
-        /*
-         * ==========================================
-         * 2. TELEGRAM AUTHENTICATION
-         * ==========================================
-         */
+
+        /* ===============================================
+           2. TELEGRAM AUTHENTICATION
+           =============================================== */
 
         const webApp =
           window.Telegram?.WebApp;
-
-        /*
-         * Only real Telegram initData
-         * activates Telegram authentication.
-         */
 
         if (webApp?.initData) {
           if (stopped) return;
@@ -1124,14 +1518,14 @@ export default function Home() {
           }
 
           setLoading(false);
+
           return;
         }
 
-        /*
-         * ==========================================
-         * 3. PUBLIC WEBSITE
-         * ==========================================
-         */
+
+        /* ===============================================
+           3. PUBLIC WEBSITE
+           =============================================== */
 
         if (stopped) return;
 
@@ -1139,7 +1533,9 @@ export default function Home() {
         setUser(null);
         setError("");
         setLoading(false);
+
       } catch (err) {
+
         if (stopped) return;
 
         console.error(
@@ -1163,6 +1559,11 @@ export default function Home() {
     };
   }, []);
 
+
+  /* =====================================================
+     WELCOME SCREEN TIMER
+     ===================================================== */
+
   useEffect(() => {
     if (!showWelcome) return;
 
@@ -1173,11 +1574,10 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [showWelcome]);
 
-  /*
-   * ==========================================
-   * PUBLIC WEBSITE
-   * ==========================================
-   */
+
+  /* =====================================================
+     PUBLIC WEBSITE
+     ===================================================== */
 
   if (
     !loading &&
@@ -1187,11 +1587,10 @@ export default function Home() {
     return <PublicLanding />;
   }
 
-  /*
-   * ==========================================
-   * AUTH LOADING
-   * ==========================================
-   */
+
+  /* =====================================================
+     LOADING
+     ===================================================== */
 
   if (loading) {
     return (
@@ -1203,26 +1602,35 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.pendingCard}>
+
+            <div
+              style={{
+                ...styles.pendingCard,
+                marginTop: "70px",
+              }}
+            >
               <div style={styles.brand}>
-                SAMBHAV UPSC
+                SAMBHAV
+                <span style={styles.brandGold}>
+                  {" "}UPSC
+                </span>
               </div>
 
               <p style={styles.greetingSub}>
                 Checking access...
               </p>
             </div>
+
           </div>
         </main>
       </>
     );
   }
 
-  /*
-   * ==========================================
-   * TELEGRAM AUTH ERROR
-   * ==========================================
-   */
+
+  /* =====================================================
+     TELEGRAM AUTH ERROR
+     ===================================================== */
 
   if (
     telegramMode &&
@@ -1238,10 +1646,14 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
+
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
-                  SAMBHAV UPSC
+                  SAMBHAV
+                  <span style={styles.brandGold}>
+                    {" "}UPSC
+                  </span>
                 </div>
 
                 <div style={styles.brandSub}>
@@ -1278,27 +1690,26 @@ export default function Home() {
                 Authentication Required
               </div>
             </div>
+
           </div>
         </main>
       </>
     );
   }
 
-  /*
-   * ==========================================
-   * SAFETY
-   * ==========================================
-   */
+
+  /* =====================================================
+     SAFETY
+     ===================================================== */
 
   if (!user) {
     return null;
   }
 
-  /*
-   * ==========================================
-   * NOT APPROVED
-   * ==========================================
-   */
+
+  /* =====================================================
+     APPROVAL STATUS
+     ===================================================== */
 
   if (
     user.status !==
@@ -1356,10 +1767,14 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
+
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
-                  SAMBHAV UPSC
+                  SAMBHAV
+                  <span style={styles.brandGold}>
+                    {" "}UPSC
+                  </span>
                 </div>
 
                 <div style={styles.brandSub}>
@@ -1410,17 +1825,17 @@ export default function Home() {
                 </a>
               )}
             </div>
+
           </div>
         </main>
       </>
     );
   }
 
-  /*
-   * ==========================================
-   * WELCOME
-   * ==========================================
-   */
+
+  /* =====================================================
+     WELCOME
+     ===================================================== */
 
   if (
     showWelcome &&
@@ -1453,6 +1868,7 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
+
             <div style={styles.welcomeCard}>
               <div style={styles.welcomeLabel}>
                 WELCOME
@@ -1476,17 +1892,17 @@ export default function Home() {
                   : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
               </div>
             </div>
+
           </div>
         </main>
       </>
     );
   }
 
-  /*
-   * ==========================================
-   * APPROVED USER DASHBOARD
-   * ==========================================
-   */
+
+  /* =====================================================
+     APPROVED USER DASHBOARD
+     ===================================================== */
 
   const firstName =
     user.first_name ||
@@ -1508,10 +1924,16 @@ export default function Home() {
 
       <main style={styles.page}>
         <div style={styles.container}>
+
+          {/* HEADER */}
+
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
-                SAMBHAV UPSC
+                SAMBHAV
+                <span style={styles.brandGold}>
+                  {" "}UPSC
+                </span>
               </div>
 
               <div style={styles.brandSub}>
@@ -1524,6 +1946,9 @@ export default function Home() {
             </div>
           </header>
 
+
+          {/* GREETING */}
+
           <section style={styles.greeting}>
             <h1 style={styles.greetingTitle}>
               Hello, {firstName}
@@ -1533,6 +1958,9 @@ export default function Home() {
               Continue your preparation.
             </p>
           </section>
+
+
+          {/* ACCESS CARD */}
 
           <section style={styles.accessCard}>
             <div style={styles.accessLabel}>
@@ -1548,6 +1976,9 @@ export default function Home() {
             </div>
           </section>
 
+
+          {/* AI SECRETARY */}
+
           <button
             style={styles.secretaryButton}
             onClick={() =>
@@ -1558,6 +1989,9 @@ export default function Home() {
           >
             ✦ Open AI Secretary →
           </button>
+
+
+          {/* PREMIUM */}
 
           <section
             style={styles.premiumCard}
@@ -1573,7 +2007,11 @@ export default function Home() {
               ✦ PREMIUM ACCESS
             </div>
 
-            <div style={styles.premiumTitle}>
+            <div
+              style={
+                styles.premiumTitleDashboard
+              }
+            >
               Unlock the Full SAMBHAV Experience
             </div>
 
@@ -1589,6 +2027,9 @@ export default function Home() {
             </div>
           </section>
 
+
+          {/* QUICK LAUNCH */}
+
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
               Quick Launch
@@ -1598,6 +2039,7 @@ export default function Home() {
               UPSC • 2026
             </div>
           </div>
+
 
           <section style={styles.grid}>
             {modules.map((module) => (
@@ -1635,6 +2077,9 @@ export default function Home() {
               </div>
             ))}
 
+
+            {/* ADMIN ONLY */}
+
             {isAdmin && (
               <div
                 style={styles.card}
@@ -1663,9 +2108,14 @@ export default function Home() {
               </div>
             )}
           </section>
+
         </div>
 
+
+        {/* BOTTOM NAV */}
+
         <nav style={styles.bottomNav}>
+
           <div
             style={{
               ...styles.navItem,
@@ -1675,20 +2125,26 @@ export default function Home() {
             <span style={styles.navIcon}>
               ⌂
             </span>
+
             Home
           </div>
+
 
           <div
             style={styles.navItem}
             onClick={() =>
-              console.log("Current Affairs")
+              console.log(
+                "Current Affairs"
+              )
             }
           >
             <span style={styles.navIcon}>
               ▤
             </span>
+
             CA
           </div>
+
 
           <div
             style={styles.navItem}
@@ -1699,8 +2155,10 @@ export default function Home() {
             <span style={styles.navIcon}>
               ▣
             </span>
+
             GS
           </div>
+
 
           <div
             style={styles.navItem}
@@ -1711,9 +2169,12 @@ export default function Home() {
             <span style={styles.navIcon}>
               ▦
             </span>
+
             AI
           </div>
+
         </nav>
+
       </main>
     </>
   );
