@@ -204,7 +204,6 @@ export async function POST(request) {
         .from("users")
         .insert({
           email,
-          telegram_id: `email_${crypto.randomUUID()}`,
           status: "pending",
           plan: "free",
         })
@@ -234,6 +233,9 @@ export async function POST(request) {
       user: {
         id: user.id,
         email: user.email,
+        telegram_id: user.telegram_id,
+        first_name: user.first_name,
+        username: user.username,
         status: user.status,
         plan: user.plan,
       },
