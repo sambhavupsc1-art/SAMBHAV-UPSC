@@ -32,6 +32,32 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
+function createSessionToken(user) {
+  const secret = process.env.AUTH_SESSION_SECRET;
+
+  if (!secret) {
+    throw new Error("AUTH_SESSION_SECRET is missing.");
+  }
+
+  const payload = {
+    userId: user.id,
+    email: user.email,
+    iat: Date.now(),
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  };
+
+  const encodedPayload = Buffer.from(
+    JSON.stringify(payload)
+  ).toString("base64url");
+
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+
+  return `${encodedPayload}.${signature}`;
+}
+
 function validatePassword(password) {
   if (password.length < 8) {
     return "Password must be at least 8 characters.";
@@ -71,6 +97,16 @@ export async function POST(request) {
       );
     }
 
+    if (!firstName) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Name is required.",
+        },
+        { status: 400 }
+      );
+    }
+
     const passwordError = validatePassword(password);
 
     if (passwordError) {
@@ -83,17 +119,60 @@ export async function POST(request) {
       );
     }
 
-    if (!firstName) {
+    if (!body.otpVerified) {
       return NextResponse.json(
         {
           success: false,
-          message: "Name is required.",
+          message: "Please verify your email first.",
         },
         { status: 400 }
       );
     }
 
     const supabase = getSupabase();
+
+    const { data: verifiedOtp, error: otpError } = await supabase
+      .from("email_otps")
+      .select("id,email,verified_at,expires_at")
+      .eq("email", email)
+      .not("verified_at", "is", null)
+      .order("verified_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (otpError) {
+      console.error("Verified OTP lookup error:", otpError);
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unable to verify signup request.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!verifiedOtp) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Please verify your email first.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const verifiedAt = new Date(verifiedOtp.verified_at).getTime();
+
+    if (Date.now() - verifiedAt > 15 * 60 * 1000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email verification expired. Please verify again.",
+        },
+        { status: 400 }
+      );
+    }
 
     const { data: existingUser, error: lookupError } = await supabase
       .from("users")
@@ -102,7 +181,7 @@ export async function POST(request) {
       .maybeSingle();
 
     if (lookupError) {
-      console.error("Signup user lookup error:", lookupError);
+      console.error("Signup lookup error:", lookupError);
 
       return NextResponse.json(
         {
@@ -152,11 +231,25 @@ export async function POST(request) {
       );
     }
 
-    return NextResponse.json({
+    const sessionToken = createSessionToken(user);
+
+    const response = NextResponse.json({
       success: true,
       message: "Account created successfully.",
       user,
     });
+
+    response.cookies.set({
+      name: "sambhav_session",
+      value: sessionToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (error) {
     console.error("Signup error:", error);
 
