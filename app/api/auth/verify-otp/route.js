@@ -35,32 +35,6 @@ function hashOtp(otp) {
     .digest("hex");
 }
 
-function createSessionToken(user) {
-  const secret = process.env.AUTH_SESSION_SECRET;
-
-  if (!secret) {
-    throw new Error("AUTH_SESSION_SECRET is missing.");
-  }
-
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    iat: Date.now(),
-    exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
-  };
-
-  const encodedPayload = Buffer.from(
-    JSON.stringify(payload)
-  ).toString("base64url");
-
-  const signature = crypto
-    .createHmac("sha256", secret)
-    .update(encodedPayload)
-    .digest("base64url");
-
-  return `${encodedPayload}.${signature}`;
-}
-
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -179,80 +153,10 @@ export async function POST(request) {
       );
     }
 
-    const { data: existingUser, error: userLookupError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (userLookupError) {
-      console.error("User lookup error:", userLookupError);
-
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unable to find account.",
-        },
-        { status: 500 }
-      );
-    }
-
-    let user = existingUser;
-
-    if (!user) {
-      const { data: newUser, error: createUserError } = await supabase
-        .from("users")
-        .insert({
-          email,
-          status: "pending",
-          plan: "free",
-        })
-        .select("*")
-        .single();
-
-      if (createUserError) {
-        console.error("User creation error:", createUserError);
-
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Unable to create account.",
-          },
-          { status: 500 }
-        );
-      }
-
-      user = newUser;
-    }
-
-    const sessionToken = createSessionToken(user);
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       message: "Email verified successfully.",
-      user: {
-        id: user.id,
-        email: user.email,
-        telegram_id: user.telegram_id,
-        first_name: user.first_name,
-        username: user.username,
-        status: user.status,
-        plan: user.plan,
-      },
-      next: user.status === "approved" ? "app" : "approval",
     });
-
-    response.cookies.set({
-      name: "sambhav_session",
-      value: sessionToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
-    });
-
-    return response;
   } catch (error) {
     console.error("Verify OTP error:", error);
 
