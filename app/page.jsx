@@ -1,44 +1,50 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const modules = [
   {
     title: "Current Affairs",
-    subtitle: "UPSC Current Affairs",
+    subtitle: "Daily UPSC Intelligence",
     icon: "📰",
     route: "/current-affairs",
+    premium: true,
   },
   {
     title: "PYQ Intelligence",
-    subtitle: "UPSC Previous Year Questions",
+    subtitle: "Previous Year Questions",
     icon: "🎯",
     route: "/pyq",
+    premium: true,
   },
   {
-    title: "Prelims Test",
-    subtitle: "Practice & Test Series",
+    title: "Prelims Practice",
+    subtitle: "MCQs & Test Practice",
     icon: "📝",
     route: null,
+    premium: true,
   },
   {
-    title: "Mains",
-    subtitle: "Answer Writing Practice",
+    title: "Mains Practice",
+    subtitle: "Answer Writing",
     icon: "✍️",
     route: null,
+    premium: true,
   },
   {
-    title: "AI Answer Evaluation",
-    subtitle: "UPSC Mains Answer Analysis",
+    title: "AI Evaluation",
+    subtitle: "Mains Answer Analysis",
     icon: "🤖",
     route: null,
+    premium: true,
   },
   {
     title: "Study Material",
     subtitle: "Notes • PDFs • Resources",
     icon: "📚",
     route: null,
+    premium: true,
   },
 ];
 
@@ -46,10 +52,10 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg, #f8f7f3 0%, #f1f0ec 100%)",
-    color: "#111111",
+      "linear-gradient(180deg,#f8f7f3 0%,#f1f0ec 100%)",
+    color: "#111",
     fontFamily:
-      "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
     paddingBottom: "105px",
   },
 
@@ -57,34 +63,34 @@ const styles = {
     width: "100%",
     maxWidth: "760px",
     margin: "0 auto",
-    padding: "18px 16px",
+    padding: "18px 16px 35px",
     boxSizing: "border-box",
   },
 
   header: {
     display: "flex",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "27px",
+    alignItems: "center",
+    marginBottom: "25px",
   },
 
   brand: {
-    fontSize: "20px",
-    fontWeight: "900",
-    letterSpacing: "-0.7px",
+    fontSize: "21px",
+    fontWeight: "950",
+    letterSpacing: "-0.8px",
   },
 
-  brandGold: {
+  gold: {
     color: "#9b7b2f",
   },
 
   brandSub: {
-    fontSize: "9px",
-    color: "#8b8b8b",
-    marginTop: "4px",
-    letterSpacing: "1.3px",
+    marginTop: "3px",
+    color: "#8a8a8a",
+    fontSize: "8px",
+    letterSpacing: "1.4px",
     textTransform: "uppercase",
-    fontWeight: "700",
+    fontWeight: "750",
   },
 
   avatar: {
@@ -92,780 +98,466 @@ const styles = {
     height: "44px",
     borderRadius: "50%",
     background:
-      "linear-gradient(145deg, #191919, #050505)",
-    color: "#d6bd79",
+      "linear-gradient(145deg,#181818,#050505)",
+    color: "#d5bd79",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "17px",
-    fontWeight: "850",
-    boxShadow: "0 7px 18px rgba(0,0,0,0.13)",
-  },
-
-  /* ================= PUBLIC LANDING ================= */
-
-  landingHero: {
-    background:
-      "linear-gradient(145deg, #0b0b0b 0%, #151515 53%, #252525 100%)",
-    color: "#ffffff",
-    borderRadius: "31px",
-    padding: "30px 23px 25px",
-    marginBottom: "20px",
-    boxShadow: "0 22px 48px rgba(0,0,0,0.17)",
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  landingGlow: {
-    position: "absolute",
-    width: "270px",
-    height: "270px",
-    borderRadius: "50%",
-    background:
-      "radial-gradient(circle, rgba(190,157,76,0.25), rgba(190,157,76,0) 70%)",
-    right: "-120px",
-    top: "-120px",
-    pointerEvents: "none",
-  },
-
-  landingGlow2: {
-    position: "absolute",
-    width: "160px",
-    height: "160px",
-    borderRadius: "50%",
-    background: "rgba(255,255,255,0.035)",
-    left: "-95px",
-    bottom: "-100px",
-    pointerEvents: "none",
-  },
-
-  landingEyebrow: {
-    fontSize: "9px",
-    fontWeight: "900",
-    letterSpacing: "1.7px",
-    color: "#d2ba76",
-    textTransform: "uppercase",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  landingTitle: {
-    margin: "17px 0 0",
-    fontSize: "42px",
-    lineHeight: "1.01",
-    fontWeight: "950",
-    letterSpacing: "-1.8px",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  landingGold: {
-    color: "#d6bd79",
-  },
-
-  landingText: {
-    marginTop: "15px",
-    color: "#bcbcbc",
-    fontSize: "13px",
-    lineHeight: "1.7",
-    maxWidth: "560px",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  landingButtons: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "9px",
-    marginTop: "22px",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  primaryButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "13px 17px",
-    borderRadius: "14px",
-    background: "#ffffff",
-    color: "#111111",
-    textDecoration: "none",
-    fontSize: "11px",
-    fontWeight: "900",
-  },
-
-  secondaryButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "13px 17px",
-    borderRadius: "14px",
-    background: "rgba(255,255,255,0.07)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontSize: "11px",
-    fontWeight: "800",
-  },
-
-  heroStats: {
-    display: "flex",
-    gap: "24px",
-    flexWrap: "wrap",
-    marginTop: "25px",
-    paddingTop: "17px",
-    borderTop: "1px solid rgba(255,255,255,0.09)",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  heroStatNumber: {
     fontSize: "16px",
     fontWeight: "900",
+    boxShadow: "0 8px 20px rgba(0,0,0,.13)",
   },
 
-  heroStatText: {
-    marginTop: "3px",
-    color: "#777777",
-    fontSize: "8px",
-    letterSpacing: "1px",
-    textTransform: "uppercase",
-    fontWeight: "700",
-  },
-
-  landingSection: {
-    marginTop: "39px",
-  },
-
-  goldLabel: {
+  eyebrow: {
     color: "#9b7b2f",
-    fontSize: "9px",
+    fontSize: "8px",
     fontWeight: "900",
     letterSpacing: "1.6px",
     textTransform: "uppercase",
   },
 
-  landingSectionTitle: {
-    marginTop: "7px",
-    fontSize: "27px",
-    lineHeight: "1.12",
-    fontWeight: "900",
-    letterSpacing: "-0.9px",
-  },
-
-  landingSectionSub: {
-    marginTop: "8px",
-    color: "#777777",
-    fontSize: "12px",
-    lineHeight: "1.6",
-    maxWidth: "560px",
-  },
-
-  featureGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(2, minmax(0, 1fr))",
-    gap: "11px",
-    marginTop: "17px",
-  },
-
-  featureCard: {
-    background: "#ffffff",
-    border: "1px solid #e5e3de",
-    borderRadius: "21px",
-    padding: "16px",
-    minHeight: "140px",
-    boxSizing: "border-box",
-    boxShadow:
-      "0 7px 20px rgba(0,0,0,0.045)",
-  },
-
-  featureIcon: {
-    width: "43px",
-    height: "43px",
-    borderRadius: "14px",
-    background:
-      "linear-gradient(145deg, #181818, #080808)",
-    color: "#d6bd79",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-  },
-
-  featureTitle: {
-    marginTop: "12px",
-    fontSize: "14px",
-    fontWeight: "900",
-  },
-
-  featureText: {
-    marginTop: "5px",
-    fontSize: "10px",
-    color: "#858585",
-    lineHeight: "1.45",
-  },
-
-  /* ================= DASHBOARD PREVIEW ================= */
-
-  previewOuter: {
-    marginTop: "17px",
-    background:
-      "linear-gradient(145deg,#171717,#0a0a0a)",
-    borderRadius: "27px",
-    padding: "16px",
-    boxShadow:
-      "0 20px 43px rgba(0,0,0,0.16)",
-    overflow: "hidden",
-  },
-
-  previewHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "3px 3px 14px",
-  },
-
-  previewBrand: {
-    color: "#ffffff",
-    fontSize: "13px",
-    fontWeight: "900",
-  },
-
-  previewSub: {
-    marginTop: "3px",
-    color: "#777777",
-    fontSize: "7px",
-    letterSpacing: "1.1px",
-    fontWeight: "700",
-  },
-
-  previewAvatar: {
-    width: "31px",
-    height: "31px",
-    borderRadius: "50%",
-    background: "#f2efe7",
-    color: "#111111",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "11px",
-    fontWeight: "900",
-  },
-
-  previewMainCard: {
-    background:
-      "linear-gradient(145deg,#252525,#151515)",
-    borderRadius: "19px",
-    padding: "17px",
-    border:
-      "1px solid rgba(255,255,255,0.07)",
-  },
-
-  previewLabel: {
-    color: "#8d8d8d",
-    fontSize: "8px",
-    letterSpacing: "1.2px",
-    fontWeight: "800",
-  },
-
-  previewTitle: {
-    marginTop: "7px",
-    color: "#ffffff",
-    fontSize: "20px",
-    fontWeight: "900",
-  },
-
-  previewDescription: {
-    marginTop: "5px",
-    color: "#858585",
-    fontSize: "9px",
-  },
-
-  previewMiniGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(3, minmax(0, 1fr))",
-    gap: "7px",
-    marginTop: "16px",
-  },
-
-  previewMini: {
-    background:
-      "rgba(255,255,255,0.055)",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
-    borderRadius: "11px",
-    padding: "11px 4px",
-    textAlign: "center",
-    color: "#d6bd79",
-    fontSize: "8px",
-    fontWeight: "850",
-  },
-
-  previewModules: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(2, minmax(0, 1fr))",
-    gap: "7px",
-    marginTop: "9px",
-  },
-
-  previewModule: {
-    padding: "10px",
-    borderRadius: "12px",
-    background:
-      "rgba(255,255,255,0.045)",
-    color: "#aaaaaa",
-    fontSize: "8px",
-    fontWeight: "750",
-  },
-
-  /* ================= PREMIUM ================= */
-
-  premiumLandingCard: {
-    marginTop: "39px",
-    background:
-      "linear-gradient(145deg,#eee6d2,#e3dac1)",
-    border:
-      "1px solid #d7ccb0",
-    borderRadius: "27px",
-    padding: "23px",
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  premiumLandingGlow: {
-    position: "absolute",
-    width: "190px",
-    height: "190px",
-    borderRadius: "50%",
-    right: "-95px",
-    top: "-95px",
-    background:
-      "rgba(255,255,255,0.45)",
-  },
-
-  premiumLandingContent: {
-    position: "relative",
-    zIndex: 2,
-  },
-
-  premiumLabel: {
-    color: "#806425",
-    fontSize: "9px",
-    fontWeight: "950",
-    letterSpacing: "1.5px",
-  },
-
-  premiumTitle: {
-    marginTop: "8px",
-    fontSize: "25px",
-    lineHeight: "1.12",
-    fontWeight: "950",
-    letterSpacing: "-0.8px",
-  },
-
-  premiumText: {
-    marginTop: "9px",
-    color: "#6f685a",
-    fontSize: "11px",
-    lineHeight: "1.6",
-    maxWidth: "520px",
-  },
-
-  premiumPills: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "7px",
-    marginTop: "15px",
-  },
-
-  premiumPill: {
-    padding: "7px 9px",
-    borderRadius: "999px",
-    background:
-      "rgba(255,255,255,0.55)",
-    border:
-      "1px solid rgba(130,110,70,0.13)",
-    color: "#5f584b",
-    fontSize: "8px",
-    fontWeight: "800",
-  },
-
-  premiumButton: {
-    display: "inline-flex",
-    marginTop: "18px",
-    padding: "12px 15px",
-    borderRadius: "13px",
-    background: "#111111",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontSize: "10px",
-    fontWeight: "900",
-  },
-
-  /* ================= CTA ================= */
-
-  finalCTA: {
-    marginTop: "42px",
-    textAlign: "center",
-    padding: "8px 8px 0",
-  },
-
-  finalTitle: {
-    marginTop: "8px",
-    fontSize: "29px",
-    lineHeight: "1.08",
-    fontWeight: "950",
-    letterSpacing: "-1px",
-  },
-
-  finalText: {
-    margin: "10px auto 0",
-    maxWidth: "470px",
-    color: "#777777",
-    fontSize: "11px",
-    lineHeight: "1.6",
-  },
-
-  finalButton: {
-    display: "inline-flex",
-    marginTop: "18px",
-    padding: "14px 22px",
-    borderRadius: "15px",
-    background: "#111111",
-    color: "#ffffff",
-    textDecoration: "none",
-    fontSize: "11px",
-    fontWeight: "900",
-    boxShadow:
-      "0 10px 25px rgba(0,0,0,0.13)",
-  },
-
-  publicFooter: {
-    marginTop: "48px",
-    paddingTop: "20px",
-    borderTop: "1px solid #dedcd6",
-  },
-
-  footerLinks: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "13px",
-  },
-
-  footerLink: {
-    color: "#666666",
-    textDecoration: "none",
-    fontSize: "9px",
-    fontWeight: "700",
-  },
-
-  footerCopy: {
-    marginTop: "13px",
-    color: "#999999",
-    fontSize: "8px",
-  },
-
-  /* ================= DASHBOARD ================= */
-
   greeting: {
-    marginBottom: "20px",
+    marginBottom: "18px",
   },
 
   greetingTitle: {
-    margin: 0,
-    fontSize: "29px",
-    lineHeight: "1.15",
-    fontWeight: "850",
-    letterSpacing: "-1.1px",
+    margin: "7px 0 0",
+    fontSize: "31px",
+    lineHeight: "1.08",
+    letterSpacing: "-1.2px",
+    fontWeight: "950",
   },
 
   greetingSub: {
     marginTop: "7px",
-    color: "#777777",
-    fontSize: "14px",
+    color: "#777",
+    fontSize: "12px",
   },
+
+  /* ACCESS */
 
   accessCard: {
-    background:
-      "linear-gradient(145deg, #171717 0%, #0d0d0d 100%)",
-    color: "#ffffff",
-    borderRadius: "24px",
-    padding: "21px",
-    marginBottom: "15px",
-    boxShadow: "0 13px 32px rgba(0,0,0,0.13)",
-    border:
-      "1px solid rgba(255,255,255,0.05)",
-  },
-
-  accessLabel: {
-    fontSize: "10px",
-    color: "#a7a7a7",
-    letterSpacing: "1.3px",
-    textTransform: "uppercase",
-    fontWeight: "750",
-  },
-
-  accessTitle: {
-    marginTop: "8px",
-    fontSize: "22px",
-    fontWeight: "850",
-    letterSpacing: "-0.4px",
-  },
-
-  accessSub: {
-    marginTop: "6px",
-    color: "#bdbdbd",
-    fontSize: "13px",
-  },
-
-  secretaryButton: {
-    width: "100%",
-    border: "none",
-    borderRadius: "16px",
-    background: "#111111",
-    color: "#ffffff",
-    padding: "15px",
-    fontSize: "14px",
-    fontWeight: "750",
-    marginBottom: "17px",
-    cursor: "pointer",
-  },
-
-  premiumCard: {
-    background:
-      "linear-gradient(135deg, #111111 0%, #191919 55%, #252525 100%)",
-    color: "#ffffff",
-    borderRadius: "25px",
-    padding: "21px",
-    marginBottom: "27px",
-    boxShadow: "0 15px 38px rgba(0,0,0,0.15)",
     position: "relative",
     overflow: "hidden",
-    cursor: "pointer",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
-  },
-
-  premiumGlow: {
-    position: "absolute",
-    width: "190px",
-    height: "190px",
-    borderRadius: "50%",
+    borderRadius: "27px",
     background:
-      "rgba(255,255,255,0.055)",
-    right: "-75px",
-    top: "-85px",
+      "linear-gradient(145deg,#0c0c0c,#191919 55%,#252525)",
+    color: "#fff",
+    padding: "22px",
+    boxShadow:
+      "0 20px 42px rgba(0,0,0,.16)",
+    marginBottom: "13px",
   },
 
-  premiumGlowSmall: {
+  accessGlow: {
     position: "absolute",
-    width: "80px",
-    height: "80px",
+    width: "210px",
+    height: "210px",
     borderRadius: "50%",
+    right: "-90px",
+    top: "-105px",
     background:
-      "rgba(255,255,255,0.035)",
-    right: "80px",
-    bottom: "-45px",
+      "radial-gradient(circle,rgba(191,158,76,.25),rgba(191,158,76,0) 70%)",
   },
 
-  premiumBadge: {
+  accessContent: {
+    position: "relative",
+    zIndex: 2,
+  },
+
+  accessBadge: {
     display: "inline-flex",
     padding: "6px 10px",
     borderRadius: "999px",
-    background: "#ffffff",
-    color: "#111111",
-    fontSize: "9px",
-    fontWeight: "900",
+    background: "#fff",
+    color: "#111",
+    fontSize: "8px",
+    fontWeight: "950",
     letterSpacing: "1px",
-    position: "relative",
-    zIndex: 2,
   },
 
-  premiumTitleDashboard: {
+  accessTitle: {
     marginTop: "13px",
-    fontSize: "20px",
-    fontWeight: "850",
-    lineHeight: "1.2",
-    position: "relative",
-    zIndex: 2,
+    fontSize: "23px",
+    fontWeight: "900",
+    letterSpacing: "-.4px",
   },
 
-  premiumSub: {
-    marginTop: "7px",
-    color: "#b9b9b9",
+  accessText: {
+    marginTop: "6px",
+    color: "#aaa",
     fontSize: "11px",
-    lineHeight: "1.55",
-    maxWidth: "315px",
-    position: "relative",
-    zIndex: 2,
+    lineHeight: "1.5",
+    maxWidth: "360px",
   },
 
-  premiumAction: {
-    marginTop: "16px",
+  accessStatus: {
     display: "inline-flex",
-    padding: "10px 14px",
-    borderRadius: "13px",
-    background: "#ffffff",
-    color: "#111111",
-    fontSize: "11px",
+    marginTop: "15px",
+    padding: "7px 10px",
+    borderRadius: "999px",
+    background:
+      "rgba(255,255,255,.07)",
+    border:
+      "1px solid rgba(255,255,255,.08)",
+    color: "#d5bd79",
+    fontSize: "8px",
     fontWeight: "850",
-    position: "relative",
-    zIndex: 2,
   },
+
+  /* STATS */
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(3,minmax(0,1fr))",
+    gap: "9px",
+    marginBottom: "13px",
+  },
+
+  statCard: {
+    background: "#fff",
+    border: "1px solid #e5e3de",
+    borderRadius: "19px",
+    padding: "14px 9px",
+    textAlign: "center",
+    boxShadow:
+      "0 6px 17px rgba(0,0,0,.035)",
+  },
+
+  statNumber: {
+    fontSize: "19px",
+    fontWeight: "950",
+  },
+
+  statLabel: {
+    marginTop: "4px",
+    color: "#888",
+    fontSize: "7px",
+    letterSpacing: ".8px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+
+  /* COUNTDOWN */
+
+  countdown: {
+    borderRadius: "23px",
+    background: "#fff",
+    border: "1px solid #e5e3de",
+    padding: "17px",
+    marginBottom: "27px",
+    boxShadow:
+      "0 7px 20px rgba(0,0,0,.04)",
+  },
+
+  countdownTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  countdownTitle: {
+    fontSize: "13px",
+    fontWeight: "900",
+  },
+
+  countdownSmall: {
+    color: "#999",
+    fontSize: "8px",
+    fontWeight: "750",
+  },
+
+  countdownNumber: {
+    marginTop: "9px",
+    fontSize: "29px",
+    fontWeight: "950",
+    letterSpacing: "-1px",
+  },
+
+  countdownBar: {
+    height: "5px",
+    borderRadius: "999px",
+    background: "#eeeeeb",
+    marginTop: "10px",
+    overflow: "hidden",
+  },
+
+  countdownFill: {
+    width: "25%",
+    height: "100%",
+    borderRadius: "999px",
+    background:
+      "linear-gradient(90deg,#111,#b3944b)",
+  },
+
+  /* MISSION */
 
   sectionHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "13px",
+    marginBottom: "12px",
   },
 
   sectionTitle: {
-    fontSize: "21px",
-    fontWeight: "850",
+    fontSize: "19px",
+    fontWeight: "900",
+    letterSpacing: "-.4px",
   },
 
   sectionSmall: {
-    fontSize: "11px",
-    color: "#999999",
-    fontWeight: "600",
+    color: "#999",
+    fontSize: "8px",
+    fontWeight: "750",
   },
 
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(2, minmax(0, 1fr))",
-    gap: "12px",
+  mission: {
+    background: "#fff",
+    border:
+      "1px solid #e5e3de",
+    borderRadius: "23px",
+    padding: "8px",
+    marginBottom: "28px",
+    boxShadow:
+      "0 7px 20px rgba(0,0,0,.035)",
   },
 
-  card: {
-    background: "#ffffff",
-    border: "1px solid #e8e8e6",
-    borderRadius: "22px",
-    padding: "15px",
-    minHeight: "108px",
+  missionRow: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    boxSizing: "border-box",
-    cursor: "pointer",
-    boxShadow:
-      "0 5px 16px rgba(0,0,0,0.045)",
+    gap: "11px",
+    padding: "13px 10px",
+    borderBottom: "1px solid #eeeeeb",
   },
 
-  iconBox: {
-    width: "46px",
-    height: "46px",
-    minWidth: "46px",
-    borderRadius: "15px",
-    background:
-      "linear-gradient(145deg, #181818, #080808)",
+  missionLast: {
+    borderBottom: "none",
+  },
+
+  check: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "10px",
+    background: "#f0f0ed",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "21px",
+    color: "#777",
+    fontSize: "12px",
   },
 
-  cardContent: {
-    minWidth: 0,
-    flex: 1,
+  missionTitle: {
+    fontSize: "11px",
+    fontWeight: "850",
   },
 
-  cardTitle: {
-    fontSize: "14px",
-    fontWeight: "800",
-    lineHeight: "1.2",
+  missionSub: {
+    marginTop: "3px",
+    color: "#999",
+    fontSize: "8px",
   },
 
-  cardSubtitle: {
-    marginTop: "5px",
-    color: "#858585",
-    fontSize: "10px",
+  /* MODULES */
+
+  modulesGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2,minmax(0,1fr))",
+    gap: "11px",
+    marginBottom: "28px",
+  },
+
+  moduleCard: {
+    position: "relative",
+    background: "#fff",
+    border: "1px solid #e5e3de",
+    borderRadius: "21px",
+    padding: "15px",
+    minHeight: "135px",
+    boxSizing: "border-box",
+    boxShadow:
+      "0 7px 20px rgba(0,0,0,.04)",
+    cursor: "pointer",
+  },
+
+  moduleIcon: {
+    width: "43px",
+    height: "43px",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(145deg,#181818,#080808)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+  },
+
+  moduleTitle: {
+    marginTop: "12px",
+    fontSize: "13px",
+    fontWeight: "900",
+  },
+
+  moduleSubtitle: {
+    marginTop: "4px",
+    color: "#888",
+    fontSize: "9px",
     lineHeight: "1.35",
   },
 
-  arrow: {
-    width: "28px",
-    height: "28px",
-    minWidth: "28px",
+  moduleArrow: {
+    position: "absolute",
+    right: "12px",
+    bottom: "12px",
+    width: "25px",
+    height: "25px",
     borderRadius: "50%",
-    background: "#f0f0ee",
-    color: "#777777",
+    background: "#f0f0ed",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "17px",
+    color: "#777",
   },
 
-  pendingCard: {
-    marginTop: "70px",
-    background: "#ffffff",
-    border: "1px solid #e5e5e3",
+  lock: {
+    position: "absolute",
+    right: "12px",
+    top: "12px",
+    fontSize: "11px",
+  },
+
+  /* AI */
+
+  aiCard: {
+    position: "relative",
+    overflow: "hidden",
     borderRadius: "24px",
-    padding: "30px 22px",
-    textAlign: "center",
-    boxShadow:
-      "0 8px 25px rgba(0,0,0,0.05)",
-  },
-
-  welcomeCard: {
-    marginTop: "70px",
     background:
-      "linear-gradient(145deg, #171717, #090909)",
-    color: "#ffffff",
-    borderRadius: "26px",
-    padding: "30px 22px",
-    textAlign: "center",
+      "linear-gradient(145deg,#111,#242424)",
+    color: "#fff",
+    padding: "20px",
+    marginBottom: "28px",
     boxShadow:
-      "0 18px 42px rgba(0,0,0,0.16)",
+      "0 15px 34px rgba(0,0,0,.14)",
   },
 
-  welcomeLabel: {
-    fontSize: "10px",
-    color: "#a7a7a7",
-    letterSpacing: "2px",
-    fontWeight: "800",
+  aiGlow: {
+    position: "absolute",
+    width: "180px",
+    height: "180px",
+    borderRadius: "50%",
+    right: "-90px",
+    top: "-80px",
+    background:
+      "rgba(190,157,76,.15)",
   },
 
-  welcomeTitle: {
+  aiContent: {
+    position: "relative",
+    zIndex: 2,
+  },
+
+  aiLabel: {
+    color: "#d5bd79",
+    fontSize: "8px",
+    fontWeight: "900",
+    letterSpacing: "1.4px",
+  },
+
+  aiTitle: {
     marginTop: "8px",
-    fontSize: "27px",
+    fontSize: "20px",
     fontWeight: "900",
   },
 
-  welcomeUser: {
-    marginTop: "10px",
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "#e8e8e8",
+  aiText: {
+    marginTop: "6px",
+    color: "#aaa",
+    fontSize: "10px",
+    lineHeight: "1.5",
+    maxWidth: "390px",
   },
 
-  welcomeStatus: {
-    display: "inline-block",
-    marginTop: "18px",
-    padding: "8px 14px",
-    borderRadius: "999px",
-    background: "#ffffff",
-    color: "#111111",
-    fontSize: "11px",
-    fontWeight: "900",
-  },
-
-  welcomePremium: {
+  aiButton: {
+    display: "inline-flex",
     marginTop: "14px",
-    padding: "11px 14px",
-    borderRadius: "15px",
-    background:
-      "linear-gradient(135deg, #222222, #3a3a3a)",
-    border: "1px solid #4a4a4a",
-    color: "#ffffff",
-    fontSize: "11px",
-    fontWeight: "800",
+    padding: "10px 13px",
+    borderRadius: "12px",
+    background: "#fff",
+    color: "#111",
+    border: "none",
+    fontSize: "9px",
+    fontWeight: "900",
+    cursor: "pointer",
   },
+
+  /* DAILY */
+
+  intelligence: {
+    background: "#fff",
+    border: "1px solid #e5e3de",
+    borderRadius: "23px",
+    padding: "18px",
+    marginBottom: "28px",
+  },
+
+  intelligenceText: {
+    marginTop: "6px",
+    color: "#777",
+    fontSize: "10px",
+    lineHeight: "1.55",
+  },
+
+  intelligenceButton: {
+    display: "inline-flex",
+    marginTop: "12px",
+    padding: "9px 12px",
+    borderRadius: "11px",
+    background: "#111",
+    color: "#fff",
+    textDecoration: "none",
+    fontSize: "8px",
+    fontWeight: "850",
+  },
+
+  /* LOCKED */
+
+  lockedBanner: {
+    background:
+      "linear-gradient(145deg,#eee8d8,#e3dac3)",
+    border:
+      "1px solid #d7ccb0",
+    borderRadius: "23px",
+    padding: "18px",
+    marginBottom: "28px",
+  },
+
+  lockedBannerTitle: {
+    fontSize: "15px",
+    fontWeight: "900",
+  },
+
+  lockedBannerText: {
+    marginTop: "5px",
+    color: "#6f685a",
+    fontSize: "10px",
+    lineHeight: "1.5",
+  },
+
+  lockedButton: {
+    display: "inline-flex",
+    marginTop: "12px",
+    padding: "10px 13px",
+    borderRadius: "12px",
+    background: "#111",
+    color: "#fff",
+    textDecoration: "none",
+    fontSize: "9px",
+    fontWeight: "900",
+  },
+
+  /* NAV */
 
   bottomNav: {
     position: "fixed",
@@ -875,14 +567,14 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(255,255,255,0.97)",
-    border: "1px solid #e5e5e3",
+    background: "rgba(255,255,255,.97)",
+    border: "1px solid #e5e3de",
     borderRadius: "25px",
     boxShadow:
-      "0 10px 35px rgba(0,0,0,0.12)",
+      "0 10px 35px rgba(0,0,0,.12)",
     display: "grid",
     gridTemplateColumns:
-      "repeat(4, 1fr)",
+      "repeat(5,1fr)",
     alignItems: "center",
     zIndex: 50,
   },
@@ -890,26 +582,39 @@ const styles = {
   navItem: {
     height: "52px",
     margin: "5px",
-    borderRadius: "20px",
+    borderRadius: "18px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: "3px",
-    fontSize: "10px",
-    color: "#777777",
-    fontWeight: "600",
+    fontSize: "8px",
+    color: "#777",
+    fontWeight: "700",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "#eeeeec",
-    color: "#111111",
+    background: "#eeeeeb",
+    color: "#111",
   },
 
   navIcon: {
-    fontSize: "18px",
-    lineHeight: "18px",
+    fontSize: "17px",
+    lineHeight: "17px",
+  },
+
+  /* COMMON STATES */
+
+  pendingCard: {
+    marginTop: "70px",
+    background: "#fff",
+    border: "1px solid #e5e3de",
+    borderRadius: "25px",
+    padding: "30px 22px",
+    textAlign: "center",
+    boxShadow:
+      "0 8px 25px rgba(0,0,0,.05)",
   },
 
   lockedIcon: {
@@ -917,7 +622,7 @@ const styles = {
     height: "64px",
     borderRadius: "22px",
     background:
-      "linear-gradient(145deg, #181818, #080808)",
+      "linear-gradient(145deg,#181818,#080808)",
     color: "#fff",
     display: "flex",
     alignItems: "center",
@@ -951,451 +656,404 @@ const styles = {
     fontWeight: "800",
     textTransform: "uppercase",
   },
+
+  welcomeCard: {
+    marginTop: "70px",
+    background:
+      "linear-gradient(145deg,#171717,#090909)",
+    color: "#fff",
+    borderRadius: "26px",
+    padding: "30px 22px",
+    textAlign: "center",
+    boxShadow:
+      "0 18px 42px rgba(0,0,0,.16)",
+  },
+
+  welcomeLabel: {
+    fontSize: "9px",
+    color: "#a7a7a7",
+    letterSpacing: "2px",
+    fontWeight: "800",
+  },
+
+  welcomeTitle: {
+    marginTop: "8px",
+    fontSize: "27px",
+    fontWeight: "900",
+  },
+
+  welcomeUser: {
+    marginTop: "10px",
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#e8e8e8",
+  },
+
+  welcomeStatus: {
+    display: "inline-block",
+    marginTop: "18px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "#fff",
+    color: "#111",
+    fontSize: "10px",
+    fontWeight: "900",
+  },
 };
 
 
 /* =========================================================
-   PUBLIC LANDING PAGE
+   PUBLIC LANDING
    ========================================================= */
 
 function PublicLanding() {
-  const features = [
-    {
-      icon: "◈",
-      title: "Current Affairs",
-      text:
-        "Daily UPSC-focused intelligence with exam-oriented revision.",
-    },
-    {
-      icon: "◎",
-      title: "PYQ Intelligence",
-      text:
-        "Understand previous year questions beyond simple practice.",
-    },
-    {
-      icon: "▣",
-      title: "Prelims Practice",
-      text:
-        "Structured practice designed around UPSC preparation.",
-    },
-    {
-      icon: "✎",
-      title: "Mains Practice",
-      text:
-        "Build answer-writing discipline with focused practice.",
-    },
-  ];
-
-  const systemCards = [
-    "Current Affairs",
-    "PYQ Intelligence",
-    "Prelims Practice",
-    "Mains Answer Writing",
-    "AI Evaluation",
-    "Study Material",
-  ];
-
   return (
-    <>
-      <main style={styles.page}>
-        <div style={styles.container}>
+    <main style={styles.page}>
+      <div style={styles.container}>
 
-          {/* HEADER */}
-
-          <header style={styles.header}>
-            <div>
-              <div style={styles.brand}>
-                SAMBHAV
-                <span style={styles.brandGold}>
-                  {" "}UPSC
-                </span>
-              </div>
-
-              <div style={styles.brandSub}>
-                Intelligence • Preparation • Performance
-              </div>
+        <header style={styles.header}>
+          <div>
+            <div style={styles.brand}>
+              SAMBHAV{" "}
+              <span style={styles.gold}>UPSC</span>
             </div>
 
-            <a
-              href="/login"
-              style={{
-                ...styles.secondaryButton,
-                background: "#111111",
-                border: "none",
-                padding: "11px 15px",
-              }}
-            >
-              Sign In
-            </a>
-          </header>
+            <div style={styles.brandSub}>
+              Intelligence • Preparation • Performance
+            </div>
+          </div>
+
+          <a
+            href="/login"
+            style={{
+              background: "#111",
+              color: "#fff",
+              padding: "11px 15px",
+              borderRadius: "13px",
+              textDecoration: "none",
+              fontSize: "10px",
+              fontWeight: "900",
+            }}
+          >
+            Sign In
+          </a>
+        </header>
 
 
-          {/* HERO */}
+        <section style={styles.accessCard}>
+          <div style={styles.accessGlow} />
 
-          <section style={styles.landingHero}>
-            <div style={styles.landingGlow} />
-            <div style={styles.landingGlow2} />
-
-            <div style={styles.landingEyebrow}>
+          <div style={styles.accessContent}>
+            <div style={styles.accessBadge}>
               ✦ AI-POWERED UPSC PREPARATION
             </div>
 
-            <h1 style={styles.landingTitle}>
+            <div
+              style={{
+                marginTop: "19px",
+                fontSize: "42px",
+                lineHeight: "1",
+                fontWeight: "950",
+                letterSpacing: "-1.8px",
+              }}
+            >
               Prepare with clarity.
               <br />
 
-              <span style={styles.landingGold}>
+              <span style={styles.gold}>
                 Perform with SAMBHAV.
               </span>
-            </h1>
+            </div>
 
-            <p style={styles.landingText}>
-              A focused UPSC preparation system bringing
-              Current Affairs, PYQs, Prelims, Mains,
-              AI-assisted learning and study resources
-              into one professional platform.
-            </p>
+            <div style={styles.accessText}>
+              Current Affairs, PYQ Intelligence,
+              Prelims, Mains, AI-assisted learning
+              and study resources — organised into
+              one focused UPSC preparation system.
+            </div>
 
             <div style={styles.landingButtons}>
               <a
                 href="/login"
-                style={styles.primaryButton}
+                style={{
+                  ...styles.primaryButton,
+                }}
               >
                 Start Preparing →
               </a>
 
               <a
                 href="/pricing"
-                style={styles.secondaryButton}
+                style={{
+                  ...styles.secondaryButton,
+                }}
               >
                 Explore Plans
               </a>
             </div>
+          </div>
+        </section>
 
-            <div style={styles.heroStats}>
-              <div>
-                <div style={styles.heroStatNumber}>
-                  01
-                </div>
 
-                <div style={styles.heroStatText}>
-                  Focused
-                </div>
+        <section style={{ marginTop: "38px" }}>
+          <div style={styles.eyebrow}>
+            THE SAMBHAV SYSTEM
+          </div>
+
+          <div
+            style={{
+              marginTop: "7px",
+              fontSize: "27px",
+              lineHeight: "1.1",
+              fontWeight: "950",
+              letterSpacing: "-.9px",
+            }}
+          >
+            One platform.
+            <br />
+            One preparation system.
+          </div>
+
+          <div
+            style={{
+              marginTop: "8px",
+              color: "#777",
+              fontSize: "11px",
+              lineHeight: "1.6",
+            }}
+          >
+            Everything you need for a structured UPSC
+            preparation journey.
+          </div>
+        </section>
+
+
+        <section style={styles.featureGrid}>
+          {[
+            ["📰", "Current Affairs", "Daily UPSC intelligence"],
+            ["🎯", "PYQ Intelligence", "Question-based learning"],
+            ["📝", "Prelims Practice", "MCQs & tests"],
+            ["✍️", "Mains Practice", "Answer writing"],
+            ["🤖", "AI Evaluation", "Answer analysis"],
+            ["📚", "Study Material", "Notes & resources"],
+          ].map(([icon, title, text]) => (
+            <div
+              key={title}
+              style={styles.moduleCard}
+            >
+              <div style={styles.moduleIcon}>
+                {icon}
               </div>
 
-              <div>
-                <div style={styles.heroStatNumber}>
-                  02
-                </div>
-
-                <div style={styles.heroStatText}>
-                  Structured
-                </div>
+              <div style={styles.moduleTitle}>
+                {title}
               </div>
 
-              <div>
-                <div style={styles.heroStatNumber}>
-                  03
-                </div>
-
-                <div style={styles.heroStatText}>
-                  Intelligent
-                </div>
+              <div style={styles.moduleSubtitle}>
+                {text}
               </div>
             </div>
-          </section>
+          ))}
+        </section>
 
 
-          {/* SYSTEM */}
+        <section style={styles.landingSection}>
+          <div style={styles.eyebrow}>
+            INSIDE SAMBHAV
+          </div>
 
-          <section style={styles.landingSection}>
-            <div style={styles.goldLabel}>
-              THE SAMBHAV SYSTEM
+          <div style={styles.landingSectionTitle}>
+            Your preparation.
+            <br />
+            One intelligent workspace.
+          </div>
+
+          <div style={styles.previewBox}>
+            <div
+              style={{
+                color: "#fff",
+                fontSize: "14px",
+                fontWeight: "900",
+              }}
+            >
+              SAMBHAV UPSC
             </div>
 
-            <div style={styles.landingSectionTitle}>
-              One platform.
-              <br />
-              One preparation system.
+            <div
+              style={{
+                marginTop: "4px",
+                color: "#777",
+                fontSize: "7px",
+                letterSpacing: "1px",
+              }}
+            >
+              COMMAND CENTRE
             </div>
 
-            <div style={styles.landingSectionSub}>
-              Instead of jumping between multiple tools,
-              organise your preparation inside one
-              structured workspace.
-            </div>
-
-            <div style={styles.featureGrid}>
-              {features.map((feature, index) => (
-                <div
-                  key={feature.title}
-                  style={styles.featureCard}
-                >
-                  <div style={styles.featureIcon}>
-                    {feature.icon}
-                  </div>
-
-                  <div style={styles.featureTitle}>
-                    {feature.title}
-                  </div>
-
-                  <div style={styles.featureText}>
-                    {feature.text}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "9px",
-                      color: "#b1b1b1",
-                      fontSize: "8px",
-                      fontWeight: "800",
-                    }}
-                  >
-                    0{index + 1}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-
-          {/* DASHBOARD PREVIEW */}
-
-          <section style={styles.landingSection}>
-            <div style={styles.goldLabel}>
-              INSIDE SAMBHAV
-            </div>
-
-            <div style={styles.landingSectionTitle}>
-              Your preparation,
-              <br />
-              organised in one dashboard.
-            </div>
-
-            <div style={styles.landingSectionSub}>
-              Everything important stays inside your
-              preparation workspace.
-            </div>
-
-            <div style={styles.previewOuter}>
-
-              <div style={styles.previewHeader}>
-                <div>
-                  <div style={styles.previewBrand}>
-                    SAMBHAV UPSC
-                  </div>
-
-                  <div style={styles.previewSub}>
-                    COMMAND CENTRE
-                  </div>
-                </div>
-
-                <div style={styles.previewAvatar}>
-                  A
-                </div>
+            <div
+              style={{
+                marginTop: "17px",
+                padding: "17px",
+                borderRadius: "18px",
+                background: "#222",
+              }}
+            >
+              <div
+                style={{
+                  color: "#888",
+                  fontSize: "8px",
+                  fontWeight: "800",
+                }}
+              >
+                TODAY'S PREPARATION
               </div>
 
-              <div style={styles.previewMainCard}>
-                <div style={styles.previewLabel}>
-                  TODAY'S PREPARATION
-                </div>
-
-                <div style={styles.previewTitle}>
-                  Stay consistent.
-                </div>
-
-                <div style={styles.previewDescription}>
-                  Your preparation system is ready.
-                </div>
-
-                <div style={styles.previewMiniGrid}>
-                  <div style={styles.previewMini}>
-                    CA
-                  </div>
-
-                  <div style={styles.previewMini}>
-                    PYQ
-                  </div>
-
-                  <div style={styles.previewMini}>
-                    MAINS
-                  </div>
-                </div>
+              <div
+                style={{
+                  marginTop: "7px",
+                  color: "#fff",
+                  fontSize: "20px",
+                  fontWeight: "900",
+                }}
+              >
+                Stay consistent.
               </div>
 
-              <div style={styles.previewModules}>
-                {systemCards.map((item) => (
-                  <div
-                    key={item}
-                    style={styles.previewModule}
-                  >
-                    {item}
-
-                    <span
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(3,1fr)",
+                  gap: "7px",
+                  marginTop: "16px",
+                }}
+              >
+                {["CA", "PYQ", "MAINS"].map(
+                  (item) => (
+                    <div
+                      key={item}
                       style={{
-                        float: "right",
-                        color: "#555555",
+                        background:
+                          "rgba(255,255,255,.06)",
+                        borderRadius: "11px",
+                        padding: "11px 4px",
+                        textAlign: "center",
+                        color: "#d5bd79",
+                        fontSize: "8px",
+                        fontWeight: "900",
                       }}
                     >
-                      →
-                    </span>
-                  </div>
-                ))}
+                      {item}
+                    </div>
+                  )
+                )}
               </div>
-
             </div>
-          </section>
+          </div>
+        </section>
 
 
-          {/* PREMIUM */}
+        <section
+          style={{
+            marginTop: "38px",
+            padding: "22px",
+            borderRadius: "26px",
+            background:
+              "linear-gradient(145deg,#eee7d5,#e3dac2)",
+            border: "1px solid #d7ccb0",
+          }}
+        >
+          <div style={styles.eyebrow}>
+            PREMIUM ACCESS
+          </div>
 
-          <section
-            style={styles.premiumLandingCard}
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: "24px",
+              fontWeight: "950",
+              lineHeight: "1.1",
+            }}
           >
-            <div
-              style={styles.premiumLandingGlow}
-            />
+            Built for serious
+            <br />
+            UPSC preparation.
+          </div>
 
-            <div
-              style={styles.premiumLandingContent}
-            >
-              <div style={styles.premiumLabel}>
-                PREMIUM ACCESS
-              </div>
+          <div
+            style={{
+              marginTop: "9px",
+              color: "#6f685a",
+              fontSize: "10px",
+              lineHeight: "1.6",
+            }}
+          >
+            Unlock the complete SAMBHAV preparation
+            experience.
+          </div>
 
-              <div style={styles.premiumTitle}>
-                Built for serious
-                <br />
-                UPSC preparation.
-              </div>
-
-              <div style={styles.premiumText}>
-                Unlock the complete SAMBHAV experience
-                and bring your preparation tools into
-                one focused workspace.
-              </div>
-
-              <div style={styles.premiumPills}>
-                <span style={styles.premiumPill}>
-                  ✓ Daily Intelligence
-                </span>
-
-                <span style={styles.premiumPill}>
-                  ✓ PYQ Intelligence
-                </span>
-
-                <span style={styles.premiumPill}>
-                  ✓ Mains Practice
-                </span>
-
-                <span style={styles.premiumPill}>
-                  ✓ AI Learning
-                </span>
-              </div>
-
-              <a
-                href="/pricing"
-                style={styles.premiumButton}
-              >
-                Explore Premium →
-              </a>
-            </div>
-          </section>
+          <a
+            href="/pricing"
+            style={{
+              display: "inline-flex",
+              marginTop: "16px",
+              padding: "11px 14px",
+              borderRadius: "12px",
+              background: "#111",
+              color: "#fff",
+              textDecoration: "none",
+              fontSize: "9px",
+              fontWeight: "900",
+            }}
+          >
+            Explore Premium →
+          </a>
+        </section>
 
 
-          {/* FINAL CTA */}
+        <section
+          style={{
+            textAlign: "center",
+            marginTop: "42px",
+          }}
+        >
+          <div style={styles.eyebrow}>
+            YOUR NEXT STEP
+          </div>
 
-          <section style={styles.finalCTA}>
-            <div style={styles.goldLabel}>
-              YOUR NEXT STEP
-            </div>
+          <div style={styles.finalTitle}>
+            Start your preparation
+            <br />
+            with SAMBHAV.
+          </div>
 
-            <div style={styles.finalTitle}>
-              Start your preparation
-              <br />
-              with SAMBHAV.
-            </div>
+          <div style={styles.finalText}>
+            Create your account and enter your
+            personalised UPSC preparation workspace.
+          </div>
 
-            <div style={styles.finalText}>
-              Create your account and enter your
-              personalised UPSC preparation workspace.
-            </div>
+          <a
+            href="/login"
+            style={styles.finalButton}
+          >
+            Create Account →
+          </a>
+        </section>
 
-            <a
-              href="/login"
-              style={styles.finalButton}
-            >
-              Create Account →
-            </a>
-          </section>
-
-
-          {/* FOOTER */}
-
-          <footer style={styles.publicFooter}>
-            <div style={styles.footerLinks}>
-              <a
-                href="/about"
-                style={styles.footerLink}
-              >
-                About
-              </a>
-
-              <a
-                href="/contact"
-                style={styles.footerLink}
-              >
-                Contact
-              </a>
-
-              <a
-                href="/pricing"
-                style={styles.footerLink}
-              >
-                Pricing
-              </a>
-
-              <a
-                href="/privacy"
-                style={styles.footerLink}
-              >
-                Privacy
-              </a>
-
-              <a
-                href="/terms"
-                style={styles.footerLink}
-              >
-                Terms
-              </a>
-
-              <a
-                href="/refund"
-                style={styles.footerLink}
-              >
-                Refund
-              </a>
-            </div>
-
-            <div style={styles.footerCopy}>
-              © {new Date().getFullYear()} SAMBHAV UPSC.
-              All rights reserved.
-            </div>
-          </footer>
-
-        </div>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }
 
 
 /* =========================================================
-   MAIN HOME
+   MAIN APP
    ========================================================= */
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [subscription, setSubscription] =
+    useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1404,24 +1062,12 @@ export default function Home() {
   const [showWelcome, setShowWelcome] =
     useState(false);
 
-
-  /* =====================================================
-     AUTHENTICATION
-     ===================================================== */
-
   useEffect(() => {
     let stopped = false;
 
     const authenticate = async () => {
-      if (stopped) return;
-
       try {
-
-        /* ===============================================
-           1. EMAIL SESSION
-           =============================================== */
-
-        const emailResponse = await fetch(
+        const response = await fetch(
           "/api/auth/me",
           {
             method: "GET",
@@ -1430,52 +1076,47 @@ export default function Home() {
           }
         );
 
-        const emailData =
-          await emailResponse.json().catch(
+        const data =
+          await response.json().catch(
             () => ({})
           );
 
         if (
-          emailResponse.ok &&
-          emailData?.user
+          response.ok &&
+          data?.user
         ) {
           if (stopped) return;
 
           setTelegramMode(false);
-
-          setUser(emailData.user);
-
+          setUser(data.user);
+          setSubscription(
+            data.subscription || null
+          );
           setIsAdmin(
-            emailData.isAdmin === true
+            data.isAdmin === true
           );
 
           if (
-            emailData.user?.status ===
+            data.user.status ===
             "approved"
           ) {
             setShowWelcome(true);
           }
 
           setLoading(false);
-
           return;
         }
-
-
-        /* ===============================================
-           2. TELEGRAM AUTHENTICATION
-           =============================================== */
 
         const webApp =
           window.Telegram?.WebApp;
 
         if (webApp?.initData) {
+          webApp.ready();
+          webApp.expand();
+
           if (stopped) return;
 
           setTelegramMode(true);
-
-          webApp.ready();
-          webApp.expand();
 
           const telegramResponse =
             await fetch(
@@ -1506,6 +1147,11 @@ export default function Home() {
             telegramData.user
           );
 
+          setSubscription(
+            telegramData.subscription ||
+              null
+          );
+
           setIsAdmin(
             telegramData.isAdmin === true
           );
@@ -1518,24 +1164,16 @@ export default function Home() {
           }
 
           setLoading(false);
-
           return;
         }
 
-
-        /* ===============================================
-           3. PUBLIC WEBSITE
-           =============================================== */
-
         if (stopped) return;
 
-        setTelegramMode(false);
         setUser(null);
-        setError("");
+        setSubscription(null);
+        setTelegramMode(false);
         setLoading(false);
-
       } catch (err) {
-
         if (stopped) return;
 
         console.error(
@@ -1559,25 +1197,18 @@ export default function Home() {
     };
   }, []);
 
-
-  /* =====================================================
-     WELCOME SCREEN TIMER
-     ===================================================== */
-
   useEffect(() => {
     if (!showWelcome) return;
 
     const timer = setTimeout(() => {
       setShowWelcome(false);
-    }, 1200);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [showWelcome]);
 
 
-  /* =====================================================
-     PUBLIC WEBSITE
-     ===================================================== */
+  /* PUBLIC */
 
   if (
     !loading &&
@@ -1588,9 +1219,7 @@ export default function Home() {
   }
 
 
-  /* =====================================================
-     LOADING
-     ===================================================== */
+  /* LOADING */
 
   if (loading) {
     return (
@@ -1602,7 +1231,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <div
               style={{
                 ...styles.pendingCard,
@@ -1610,17 +1238,16 @@ export default function Home() {
               }}
             >
               <div style={styles.brand}>
-                SAMBHAV
-                <span style={styles.brandGold}>
-                  {" "}UPSC
+                SAMBHAV{" "}
+                <span style={styles.gold}>
+                  UPSC
                 </span>
               </div>
 
               <p style={styles.greetingSub}>
-                Checking access...
+                Preparing your workspace...
               </p>
             </div>
-
           </div>
         </main>
       </>
@@ -1628,9 +1255,7 @@ export default function Home() {
   }
 
 
-  /* =====================================================
-     TELEGRAM AUTH ERROR
-     ===================================================== */
+  /* TELEGRAM ERROR */
 
   if (
     telegramMode &&
@@ -1650,9 +1275,9 @@ export default function Home() {
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
-                  SAMBHAV
-                  <span style={styles.brandGold}>
-                    {" "}UPSC
+                  SAMBHAV{" "}
+                  <span style={styles.gold}>
+                    UPSC
                   </span>
                 </div>
 
@@ -1682,8 +1307,8 @@ export default function Home() {
 
               <p style={styles.lockedText}>
                 SAMBHAV UPSC application access
-                ke liye Telegram se authorized
-                login required hai.
+                ke liye authorized login required
+                hai.
               </p>
 
               <div style={styles.statusPill}>
@@ -1698,18 +1323,12 @@ export default function Home() {
   }
 
 
-  /* =====================================================
-     SAFETY
-     ===================================================== */
-
   if (!user) {
     return null;
   }
 
 
-  /* =====================================================
-     APPROVAL STATUS
-     ===================================================== */
+  /* STATUS */
 
   if (
     user.status !==
@@ -1734,7 +1353,7 @@ export default function Home() {
         "Access Rejected";
 
       text =
-        "Aapki access request approve nahi hui hai. Application access abhi available nahi hai.";
+        "Aapki access request approve nahi hui hai.";
 
       icon = "×";
 
@@ -1750,7 +1369,7 @@ export default function Home() {
         "Access Blocked";
 
       text =
-        "Aapka account currently blocked hai. Application access available nahi hai.";
+        "Aapka account currently blocked hai.";
 
       icon = "🔒";
 
@@ -1771,9 +1390,9 @@ export default function Home() {
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
-                  SAMBHAV
-                  <span style={styles.brandGold}>
-                    {" "}UPSC
+                  SAMBHAV{" "}
+                  <span style={styles.gold}>
+                    UPSC
                   </span>
                 </div>
 
@@ -1833,9 +1452,7 @@ export default function Home() {
   }
 
 
-  /* =====================================================
-     WELCOME
-     ===================================================== */
+  /* WELCOME */
 
   if (
     showWelcome &&
@@ -1848,17 +1465,6 @@ export default function Home() {
       user.name ||
       "Aspirant";
 
-    const isPremium =
-      String(
-        user.plan || ""
-      ).toLowerCase() ===
-        "premium" &&
-      String(
-        user.subscriptionStatus ||
-          ""
-      ).toLowerCase() ===
-        "active";
-
     return (
       <>
         <Script
@@ -1868,7 +1474,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <div style={styles.welcomeCard}>
               <div style={styles.welcomeLabel}>
                 WELCOME
@@ -1885,14 +1490,7 @@ export default function Home() {
               <div style={styles.welcomeStatus}>
                 ✓ APPROVED
               </div>
-
-              <div style={styles.welcomePremium}>
-                {isPremium
-                  ? "✦ PREMIUM ACTIVE"
-                  : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
-              </div>
             </div>
-
           </div>
         </main>
       </>
@@ -1900,9 +1498,9 @@ export default function Home() {
   }
 
 
-  /* =====================================================
-     APPROVED USER DASHBOARD
-     ===================================================== */
+  /* =========================================================
+     FINAL DASHBOARD
+     ========================================================= */
 
   const firstName =
     user.first_name ||
@@ -1911,9 +1509,64 @@ export default function Home() {
     "Aspirant";
 
   const initial =
-    firstName
-      .charAt(0)
-      .toUpperCase();
+    firstName.charAt(0).toUpperCase();
+
+  const activeSubscription =
+    subscription &&
+    subscription.status === "active";
+
+  const isPremium =
+    Boolean(activeSubscription);
+
+  const isDemo =
+    isPremium &&
+    String(
+      subscription?.plan || ""
+    ).toLowerCase() === "demo";
+
+  const accessTitle =
+    isPremium
+      ? isDemo
+        ? "Demo Access Active"
+        : "Premium Access Active"
+      : "Standard Access";
+
+  const accessDescription =
+    isPremium
+      ? isDemo
+        ? "Your 2-Day Premium Demo is currently active."
+        : "Your Premium learning environment is active."
+      : "Start building your UPSC preparation with SAMBHAV.";
+
+  const expiryText =
+    subscription?.expires_at
+      ? new Date(
+          subscription.expires_at
+        ).toLocaleDateString(
+          "en-IN",
+          {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }
+        )
+      : null;
+
+  const greeting = useMemo(() => {
+    const hour =
+      new Date().getHours();
+
+    if (hour < 12) {
+      return "GOOD MORNING";
+    }
+
+    if (hour < 17) {
+      return "GOOD AFTERNOON";
+    }
+
+    return "GOOD EVENING";
+  }, []);
+
 
   return (
     <>
@@ -1930,14 +1583,14 @@ export default function Home() {
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
-                SAMBHAV
-                <span style={styles.brandGold}>
-                  {" "}UPSC
+                SAMBHAV{" "}
+                <span style={styles.gold}>
+                  UPSC
                 </span>
               </div>
 
               <div style={styles.brandSub}>
-                UPSC Preparation Platform
+                Intelligence • Preparation • Performance
               </div>
             </div>
 
@@ -1950,163 +1603,395 @@ export default function Home() {
           {/* GREETING */}
 
           <section style={styles.greeting}>
+            <div style={styles.eyebrow}>
+              {greeting}
+            </div>
+
             <h1 style={styles.greetingTitle}>
-              Hello, {firstName}
+              {firstName}
             </h1>
 
-            <p style={styles.greetingSub}>
-              Continue your preparation.
-            </p>
+            <div style={styles.greetingSub}>
+              Your preparation. Your SAMBHAV.
+            </div>
           </section>
 
 
           {/* ACCESS CARD */}
 
           <section style={styles.accessCard}>
-            <div style={styles.accessLabel}>
-              Officer Access Card
-            </div>
+            <div style={styles.accessGlow} />
 
-            <div style={styles.accessTitle}>
-              {firstName}
-            </div>
+            <div style={styles.accessContent}>
 
-            <div style={styles.accessSub}>
-              Clearance: ACTIVE
-            </div>
-          </section>
+              <div style={styles.accessBadge}>
+                {isPremium
+                  ? "✦ PREMIUM ACCESS"
+                  : "SAMBHAV ACCESS"}
+              </div>
 
+              <div style={styles.accessTitle}>
+                {accessTitle}
+              </div>
 
-          {/* AI SECRETARY */}
+              <div style={styles.accessText}>
+                {accessDescription}
+              </div>
 
-          <button
-            style={styles.secretaryButton}
-            onClick={() =>
-              console.log(
-                "AI Secretary coming soon"
-              )
-            }
-          >
-            ✦ Open AI Secretary →
-          </button>
+              <div style={styles.accessStatus}>
+                {isPremium
+                  ? isDemo
+                    ? `✓ DEMO ACTIVE${expiryText ? ` • UNTIL ${expiryText}` : ""}`
+                    : `✓ PREMIUM ACTIVE${expiryText ? ` • UNTIL ${expiryText}` : ""}`
+                  : "STANDARD ACCESS"}
+              </div>
 
-
-          {/* PREMIUM */}
-
-          <section
-            style={styles.premiumCard}
-            onClick={() => {
-              window.location.href =
-                "/premium";
-            }}
-          >
-            <div style={styles.premiumGlow} />
-            <div style={styles.premiumGlowSmall} />
-
-            <div style={styles.premiumBadge}>
-              ✦ PREMIUM ACCESS
-            </div>
-
-            <div
-              style={
-                styles.premiumTitleDashboard
-              }
-            >
-              Unlock the Full SAMBHAV Experience
-            </div>
-
-            <div style={styles.premiumSub}>
-              Current Affairs, PYQ Intelligence,
-              Tests, Mains practice, AI evaluation
-              & premium study resources — all in
-              one place.
-            </div>
-
-            <div style={styles.premiumAction}>
-              Explore Batches →
             </div>
           </section>
 
 
-          {/* QUICK LAUNCH */}
+          {/* FREE USER PREMIUM CTA */}
+
+          {!isPremium && (
+            <section style={styles.lockedBanner}>
+              <div style={styles.lockedBannerTitle}>
+                ✦ Unlock Premium Preparation
+              </div>
+
+              <div style={styles.lockedBannerText}>
+                Get access to Current Affairs,
+                PYQ Intelligence, Mains Practice,
+                AI Evaluation and premium resources.
+              </div>
+
+              <a
+                href="/premium"
+                style={styles.lockedButton}
+              >
+                Explore Premium →
+              </a>
+            </section>
+          )}
+
+
+          {/* STATS */}
+
+          <section style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>
+                0%
+              </div>
+
+              <div style={styles.statLabel}>
+                Syllabus
+              </div>
+            </div>
+
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>
+                0
+              </div>
+
+              <div style={styles.statLabel}>
+                PYQs Solved
+              </div>
+            </div>
+
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>
+                0
+              </div>
+
+              <div style={styles.statLabel}>
+                Day Streak
+              </div>
+            </div>
+          </section>
+
+
+          {/* COUNTDOWN */}
+
+          <section style={styles.countdown}>
+            <div style={styles.countdownTop}>
+              <div style={styles.countdownTitle}>
+                UPSC 2027
+              </div>
+
+              <div style={styles.countdownSmall}>
+                PREPARATION COUNTDOWN
+              </div>
+            </div>
+
+            <div style={styles.countdownNumber}>
+              — DAYS
+            </div>
+
+            <div style={styles.countdownBar}>
+              <div style={styles.countdownFill} />
+            </div>
+          </section>
+
+
+          {/* TODAY'S MISSION */}
 
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
-              Quick Launch
+              Today's Mission
             </div>
 
             <div style={styles.sectionSmall}>
-              UPSC • 2026
+              3 TASKS
+            </div>
+          </div>
+
+          <section style={styles.mission}>
+
+            <div style={styles.missionRow}>
+              <div style={styles.check}>
+                □
+              </div>
+
+              <div>
+                <div style={styles.missionTitle}>
+                  Current Affairs
+                </div>
+
+                <div style={styles.missionSub}>
+                  Complete today's CA revision
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.missionRow}>
+              <div style={styles.check}>
+                □
+              </div>
+
+              <div>
+                <div style={styles.missionTitle}>
+                  PYQ Practice
+                </div>
+
+                <div style={styles.missionSub}>
+                  Solve today's selected questions
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                ...styles.missionRow,
+                ...styles.missionLast,
+              }}
+            >
+              <div style={styles.check}>
+                □
+              </div>
+
+              <div>
+                <div style={styles.missionTitle}>
+                  Mains Answer
+                </div>
+
+                <div style={styles.missionSub}>
+                  Write one answer today
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+
+          {/* PREPARATION MODULES */}
+
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitle}>
+              Your Preparation
+            </div>
+
+            <div style={styles.sectionSmall}>
+              {isPremium
+                ? "ALL ACCESS"
+                : "PREVIEW"}
             </div>
           </div>
 
 
-          <section style={styles.grid}>
-            {modules.map((module) => (
-              <div
-                key={module.title}
-                style={styles.card}
-                onClick={() => {
-                  if (module.route) {
-                    window.location.href =
-                      module.route;
-                  } else {
-                    console.log(
-                      `${module.title} coming soon`
-                    );
-                  }
-                }}
-              >
-                <div style={styles.iconBox}>
-                  {module.icon}
-                </div>
+          <section style={styles.modulesGrid}>
+            {modules.map((module) => {
 
-                <div style={styles.cardContent}>
-                  <div style={styles.cardTitle}>
+              const locked =
+                module.premium &&
+                !isPremium;
+
+              return (
+                <div
+                  key={module.title}
+                  style={{
+                    ...styles.moduleCard,
+                    opacity:
+                      locked ? 0.78 : 1,
+                  }}
+                  onClick={() => {
+                    if (locked) {
+                      window.location.href =
+                        "/premium";
+                      return;
+                    }
+
+                    if (module.route) {
+                      window.location.href =
+                        module.route;
+                    } else {
+                      console.log(
+                        `${module.title} coming soon`
+                      );
+                    }
+                  }}
+                >
+
+                  <div style={styles.moduleIcon}>
+                    {module.icon}
+                  </div>
+
+                  {locked && (
+                    <div style={styles.lock}>
+                      🔒
+                    </div>
+                  )}
+
+                  <div style={styles.moduleTitle}>
                     {module.title}
                   </div>
 
-                  <div style={styles.cardSubtitle}>
+                  <div style={styles.moduleSubtitle}>
                     {module.subtitle}
                   </div>
+
+                  <div style={styles.moduleArrow}>
+                    ›
+                  </div>
+
                 </div>
-
-                <div style={styles.arrow}>
-                  ›
-                </div>
-              </div>
-            ))}
-
-
-            {/* ADMIN ONLY */}
+              );
+            })}
 
             {isAdmin && (
               <div
-                style={styles.card}
+                style={styles.moduleCard}
                 onClick={() => {
                   window.location.href =
                     "/admin";
                 }}
               >
-                <div style={styles.iconBox}>
+                <div style={styles.moduleIcon}>
                   🔐
                 </div>
 
-                <div style={styles.cardContent}>
-                  <div style={styles.cardTitle}>
-                    Admin Panel
-                  </div>
-
-                  <div style={styles.cardSubtitle}>
-                    Members • Requests • Approvals
-                  </div>
+                <div style={styles.moduleTitle}>
+                  Admin Panel
                 </div>
 
-                <div style={styles.arrow}>
+                <div style={styles.moduleSubtitle}>
+                  Members • Requests • Approvals
+                </div>
+
+                <div style={styles.moduleArrow}>
                   ›
                 </div>
               </div>
             )}
+          </section>
+
+
+          {/* AI SECRETARY */}
+
+          <section style={styles.aiCard}>
+            <div style={styles.aiGlow} />
+
+            <div style={styles.aiContent}>
+              <div style={styles.aiLabel}>
+                ✦ SAMBHAV AI
+              </div>
+
+              <div style={styles.aiTitle}>
+                AI Secretary
+              </div>
+
+              <div style={styles.aiText}>
+                Your personal UPSC preparation assistant
+                for planning, revision, analysis and
+                learning.
+              </div>
+
+              <button
+                style={{
+                  ...styles.aiButton,
+                  opacity:
+                    isPremium ? 1 : 0.7,
+                }}
+                onClick={() => {
+                  if (!isPremium) {
+                    window.location.href =
+                      "/premium";
+                    return;
+                  }
+
+                  console.log(
+                    "AI Secretary coming soon"
+                  );
+                }}
+              >
+                {isPremium
+                  ? "Open AI Secretary →"
+                  : "Unlock AI Secretary →"}
+              </button>
+            </div>
+          </section>
+
+
+          {/* DAILY INTELLIGENCE */}
+
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitle}>
+              Daily Intelligence
+            </div>
+
+            <div style={styles.sectionSmall}>
+              UPSC FOCUSED
+            </div>
+          </div>
+
+          <section style={styles.intelligence}>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: "900",
+              }}
+            >
+              Today's UPSC Intelligence
+            </div>
+
+            <div style={styles.intelligenceText}>
+              Important current affairs, government
+              updates and exam-relevant developments
+              will appear here.
+            </div>
+
+            <a
+              href={
+                isPremium
+                  ? "/current-affairs"
+                  : "/premium"
+              }
+              style={
+                styles.intelligenceButton
+              }
+            >
+              {isPremium
+                ? "Read Today's Intelligence →"
+                : "Unlock Intelligence →"}
+            </a>
           </section>
 
         </div>
@@ -2125,52 +2010,74 @@ export default function Home() {
             <span style={styles.navIcon}>
               ⌂
             </span>
-
             Home
           </div>
 
+          <div
+            style={styles.navItem}
+            onClick={() => {
+              if (!isPremium) {
+                window.location.href =
+                  "/premium";
+                return;
+              }
+
+              console.log("Practice");
+            }}
+          >
+            <span style={styles.navIcon}>
+              ◫
+            </span>
+            Practice
+          </div>
 
           <div
             style={styles.navItem}
-            onClick={() =>
-              console.log(
-                "Current Affairs"
-              )
-            }
+            onClick={() => {
+              if (!isPremium) {
+                window.location.href =
+                  "/premium";
+                return;
+              }
+
+              window.location.href =
+                "/current-affairs";
+            }}
           >
             <span style={styles.navIcon}>
               ▤
             </span>
-
-            CA
+            Current
           </div>
-
 
           <div
             style={styles.navItem}
-            onClick={() =>
-              console.log("GS")
-            }
+            onClick={() => {
+              if (!isPremium) {
+                window.location.href =
+                  "/premium";
+                return;
+              }
+
+              console.log("AI");
+            }}
           >
             <span style={styles.navIcon}>
-              ▣
+              ✦
             </span>
-
-            GS
-          </div>
-
-
-          <div
-            style={styles.navItem}
-            onClick={() =>
-              console.log("AI")
-            }
-          >
-            <span style={styles.navIcon}>
-              ▦
-            </span>
-
             AI
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() => {
+              console.log("Profile");
+            }}
+          >
+            <span style={styles.navIcon}>
+              ◯
+            </span>
+            Profile
           </div>
 
         </nav>
