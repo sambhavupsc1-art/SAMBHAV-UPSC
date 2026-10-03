@@ -570,10 +570,17 @@ const styles = {
 
 export default function PremiumHome() {
   const [user, setUser] = useState(null);
+  const [subscription, setSubscription] =
+    useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeView, setActiveView] = useState("home");
-  const [loggingOut, setLoggingOut] = useState(false);
+
+  const [activeView, setActiveView] =
+    useState("home");
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
 
   useEffect(() => {
     let stopped = false;
@@ -619,6 +626,15 @@ export default function PremiumHome() {
         if (stopped) return;
 
         setUser(data.user);
+
+        /*
+         * Active subscription comes directly
+         * from /api/auth/me.
+         */
+        setSubscription(
+          data.subscription || null
+        );
+
         setError("");
       } catch (err) {
         if (stopped) return;
@@ -696,11 +712,56 @@ export default function PremiumHome() {
       );
 
       setLoggingOut(false);
+
       alert(
         err.message ||
           "Logout failed. Please try again."
       );
     }
+  };
+
+  const formatDate = (value) => {
+    if (!value) {
+      return "Not available";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Not available";
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) {
+      return "Not available";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Not available";
+    }
+
+    return date.toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
   };
 
   if (loading) {
@@ -792,8 +853,10 @@ export default function PremiumHome() {
    * PROFILE VIEW
    * =========================================================
    */
+
   if (activeView === "profile") {
     const plan =
+      subscription?.plan ||
       user?.plan ||
       "free";
 
@@ -810,32 +873,13 @@ export default function PremiumHome() {
       user?.createdAt ||
       null;
 
-    const premiumExpiry =
-      user?.premium_expires_at ||
-      user?.expires_at ||
-      user?.subscription?.expires_at ||
+    const premiumStarted =
+      subscription?.started_at ||
       null;
 
-    const formatDate = (value) => {
-      if (!value) {
-        return "Not available";
-      }
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        return "Not available";
-      }
-
-      return date.toLocaleDateString(
-        "en-IN",
-        {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }
-      );
-    };
+    const premiumExpiry =
+      subscription?.expires_at ||
+      null;
 
     return (
       <main style={styles.page}>
@@ -902,7 +946,9 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.activeBadge}>
-                {String(status).toUpperCase()}
+                {String(
+                  status
+                ).toUpperCase()}
               </div>
             </div>
 
@@ -912,19 +958,51 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.profileValue}>
-                {String(plan).toUpperCase()}
+                {String(
+                  plan
+                ).toUpperCase()}
               </div>
             </div>
 
-            <div style={styles.profileRow}>
-              <div style={styles.profileLabel}>
-                Premium Expiry
-              </div>
+            {subscription && (
+              <>
+                <div style={styles.profileRow}>
+                  <div style={styles.profileLabel}>
+                    Premium Started
+                  </div>
 
-              <div style={styles.profileValue}>
-                {formatDate(premiumExpiry)}
+                  <div style={styles.profileValue}>
+                    {formatDateTime(
+                      premiumStarted
+                    )}
+                  </div>
+                </div>
+
+                <div style={styles.profileRow}>
+                  <div style={styles.profileLabel}>
+                    Premium Expiry
+                  </div>
+
+                  <div style={styles.profileValue}>
+                    {formatDateTime(
+                      premiumExpiry
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!subscription && (
+              <div style={styles.profileRow}>
+                <div style={styles.profileLabel}>
+                  Premium
+                </div>
+
+                <div style={styles.profileValue}>
+                  No active subscription
+                </div>
               </div>
-            </div>
+            )}
 
             <div style={styles.profileRow}>
               <div style={styles.profileLabel}>
@@ -932,7 +1010,9 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.profileValue}>
-                {formatDate(createdAt)}
+                {formatDate(
+                  createdAt
+                )}
               </div>
             </div>
           </section>
@@ -985,12 +1065,7 @@ export default function PremiumHome() {
 
         <nav style={styles.bottomNav}>
           <div
-            style={{
-              ...styles.navItem,
-              ...(activeView === "home"
-                ? styles.navActive
-                : {}),
-            }}
+            style={styles.navItem}
             onClick={() =>
               setActiveView("home")
             }
@@ -1004,7 +1079,9 @@ export default function PremiumHome() {
 
           <div
             style={styles.navItem}
-            onClick={() => go("/pyq")}
+            onClick={() =>
+              go("/pyq")
+            }
           >
             <span style={styles.navIcon}>
               ▣
@@ -1029,7 +1106,9 @@ export default function PremiumHome() {
           <div
             style={styles.navItem}
             onClick={() => {
-              console.log("AI module");
+              console.log(
+                "AI module"
+              );
             }}
           >
             <span style={styles.navIcon}>
@@ -1380,7 +1459,9 @@ export default function PremiumHome() {
 
         <div
           style={styles.navItem}
-          onClick={() => go("/pyq")}
+          onClick={() =>
+            go("/pyq")
+          }
         >
           <span style={styles.navIcon}>
             ▣
@@ -1405,7 +1486,9 @@ export default function PremiumHome() {
         <div
           style={styles.navItem}
           onClick={() => {
-            console.log("AI module");
+            console.log(
+              "AI module"
+            );
           }}
         >
           <span style={styles.navIcon}>
