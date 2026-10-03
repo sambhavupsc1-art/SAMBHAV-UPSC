@@ -38,51 +38,180 @@ const PLANS = {
   },
 };
 
-export async function POST(request) {
+/*
+ * ----------------------------------------
+ * AUTHENTICATION
+ * ----------------------------------------
+ *
+ * Priority:
+ *
+ * 1. Website:
+ *    sambhav_session cookie
+ *
+ * 2. Telegram:
+ *    Authorization: tma <initData>
+ *
+ * ----------------------------------------
+ */
+
+async function getAuthenticatedUser(request) {
+  /*
+   * First try central SAMBHAV auth.
+   *
+   * This supports:
+   * - sambhav_session
+   * - Telegram fallback
+   */
+
   try {
-    /*
-     * ----------------------------------------
-     * AUTHENTICATION
-     * ----------------------------------------
-     */
+    const origin =
+      request.headers.get("origin") ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://sambhavupsc.vercel.app";
+
+    const forwardedHeaders = {};
+
+    const cookie =
+      request.headers.get("cookie");
 
     const authorization =
       request.headers.get("authorization");
 
+    if (cookie) {
+      forwardedHeaders.cookie = cookie;
+    }
+
+    if (authorization) {
+      forwardedHeaders.authorization =
+        authorization;
+    }
+
+    const authResponse =
+      await fetch(
+        `${origin}/api/auth/me`,
+        {
+          method: "GET",
+
+          headers:
+            forwardedHeaders,
+
+          cache: "no-store",
+        }
+      );
+
+    if (authResponse.ok) {
+      const authData =
+        await authResponse.json();
+
+      if (authData?.user?.id) {
+        return {
+          user: authData.user,
+
+          authMethod:
+            authData.authMethod ||
+            null,
+        };
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Central authentication lookup failed:",
+      error
+    );
+  }
+
+  /*
+   * ----------------------------------------
+   * Direct Telegram fallback
+   * ----------------------------------------
+   */
+
+  try {
+    const authorization =
+      request.headers.get("authorization");
+
     if (
-      !authorization ||
-      !authorization.startsWith("tma ")
+      authorization &&
+      authorization.startsWith("tma ")
+    ) {
+      const initData =
+        authorization.slice(4);
+
+      const telegramUser =
+        validateTelegramInitData(
+          initData
+        );
+
+      if (telegramUser?.id) {
+        const userResponse =
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
+              telegramUser.id
+            )}&select=id,telegram_id,email,first_name,last_name,username,status,plan&limit=1`,
+            {
+              headers: {
+                apikey:
+                  SUPABASE_SECRET_KEY,
+
+                Authorization:
+                  `Bearer ${SUPABASE_SECRET_KEY}`,
+              },
+
+              cache: "no-store",
+            }
+          );
+
+        if (userResponse.ok) {
+          const users =
+            await userResponse.json();
+
+          if (users?.length) {
+            return {
+              user: users[0],
+
+              authMethod:
+                "telegram",
+            };
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Telegram authentication fallback failed:",
+      error
+    );
+  }
+
+  return null;
+}
+
+/*
+ * ----------------------------------------
+ * POST
+ * ----------------------------------------
+ */
+
+export async function POST(request) {
+  try {
+    /*
+     * ----------------------------------------
+     * CONFIG CHECK
+     * ----------------------------------------
+     */
+
+    if (
+      !SUPABASE_URL ||
+      !SUPABASE_SECRET_KEY
     ) {
       return NextResponse.json(
         {
           error:
-            "Telegram authentication required.",
+            "Supabase configuration missing.",
         },
-        { status: 401 }
+        { status: 500 }
       );
     }
-
-    const initData =
-      authorization.slice(4);
-
-    const telegramUser =
-      validateTelegramInitData(initData);
-
-    if (!telegramUser?.id) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid Telegram authentication.",
-        },
-        { status: 401 }
-      );
-    }
-
-    /*
-     * ----------------------------------------
-     * CASHFREE CONFIG
-     * ----------------------------------------
-     */
 
     if (
       !CASHFREE_APP_ID ||
@@ -99,12 +228,56 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
+     * AUTHENTICATION
+     * ----------------------------------------
+     */
+
+    const auth =
+      await getAuthenticatedUser(
+        request
+      );
+
+    if (!auth?.user?.id) {
+      return NextResponse.json(
+        {
+          error:
+            "Authentication required. Please login to SAMBHAV and try again.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const user =
+      auth.user;
+
+    /*
+     * ----------------------------------------
+     * USER STATUS
+     * ----------------------------------------
+     */
+
+    if (
+      user.status !== "approved"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Your SAMBHAV UPSC account is not approved yet.",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+     * ----------------------------------------
      * REQUEST
      * ----------------------------------------
      */
 
     const body =
-      await request.json();
+      await request
+        .json()
+        .catch(() => ({}));
 
     const orderId =
       body?.order_id;
@@ -121,73 +294,22 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * FIND USER
+     * FIND EXACT USER'S SUBSCRIPTION
      * ----------------------------------------
-     */
-
-    const userResponse =
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramUser.id}&select=id,telegram_id,first_name,username,status,plan&limit=1`,
-        {
-          headers: {
-            apikey:
-              SUPABASE_SECRET_KEY,
-
-            Authorization:
-              `Bearer ${SUPABASE_SECRET_KEY}`,
-          },
-
-          cache: "no-store",
-        }
-      );
-
-    if (!userResponse.ok) {
-      return NextResponse.json(
-        {
-          error:
-            "Unable to verify user.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const users =
-      await userResponse.json();
-
-    if (!users?.length) {
-      return NextResponse.json(
-        {
-          error:
-            "User not found.",
-        },
-        { status: 404 }
-      );
-    }
-
-    const user =
-      users[0];
-
-    if (
-      user.status !== "approved"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Your SAMBHAV UPSC account is not approved yet.",
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-     * ----------------------------------------
-     * FIND OUR PENDING SUBSCRIPTION
-     * ----------------------------------------
+     *
+     * Important:
+     * Frontend cannot verify someone else's
+     * order because order is matched with
+     * authenticated user ID.
      */
 
     const subscriptionResponse =
       await fetch(
-        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${user.id}&order_id=eq.${encodeURIComponent(orderId)}&select=id,user_id,plan,status,payment_id,order_id,amount,started_at,expires_at&limit=1`,
+        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
+          user.id
+        )}&order_id=eq.${encodeURIComponent(
+          orderId
+        )}&select=id,user_id,plan,status,payment_id,order_id,amount,started_at,expires_at&limit=1`,
         {
           headers: {
             apikey:
@@ -204,6 +326,11 @@ export async function POST(request) {
     if (
       !subscriptionResponse.ok
     ) {
+      console.error(
+        "Subscription lookup failed:",
+        await subscriptionResponse.text()
+      );
+
       return NextResponse.json(
         {
           error:
@@ -216,7 +343,9 @@ export async function POST(request) {
     const subscriptions =
       await subscriptionResponse.json();
 
-    if (!subscriptions?.length) {
+    if (
+      !subscriptions?.length
+    ) {
       return NextResponse.json(
         {
           error:
@@ -230,7 +359,9 @@ export async function POST(request) {
       subscriptions[0];
 
     /*
-     * Already activated.
+     * ----------------------------------------
+     * ALREADY ACTIVE
+     * ----------------------------------------
      */
 
     if (
@@ -239,10 +370,34 @@ export async function POST(request) {
     ) {
       return NextResponse.json({
         success: true,
-        status: "active",
+
+        status:
+          "active",
+
         message:
           "Premium subscription already active.",
+
         subscription,
+      });
+    }
+
+    /*
+     * Only pending payment can be activated.
+     */
+
+    if (
+      subscription.status !==
+      "pending"
+    ) {
+      return NextResponse.json({
+        success: false,
+
+        status:
+          subscription.status ||
+          "failed",
+
+        message:
+          "This payment order is no longer pending.",
       });
     }
 
@@ -266,18 +421,32 @@ export async function POST(request) {
     }
 
     /*
-     * Verify amount from our database,
-     * never trust frontend amount.
+     * ----------------------------------------
+     * DATABASE AMOUNT VALIDATION
+     * ----------------------------------------
+     *
+     * Never trust frontend amount.
      */
 
     if (
       Number(subscription.amount) !==
       Number(selectedPlan.amount)
     ) {
+      console.error(
+        "Subscription amount mismatch:",
+        {
+          orderId,
+          databaseAmount:
+            subscription.amount,
+          expectedAmount:
+            selectedPlan.amount,
+        }
+      );
+
       return NextResponse.json(
         {
           error:
-            "Payment amount does not match the selected plan.",
+            "Payment amount does not match the selected Premium plan.",
         },
         { status: 400 }
       );
@@ -285,13 +454,11 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * CASHFREE PAYMENT STATUS
+     * CASHFREE VERIFICATION
      * ----------------------------------------
      *
-     * Cashfree:
-     * GET /pg/orders/{order_id}/payments
-     *
-     * ----------------------------------------
+     * Directly ask Cashfree for all payments
+     * belonging to this exact order.
      */
 
     const paymentsResponse =
@@ -309,11 +476,11 @@ export async function POST(request) {
             "x-client-secret":
               CASHFREE_SECRET_KEY,
 
-            Accept:
-              "application/json",
-
             "x-api-version":
               "2025-01-01",
+
+            Accept:
+              "application/json",
           },
 
           cache: "no-store",
@@ -321,13 +488,15 @@ export async function POST(request) {
       );
 
     const payments =
-      await paymentsResponse.json();
+      await paymentsResponse
+        .json()
+        .catch(() => null);
 
     if (
       !paymentsResponse.ok
     ) {
       console.error(
-        "Cashfree payment status error:",
+        "Cashfree payment verification error:",
         payments
       );
 
@@ -355,7 +524,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * FIND SUCCESSFUL PAYMENT
+     * SUCCESS PAYMENT
      * ----------------------------------------
      */
 
@@ -383,20 +552,21 @@ export async function POST(request) {
       if (pendingPayment) {
         return NextResponse.json({
           success: false,
-          status: "pending",
+
+          status:
+            "pending",
+
           message:
             "Payment is still pending.",
         });
       }
 
-      /*
-       * If Cashfree has no SUCCESS
-       * payment, do NOT activate Premium.
-       */
-
       return NextResponse.json({
         success: false,
-        status: "failed",
+
+        status:
+          "failed",
+
         message:
           "Payment was not successful.",
       });
@@ -404,7 +574,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * VERIFY PAYMENT AMOUNT
+     * CASHFREE AMOUNT VALIDATION
      * ----------------------------------------
      */
 
@@ -414,16 +584,20 @@ export async function POST(request) {
       );
 
     if (
-      !Number.isFinite(paidAmount) ||
+      !Number.isFinite(
+        paidAmount
+      ) ||
       paidAmount !==
         Number(selectedPlan.amount)
     ) {
       console.error(
-        "Payment amount mismatch:",
+        "Cashfree payment amount mismatch:",
         {
           orderId,
+
           paidAmount,
-          expected:
+
+          expectedAmount:
             selectedPlan.amount,
         }
       );
@@ -462,7 +636,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * EXPIRY
+     * PREMIUM DURATION
      * ----------------------------------------
      */
 
@@ -484,65 +658,17 @@ export async function POST(request) {
      * ACTIVATE PAID SUBSCRIPTION
      * ----------------------------------------
      *
-     * First:
-     * deactivate previous DEMO.
-     */
-
-    const demoDeactivateResponse =
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${user.id}&plan=eq.demo&status=eq.active`,
-        {
-          method: "PATCH",
-
-          headers: {
-            apikey:
-              SUPABASE_SECRET_KEY,
-
-            Authorization:
-              `Bearer ${SUPABASE_SECRET_KEY}`,
-
-            "Content-Type":
-              "application/json",
-
-            Prefer:
-              "return=minimal",
-          },
-
-          body: JSON.stringify({
-            status:
-              "expired",
-
-            expires_at:
-              startedAt.toISOString(),
-          }),
-        }
-      );
-
-    if (
-      !demoDeactivateResponse.ok
-    ) {
-      console.error(
-        "Demo deactivation failed:",
-        await demoDeactivateResponse.text()
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Payment verified but previous demo could not be updated.",
-        },
-        { status: 500 }
-      );
-    }
-
-    /*
-     * Activate the exact pending
-     * paid subscription.
+     * First activate the exact verified
+     * payment order.
      */
 
     const activateResponse =
       await fetch(
-        `${SUPABASE_URL}/rest/v1/subscriptions?id=eq.${subscription.id}&user_id=eq.${user.id}&status=eq.pending`,
+        `${SUPABASE_URL}/rest/v1/subscriptions?id=eq.${encodeURIComponent(
+          subscription.id
+        )}&user_id=eq.${encodeURIComponent(
+          user.id
+        )}&status=eq.pending`,
         {
           method: "PATCH",
 
@@ -594,7 +720,63 @@ export async function POST(request) {
     }
 
     const activatedSubscriptions =
-      await activateResponse.json();
+      await activateResponse
+        .json()
+        .catch(() => []);
+
+    /*
+     * ----------------------------------------
+     * DEACTIVATE DEMO
+     * ----------------------------------------
+     */
+
+    const demoDeactivateResponse =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
+          user.id
+        )}&plan=eq.demo&status=eq.active`,
+        {
+          method: "PATCH",
+
+          headers: {
+            apikey:
+              SUPABASE_SECRET_KEY,
+
+            Authorization:
+              `Bearer ${SUPABASE_SECRET_KEY}`,
+
+            "Content-Type":
+              "application/json",
+
+            Prefer:
+              "return=minimal",
+          },
+
+          body: JSON.stringify({
+            status:
+              "expired",
+
+            expires_at:
+              startedAt.toISOString(),
+          }),
+        }
+      );
+
+    if (
+      !demoDeactivateResponse.ok
+    ) {
+      /*
+       * Paid subscription is already active,
+       * so don't tell the user payment failed.
+       *
+       * Just log the cleanup issue.
+       */
+
+      console.error(
+        "Previous demo deactivation failed:",
+        await demoDeactivateResponse.text()
+      );
+    }
 
     /*
      * ----------------------------------------
@@ -604,7 +786,9 @@ export async function POST(request) {
 
     const userPlanResponse =
       await fetch(
-        `${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`,
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+          user.id
+        )}`,
         {
           method: "PATCH",
 
@@ -632,23 +816,21 @@ export async function POST(request) {
     if (
       !userPlanResponse.ok
     ) {
+      /*
+       * Subscription is already active.
+       * Log this separately rather than
+       * pretending payment verification failed.
+       */
+
       console.error(
         "User Premium plan update failed:",
         await userPlanResponse.text()
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "Subscription activated but user Premium status update failed.",
-        },
-        { status: 500 }
       );
     }
 
     /*
      * ----------------------------------------
-     * FINAL RESPONSE
+     * FINAL SUCCESS
      * ----------------------------------------
      */
 
@@ -689,6 +871,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         error:
+          error?.message ||
           "Internal payment verification error.",
       },
       { status: 500 }
