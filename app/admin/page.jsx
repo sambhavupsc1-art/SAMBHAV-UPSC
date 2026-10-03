@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Script from "next/script";
 import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState([]);
+  const [admin, setAdmin] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
+
   const [search, setSearch] = useState("");
-  const [telegramReady, setTelegramReady] = useState(false);
+  const [filter, setFilter] = useState("all");
 
   const [showNotifications, setShowNotifications] =
     useState(false);
@@ -23,58 +25,30 @@ export default function AdminPage() {
   const [notificationCount, setNotificationCount] =
     useState(0);
 
-  // -----------------------------------------
-  // TELEGRAM READY
-  // -----------------------------------------
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
 
   useEffect(() => {
-    const checkTelegram = () => {
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-
-        setTelegramReady(true);
-      }
-    };
-
-    checkTelegram();
-
-    const timer = setTimeout(
-      checkTelegram,
-      500
-    );
-
-    return () => clearTimeout(timer);
+    loadUsers();
   }, []);
 
-  // -----------------------------------------
-  // INITIAL LOAD
-  // -----------------------------------------
+  /* =========================================================
+     AUTO REFRESH
+     10 SECONDS
+  ========================================================= */
 
   useEffect(() => {
-    if (!telegramReady) return;
-
-    loadUsers();
-  }, [telegramReady]);
-
-  // -----------------------------------------
-  // AUTO REFRESH
-  // Every 10 seconds
-  // -----------------------------------------
-
-  useEffect(() => {
-    if (!telegramReady) return;
-
     const interval = setInterval(() => {
       loadUsers(true);
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [telegramReady]);
+  }, []);
 
-  // -----------------------------------------
-  // LOAD USERS
-  // -----------------------------------------
+  /* =========================================================
+     LOAD USERS
+  ========================================================= */
 
   async function loadUsers(silent = false) {
     try {
@@ -84,23 +58,11 @@ export default function AdminPage() {
 
       setError("");
 
-      const webApp =
-        window.Telegram?.WebApp;
-
-      if (!webApp?.initData) {
-        throw new Error(
-          "Telegram authentication data nahi mila."
-        );
-      }
-
       const response = await fetch(
         "/api/admin/users",
         {
           method: "GET",
-          headers: {
-            Authorization:
-              `tma ${webApp.initData}`,
-          },
+          credentials: "include",
           cache: "no-store",
         }
       );
@@ -126,9 +88,9 @@ export default function AdminPage() {
             user.status === "pending"
         ).length;
 
-      // -----------------------------------------
-      // NEW REQUEST DETECTION
-      // -----------------------------------------
+      /* =====================================================
+         NEW REQUEST DETECTION
+      ===================================================== */
 
       if (
         lastPendingCount !== null &&
@@ -143,7 +105,6 @@ export default function AdminPage() {
             previous + difference
         );
 
-        // Browser notification
         if (
           typeof window !== "undefined" &&
           "Notification" in window &&
@@ -169,6 +130,10 @@ export default function AdminPage() {
       );
 
       setUsers(nextUsers);
+
+      if (data.admin) {
+        setAdmin(data.admin);
+      }
     } catch (err) {
       console.error(
         "Admin users error:",
@@ -188,9 +153,9 @@ export default function AdminPage() {
     }
   }
 
-  // -----------------------------------------
-  // ENABLE BROWSER NOTIFICATIONS
-  // -----------------------------------------
+  /* =========================================================
+     ENABLE NOTIFICATIONS
+  ========================================================= */
 
   async function enableNotifications() {
     if (
@@ -220,49 +185,38 @@ export default function AdminPage() {
     }
   }
 
-  // -----------------------------------------
-  // CLEAR NOTIFICATIONS
-  // -----------------------------------------
+  /* =========================================================
+     CLEAR NOTIFICATIONS
+  ========================================================= */
 
   function clearNotifications() {
     setNotificationCount(0);
-    setShowNotifications(true);
   }
 
-  // -----------------------------------------
-  // UPDATE USER STATUS
-  // -----------------------------------------
+  /* =========================================================
+     UPDATE USER STATUS
+  ========================================================= */
 
   async function updateUserStatus(
-    telegramId,
+    userId,
     status
   ) {
     try {
       setActionLoading(
-        `${telegramId}-${status}`
+        `${userId}-${status}`
       );
-
-      const webApp =
-        window.Telegram?.WebApp;
-
-      if (!webApp?.initData) {
-        throw new Error(
-          "Telegram authentication data nahi mila."
-        );
-      }
 
       const response = await fetch(
         "/api/admin/users",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type":
               "application/json",
-            Authorization:
-              `tma ${webApp.initData}`,
           },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            user_id: userId,
             status,
           }),
         }
@@ -293,16 +247,15 @@ export default function AdminPage() {
     }
   }
 
-  // -----------------------------------------
-  // USER GROUPS
-  // -----------------------------------------
+  /* =========================================================
+     USER GROUPS
+  ========================================================= */
 
   const pendingUsers = useMemo(
     () =>
       users.filter(
         (user) =>
-          user.status ===
-          "pending"
+          user.status === "pending"
       ),
     [users]
   );
@@ -311,8 +264,7 @@ export default function AdminPage() {
     () =>
       users.filter(
         (user) =>
-          user.status ===
-          "approved"
+          user.status === "approved"
       ),
     [users]
   );
@@ -321,8 +273,7 @@ export default function AdminPage() {
     () =>
       users.filter(
         (user) =>
-          user.status ===
-          "banned"
+          user.status === "banned"
       ),
     [users]
   );
@@ -331,29 +282,118 @@ export default function AdminPage() {
     () =>
       users.filter(
         (user) =>
-          user.status ===
-          "rejected"
+          user.status === "rejected"
       ),
     [users]
   );
 
-  // -----------------------------------------
-  // SEARCH
-  // -----------------------------------------
+  /* =========================================================
+     PREMIUM / DEMO / FREE
+  ========================================================= */
+
+  const premiumUsers = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          user.premium_active === true
+      ),
+    [users]
+  );
+
+  const demoUsers = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          user.premium_active === true &&
+          String(
+            user.premium_plan || ""
+          ).toLowerCase() === "demo"
+      ),
+    [users]
+  );
+
+  const paidPremiumUsers = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          user.premium_active === true &&
+          String(
+            user.premium_plan || ""
+          ).toLowerCase() !== "demo"
+      ),
+    [users]
+  );
+
+  const freeUsers = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          !user.premium_active
+      ),
+    [users]
+  );
+
+  /* =========================================================
+     SEARCH
+  ========================================================= */
 
   const filterUsers = (list) => {
+    let result = [...list];
+
+    if (filter === "premium") {
+      result = result.filter(
+        (user) =>
+          user.premium_active === true
+      );
+    }
+
+    if (filter === "demo") {
+      result = result.filter(
+        (user) =>
+          user.premium_active === true &&
+          String(
+            user.premium_plan || ""
+          ).toLowerCase() === "demo"
+      );
+    }
+
+    if (filter === "free") {
+      result = result.filter(
+        (user) =>
+          !user.premium_active
+      );
+    }
+
+    if (filter === "pending") {
+      result = result.filter(
+        (user) =>
+          user.status === "pending"
+      );
+    }
+
+    if (filter === "banned") {
+      result = result.filter(
+        (user) =>
+          user.status === "banned"
+      );
+    }
+
     const query =
       search.trim().toLowerCase();
 
-    if (!query) return list;
+    if (!query) {
+      return result;
+    }
 
-    return list.filter((user) => {
+    return result.filter((user) => {
       return (
         String(
-          user.telegram_id
-        ).includes(query) ||
-        String(
           user.first_name || ""
+        )
+          .toLowerCase()
+          .includes(query) ||
+        String(
+          user.email || ""
         )
           .toLowerCase()
           .includes(query) ||
@@ -361,416 +401,661 @@ export default function AdminPage() {
           user.username || ""
         )
           .toLowerCase()
+          .includes(query) ||
+        String(
+          user.telegram_id || ""
+        ).includes(query) ||
+        String(
+          user.id || ""
+        )
+          .toLowerCase()
+          .includes(query) ||
+        String(
+          user.order_id || ""
+        )
+          .toLowerCase()
+          .includes(query) ||
+        String(
+          user.payment_id || ""
+        )
+          .toLowerCase()
           .includes(query)
       );
     });
   };
 
+  const filteredUsers =
+    filterUsers(users);
+
   const filteredPending =
-    filterUsers(
-      pendingUsers
-    );
+    filterUsers(pendingUsers);
 
   const filteredJoined =
-    filterUsers(
-      joinedUsers
-    );
+    filterUsers(joinedUsers);
 
   const filteredBanned =
-    filterUsers(
-      bannedUsers
-    );
+    filterUsers(bannedUsers);
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
-    <>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
+    <main style={styles.page}>
+      <div style={styles.container}>
 
-      <main style={styles.page}>
-        <div style={styles.container}>
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-          {/* HEADER */}
-          <header style={styles.header}>
-            <div>
-              <button
-                onClick={() =>
-                  router.push("/")
-                }
-                style={
-                  styles.backButton
-                }
-              >
-                ← Dashboard
-              </button>
+        <header style={styles.header}>
+          <div>
+            <button
+              onClick={() =>
+                router.push("/")
+              }
+              style={
+                styles.backButton
+              }
+            >
+              ← Dashboard
+            </button>
 
+            <div
+              style={
+                styles.brandRow
+              }
+            >
               <div
                 style={
-                  styles.brandRow
+                  styles.logo
+                }
+              >
+                S
+              </div>
+
+              <div>
+                <div
+                  style={
+                    styles.brand
+                  }
+                >
+                  SAMBHAV UPSC
+                </div>
+
+                <div
+                  style={
+                    styles.subtitle
+                  }
+                >
+                  Administration Center
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={
+              styles.headerRight
+            }
+          >
+            {admin?.email && (
+              <div
+                style={
+                  styles.adminIdentity
                 }
               >
                 <div
                   style={
-                    styles.logo
+                    styles.adminIdentityLabel
                   }
                 >
-                  S
+                  ADMIN
                 </div>
 
-                <div>
-                  <div
-                    style={
-                      styles.brand
-                    }
-                  >
-                    SAMBHAV UPSC
-                  </div>
-
-                  <div
-                    style={
-                      styles.subtitle
-                    }
-                  >
-                    Administration Center
-                  </div>
+                <div
+                  style={
+                    styles.adminIdentityEmail
+                  }
+                >
+                  {admin.email}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* NOTIFICATION */}
 
             <div
               style={
-                styles.headerActions
+                styles.notificationWrapper
               }
             >
-              {/* NOTIFICATION */}
-              <div
+              <button
+                onClick={() => {
+                  setShowNotifications(
+                    !showNotifications
+                  );
+
+                  if (
+                    !showNotifications
+                  ) {
+                    clearNotifications();
+                  }
+                }}
                 style={
-                  styles.notificationWrapper
+                  styles.notificationButton
                 }
               >
-                <button
-                  onClick={() => {
-                    setShowNotifications(
-                      !showNotifications
-                    );
+                <span>♢</span>
 
-                    if (
-                      !showNotifications
-                    ) {
-                      clearNotifications();
-                    }
-                  }}
-                  style={
-                    styles.notificationButton
-                  }
-                  aria-label="Notifications"
-                >
-                  🔔
-
-                  {notificationCount >
-                    0 && (
-                    <span
-                      style={
-                        styles.notificationBadge
-                      }
-                    >
-                      {notificationCount >
-                      99
-                        ? "99+"
-                        : notificationCount}
-                    </span>
-                  )}
-                </button>
-
-                {showNotifications && (
-                  <div
+                {notificationCount >
+                  0 && (
+                  <span
                     style={
-                      styles.notificationPanel
+                      styles.notificationBadge
                     }
                   >
-                    <div
-                      style={
-                        styles.notificationHeader
-                      }
-                    >
+                    {notificationCount >
+                    99
+                      ? "99+"
+                      : notificationCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div
+                  style={
+                    styles.notificationPanel
+                  }
+                >
+                  <div
+                    style={
+                      styles.notificationHeader
+                    }
+                  >
+                    <div>
+                      <div
+                        style={
+                          styles.notificationEyebrow
+                        }
+                      >
+                        SYSTEM
+                      </div>
+
                       <strong>
                         Notifications
                       </strong>
-
-                      <button
-                        onClick={() =>
-                          setShowNotifications(
-                            false
-                          )
-                        }
-                        style={
-                          styles.closeNotification
-                        }
-                      >
-                        ×
-                      </button>
                     </div>
 
-                    {pendingUsers.length >
-                    0 ? (
-                      <div>
-                        <div
-                          style={
-                            styles.notificationItem
-                          }
-                        >
-                          <div
-                            style={
-                              styles.notificationDot
-                            }
-                          />
+                    <button
+                      onClick={() =>
+                        setShowNotifications(
+                          false
+                        )
+                      }
+                      style={
+                        styles.closeNotification
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
 
-                          <div>
-                            <strong>
-                              Access Requests
-                            </strong>
-
-                            <div
-                              style={
-                                styles.notificationText
-                              }
-                            >
-                              {
-                                pendingUsers.length
-                              }{" "}
-                              user
-                              {pendingUsers.length >
-                              1
-                                ? "s are"
-                                : " is"}{" "}
-                              waiting for approval.
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            setShowNotifications(
-                              false
-                            );
-
-                            window.scrollTo(
-                              {
-                                top: 650,
-                                behavior:
-                                  "smooth",
-                              }
-                            );
-                          }}
-                          style={
-                            styles.reviewButton
-                          }
-                        >
-                          Review Requests →
-                        </button>
-                      </div>
-                    ) : (
+                  {pendingUsers.length >
+                  0 ? (
+                    <>
                       <div
                         style={
-                          styles.noNotification
+                          styles.notificationItem
                         }
                       >
                         <div
                           style={
-                            styles.noNotificationIcon
+                            styles.notificationDot
                           }
-                        >
-                          ✓
+                        />
+
+                        <div>
+                          <strong>
+                            Access Requests
+                          </strong>
+
+                          <div
+                            style={
+                              styles.notificationText
+                            }
+                          >
+                            {
+                              pendingUsers.length
+                            }{" "}
+                            user
+                            {pendingUsers.length >
+                            1
+                              ? "s are"
+                              : " is"}{" "}
+                            waiting for approval.
+                          </div>
                         </div>
-
-                        <strong>
-                          All clear
-                        </strong>
-
-                        <p>
-                          No pending access
-                          requests.
-                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {/* BROWSER NOTIFICATION */}
-              <button
-                onClick={
-                  enableNotifications
-                }
-                style={
-                  styles.refreshButton
-                }
-              >
-                🔔 Enable
-              </button>
+                      <button
+                        onClick={() => {
+                          setShowNotifications(
+                            false
+                          );
 
-              {/* REFRESH */}
-              <button
-                onClick={() =>
-                  loadUsers()
-                }
-                style={
-                  styles.refreshButton
-                }
-                disabled={loading}
-              >
-                ↻ Refresh
-              </button>
-            </div>
-          </header>
+                          setFilter(
+                            "pending"
+                          );
 
-          {/* HERO */}
-          <section
-            style={styles.hero}
-          >
-            <div>
-              <div
-                style={
-                  styles.eyebrow
-                }
-              >
-                ADMIN CONTROL CENTER
-              </div>
+                          window.scrollTo(
+                            {
+                              top: 600,
+                              behavior:
+                                "smooth",
+                            }
+                          );
+                        }}
+                        style={
+                          styles.reviewButton
+                        }
+                      >
+                        Review Requests →
+                      </button>
+                    </>
+                  ) : (
+                    <div
+                      style={
+                        styles.noNotification
+                      }
+                    >
+                      <div
+                        style={
+                          styles.noNotificationIcon
+                        }
+                      >
+                        ✓
+                      </div>
 
-              <h1
-                style={
-                  styles.title
-                }
-              >
-                Manage your platform.
-              </h1>
+                      <strong>
+                        All clear
+                      </strong>
 
-              <p
-                style={
-                  styles.heroText
-                }
-              >
-                Manage access, joined
-                users and account
-                security from one place.
-              </p>
+                      <p>
+                        No pending access
+                        requests.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div
+            <button
+              onClick={
+                enableNotifications
+              }
               style={
-                styles.adminBadge
+                styles.headerButton
               }
             >
-              <div
-                style={
-                  styles.adminDot
-                }
-              />
+              Enable Alerts
+            </button>
 
-              Admin Access
+            <button
+              onClick={() =>
+                loadUsers()
+              }
+              style={
+                styles.headerButton
+              }
+              disabled={loading}
+            >
+              ↻ Refresh
+            </button>
+          </div>
+        </header>
+
+        {/* =================================================
+            HERO
+        ================================================= */}
+
+        <section
+          style={styles.hero}
+        >
+          <div>
+            <div
+              style={
+                styles.heroEyebrow
+              }
+            >
+              SAMBHAV / ADMIN
             </div>
-          </section>
 
-          {/* STATS */}
-          <section
+            <h1
+              style={
+                styles.heroTitle
+              }
+            >
+              Platform
+              <br />
+              Control Center.
+            </h1>
+
+            <p
+              style={
+                styles.heroText
+              }
+            >
+              Manage members, access,
+              Premium subscriptions and
+              account security from one
+              place.
+            </p>
+          </div>
+
+          <div
             style={
-              styles.statsGrid
-            }
-          >
-            <StatCard
-              label="Total Users"
-              value={
-                users.length
-              }
-              icon="◎"
-            />
-
-            <StatCard
-              label="Pending"
-              value={
-                pendingUsers.length
-              }
-              icon="◷"
-              active={
-                pendingUsers.length >
-                0
-              }
-            />
-
-            <StatCard
-              label="Joined"
-              value={
-                joinedUsers.length
-              }
-              icon="✓"
-              active
-            />
-
-            <StatCard
-              label="Rejected"
-              value={
-                rejectedUsers.length
-              }
-              icon="×"
-            />
-
-            <StatCard
-              label="Banned"
-              value={
-                bannedUsers.length
-              }
-              icon="!"
-            />
-          </section>
-
-          {/* SEARCH */}
-          <section
-            style={
-              styles.searchPanel
+              styles.heroRight
             }
           >
             <div
               style={
-                styles.searchBox
+                styles.liveBadge
               }
             >
               <span
                 style={
-                  styles.searchIcon
-                }
-              >
-                ⌕
-              </span>
-
-              <input
-                value={search}
-                onChange={(e) =>
-                  setSearch(
-                    e.target.value
-                  )
-                }
-                placeholder="Search name, username or Telegram ID..."
-                style={
-                  styles.searchInput
+                  styles.liveDot
                 }
               />
+              SYSTEM LIVE
             </div>
-          </section>
 
-          {/* ERROR */}
-          {error && (
             <div
               style={
-                styles.errorBox
+                styles.heroTotal
               }
             >
+              {users.length}
+            </div>
+
+            <div
+              style={
+                styles.heroTotalLabel
+              }
+            >
+              TOTAL ACCOUNTS
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            STATS
+        ================================================= */}
+
+        <section
+          style={
+            styles.statsGrid
+          }
+        >
+          <StatCard
+            label="Total Users"
+            value={
+              users.length
+            }
+            detail="All accounts"
+            icon="◎"
+          />
+
+          <StatCard
+            label="Pending"
+            value={
+              pendingUsers.length
+            }
+            detail="Awaiting approval"
+            icon="◷"
+            active={
+              pendingUsers.length >
+              0
+            }
+          />
+
+          <StatCard
+            label="Premium"
+            value={
+              premiumUsers.length
+            }
+            detail="Currently active"
+            icon="✦"
+            premium
+          />
+
+          <StatCard
+            label="Demo"
+            value={
+              demoUsers.length
+            }
+            detail="Active demo access"
+            icon="◇"
+          />
+
+          <StatCard
+            label="Free"
+            value={
+              freeUsers.length
+            }
+            detail="No active Premium"
+            icon="○"
+          />
+
+          <StatCard
+            label="Blocked"
+            value={
+              bannedUsers.length
+            }
+            detail="Restricted accounts"
+            icon="!"
+          />
+        </section>
+
+        {/* =================================================
+            SEARCH
+        ================================================= */}
+
+        <section
+          style={
+            styles.searchPanel
+          }
+        >
+          <div
+            style={
+              styles.searchHeader
+            }
+          >
+            <div>
+              <div
+                style={
+                  styles.searchEyebrow
+                }
+              >
+                USER DIRECTORY
+              </div>
+
+              <div
+                style={
+                  styles.searchTitle
+                }
+              >
+                Find any account
+              </div>
+            </div>
+
+            <div
+              style={
+                styles.resultCount
+              }
+            >
+              {filteredUsers.length}{" "}
+              results
+            </div>
+          </div>
+
+          <div
+            style={
+              styles.searchBox
+            }
+          >
+            <span
+              style={
+                styles.searchIcon
+              }
+            >
+              ⌕
+            </span>
+
+            <input
+              value={search}
+              onChange={(e) =>
+                setSearch(
+                  e.target.value
+                )
+              }
+              placeholder="Search name, email, username, Telegram ID, order ID..."
+              style={
+                styles.searchInput
+              }
+            />
+
+            {search && (
+              <button
+                onClick={() =>
+                  setSearch("")
+                }
+                style={
+                  styles.clearSearch
+                }
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div
+            style={
+              styles.filterRow
+            }
+          >
+            <FilterButton
+              active={
+                filter === "all"
+              }
+              onClick={() =>
+                setFilter("all")
+              }
+              label="All"
+              count={
+                users.length
+              }
+            />
+
+            <FilterButton
+              active={
+                filter === "pending"
+              }
+              onClick={() =>
+                setFilter("pending")
+              }
+              label="Pending"
+              count={
+                pendingUsers.length
+              }
+            />
+
+            <FilterButton
+              active={
+                filter === "premium"
+              }
+              onClick={() =>
+                setFilter("premium")
+              }
+              label="Premium"
+              count={
+                premiumUsers.length
+              }
+            />
+
+            <FilterButton
+              active={
+                filter === "demo"
+              }
+              onClick={() =>
+                setFilter("demo")
+              }
+              label="Demo"
+              count={
+                demoUsers.length
+              }
+            />
+
+            <FilterButton
+              active={
+                filter === "free"
+              }
+              onClick={() =>
+                setFilter("free")
+              }
+              label="Free"
+              count={
+                freeUsers.length
+              }
+            />
+
+            <FilterButton
+              active={
+                filter === "banned"
+              }
+              onClick={() =>
+                setFilter("banned")
+              }
+              label="Blocked"
+              count={
+                bannedUsers.length
+              }
+            />
+          </div>
+        </section>
+
+        {/* =================================================
+            ERROR
+        ================================================= */}
+
+        {error && (
+          <div
+            style={
+              styles.errorBox
+            }
+          >
+            <div
+              style={
+                styles.errorIcon
+              }
+            >
+              !
+            </div>
+
+            <div>
               <strong>
                 Unable to load admin
                 data
               </strong>
 
-              <div>
+              <div
+                style={
+                  styles.errorText
+                }
+              >
                 {error}
               </div>
 
@@ -785,121 +1070,243 @@ export default function AdminPage() {
                 Try Again
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* LOADING */}
-          {loading && !error && (
+        {/* =================================================
+            LOADING
+        ================================================= */}
+
+        {loading && !error && (
+          <div
+            style={
+              styles.loadingBox
+            }
+          >
             <div
               style={
-                styles.loadingBox
+                styles.loadingOrb
               }
-            >
-              <div
+            />
+
+            <strong>
+              Loading Admin Center
+            </strong>
+
+            <span>
+              Fetching live account data...
+            </span>
+          </div>
+        )}
+
+        {/* =================================================
+            CONTENT
+        ================================================= */}
+
+        {!loading &&
+          !error && (
+            <>
+              {/* ===========================================
+                  ACCESS REQUESTS
+              =========================================== */}
+
+              <section
                 style={
-                  styles.loader
+                  styles.panel
                 }
-              />
-
-              Loading admin data...
-            </div>
-          )}
-
-          {!loading &&
-            !error && (
-              <>
-                {/* ACCESS REQUESTS */}
-                <section
+              >
+                <div
                   style={
-                    styles.panel
+                    styles.panelHeader
                   }
                 >
-                  <div
-                    style={
-                      styles.panelHeader
-                    }
-                  >
-                    <div>
-                      <div
-                        style={
-                          styles.panelEyebrow
-                        }
-                      >
-                        ACCESS MANAGEMENT
-                      </div>
-
-                      <h2
-                        style={
-                          styles.panelTitle
-                        }
-                      >
-                        Access Requests
-                      </h2>
-
-                      <p
-                        style={
-                          styles.panelDescription
-                        }
-                      >
-                        Review users waiting
-                        for approval.
-                      </p>
-                    </div>
-
+                  <div>
                     <div
                       style={
-                        styles.requestCount
+                        styles.panelEyebrow
                       }
                     >
-                      {
-                        pendingUsers.length
-                      }{" "}
+                      ACCESS MANAGEMENT
+                    </div>
+
+                    <h2
+                      style={
+                        styles.panelTitle
+                      }
+                    >
+                      Access Requests
+                    </h2>
+
+                    <p
+                      style={
+                        styles.panelDescription
+                      }
+                    >
+                      Review and manage
+                      accounts waiting for
+                      approval.
+                    </p>
+                  </div>
+
+                  <div
+                    style={
+                      styles.panelCounter
+                    }
+                  >
+                    {
+                      filteredPending.length
+                    }
+                    <span>
                       pending
-                    </div>
+                    </span>
                   </div>
+                </div>
 
-                  {filteredPending.length ===
-                  0 ? (
-                    <EmptyState
-                      icon="✓"
-                      title="No pending requests"
-                      text="All current access requests have been processed."
-                    />
-                  ) : (
+                {filteredPending.length ===
+                0 ? (
+                  <EmptyState
+                    icon="✓"
+                    title="No pending requests"
+                    text="All current access requests have been processed."
+                  />
+                ) : (
+                  <div
+                    style={
+                      styles.userList
+                    }
+                  >
+                    {filteredPending.map(
+                      (user) => (
+                        <PendingUserCard
+                          key={
+                            user.id
+                          }
+                          user={user}
+                          actionLoading={
+                            actionLoading
+                          }
+                          onApprove={() =>
+                            updateUserStatus(
+                              user.id,
+                              "approved"
+                            )
+                          }
+                          onReject={() =>
+                            updateUserStatus(
+                              user.id,
+                              "rejected"
+                            )
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* ===========================================
+                  JOINED USERS
+              =========================================== */}
+
+              <section
+                style={
+                  styles.panel
+                }
+              >
+                <div
+                  style={
+                    styles.panelHeader
+                  }
+                >
+                  <div>
                     <div
                       style={
-                        styles.userList
+                        styles.panelEyebrow
                       }
                     >
-                      {filteredPending.map(
-                        (user) => (
-                          <PendingUserCard
-                            key={
-                              user.telegram_id
-                            }
-                            user={user}
-                            actionLoading={
-                              actionLoading
-                            }
-                            onApprove={() =>
-                              updateUserStatus(
-                                user.telegram_id,
-                                "approved"
-                              )
-                            }
-                            onReject={() =>
-                              updateUserStatus(
-                                user.telegram_id,
-                                "rejected"
-                              )
-                            }
-                          />
-                        )
-                      )}
+                      MEMBER DIRECTORY
                     </div>
-                  )}
-                </section>
 
-                {/* JOINED USERS */}
+                    <h2
+                      style={
+                        styles.panelTitle
+                      }
+                    >
+                      Joined Users
+                    </h2>
+
+                    <p
+                      style={
+                        styles.panelDescription
+                      }
+                    >
+                      Complete account and
+                      subscription overview.
+                    </p>
+                  </div>
+
+                  <div
+                    style={
+                      styles.panelCounterDark
+                    }
+                  >
+                    {
+                      filteredJoined.length
+                    }
+                    <span>
+                      active
+                    </span>
+                  </div>
+                </div>
+
+                {filteredJoined.length ===
+                0 ? (
+                  <EmptyState
+                    icon="—"
+                    title="No users found"
+                    text="Approved accounts will appear here."
+                  />
+                ) : (
+                  <div
+                    style={
+                      styles.userList
+                    }
+                  >
+                    {filteredJoined.map(
+                      (user) => (
+                        <JoinedUserCard
+                          key={
+                            user.id
+                          }
+                          user={user}
+                          actionLoading={
+                            actionLoading
+                          }
+                          onRemove={() =>
+                            updateUserStatus(
+                              user.id,
+                              "rejected"
+                            )
+                          }
+                          onBlock={() =>
+                            updateUserStatus(
+                              user.id,
+                              "banned"
+                            )
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* ===========================================
+                  BLOCKED
+              =========================================== */}
+
+              {filteredBanned.length >
+                0 && (
                 <section
                   style={
                     styles.panel
@@ -916,7 +1323,7 @@ export default function AdminPage() {
                           styles.panelEyebrow
                         }
                       >
-                        ACTIVE MEMBERS
+                        SECURITY
                       </div>
 
                       <h2
@@ -924,7 +1331,7 @@ export default function AdminPage() {
                           styles.panelTitle
                         }
                       >
-                        Joined Users
+                        Blocked Users
                       </h2>
 
                       <p
@@ -932,207 +1339,223 @@ export default function AdminPage() {
                           styles.panelDescription
                         }
                       >
-                        Users who currently
-                        have access.
+                        Accounts currently
+                        restricted from access.
                       </p>
                     </div>
 
                     <div
                       style={
-                        styles.joinedCount
+                        styles.panelCounterDark
                       }
                     >
                       {
-                        joinedUsers.length
-                      }{" "}
-                      joined
+                        filteredBanned.length
+                      }
+                      <span>
+                        blocked
+                      </span>
                     </div>
                   </div>
 
-                  {filteredJoined.length ===
-                  0 ? (
-                    <EmptyState
-                      icon="—"
-                      title="No joined users"
-                      text="Approved users will appear here."
-                    />
-                  ) : (
-                    <div
-                      style={
-                        styles.userList
-                      }
-                    >
-                      {filteredJoined.map(
-                        (user) => (
-                          <JoinedUserCard
-                            key={
-                              user.telegram_id
-                            }
-                            user={user}
-                            actionLoading={
-                              actionLoading
-                            }
-                            onRemove={() =>
-                              updateUserStatus(
-                                user.telegram_id,
-                                "rejected"
-                              )
-                            }
-                            onBlock={() =>
-                              updateUserStatus(
-                                user.telegram_id,
-                                "banned"
-                              )
-                            }
-                          />
-                        )
-                      )}
-                    </div>
-                  )}
-                </section>
-
-                {/* BANNED */}
-                {filteredBanned.length >
-                  0 && (
-                  <section
-                    style={
-                      styles.panel
-                    }
-                  >
-                    <div
-                      style={
-                        styles.panelHeader
-                      }
-                    >
-                      <div>
-                        <div
-                          style={
-                            styles.panelEyebrow
-                          }
-                        >
-                          SECURITY
-                        </div>
-
-                        <h2
-                          style={
-                            styles.panelTitle
-                          }
-                        >
-                          Blocked Users
-                        </h2>
-
-                        <p
-                          style={
-                            styles.panelDescription
-                          }
-                        >
-                          Users who are
-                          blocked from
-                          requesting access.
-                        </p>
-                      </div>
-
-                      <div
-                        style={
-                          styles.blockedCount
-                        }
-                      >
-                        {
-                          bannedUsers.length
-                        }{" "}
-                        blocked
-                      </div>
-                    </div>
-
-                    <div
-                      style={
-                        styles.userList
-                      }
-                    >
-                      {filteredBanned.map(
-                        (user) => (
-                          <BannedUserCard
-                            key={
-                              user.telegram_id
-                            }
-                            user={user}
-                            actionLoading={
-                              actionLoading
-                            }
-                            onUnblock={() =>
-                              updateUserStatus(
-                                user.telegram_id,
-                                "rejected"
-                              )
-                            }
-                          />
-                        )
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                {/* SECURITY */}
-                <section
-                  style={
-                    styles.securityCard
-                  }
-                >
                   <div
                     style={
-                      styles.securityIcon
+                      styles.userList
                     }
                   >
-                    ✓
+                    {filteredBanned.map(
+                      (user) => (
+                        <BannedUserCard
+                          key={
+                            user.id
+                          }
+                          user={user}
+                          actionLoading={
+                            actionLoading
+                          }
+                          onUnblock={() =>
+                            updateUserStatus(
+                              user.id,
+                              "rejected"
+                            )
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* ===========================================
+                  PREMIUM OVERVIEW
+              =========================================== */}
+
+              <section
+                style={
+                  styles.premiumOverview
+                }
+              >
+                <div>
+                  <div
+                    style={
+                      styles.premiumEyebrow
+                    }
+                  >
+                    PREMIUM OVERVIEW
+                  </div>
+
+                  <h2
+                    style={
+                      styles.premiumTitle
+                    }
+                  >
+                    Subscription
+                    intelligence.
+                  </h2>
+
+                  <p
+                    style={
+                      styles.premiumDescription
+                    }
+                  >
+                    {paidPremiumUsers.length}{" "}
+                    paid Premium account
+                    {paidPremiumUsers.length !==
+                    1
+                      ? "s"
+                      : ""}{" "}
+                    and{" "}
+                    {demoUsers.length}{" "}
+                    active demo account
+                    {demoUsers.length !==
+                    1
+                      ? "s"
+                      : ""}.
+                  </p>
+                </div>
+
+                <div
+                  style={
+                    styles.premiumNumbers
+                  }
+                >
+                  <div>
+                    <strong>
+                      {
+                        paidPremiumUsers.length
+                      }
+                    </strong>
+
+                    <span>
+                      Paid
+                    </span>
                   </div>
 
                   <div>
                     <strong>
-                      Access control is active
+                      {
+                        demoUsers.length
+                      }
                     </strong>
 
-                    <p
-                      style={
-                        styles.securityText
-                      }
-                    >
-                      Remove Access allows
-                      the user to request
-                      again. Block User
-                      prevents new access
-                      requests.
-                    </p>
+                    <span>
+                      Demo
+                    </span>
                   </div>
-                </section>
-              </>
-            )}
 
-          <footer
-            style={styles.footer}
-          >
-            <span>
-              SAMBHAV UPSC
-            </span>
+                  <div>
+                    <strong>
+                      {
+                        premiumUsers.length
+                      }
+                    </strong>
 
-            <span>
-              Admin Control Center
-            </span>
-          </footer>
-        </div>
-      </main>
-    </>
+                    <span>
+                      Active
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* ===========================================
+                  SECURITY
+              =========================================== */}
+
+              <section
+                style={
+                  styles.securityCard
+                }
+              >
+                <div
+                  style={
+                    styles.securityIcon
+                  }
+                >
+                  ✓
+                </div>
+
+                <div>
+                  <strong>
+                    Access control is active
+                  </strong>
+
+                  <p
+                    style={
+                      styles.securityText
+                    }
+                  >
+                    Remove Access allows
+                    the account to request
+                    access again. Block User
+                    keeps the account
+                    restricted.
+                  </p>
+                </div>
+
+                <div
+                  style={
+                    styles.securityStatus
+                  }
+                >
+                  PROTECTED
+                </div>
+              </section>
+            </>
+          )}
+
+        <footer
+          style={
+            styles.footer
+          }
+        >
+          <span>
+            SAMBHAV UPSC
+          </span>
+
+          <span>
+            Admin Control Center
+          </span>
+
+          <span>
+            Live • Secure
+          </span>
+        </footer>
+      </div>
+    </main>
   );
 }
 
-// =============================================
-// STAT CARD
-// =============================================
+/* =========================================================
+   STAT CARD
+========================================================= */
 
 function StatCard({
   label,
   value,
+  detail,
   icon,
   active,
+  premium,
 }) {
   return (
     <div
@@ -1140,6 +1563,9 @@ function StatCard({
         ...styles.statCard,
         ...(active
           ? styles.statActive
+          : {}),
+        ...(premium
+          ? styles.statPremium
           : {}),
       }}
     >
@@ -1172,13 +1598,57 @@ function StatCard({
       >
         {value}
       </div>
+
+      <div
+        style={
+          styles.statDetail
+        }
+      >
+        {detail}
+      </div>
     </div>
   );
 }
 
-// =============================================
-// PENDING USER
-// =============================================
+/* =========================================================
+   FILTER BUTTON
+========================================================= */
+
+function FilterButton({
+  active,
+  onClick,
+  label,
+  count,
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.filterButton,
+        ...(active
+          ? styles.filterButtonActive
+          : {}),
+      }}
+    >
+      {label}
+
+      <span
+        style={{
+          ...styles.filterCount,
+          ...(active
+            ? styles.filterCountActive
+            : {}),
+        }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+/* =========================================================
+   PENDING USER
+========================================================= */
 
 function PendingUserCard({
   user,
@@ -1186,20 +1656,13 @@ function PendingUserCard({
   onApprove,
   onReject,
 }) {
-  const initials =
-    (user.first_name ||
-      "U")
-      .trim()
-      .charAt(0)
-      .toUpperCase();
-
   const approving =
     actionLoading ===
-    `${user.telegram_id}-approved`;
+    `${user.id}-approved`;
 
   const rejecting =
     actionLoading ===
-    `${user.telegram_id}-rejected`;
+    `${user.id}-rejected`;
 
   return (
     <div
@@ -1209,7 +1672,6 @@ function PendingUserCard({
     >
       <UserInfo
         user={user}
-        initials={initials}
         status="pending"
       />
 
@@ -1230,7 +1692,7 @@ function PendingUserCard({
         >
           {rejecting
             ? "Cancelling..."
-            : "Cancel"}
+            : "Reject"}
         </button>
 
         <button
@@ -1252,9 +1714,9 @@ function PendingUserCard({
   );
 }
 
-// =============================================
-// JOINED USER
-// =============================================
+/* =========================================================
+   JOINED USER
+========================================================= */
 
 function JoinedUserCard({
   user,
@@ -1262,28 +1724,22 @@ function JoinedUserCard({
   onRemove,
   onBlock,
 }) {
-  const initials =
-    (user.first_name ||
-      "U")
-      .trim()
-      .charAt(0)
-      .toUpperCase();
-
   const removing =
     actionLoading ===
-    `${user.telegram_id}-rejected`;
+    `${user.id}-rejected`;
 
   const blocking =
     actionLoading ===
-    `${user.telegram_id}-banned`;
+    `${user.id}-banned`;
 
   function handleRemove() {
     const confirmed =
       window.confirm(
         `Remove access from ${
           user.first_name ||
+          user.email ||
           "this user"
-        }?\n\nThey will be able to request access again with /start.`
+        }?\n\nThey will be able to access the account again after the account is approved.`
       );
 
     if (confirmed) {
@@ -1296,8 +1752,9 @@ function JoinedUserCard({
       window.confirm(
         `Block ${
           user.first_name ||
+          user.email ||
           "this user"
-        }?\n\nThey will NOT be able to submit another access request.`
+        }?\n\nThis account will be blocked from access.`
       );
 
     if (confirmed) {
@@ -1307,13 +1764,15 @@ function JoinedUserCard({
 
   return (
     <div
-      style={
-        styles.userCard
-      }
+      style={{
+        ...styles.userCard,
+        ...(user.premium_active
+          ? styles.premiumUserCard
+          : {}),
+      }}
     >
       <UserInfo
         user={user}
-        initials={initials}
         status="approved"
         joined
       />
@@ -1337,7 +1796,7 @@ function JoinedUserCard({
         >
           {removing
             ? "Removing..."
-            : "Remove Access"}
+            : "Remove"}
         </button>
 
         <button
@@ -1354,40 +1813,34 @@ function JoinedUserCard({
         >
           {blocking
             ? "Blocking..."
-            : "Block User"}
+            : "Block"}
         </button>
       </div>
     </div>
   );
 }
 
-// =============================================
-// BANNED USER
-// =============================================
+/* =========================================================
+   BANNED USER
+========================================================= */
 
 function BannedUserCard({
   user,
   actionLoading,
   onUnblock,
 }) {
-  const initials =
-    (user.first_name ||
-      "U")
-      .trim()
-      .charAt(0)
-      .toUpperCase();
-
   const unblocking =
     actionLoading ===
-    `${user.telegram_id}-rejected`;
+    `${user.id}-rejected`;
 
   function handleUnblock() {
     const confirmed =
       window.confirm(
         `Unblock ${
           user.first_name ||
+          user.email ||
           "this user"
-        }?\n\nThey will be able to submit a fresh request with /start.`
+        }?`
       );
 
     if (confirmed) {
@@ -1403,7 +1856,6 @@ function BannedUserCard({
     >
       <UserInfo
         user={user}
-        initials={initials}
         status="banned"
       />
 
@@ -1426,16 +1878,39 @@ function BannedUserCard({
   );
 }
 
-// =============================================
-// USER INFO
-// =============================================
+/* =========================================================
+   USER INFO
+========================================================= */
 
 function UserInfo({
   user,
-  initials,
   status,
   joined,
 }) {
+  const initials =
+    (
+      user.first_name ||
+      user.email ||
+      "U"
+    )
+      .trim()
+      .charAt(0)
+      .toUpperCase();
+
+  const plan =
+    String(
+      user.premium_plan ||
+        user.plan ||
+        "free"
+    ).toLowerCase();
+
+  const isPremium =
+    user.premium_active === true;
+
+  const isDemo =
+    isPremium &&
+    plan === "demo";
+
   return (
     <div
       style={
@@ -1443,9 +1918,12 @@ function UserInfo({
       }
     >
       <div
-        style={
-          styles.avatar
-        }
+        style={{
+          ...styles.avatar,
+          ...(isPremium
+            ? styles.premiumAvatar
+            : {}),
+        }}
       >
         {initials}
       </div>
@@ -1472,48 +1950,128 @@ function UserInfo({
           <StatusBadge
             status={status}
           />
+
+          {isPremium && (
+            <span
+              style={
+                isDemo
+                  ? styles.demoBadge
+                  : styles.premiumBadge
+              }
+            >
+              {isDemo
+                ? "DEMO"
+                : "PREMIUM"}
+            </span>
+          )}
         </div>
 
         <div
           style={
-            styles.userMeta
+            styles.email
           }
         >
-          {user.username
-            ? `@${user.username}`
-            : "No username"}
+          {user.email ||
+            "No email"}
         </div>
 
         <div
           style={
-            styles.telegramId
+            styles.userMetaRow
           }
         >
-          Telegram ID:{" "}
-          {user.telegram_id}
+          <span>
+            {user.username
+              ? `@${user.username}`
+              : "No username"}
+          </span>
+
+          {user.telegram_id && (
+            <>
+              <span>•</span>
+
+              <span>
+                TG {user.telegram_id}
+              </span>
+            </>
+          )}
         </div>
 
-        {joined && (
+        <div
+          style={
+            styles.accountDetails
+          }
+        >
+          <InfoItem
+            label="Joined"
+            value={formatDate(
+              user.created_at
+            )}
+          />
+
+          <InfoItem
+            label="Last login"
+            value={formatDateTime(
+              user.last_login_at
+            )}
+          />
+
+          <InfoItem
+            label="Plan"
+            value={
+              isPremium
+                ? formatPlan(
+                    plan
+                  )
+                : "Free"
+            }
+          />
+
+          {isPremium && (
+            <InfoItem
+              label="Expires"
+              value={formatDateTime(
+                user.premium_expires_at
+              )}
+            />
+          )}
+        </div>
+
+        {isPremium && (
           <div
             style={
-              styles.memberDetails
+              styles.subscriptionRow
             }
           >
-            <span>
-              Plan:{" "}
-              {user.plan ||
-                "free"}
-            </span>
+            {user.order_id && (
+              <span>
+                Order:{" "}
+                {shortId(
+                  user.order_id
+                )}
+              </span>
+            )}
 
-            <span>•</span>
+            {user.payment_id && (
+              <span>
+                Payment:{" "}
+                {shortId(
+                  user.payment_id
+                )}
+              </span>
+            )}
 
-            <span>
-              Joined:{" "}
-              {formatDate(
-                user.approved_at ||
-                  user.created_at
+            {user.subscription_amount !==
+              null &&
+              user.subscription_amount !==
+                undefined && (
+                <span>
+                  ₹
+                  {
+                    user.subscription_amount
+                  }
+                </span>
               )}
-            </span>
           </div>
         )}
 
@@ -1521,11 +2079,11 @@ function UserInfo({
           user.created_at && (
             <div
               style={
-                styles.date
+                styles.requested
               }
             >
-              Requested:{" "}
-              {formatDate(
+              Requested{" "}
+              {formatDateTime(
                 user.created_at
               )}
             </div>
@@ -1535,9 +2093,34 @@ function UserInfo({
   );
 }
 
-// =============================================
-// STATUS
-// =============================================
+/* =========================================================
+   INFO ITEM
+========================================================= */
+
+function InfoItem({
+  label,
+  value,
+}) {
+  return (
+    <div
+      style={
+        styles.infoItem
+      }
+    >
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+/* =========================================================
+   STATUS BADGE
+========================================================= */
 
 function StatusBadge({
   status,
@@ -1584,9 +2167,9 @@ function StatusBadge({
   );
 }
 
-// =============================================
-// EMPTY
-// =============================================
+/* =========================================================
+   EMPTY STATE
+========================================================= */
 
 function EmptyState({
   icon,
@@ -1626,9 +2209,9 @@ function EmptyState({
   );
 }
 
-// =============================================
-// DATE
-// =============================================
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function formatDate(value) {
   if (!value) return "—";
@@ -1654,24 +2237,74 @@ function formatDate(value) {
   );
 }
 
-// =============================================
-// STYLES
-// =============================================
+function formatDateTime(value) {
+  if (!value) return "—";
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "—";
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
+}
+
+function formatPlan(plan) {
+  if (!plan) return "Free";
+
+  return String(plan)
+    .charAt(0)
+    .toUpperCase() +
+    String(plan).slice(1);
+}
+
+function shortId(value) {
+  if (!value) return "—";
+
+  const text = String(value);
+
+  if (text.length <= 18) {
+    return text;
+  }
+
+  return (
+    text.slice(0, 8) +
+    "..." +
+    text.slice(-6)
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f4f4f2",
+    background:
+      "linear-gradient(180deg,#f6f6f3 0%,#eeeeeb 100%)",
     color: "#111",
     fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
+      '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
-      "24px 16px 50px",
+      "24px 16px 60px",
   },
 
   container: {
     width: "100%",
-    maxWidth: "1180px",
+    maxWidth: "1240px",
     margin: "0 auto",
   },
 
@@ -1685,10 +2318,14 @@ const styles = {
       "28px",
   },
 
-  headerActions: {
+  headerRight: {
     display: "flex",
-    alignItems: "center",
+    alignItems:
+      "center",
     gap: "8px",
+    flexWrap: "wrap",
+    justifyContent:
+      "flex-end",
   },
 
   backButton: {
@@ -1698,10 +2335,10 @@ const styles = {
     padding: 0,
     marginBottom:
       "14px",
-    fontSize: "13px",
-    fontWeight: "600",
+    fontSize: "12px",
+    fontWeight: "700",
     cursor: "pointer",
-    color: "#555",
+    color: "#666",
   },
 
   brandRow: {
@@ -1711,10 +2348,11 @@ const styles = {
   },
 
   logo: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "12px",
-    background: "#111",
+    width: "44px",
+    height: "44px",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(145deg,#111,#303030)",
     color: "#fff",
     display: "flex",
     alignItems:
@@ -1722,31 +2360,60 @@ const styles = {
     justifyContent:
       "center",
     fontSize: "19px",
-    fontWeight: "800",
+    fontWeight: "900",
+    boxShadow:
+      "0 8px 22px rgba(0,0,0,.16)",
   },
 
   brand: {
     fontSize: "15px",
-    fontWeight: "800",
+    fontWeight: "900",
+    letterSpacing:
+      ".3px",
   },
 
   subtitle: {
-    marginTop: "2px",
-    color: "#777",
-    fontSize: "12px",
+    marginTop: "3px",
+    color: "#888",
+    fontSize: "11px",
   },
 
-  refreshButton: {
+  adminIdentity: {
+    padding:
+      "7px 11px",
+    background:
+      "rgba(255,255,255,.75)",
+    border:
+      "1px solid #ddd",
+    borderRadius:
+      "11px",
+  },
+
+  adminIdentityLabel: {
+    fontSize: "8px",
+    fontWeight: "900",
+    letterSpacing:
+      "1.3px",
+    color: "#999",
+  },
+
+  adminIdentityEmail: {
+    fontSize: "10px",
+    fontWeight: "700",
+    marginTop: "2px",
+  },
+
+  headerButton: {
     border:
       "1px solid #ddd",
     background: "#fff",
     color: "#111",
     borderRadius:
-      "12px",
+      "11px",
     padding:
-      "11px 15px",
-    fontSize: "13px",
-    fontWeight: "700",
+      "10px 13px",
+    fontSize: "11px",
+    fontWeight: "800",
     cursor: "pointer",
   },
 
@@ -1755,8 +2422,8 @@ const styles = {
   },
 
   notificationButton: {
-    width: "44px",
-    height: "44px",
+    width: "42px",
+    height: "42px",
     border:
       "1px solid #ddd",
     background: "#fff",
@@ -1785,8 +2452,8 @@ const styles = {
       "center",
     justifyContent:
       "center",
-    fontSize: "9px",
-    fontWeight: "800",
+    fontSize: "8px",
+    fontWeight: "900",
     border:
       "2px solid #f4f4f2",
   },
@@ -1794,15 +2461,15 @@ const styles = {
   notificationPanel: {
     position: "absolute",
     right: 0,
-    top: "52px",
+    top: "51px",
     width: "310px",
     background: "#fff",
     border:
       "1px solid #ddd",
     borderRadius:
-      "16px",
+      "17px",
     boxShadow:
-      "0 16px 45px rgba(0,0,0,.12)",
+      "0 20px 60px rgba(0,0,0,.16)",
     zIndex: 100,
     overflow: "hidden",
   },
@@ -1813,10 +2480,19 @@ const styles = {
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems: "center",
+    alignItems:
+      "center",
     borderBottom:
       "1px solid #eee",
-    fontSize: "13px",
+  },
+
+  notificationEyebrow: {
+    fontSize: "8px",
+    letterSpacing:
+      "1.3px",
+    color: "#999",
+    fontWeight: "900",
+    marginBottom: "3px",
   },
 
   closeNotification: {
@@ -1831,13 +2507,14 @@ const styles = {
   notificationItem: {
     display: "flex",
     gap: "10px",
-    padding: "16px",
+    padding: "17px",
   },
 
   notificationDot: {
     width: "8px",
     height: "8px",
-    borderRadius: "50%",
+    borderRadius:
+      "50%",
     background: "#111",
     marginTop: "5px",
     flexShrink: 0,
@@ -1857,24 +2534,26 @@ const styles = {
       "1px solid #eee",
     background: "#f7f7f5",
     padding: "12px",
-    fontSize: "11px",
-    fontWeight: "800",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
   noNotification: {
     textAlign: "center",
-    padding: "28px 20px",
+    padding:
+      "28px 20px",
     color: "#777",
-    fontSize: "12px",
+    fontSize: "11px",
   },
 
   noNotificationIcon: {
-    width: "35px",
-    height: "35px",
+    width: "36px",
+    height: "36px",
     margin:
       "0 auto 9px",
-    borderRadius: "50%",
+    borderRadius:
+      "50%",
     background: "#111",
     color: "#fff",
     display: "flex",
@@ -1882,99 +2561,133 @@ const styles = {
       "center",
     justifyContent:
       "center",
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   hero: {
-    background: "#111",
+    background:
+      "linear-gradient(135deg,#0b0b0b,#202020)",
     color: "#fff",
     borderRadius:
-      "24px",
-    padding: "32px",
+      "28px",
+    padding:
+      "38px 38px",
     display: "flex",
     justifyContent:
       "space-between",
     alignItems:
-      "flex-end",
-    gap: "25px",
+      "center",
+    gap: "30px",
     marginBottom:
-      "18px",
+      "15px",
+    boxShadow:
+      "0 18px 50px rgba(0,0,0,.12)",
   },
 
-  eyebrow: {
-    fontSize: "10px",
+  heroEyebrow: {
+    fontSize: "9px",
     letterSpacing:
-      "1.7px",
-    color: "#aaa",
-    fontWeight: "800",
+      "2px",
+    color: "#999",
+    fontWeight: "900",
     marginBottom:
-      "10px",
+      "12px",
   },
 
-  title: {
+  heroTitle: {
     margin: 0,
     fontSize:
-      "clamp(28px, 5vw, 44px)",
-    lineHeight: "1.05",
+      "clamp(30px,5vw,48px)",
+    lineHeight: "1.02",
     letterSpacing:
-      "-1.5px",
+      "-2px",
   },
 
   heroText: {
     color: "#aaa",
     margin:
-      "12px 0 0",
-    maxWidth: "550px",
-    fontSize: "14px",
-    lineHeight: "1.6",
+      "13px 0 0",
+    maxWidth: "570px",
+    fontSize: "13px",
+    lineHeight: "1.65",
   },
 
-  adminBadge: {
-    background: "#fff",
-    color: "#111",
-    borderRadius:
-      "999px",
-    padding:
-      "9px 13px",
-    display: "flex",
+  heroRight: {
+    minWidth: "150px",
+    textAlign: "right",
+  },
+
+  liveBadge: {
+    display: "inline-flex",
     alignItems:
       "center",
     gap: "7px",
-    whiteSpace:
-      "nowrap",
-    fontSize: "11px",
-    fontWeight: "800",
+    padding:
+      "7px 10px",
+    border:
+      "1px solid #444",
+    borderRadius:
+      "999px",
+    fontSize: "8px",
+    fontWeight: "900",
+    letterSpacing:
+      "1px",
+    color: "#ccc",
   },
 
-  adminDot: {
-    width: "7px",
-    height: "7px",
+  liveDot: {
+    width: "6px",
+    height: "6px",
     borderRadius:
       "50%",
-    background: "#111",
+    background: "#fff",
+  },
+
+  heroTotal: {
+    marginTop: "20px",
+    fontSize: "42px",
+    fontWeight: "900",
+    letterSpacing:
+      "-2px",
+  },
+
+  heroTotalLabel: {
+    color: "#777",
+    fontSize: "8px",
+    letterSpacing:
+      "1.4px",
+    fontWeight: "900",
   },
 
   statsGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit, minmax(165px, 1fr))",
-    gap: "12px",
+      "repeat(auto-fit,minmax(155px,1fr))",
+    gap: "10px",
     marginBottom:
-      "18px",
+      "15px",
   },
 
   statCard: {
     background: "#fff",
     border:
-      "1px solid #e4e4e1",
+      "1px solid #e2e2df",
     borderRadius:
-      "18px",
-    padding: "18px",
+      "17px",
+    padding: "17px",
+    transition:
+      "transform .2s ease",
   },
 
   statActive: {
+    borderColor: "#111",
+  },
+
+  statPremium: {
+    background:
+      "linear-gradient(145deg,#fff,#f5f0e4)",
     borderColor:
-      "#111",
+      "#d8c79e",
   },
 
   statTop: {
@@ -1987,20 +2700,31 @@ const styles = {
 
   statLabel: {
     color: "#777",
-    fontSize: "11px",
-    fontWeight: "700",
+    fontSize: "9px",
+    fontWeight: "800",
+    letterSpacing:
+      ".3px",
   },
 
   statIcon: {
-    fontSize: "18px",
-    fontWeight: "800",
+    fontSize: "16px",
+    fontWeight: "900",
   },
 
   statValue: {
     marginTop:
-      "13px",
-    fontSize: "30px",
-    fontWeight: "800",
+      "12px",
+    fontSize: "29px",
+    fontWeight: "900",
+    letterSpacing:
+      "-1px",
+  },
+
+  statDetail: {
+    marginTop:
+      "3px",
+    color: "#999",
+    fontSize: "9px",
   },
 
   searchPanel: {
@@ -2008,18 +2732,47 @@ const styles = {
     border:
       "1px solid #e2e2df",
     borderRadius:
-      "18px",
-    padding: "15px",
+      "20px",
+    padding: "16px",
     marginBottom:
-      "18px",
+      "15px",
+  },
+
+  searchHeader: {
+    display: "flex",
+    alignItems:
+      "center",
+    justifyContent:
+      "space-between",
+    marginBottom:
+      "12px",
+  },
+
+  searchEyebrow: {
+    fontSize: "8px",
+    letterSpacing:
+      "1.4px",
+    color: "#999",
+    fontWeight: "900",
+  },
+
+  searchTitle: {
+    fontSize: "15px",
+    fontWeight: "900",
+    marginTop: "3px",
+  },
+
+  resultCount: {
+    fontSize: "10px",
+    color: "#888",
   },
 
   searchBox: {
-    height: "44px",
+    height: "45px",
     background:
       "#f6f6f4",
     border:
-      "1px solid #e7e7e4",
+      "1px solid #e6e6e3",
     borderRadius:
       "12px",
     display: "flex",
@@ -2031,7 +2784,7 @@ const styles = {
 
   searchIcon: {
     color: "#777",
-    fontSize: "20px",
+    fontSize: "19px",
     marginRight: "8px",
   },
 
@@ -2041,8 +2794,149 @@ const styles = {
     outline: "none",
     background:
       "transparent",
-    fontSize: "13px",
+    fontSize: "12px",
     color: "#111",
+  },
+
+  clearSearch: {
+    border: "none",
+    background:
+      "transparent",
+    color: "#888",
+    fontSize: "18px",
+    cursor: "pointer",
+  },
+
+  filterRow: {
+    display: "flex",
+    gap: "7px",
+    flexWrap: "wrap",
+    marginTop:
+      "11px",
+  },
+
+  filterButton: {
+    border:
+      "1px solid #ddd",
+    background: "#fff",
+    color: "#555",
+    borderRadius:
+      "999px",
+    padding:
+      "7px 9px",
+    fontSize: "9px",
+    fontWeight: "800",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems:
+      "center",
+    gap: "6px",
+  },
+
+  filterButtonActive: {
+    background: "#111",
+    color: "#fff",
+    borderColor: "#111",
+  },
+
+  filterCount: {
+    background:
+      "#f0f0ed",
+    color: "#777",
+    borderRadius:
+      "999px",
+    padding:
+      "2px 5px",
+    fontSize: "8px",
+  },
+
+  filterCountActive: {
+    background:
+      "#333",
+    color: "#fff",
+  },
+
+  errorBox: {
+    marginBottom:
+      "15px",
+    padding: "16px",
+    borderRadius:
+      "16px",
+    background: "#fff",
+    border:
+      "1px solid #ddd",
+    display: "flex",
+    gap: "11px",
+    color: "#555",
+    fontSize: "11px",
+    lineHeight: "1.6",
+  },
+
+  errorIcon: {
+    width: "27px",
+    height: "27px",
+    borderRadius:
+      "50%",
+    background: "#111",
+    color: "#fff",
+    display: "flex",
+    alignItems:
+      "center",
+    justifyContent:
+      "center",
+    fontWeight: "900",
+    flexShrink: 0,
+  },
+
+  errorText: {
+    marginTop: "2px",
+    color: "#888",
+  },
+
+  retryButton: {
+    marginTop:
+      "8px",
+    border: "none",
+    background: "#111",
+    color: "#fff",
+    borderRadius:
+      "8px",
+    padding:
+      "7px 10px",
+    fontSize: "10px",
+    fontWeight: "800",
+    cursor: "pointer",
+  },
+
+  loadingBox: {
+    background: "#fff",
+    border:
+      "1px solid #e2e2df",
+    borderRadius:
+      "20px",
+    padding:
+      "65px 20px",
+    textAlign: "center",
+    display: "flex",
+    flexDirection:
+      "column",
+    alignItems: "center",
+    color: "#777",
+    fontSize: "11px",
+    gap: "5px",
+  },
+
+  loadingOrb: {
+    width: "28px",
+    height: "28px",
+    borderRadius:
+      "50%",
+    border:
+      "3px solid #ddd",
+    borderTopColor:
+      "#111",
+    marginBottom:
+      "8px",
   },
 
   panel: {
@@ -2050,14 +2944,15 @@ const styles = {
     border:
       "1px solid #e2e2df",
     borderRadius:
-      "24px",
+      "23px",
     overflow: "hidden",
     marginBottom:
-      "18px",
+      "15px",
   },
 
   panelHeader: {
-    padding: "25px",
+    padding:
+      "23px 24px",
     display: "flex",
     justifyContent:
       "space-between",
@@ -2069,58 +2964,53 @@ const styles = {
   },
 
   panelEyebrow: {
-    fontSize: "10px",
+    fontSize: "8px",
     letterSpacing:
-      "1.4px",
-    fontWeight: "800",
+      "1.5px",
+    fontWeight: "900",
     color: "#999",
     marginBottom:
-      "7px",
+      "6px",
   },
 
   panelTitle: {
     margin: 0,
-    fontSize: "24px",
+    fontSize: "22px",
+    letterSpacing:
+      "-.5px",
   },
 
   panelDescription: {
-    color: "#777",
-    fontSize: "13px",
+    color: "#888",
+    fontSize: "11px",
     margin:
-      "7px 0 0",
+      "6px 0 0",
   },
 
-  requestCount: {
+  panelCounter: {
     background:
-      "#f1f1ef",
+      "#f1f1ee",
     borderRadius:
       "999px",
     padding:
-      "8px 11px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "8px 10px",
+    fontSize: "15px",
+    fontWeight: "900",
+    whiteSpace:
+      "nowrap",
   },
 
-  joinedCount: {
+  panelCounterDark: {
     background: "#111",
     color: "#fff",
     borderRadius:
       "999px",
     padding:
-      "8px 11px",
-    fontSize: "11px",
-    fontWeight: "800",
-  },
-
-  blockedCount: {
-    background: "#111",
-    color: "#fff",
-    borderRadius:
-      "999px",
-    padding:
-      "8px 11px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "8px 10px",
+    fontSize: "15px",
+    fontWeight: "900",
+    whiteSpace:
+      "nowrap",
   },
 
   userList: {
@@ -2131,7 +3021,7 @@ const styles = {
 
   userCard: {
     padding:
-      "19px 25px",
+      "18px 24px",
     borderBottom:
       "1px solid #eee",
     display: "flex",
@@ -2142,29 +3032,40 @@ const styles = {
     gap: "20px",
   },
 
+  premiumUserCard: {
+    background:
+      "linear-gradient(90deg,#fffdf8,#fff)",
+  },
+
   userMain: {
     display: "flex",
     alignItems:
-      "center",
+      "flex-start",
     gap: "13px",
     minWidth: 0,
   },
 
   avatar: {
-    width: "45px",
-    height: "45px",
+    width: "44px",
+    height: "44px",
     flexShrink: 0,
     borderRadius:
-      "14px",
-    background: "#111",
+      "13px",
+    background:
+      "linear-gradient(145deg,#111,#333)",
     color: "#fff",
     display: "flex",
     alignItems:
       "center",
     justifyContent:
       "center",
-    fontSize: "15px",
-    fontWeight: "800",
+    fontSize: "14px",
+    fontWeight: "900",
+  },
+
+  premiumAvatar: {
+    background:
+      "linear-gradient(145deg,#171717,#6d5a2e)",
   },
 
   userInfo: {
@@ -2175,41 +3076,66 @@ const styles = {
     display: "flex",
     alignItems:
       "center",
-    gap: "8px",
+    gap: "6px",
     flexWrap: "wrap",
   },
 
   userName: {
     margin: 0,
     fontSize: "14px",
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
-  userMeta: {
-    color: "#555",
-    fontSize: "12px",
+  email: {
+    color: "#444",
+    fontSize: "11px",
     marginTop: "3px",
+    wordBreak:
+      "break-word",
   },
 
-  telegramId: {
-    color: "#888",
-    fontSize: "10px",
-    marginTop: "4px",
-  },
-
-  date: {
-    color: "#aaa",
-    fontSize: "10px",
-    marginTop: "4px",
-  },
-
-  memberDetails: {
+  userMetaRow: {
     display: "flex",
     gap: "6px",
     flexWrap: "wrap",
-    color: "#777",
-    fontSize: "10px",
+    color: "#888",
+    fontSize: "9px",
     marginTop: "5px",
+  },
+
+  accountDetails: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "8px",
+  },
+
+  infoItem: {
+    display: "flex",
+    flexDirection:
+      "column",
+    gap: "2px",
+  },
+
+  infoItemLabel: {
+    fontSize: "8px",
+    color: "#aaa",
+  },
+
+  subscriptionRow: {
+    display: "flex",
+    gap: "9px",
+    flexWrap: "wrap",
+    marginTop: "7px",
+    color: "#8a7540",
+    fontSize: "8px",
+    fontWeight: "800",
+  },
+
+  requested: {
+    color: "#aaa",
+    fontSize: "9px",
+    marginTop: "6px",
   },
 
   badge: {
@@ -2217,25 +3143,25 @@ const styles = {
       "999px",
     padding:
       "4px 7px",
-    fontSize: "9px",
-    fontWeight: "800",
+    fontSize: "8px",
+    fontWeight: "900",
   },
 
   pendingBadge: {
     background:
-      "#f1f1ef",
+      "#f0f0ed",
     color: "#555",
   },
 
   approvedBadge: {
     background:
-      "#e8e8e5",
+      "#e7e7e3",
     color: "#111",
   },
 
   rejectedBadge: {
     background:
-      "#f2f2f0",
+      "#f1f1ef",
     color: "#777",
   },
 
@@ -2244,13 +3170,41 @@ const styles = {
     color: "#fff",
   },
 
+  premiumBadge: {
+    background:
+      "#eadfbe",
+    color: "#695522",
+    border:
+      "1px solid #d9c793",
+    borderRadius:
+      "999px",
+    padding:
+      "4px 7px",
+    fontSize: "8px",
+    fontWeight: "900",
+  },
+
+  demoBadge: {
+    background:
+      "#eeeae0",
+    color: "#77705d",
+    border:
+      "1px solid #ddd7c7",
+    borderRadius:
+      "999px",
+    padding:
+      "4px 7px",
+    fontSize: "8px",
+    fontWeight: "900",
+  },
+
   actions: {
     display: "flex",
     alignItems:
       "center",
     justifyContent:
       "flex-end",
-    gap: "8px",
+    gap: "7px",
     flexShrink: 0,
     flexWrap: "wrap",
   },
@@ -2260,11 +3214,11 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius:
-      "10px",
+      "9px",
     padding:
-      "10px 14px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "9px 12px",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
@@ -2274,11 +3228,11 @@ const styles = {
     background: "#fff",
     color: "#444",
     borderRadius:
-      "10px",
+      "9px",
     padding:
-      "10px 14px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "9px 12px",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
@@ -2288,11 +3242,11 @@ const styles = {
     background: "#fff",
     color: "#333",
     borderRadius:
-      "10px",
+      "9px",
     padding:
-      "10px 14px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "9px 12px",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
@@ -2301,11 +3255,11 @@ const styles = {
     background: "#111",
     color: "#fff",
     borderRadius:
-      "10px",
+      "9px",
     padding:
-      "10px 14px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "9px 12px",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
@@ -2315,27 +3269,27 @@ const styles = {
     background: "#fff",
     color: "#111",
     borderRadius:
-      "10px",
+      "9px",
     padding:
-      "10px 14px",
-    fontSize: "11px",
-    fontWeight: "800",
+      "9px 12px",
+    fontSize: "10px",
+    fontWeight: "900",
     cursor: "pointer",
   },
 
   emptyState: {
     padding:
-      "60px 25px",
+      "55px 25px",
     textAlign:
       "center",
     color: "#777",
   },
 
   emptyIcon: {
-    width: "44px",
-    height: "44px",
+    width: "43px",
+    height: "43px",
     margin:
-      "0 auto 12px",
+      "0 auto 11px",
     borderRadius:
       "50%",
     background: "#111",
@@ -2345,87 +3299,82 @@ const styles = {
       "center",
     justifyContent:
       "center",
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   emptyTitle: {
     margin:
       "0 0 5px",
     color: "#111",
-    fontSize: "16px",
+    fontSize: "15px",
   },
 
   emptyText: {
     margin: 0,
-    fontSize: "12px",
+    fontSize: "11px",
   },
 
-  loadingBox: {
-    background: "#fff",
-    border:
-      "1px solid #e2e2df",
-    borderRadius:
-      "20px",
-    padding:
-      "60px 20px",
-    textAlign:
-      "center",
-    color: "#777",
-    fontSize: "12px",
-  },
-
-  loader: {
-    width: "25px",
-    height: "25px",
-    borderRadius:
-      "50%",
-    border:
-      "3px solid #ddd",
-    borderTopColor:
-      "#111",
-    margin:
-      "0 auto 12px",
-  },
-
-  errorBox: {
-    marginBottom:
-      "18px",
-    padding: "15px",
-    borderRadius:
-      "14px",
-    background: "#fff",
-    border:
-      "1px solid #ddd",
-    color: "#555",
-    fontSize: "12px",
-    lineHeight: "1.6",
-  },
-
-  retryButton: {
-    marginTop:
-      "10px",
-    border: "none",
-    background: "#111",
+  premiumOverview: {
+    background:
+      "linear-gradient(135deg,#171717,#292929)",
     color: "#fff",
     borderRadius:
-      "9px",
+      "23px",
     padding:
-      "8px 12px",
-    fontSize: "11px",
-    fontWeight: "700",
-    cursor: "pointer",
+      "25px",
+    marginBottom:
+      "15px",
+    display: "flex",
+    justifyContent:
+      "space-between",
+    alignItems:
+      "center",
+    gap: "20px",
+  },
+
+  premiumEyebrow: {
+    fontSize: "8px",
+    letterSpacing:
+      "1.6px",
+    color: "#b9a976",
+    fontWeight: "900",
+  },
+
+  premiumTitle: {
+    margin:
+      "6px 0 0",
+    fontSize: "23px",
+    letterSpacing:
+      "-.5px",
+  },
+
+  premiumDescription: {
+    margin:
+      "7px 0 0",
+    color: "#aaa",
+    fontSize: "10px",
+  },
+
+  premiumNumbers: {
+    display: "flex",
+    gap: "20px",
+  },
+
+  premiumNumbers: {
+    display: "flex",
+    gap: "18px",
   },
 
   securityCard: {
     display: "flex",
     gap: "13px",
     alignItems:
-      "flex-start",
+      "center",
     background: "#111",
     color: "#fff",
     borderRadius:
       "18px",
-    padding: "18px",
+    padding: "17px 19px",
     marginBottom:
       "18px",
   },
@@ -2448,20 +3397,37 @@ const styles = {
 
   securityText: {
     margin:
-      "5px 0 0",
+      "4px 0 0",
     color: "#aaa",
-    fontSize: "11px",
-    lineHeight: "1.6",
+    fontSize: "9px",
+    lineHeight: "1.5",
+  },
+
+  securityStatus: {
+    marginLeft: "auto",
+    border:
+      "1px solid #444",
+    color: "#aaa",
+    borderRadius:
+      "999px",
+    padding:
+      "5px 8px",
+    fontSize: "7px",
+    fontWeight: "900",
+    letterSpacing:
+      "1px",
   },
 
   footer: {
     padding:
-      "22px 4px",
+      "20px 3px",
     display: "flex",
     justifyContent:
       "space-between",
+    gap: "10px",
+    flexWrap: "wrap",
     color: "#999",
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: "700",
   },
 };
