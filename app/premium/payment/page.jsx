@@ -27,58 +27,75 @@ const plans = {
 export default function PremiumPaymentPage() {
   const router = useRouter();
 
-  const [plan, setPlan] = useState("monthly");
-  const [loading, setLoading] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [error, setError] = useState("");
+  const [plan, setPlan] =
+    useState("monthly");
 
-  const selectedPlan = plans[plan];
+  const [loading, setLoading] =
+    useState(false);
+
+  const [authReady, setAuthReady] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const selectedPlan =
+    plans[plan];
 
   /*
-   * Read selected plan from URL.
+   * READ PLAN
    */
+
   useEffect(() => {
     try {
-      const params = new URLSearchParams(
-        window.location.search
-      );
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
 
-      const selectedPlan =
+      const selected =
         params.get("plan");
 
       if (
-        selectedPlan &&
+        selected &&
         Object.prototype.hasOwnProperty.call(
           plans,
-          selectedPlan
+          selected
         )
       ) {
-        setPlan(selectedPlan);
+        setPlan(selected);
       }
     } catch (error) {
       console.warn(
-        "Payment plan URL read failed:",
+        "Payment plan read failed:",
         error
       );
     }
   }, []);
 
   /*
-   * Get Telegram authentication data.
+   * TELEGRAM
+   *
+   * Optional only.
    */
+
   const getTelegramInitData = () => {
     let initData = "";
 
     try {
-      initData =
-        window.Telegram?.WebApp?.initData ||
-        "";
-    } catch (error) {
-      console.warn(
-        "Telegram initData read failed:",
-        error
-      );
-    }
+      const tg =
+        window.Telegram?.WebApp;
+
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+        } catch {}
+        
+        initData =
+          tg.initData || "";
+      }
+    } catch {}
 
     if (!initData) {
       try {
@@ -86,12 +103,7 @@ export default function PremiumPaymentPage() {
           sessionStorage.getItem(
             "sambhav_telegram_init_data"
           ) || "";
-      } catch (error) {
-        console.warn(
-          "Session auth read failed:",
-          error
-        );
-      }
+      } catch {}
     }
 
     if (initData) {
@@ -100,54 +112,87 @@ export default function PremiumPaymentPage() {
           "sambhav_telegram_init_data",
           initData
         );
-      } catch (error) {
-        console.warn(
-          "Session auth save failed:",
-          error
-        );
-      }
+      } catch {}
     }
 
     return initData;
   };
 
   /*
-   * Wait for Telegram authentication.
+   * AUTH CHECK
    */
+
   useEffect(() => {
     let stopped = false;
-    let attempts = 0;
 
-    const checkAuth = () => {
-      if (stopped) return;
+    const checkAuth =
+      async () => {
+        try {
+          const response =
+            await fetch(
+              "/api/auth/me",
+              {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+              }
+            );
 
-      attempts++;
+          const data =
+            await response
+              .json()
+              .catch(
+                () => ({})
+              );
 
-      const initData =
-        getTelegramInitData();
+          if (
+            !stopped &&
+            response.ok &&
+            data?.user
+          ) {
+            setAuthReady(true);
+            return;
+          }
+        } catch (error) {
+          console.warn(
+            "SAMBHAV auth check failed:",
+            error
+          );
+        }
 
-      if (initData) {
-        setAuthReady(true);
-        return;
-      }
+        /*
+         * Give Telegram SDK time,
+         * but never make it mandatory.
+         */
 
-      /*
-       * Even if Telegram WebApp object
-       * isn't ready yet, saved session data
-       * may become available.
-       */
-      if (attempts < 50) {
-        setTimeout(checkAuth, 200);
-        return;
-      }
+        let attempts = 0;
 
-      /*
-       * Don't immediately block the page.
-       * Payment API will provide the exact
-       * authentication error if required.
-       */
-      setAuthReady(true);
-    };
+        const checkTelegram =
+          () => {
+            if (stopped) return;
+
+            attempts++;
+
+            if (
+              getTelegramInitData()
+            ) {
+              setAuthReady(true);
+              return;
+            }
+
+            if (attempts < 20) {
+              setTimeout(
+                checkTelegram,
+                150
+              );
+              return;
+            }
+
+            setAuthReady(true);
+          };
+
+        checkTelegram();
+      };
 
     checkAuth();
 
@@ -157,309 +202,304 @@ export default function PremiumPaymentPage() {
   }, []);
 
   /*
-   * Load Cashfree SDK.
+   * PAYMENT
    */
-  const handlePayment = async () => {
-    if (loading) return;
 
-    setError("");
-    setLoading(true);
+  const handlePayment =
+    async () => {
+      if (loading) return;
 
-    try {
-      const telegramInitData =
-        getTelegramInitData();
+      setError("");
 
-      if (!telegramInitData) {
-        throw new Error(
-          "Telegram authentication data nahi mila. SAMBHAV ko Telegram ke andar se open karo."
+      if (!authReady) {
+        setError(
+          "Authentication check complete hone ka wait karein."
         );
+        return;
       }
 
-      /*
-       * Create Cashfree order on backend.
-       */
-      const response = await fetch(
-        "/api/payment/create-order",
-        {
-          method: "POST",
+      setLoading(true);
 
-          headers: {
-            "Content-Type":
-              "application/json",
+      try {
+        const headers = {
+          "Content-Type":
+            "application/json",
+        };
 
-            Authorization:
-              `tma ${telegramInitData}`,
-          },
+        /*
+         * Telegram user ho to tma
+         * automatically send ho jayega.
+         *
+         * Website user ho to
+         * sambhav_session cookie jayegi.
+         */
 
-          body: JSON.stringify({
-            plan,
-          }),
+        const telegramInitData =
+          getTelegramInitData();
 
-          cache: "no-store",
+        if (telegramInitData) {
+          headers.Authorization =
+            `tma ${telegramInitData}`;
         }
-      );
 
-      const data =
-        await response.json();
+        const response =
+          await fetch(
+            "/api/payment/create-order",
+            {
+              method: "POST",
 
-      /*
-       * Existing Premium subscription.
-       */
-      if (response.status === 409) {
-        if (data?.subscription) {
+              headers,
+
+              credentials:
+                "include",
+
+              body: JSON.stringify({
+                plan,
+              }),
+
+              cache:
+                "no-store",
+            }
+          );
+
+        const data =
+          await response
+            .json()
+            .catch(
+              () => ({})
+            );
+
+        /*
+         * ALREADY PREMIUM
+         */
+
+        if (
+          response.status ===
+          409
+        ) {
           setError(
-            "Aapka Premium subscription already active hai."
+            data?.error ||
+              "Aapka Premium subscription already active hai."
           );
 
           setTimeout(() => {
-            router.push("/premium/home");
-          }, 1000);
+            router.push("/");
+          }, 1200);
 
           return;
         }
-      }
 
-      if (!response.ok) {
-        throw new Error(
-          data?.error ||
-            "Payment order create nahi ho saka."
-        );
-      }
+        /*
+         * NOT LOGGED IN
+         */
 
-      if (!data?.payment_session_id) {
-        throw new Error(
-          "Cashfree payment session nahi mila."
-        );
-      }
+        if (
+          response.status ===
+          401
+        ) {
+          throw new Error(
+            data?.error ||
+              "Please login to SAMBHAV before payment."
+          );
+        }
 
-      /*
-       * Wait for Cashfree SDK.
-       */
-      let attempts = 0;
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            data?.error ||
+              "Payment order create nahi ho saka."
+          );
+        }
 
-      while (
-        !window.Cashfree &&
-        attempts < 50
-      ) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 200)
-        );
+        /*
+         * CASHFREE SESSION
+         */
 
-        attempts++;
-      }
+        if (
+          !data?.payment_session_id
+        ) {
+          throw new Error(
+            "Cashfree payment session nahi mila."
+          );
+        }
 
-      if (!window.Cashfree) {
-        throw new Error(
-          "Cashfree payment system load nahi hua. Please try again."
-        );
-      }
+        /*
+         * WAIT FOR CASHFREE SDK
+         */
 
-      /*
-       * Cashfree Sandbox.
-       *
-       * LIVE payment ke time:
-       * mode: "production"
-       */
-      const cashfree =
-        window.Cashfree({
-          mode: "sandbox",
+        let attempts = 0;
+
+        while (
+          !window.Cashfree &&
+          attempts < 50
+        ) {
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                200
+              )
+          );
+
+          attempts++;
+        }
+
+        if (
+          !window.Cashfree
+        ) {
+          throw new Error(
+            "Cashfree payment system load nahi hua. Please try again."
+          );
+        }
+
+        /*
+         * OPEN ACTUAL CASHFREE
+         * HOSTED CHECKOUT
+         */
+
+        const cashfree =
+          window.Cashfree({
+            mode:
+              data.environment ===
+              "production"
+                ? "production"
+                : "sandbox",
+          });
+
+        await cashfree.checkout({
+          paymentSessionId:
+            data.payment_session_id,
+
+          redirectTarget:
+            "_self",
         });
+      } catch (error) {
+        console.error(
+          "Cashfree payment error:",
+          error
+        );
 
-      /*
-       * Open Cashfree checkout.
-       */
-      await cashfree.checkout({
-        paymentSessionId:
-          data.payment_session_id,
+        setError(
+          error?.message ||
+            "Payment start nahi ho saka."
+        );
 
-        redirectTarget: "_self",
-      });
-    } catch (error) {
-      console.error(
-        "Cashfree payment error:",
-        error
-      );
-
-      setError(
-        error?.message ||
-          "Payment start nahi ho saka."
-      );
-
-      setLoading(false);
-    }
-  };
+        setLoading(false);
+      }
+    };
 
   return (
     <>
       <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
+        src="https://sdk.cashfree.com/js/v3/cashfree.js"
+        strategy="afterInteractive"
       />
 
       <Script
-        src="https://sdk.cashfree.com/js/v3/cashfree.js"
+        src="https://telegram.org/js/telegram-web-app.js"
         strategy="afterInteractive"
       />
 
       <main
         style={{
           minHeight: "100vh",
-          background: "#f5f2eb",
+          background:
+            "#f5f2eb",
           color: "#101010",
-          fontFamily:
-            "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
           padding:
-            "20px 16px 40px",
-          boxSizing: "border-box",
+            "24px 16px 40px",
+          fontFamily:
+            "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
         <div
           style={{
-            maxWidth: "560px",
-            margin: "0 auto",
+            width: "100%",
+            maxWidth: 520,
+            margin:
+              "0 auto",
           }}
         >
-          {/* HEADER */}
-          <div
+          <button
+            onClick={() =>
+              router.push(
+                "/premium"
+              )
+            }
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent:
-                "space-between",
-              marginBottom: "28px",
+              border: "none",
+              background:
+                "transparent",
+              padding:
+                "6px 0",
+              fontSize: 15,
+              cursor:
+                "pointer",
+              color: "#555",
             }}
           >
-            <button
-              onClick={() =>
-                router.push(
-                  "/premium"
-                )
-              }
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "14px",
-                border:
-                  "1px solid rgba(16,16,16,.08)",
-                background:
-                  "#fffdf9",
-                fontSize: "20px",
-                cursor: "pointer",
-              }}
-            >
-              ‹
-            </button>
+            ← Back
+          </button>
 
-            <div
-              style={{
-                fontSize: "15px",
-                fontWeight: "900",
-              }}
-            >
-              SAMBHAV UPSC
-            </div>
-
-            <div
-              style={{
-                padding:
-                  "7px 10px",
-                borderRadius:
-                  "999px",
-                background:
-                  "#101010",
-                color: "#dfc477",
-                fontSize: "9px",
-                fontWeight: "900",
-                letterSpacing:
-                  "1px",
-              }}
-            >
-              PAYMENT
-            </div>
-          </div>
-
-          {/* TITLE */}
           <div
             style={{
-              textAlign: "center",
-              marginBottom: "25px",
+              marginTop: 24,
+              letterSpacing: 2,
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#9d833c",
             }}
           >
-            <div
-              style={{
-                fontSize: "30px",
-                marginBottom: "8px",
-              }}
-            >
-              ♛
-            </div>
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "29px",
-                lineHeight: "1.15",
-                fontWeight: "900",
-                letterSpacing:
-                  "-1px",
-              }}
-            >
-              Complete Your
-              <br />
-              Premium Payment
-            </h1>
-
-            <p
-              style={{
-                margin:
-                  "10px auto 0",
-                maxWidth:
-                  "420px",
-                color:
-                  "#77736b",
-                fontSize: "12px",
-                lineHeight:
-                  "1.6",
-              }}
-            >
-              Securely continue with
-              Cashfree Payment Gateway.
-            </p>
+            SECURE CHECKOUT
           </div>
 
-          {/* ORDER CARD */}
-          <div
+          <h1
+            style={{
+              fontSize:
+                "clamp(34px, 9vw, 48px)",
+              lineHeight:
+                0.98,
+              letterSpacing:
+                -1.5,
+              margin:
+                "8px 0 22px",
+            }}
+          >
+            Complete
+            <br />
+            Payment
+          </h1>
+
+          <section
             style={{
               background:
                 "#101010",
               color: "#fff",
-              borderRadius: "25px",
-              padding: "23px",
-              marginBottom:
-                "16px",
+              borderRadius:
+                24,
+              padding: 24,
               boxShadow:
-                "0 15px 35px rgba(16,16,16,.14)",
+                "0 18px 45px rgba(16,16,16,.14)",
             }}
           >
             <div
               style={{
-                color: "#aaa",
-                fontSize: "9px",
-                fontWeight: "800",
-                letterSpacing:
-                  "1.4px",
-                textTransform:
-                  "uppercase",
+                fontSize: 11,
+                letterSpacing: 2,
+                color:
+                  "#dfc477",
+                fontWeight: 800,
               }}
             >
-              Selected Plan
+              SAMBHAV PREMIUM
             </div>
 
             <div
               style={{
-                marginTop: "8px",
-                fontSize: "20px",
-                fontWeight: "900",
+                marginTop: 10,
+                fontSize: 25,
+                fontWeight: 800,
               }}
             >
               {selectedPlan.name}
@@ -467,184 +507,201 @@ export default function PremiumPaymentPage() {
 
             <div
               style={{
-                marginTop:
-                  "15px",
-                display: "flex",
-                alignItems:
-                  "baseline",
-                gap: "6px",
+                marginTop: 6,
+                fontSize: 14,
+                color: "#aaa",
               }}
             >
-              <span
-                style={{
-                  fontSize: "34px",
-                  fontWeight: "900",
-                }}
-              >
-                ₹
-                {selectedPlan.price}
-              </span>
-
-              <span
-                style={{
-                  color: "#aaa",
-                  fontSize: "11px",
-                }}
-              >
-                {selectedPlan.duration}
-              </span>
+              {selectedPlan.duration}
+              {" • "}
+              Full Premium Access
             </div>
-          </div>
 
-          {/* PAYMENT INFO */}
-          <div
+            <div
+              style={{
+                marginTop: 22,
+                fontSize: 42,
+                fontWeight: 900,
+                color:
+                  "#dfc477",
+              }}
+            >
+              ₹
+              {selectedPlan.price}
+            </div>
+          </section>
+
+          <section
             style={{
+              marginTop: 14,
               background:
                 "#fffdf9",
               border:
-                "1px solid rgba(16,16,16,.08)",
-              borderRadius: "22px",
-              padding: "20px",
-              marginBottom:
-                "16px",
+                "1px solid #e8e2d7",
+              borderRadius:
+                22,
+              padding: 20,
             }}
           >
             <div
               style={{
-                fontSize: "15px",
-                fontWeight: "900",
-                marginBottom:
-                  "14px",
+                fontSize: 11,
+                letterSpacing:
+                  1.5,
+                fontWeight: 900,
+                color: "#777",
               }}
             >
-              Payment Details
+              PAYMENT SUMMARY
             </div>
 
-            {[
-              [
-                "Plan",
-                selectedPlan.name,
-              ],
-              [
-                "Duration",
-                selectedPlan.duration,
-              ],
-              [
-                "Amount",
-                `₹${selectedPlan.price}`,
-              ],
-              [
-                "Gateway",
-                "Cashfree",
-              ],
-              [
-                "Environment",
-                "Sandbox",
-              ],
-            ].map(
-              ([label, value]) => (
-                <div
-                  key={label}
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    gap: "15px",
-                    padding:
-                      "10px 0",
-                    borderBottom:
-                      "1px solid rgba(16,16,16,.06)",
-                    fontSize:
-                      "11px",
-                  }}
-                >
-                  <span
-                    style={{
-                      color:
-                        "#858179",
-                    }}
-                  >
-                    {label}
-                  </span>
-
-                  <strong>
-                    {value}
-                  </strong>
-                </div>
-              )
-            )}
-          </div>
-
-          {/* ERROR */}
-          {error && (
             <div
               style={{
-                background:
-                  "#fff0ee",
-                color:
-                  "#b52b22",
-                borderRadius:
-                  "15px",
-                padding: "13px",
-                marginBottom:
-                  "14px",
-                fontSize: "11px",
-                fontWeight: "700",
-                lineHeight:
-                  "1.5",
+                marginTop: 16,
+                display: "grid",
+                gap: 12,
               }}
             >
-              {error}
-            </div>
-          )}
+              <div
+                style={{
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  gap: 12,
+                }}
+              >
+                <span>
+                  Membership
+                </span>
 
-          {/* PAY BUTTON */}
-          <button
-            onClick={handlePayment}
-            disabled={loading}
-            style={{
-              width: "100%",
-              border: "none",
-              borderRadius: "17px",
-              padding: "17px",
-              background:
+                <strong>
+                  {selectedPlan.name}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  gap: 12,
+                }}
+              >
+                <span>
+                  Access
+                </span>
+
+                <span>
+                  All Premium Modules
+                </span>
+              </div>
+
+              <div
+                style={{
+                  height: 1,
+                  background:
+                    "#e9e4db",
+                  margin:
+                    "4px 0",
+                }}
+              />
+
+              <div
+                style={{
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  gap: 12,
+                  fontSize: 18,
+                }}
+              >
+                <strong>
+                  Total payable
+                </strong>
+
+                <strong>
+                  ₹
+                  {
+                    selectedPlan.price
+                  }
+                </strong>
+              </div>
+            </div>
+
+            {error ? (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding:
+                    "12px 14px",
+                  borderRadius:
+                    12,
+                  background:
+                    "#fff0f0",
+                  border:
+                    "1px solid #efcaca",
+                  color:
+                    "#a12a2a",
+                  fontSize: 13,
+                  lineHeight:
+                    1.45,
+                }}
+              >
+                {error}
+              </div>
+            ) : null}
+
+            <button
+              onClick={
+                handlePayment
+              }
+              disabled={
                 loading
-                  ? "#777"
-                  : "#101010",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: "900",
-              cursor: loading
-                ? "not-allowed"
-                : "pointer",
-              boxShadow:
-                "0 12px 30px rgba(16,16,16,.18)",
-            }}
-          >
-            {loading
-              ? "CONNECTING TO CASHFREE..."
-              : `PAY ₹${selectedPlan.price} SECURELY →`}
-          </button>
+              }
+              style={{
+                width: "100%",
+                marginTop: 18,
+                border: "none",
+                borderRadius:
+                  14,
+                padding:
+                  "15px 18px",
+                background:
+                  loading
+                    ? "#bca76a"
+                    : "#dfc477",
+                color:
+                  "#101010",
+                fontSize: 16,
+                fontWeight: 900,
+                cursor:
+                  loading
+                    ? "wait"
+                    : "pointer",
+                boxShadow:
+                  "0 8px 20px rgba(223,196,119,.24)",
+              }}
+            >
+              {loading
+                ? "Opening Secure Checkout..."
+                : `Pay ₹${selectedPlan.price} →`}
+            </button>
 
-          {/* SECURITY */}
-          <div
-            style={{
-              textAlign:
-                "center",
-              marginTop: "13px",
-              color:
-                "#858179",
-              fontSize: "9px",
-              lineHeight:
-                "1.6",
-            }}
-          >
-            🔒 Secure payment powered
-            by Cashfree
-            <br />
-            Payment verification is
-            handled server-side.
-          </div>
+            <div
+              style={{
+                marginTop: 12,
+                textAlign:
+                  "center",
+                color: "#888",
+                fontSize: 11,
+              }}
+            >
+              🔒 Secure payment powered by Cashfree
+            </div>
+          </section>
         </div>
       </main>
     </>
