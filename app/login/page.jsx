@@ -1,682 +1,1520 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(180deg,#f8f7f3 0%,#efeee9 100%)",
+    color: "#111",
+    fontFamily:
+      "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    display: "flex",
+    justifyContent: "center",
+    padding: "20px 16px",
+    boxSizing: "border-box",
+  },
+
+  wrapper: {
+    width: "100%",
+    maxWidth: "460px",
+    margin: "0 auto",
+  },
+
+  top: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "35px",
+  },
+
+  brand: {
+    fontSize: "22px",
+    fontWeight: "950",
+    letterSpacing: "-.9px",
+  },
+
+  gold: {
+    color: "#9b7b2f",
+  },
+
+  brandSub: {
+    marginTop: "3px",
+    fontSize: "7px",
+    color: "#8a8a8a",
+    letterSpacing: "1.5px",
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+
+  back: {
+    color: "#666",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  card: {
+    background: "#fff",
+    border: "1px solid #e4e2dd",
+    borderRadius: "29px",
+    padding: "27px 22px",
+    boxShadow:
+      "0 18px 50px rgba(0,0,0,.07)",
+  },
+
+  eyebrow: {
+    color: "#9b7b2f",
+    fontSize: "8px",
+    fontWeight: "950",
+    letterSpacing: "1.7px",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "8px 0 0",
+    fontSize: "30px",
+    lineHeight: "1.08",
+    fontWeight: "950",
+    letterSpacing: "-1.2px",
+  },
+
+  subtitle: {
+    marginTop: "9px",
+    color: "#777",
+    fontSize: "11px",
+    lineHeight: "1.55",
+  },
+
+  form: {
+    marginTop: "25px",
+  },
+
+  label: {
+    display: "block",
+    marginBottom: "7px",
+    fontSize: "9px",
+    fontWeight: "850",
+    color: "#555",
+  },
+
+  input: {
+    width: "100%",
+    height: "49px",
+    boxSizing: "border-box",
+    border: "1px solid #deddd8",
+    borderRadius: "14px",
+    padding: "0 14px",
+    outline: "none",
+    background: "#fafaf8",
+    color: "#111",
+    fontSize: "13px",
+    marginBottom: "15px",
+  },
+
+  passwordWrap: {
+    position: "relative",
+  },
+
+  passwordInput: {
+    paddingRight: "70px",
+  },
+
+  showButton: {
+    position: "absolute",
+    right: "10px",
+    top: "7px",
+    height: "35px",
+    padding: "0 9px",
+    border: "none",
+    background: "transparent",
+    color: "#777",
+    fontSize: "9px",
+    fontWeight: "850",
+    cursor: "pointer",
+  },
+
+  primary: {
+    width: "100%",
+    height: "51px",
+    border: "none",
+    borderRadius: "15px",
+    background:
+      "linear-gradient(145deg,#171717,#050505)",
+    color: "#fff",
+    fontSize: "11px",
+    fontWeight: "900",
+    cursor: "pointer",
+    boxShadow:
+      "0 9px 22px rgba(0,0,0,.14)",
+  },
+
+  secondary: {
+    width: "100%",
+    height: "49px",
+    border: "1px solid #deddd8",
+    borderRadius: "15px",
+    background: "#fff",
+    color: "#111",
+    fontSize: "10px",
+    fontWeight: "900",
+    cursor: "pointer",
+  },
+
+  link: {
+    border: "none",
+    background: "transparent",
+    color: "#8c702c",
+    fontSize: "9px",
+    fontWeight: "850",
+    cursor: "pointer",
+    padding: 0,
+  },
+
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "21px 0",
+    color: "#aaa",
+    fontSize: "8px",
+    fontWeight: "700",
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: "1px",
+    background: "#e9e8e4",
+  },
+
+  switchText: {
+    marginTop: "20px",
+    textAlign: "center",
+    color: "#888",
+    fontSize: "10px",
+  },
+
+  switchButton: {
+    border: "none",
+    background: "transparent",
+    color: "#8c702c",
+    fontWeight: "900",
+    cursor: "pointer",
+    fontSize: "10px",
+    padding: 0,
+  },
+
+  message: {
+    marginTop: "14px",
+    padding: "11px 12px",
+    borderRadius: "12px",
+    background: "#f4f1e8",
+    border: "1px solid #e2d8bd",
+    color: "#665735",
+    fontSize: "10px",
+    lineHeight: "1.45",
+  },
+
+  error: {
+    marginTop: "14px",
+    padding: "11px 12px",
+    borderRadius: "12px",
+    background: "#faf0ef",
+    border: "1px solid #ead3d0",
+    color: "#8b3932",
+    fontSize: "10px",
+    lineHeight: "1.45",
+  },
+
+  otpBox: {
+    marginTop: "16px",
+    padding: "15px",
+    borderRadius: "17px",
+    background: "#f6f5f1",
+    border: "1px solid #e5e3de",
+  },
+
+  otpTitle: {
+    fontSize: "11px",
+    fontWeight: "900",
+  },
+
+  otpText: {
+    marginTop: "4px",
+    color: "#888",
+    fontSize: "9px",
+    lineHeight: "1.45",
+  },
+
+  footer: {
+    textAlign: "center",
+    marginTop: "22px",
+    color: "#999",
+    fontSize: "8px",
+    lineHeight: "1.6",
+  },
+};
 
 export default function LoginPage() {
   const [mode, setMode] = useState("signin");
   const [step, setStep] = useState("form");
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [username, setUsername] = useState("");
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  function clearMessages() {
-    setError("");
+  const [loading, setLoading] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const [cooldown, setCooldown] =
+    useState(0);
+
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+
+    const timer = setInterval(() => {
+      setCooldown((value) =>
+        value > 0 ? value - 1 : 0
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+
+  const resetMessages = () => {
     setMessage("");
-  }
+    setError("");
+  };
 
-  function switchMode(newMode) {
+
+  const changeMode = (newMode) => {
+    resetMessages();
+
     setMode(newMode);
     setStep("form");
+
     setOtp("");
     setPassword("");
     setConfirmPassword("");
-    setFirstName("");
-    setUsername("");
-    clearMessages();
-  }
+  };
 
-  async function sendSignupOtp() {
-    clearMessages();
 
-    if (!firstName.trim()) {
-      setError("Name is required.");
-      return;
-    }
+  const apiRequest = async (
+    url,
+    body
+  ) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
 
-    if (!email.trim()) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain one uppercase letter.");
-      return;
-    }
-
-    if (!/[a-z]/.test(password)) {
-      setError("Password must contain one lowercase letter.");
-      return;
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError("Password must contain one number.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "OTP send nahi ho saka.");
-        return;
-      }
-
-      setStep("otp");
-      setMessage("OTP has been sent to your email.");
-    } catch (error) {
-      console.error(error);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function verifyAndCreateAccount() {
-    clearMessages();
-
-    if (!/^\d{6}$/.test(otp)) {
-      setError("Enter a valid 6-digit OTP.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const verifyResponse = await fetch(
-        "/api/auth/verify-otp",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            otp,
-          }),
-        }
+    const data =
+      await response.json().catch(
+        () => ({})
       );
 
-      const verifyData = await verifyResponse.json();
-
-      if (!verifyResponse.ok) {
-        setError(
-          verifyData.message || "OTP verification failed."
-        );
-        return;
-      }
-
-      const signupResponse = await fetch(
-        "/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            password,
-            firstName: firstName.trim(),
-            username: username.trim(),
-            otpVerified: true,
-          }),
-        }
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+          data?.message ||
+          "Something went wrong."
       );
-
-      const signupData = await signupResponse.json();
-
-      if (!signupResponse.ok) {
-        setError(
-          signupData.message || "Account creation failed."
-        );
-        return;
-      }
-
-      window.location.href = "/";
-    } catch (error) {
-      console.error(error);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
     }
-  }
 
-  async function signIn() {
-    clearMessages();
+    return data;
+  };
 
-    if (!email.trim()) {
-      setError("Email is required.");
+
+  /* ======================================================
+     SIGN IN
+     ====================================================== */
+
+  const handleSignin = async (e) => {
+    e.preventDefault();
+
+    resetMessages();
+
+    const cleanEmail =
+      email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setError(
+        "Please enter your email."
+      );
       return;
     }
 
     if (!password) {
-      setError("Password is required.");
+      setError(
+        "Please enter your password."
+      );
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await fetch("/api/auth/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/signin",
+        {
+          email: cleanEmail,
           password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Invalid email or password.");
-        return;
-      }
+        }
+      );
 
       window.location.href = "/";
-    } catch (error) {
-      console.error(error);
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(
+        err.message ||
+          "Invalid email or password."
+      );
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  return (
-    <main className="page">
-      <div className="card">
 
-        <div className="brand">
-          <div className="logo">S</div>
+  /* ======================================================
+     SEND SIGNUP OTP
+     ====================================================== */
 
-          <div>
-            <h1>SAMBHAV</h1>
-            <p>UPSC Preparation Platform</p>
-          </div>
+  const sendSignupOtp = async () => {
+    resetMessages();
+
+    const cleanEmail =
+      email.trim().toLowerCase();
+
+    if (!name.trim()) {
+      setError(
+        "Please enter your name."
+      );
+      return;
+    }
+
+    if (!cleanEmail) {
+      setError(
+        "Please enter your email."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/send-otp",
+        {
+          email: cleanEmail,
+          purpose: "signup",
+        }
+      );
+
+      setStep("otp");
+
+      setCooldown(60);
+
+      setMessage(
+        "OTP has been sent to your email."
+      );
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to send OTP."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* ======================================================
+     VERIFY SIGNUP OTP
+     ====================================================== */
+
+  const verifySignupOtp = async () => {
+    resetMessages();
+
+    if (
+      !/^\d{6}$/.test(
+        otp.trim()
+      )
+    ) {
+      setError(
+        "Please enter the 6-digit OTP."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/verify-otp",
+        {
+          email:
+            email.trim().toLowerCase(),
+          otp: otp.trim(),
+          purpose: "signup",
+        }
+      );
+
+      setStep("password");
+
+      setMessage(
+        "Email verified successfully."
+      );
+    } catch (err) {
+      setError(
+        err.message ||
+          "Invalid or expired OTP."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* ======================================================
+     COMPLETE SIGNUP
+     ====================================================== */
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+
+    resetMessages();
+
+    if (password.length < 8) {
+      setError(
+        "Password must be at least 8 characters."
+      );
+      return;
+    }
+
+    if (
+      password !==
+      confirmPassword
+    ) {
+      setError(
+        "Passwords do not match."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/signup",
+        {
+          name: name.trim(),
+          email:
+            email.trim().toLowerCase(),
+          password,
+          otp: otp.trim(),
+        }
+      );
+
+      window.location.href = "/";
+    } catch (err) {
+      setError(
+        err.message ||
+          "Account creation failed."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* ======================================================
+     FORGOT PASSWORD
+     ====================================================== */
+
+  const sendForgotOtp = async () => {
+    resetMessages();
+
+    const cleanEmail =
+      email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setError(
+        "Please enter your email."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/send-otp",
+        {
+          email: cleanEmail,
+          purpose: "forgot_password",
+        }
+      );
+
+      setStep("forgotOtp");
+
+      setCooldown(60);
+
+      setMessage(
+        "Password reset OTP has been sent."
+      );
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to send OTP."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const verifyForgotOtp = async () => {
+    resetMessages();
+
+    if (
+      !/^\d{6}$/.test(
+        otp.trim()
+      )
+    ) {
+      setError(
+        "Please enter the 6-digit OTP."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await apiRequest(
+        "/api/auth/verify-otp",
+        {
+          email:
+            email.trim().toLowerCase(),
+          otp: otp.trim(),
+          purpose: "forgot_password",
+        }
+      );
+
+      setStep("newPassword");
+
+      setMessage(
+        "OTP verified. Create your new password."
+      );
+    } catch (err) {
+      setError(
+        err.message ||
+          "Invalid or expired OTP."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const resetPassword = async (
+    e
+  ) => {
+    e.preventDefault();
+
+    resetMessages();
+
+    if (password.length < 8) {
+      setError(
+        "Password must be at least 8 characters."
+      );
+      return;
+    }
+
+    if (
+      password !==
+      confirmPassword
+    ) {
+      setError(
+        "Passwords do not match."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      /*
+       * The existing signup/auth backend may expose
+       * password reset through this endpoint.
+       */
+
+      await apiRequest(
+        "/api/auth/reset-password",
+        {
+          email:
+            email.trim().toLowerCase(),
+          otp: otp.trim(),
+          password,
+        }
+      );
+
+      setMode("signin");
+      setStep("form");
+
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
+
+      setMessage(
+        "Password reset successfully. Please sign in."
+      );
+    } catch (err) {
+      setError(
+        err.message ||
+          "Password reset failed."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* ======================================================
+     SIGN IN SCREEN
+     ====================================================== */
+
+  const renderSignin = () => (
+    <>
+      <div style={styles.eyebrow}>
+        SAMBHAV ACCOUNT
+      </div>
+
+      <h1 style={styles.title}>
+        Welcome back.
+      </h1>
+
+      <p style={styles.subtitle}>
+        Sign in to continue your UPSC
+        preparation.
+      </p>
+
+      <form
+        onSubmit={handleSignin}
+        style={styles.form}
+      >
+        <label style={styles.label}>
+          EMAIL ADDRESS
+        </label>
+
+        <input
+          type="email"
+          value={email}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
+          placeholder="you@example.com"
+          autoComplete="email"
+          style={styles.input}
+        />
+
+        <label style={styles.label}>
+          PASSWORD
+        </label>
+
+        <div style={styles.passwordWrap}>
+          <input
+            type={
+              showPassword
+                ? "text"
+                : "password"
+            }
+            value={password}
+            onChange={(e) =>
+              setPassword(
+                e.target.value
+              )
+            }
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            style={{
+              ...styles.input,
+              ...styles.passwordInput,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowPassword(
+                (value) => !value
+              )
+            }
+            style={styles.showButton}
+          >
+            {showPassword
+              ? "HIDE"
+              : "SHOW"}
+          </button>
         </div>
 
-        <div className="tabs">
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "flex-end",
+            marginTop: "-4px",
+            marginBottom: "18px",
+          }}
+        >
           <button
-            className={mode === "signin" ? "active" : ""}
-            onClick={() => switchMode("signin")}
+            type="button"
+            style={styles.link}
+            onClick={() => {
+              resetMessages();
+              setMode(
+                "forgot"
+              );
+              setStep("form");
+              setPassword("");
+            }}
           >
-            Sign In
-          </button>
-
-          <button
-            className={mode === "signup" ? "active" : ""}
-            onClick={() => switchMode("signup")}
-          >
-            Sign Up
+            Forgot Password?
           </button>
         </div>
 
-        {mode === "signin" && (
-          <>
-            <div className="heading">
-              <h2>Welcome back</h2>
-              <p>Sign in to continue to SAMBHAV.</p>
-            </div>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "SIGNING IN..."
+            : "SIGN IN →"}
+        </button>
+      </form>
 
-            <label>Email Address</label>
+      <div style={styles.divider}>
+        <span style={styles.dividerLine} />
+        OR
+        <span style={styles.dividerLine} />
+      </div>
 
-            <input
-              type="email"
-              placeholder="Registered email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
+      <button
+        type="button"
+        style={styles.secondary}
+        onClick={() =>
+          changeMode("signup")
+        }
+      >
+        Create New Account
+      </button>
 
-            <label>Password</label>
+      <div style={styles.switchText}>
+        New to SAMBHAV?{" "}
+        <button
+          type="button"
+          style={styles.switchButton}
+          onClick={() =>
+            changeMode("signup")
+          }
+        >
+          Create Account
+        </button>
+      </div>
+    </>
+  );
 
-            <input
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") signIn();
-              }}
-              autoComplete="current-password"
-            />
 
-            <button
-              className="primary"
-              onClick={signIn}
-              disabled={loading}
-            >
-              {loading ? "Signing In..." : "Sign In"}
-            </button>
+  /* ======================================================
+     SIGNUP - BASIC DETAILS
+     ====================================================== */
 
-            <button
-              className="forgot"
-              onClick={() => {
-                setError("");
-                setMessage(
-                  "Forgot password feature will be added next."
-                );
-              }}
-            >
-              Forgot Password?
-            </button>
-          </>
-        )}
+  const renderSignupForm = () => (
+    <>
+      <div style={styles.eyebrow}>
+        CREATE ACCOUNT
+      </div>
 
-        {mode === "signup" && step === "form" && (
-          <>
-            <div className="heading">
-              <h2>Create your account</h2>
-              <p>
-                Join SAMBHAV and start your UPSC preparation.
-              </p>
-            </div>
+      <h1 style={styles.title}>
+        Start with SAMBHAV.
+      </h1>
 
-            <label>Full Name</label>
+      <p style={styles.subtitle}>
+        Create your account and build your
+        personalised UPSC preparation space.
+      </p>
 
-            <input
-              type="text"
-              placeholder="Your full name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              autoComplete="name"
-            />
+      <div style={styles.form}>
 
-            <label>Username</label>
+        <label style={styles.label}>
+          FULL NAME
+        </label>
 
-            <input
-              type="text"
-              placeholder="Choose a username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-            />
+        <input
+          type="text"
+          value={name}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
+          placeholder="Your full name"
+          autoComplete="name"
+          style={styles.input}
+        />
 
-            <label>Email Address</label>
+        <label style={styles.label}>
+          EMAIL ADDRESS
+        </label>
 
-            <input
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
+          placeholder="you@example.com"
+          autoComplete="email"
+          style={styles.input}
+        />
 
-            <label>Password</label>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={sendSignupOtp}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "SENDING OTP..."
+            : "SEND OTP →"}
+        </button>
 
-            <input
-              type="password"
-              placeholder="Minimum 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-            />
+      </div>
 
-            <label>Confirm Password</label>
+      <div style={styles.switchText}>
+        Already have an account?{" "}
+        <button
+          type="button"
+          style={styles.switchButton}
+          onClick={() =>
+            changeMode("signin")
+          }
+        >
+          Sign In
+        </button>
+      </div>
+    </>
+  );
 
-            <input
-              type="password"
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(e.target.value)
-              }
-              autoComplete="new-password"
-            />
 
-            <button
-              className="primary"
-              onClick={sendSignupOtp}
-              disabled={loading}
-            >
-              {loading ? "Sending OTP..." : "Continue"}
-            </button>
-          </>
-        )}
+  /* ======================================================
+     SIGNUP OTP
+     ====================================================== */
 
-        {mode === "signup" && step === "otp" && (
-          <>
-            <button
-              className="back"
-              onClick={() => {
-                setStep("form");
-                clearMessages();
-              }}
-            >
-              ← Back
-            </button>
+  const renderSignupOtp = () => (
+    <>
+      <div style={styles.eyebrow}>
+        EMAIL VERIFICATION
+      </div>
 
-            <div className="heading">
-              <h2>Verify your email</h2>
-              <p>
-                Enter the 6-digit OTP sent to{" "}
-                <strong>{email}</strong>
-              </p>
-            </div>
+      <h1 style={styles.title}>
+        Verify your email.
+      </h1>
 
-            <label>Verification Code</label>
+      <p style={styles.subtitle}>
+        Enter the 6-digit OTP sent to:
+        <br />
+        <strong>
+          {email}
+        </strong>
+      </p>
 
-            <input
-              className="otp"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="000000"
-              value={otp}
-              onChange={(e) =>
-                setOtp(
-                  e.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 6)
-                )
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  verifyAndCreateAccount();
-                }
-              }}
-              autoFocus
-            />
+      <div style={styles.otpBox}>
+        <div style={styles.otpTitle}>
+          Verification Code
+        </div>
 
-            <button
-              className="primary"
-              onClick={verifyAndCreateAccount}
-              disabled={loading}
-            >
-              {loading
-                ? "Creating Account..."
-                : "Verify & Create Account"}
-            </button>
-
-            <button
-              className="secondary"
-              onClick={sendSignupOtp}
-              disabled={loading}
-            >
-              Resend OTP
-            </button>
-          </>
-        )}
-
-        {error && <div className="error">{error}</div>}
-
-        {message && (
-          <div className="message">{message}</div>
-        )}
-
-        <div className="footer">
-          <span>SAMBHAV UPSC</span>
-          <span>Secure Login</span>
+        <div style={styles.otpText}>
+          OTP valid for a limited time.
         </div>
       </div>
 
-      <style jsx>{`
-        * {
-          box-sizing: border-box;
-        }
+      <div style={styles.form}>
 
-        .page {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-          background:
-            radial-gradient(
-              circle at top,
-              rgba(212, 175, 55, 0.13),
-              transparent 35%
-            ),
-            #07111f;
-          color: white;
-          font-family:
-            Inter,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
-        }
+        <label style={styles.label}>
+          6-DIGIT OTP
+        </label>
 
-        .card {
-          width: 100%;
-          max-width: 450px;
-          padding: 32px;
-          border-radius: 24px;
-          background: #0c1b2e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-        }
-
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 28px;
-        }
-
-        .logo {
-          width: 46px;
-          height: 46px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 14px;
-          background: #d4af37;
-          color: #07111f;
-          font-size: 24px;
-          font-weight: 800;
-        }
-
-        .brand h1 {
-          margin: 0;
-          font-size: 21px;
-          letter-spacing: 1.5px;
-        }
-
-        .brand p {
-          margin: 3px 0 0;
-          color: #94a3b8;
-          font-size: 12px;
-        }
-
-        .tabs {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 5px;
-          padding: 5px;
-          margin-bottom: 28px;
-          border-radius: 12px;
-          background: #081827;
-        }
-
-        .tabs button {
-          height: 42px;
-          border: 0;
-          border-radius: 9px;
-          background: transparent;
-          color: #94a3b8;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .tabs button.active {
-          background: #d4af37;
-          color: #07111f;
-        }
-
-        .heading {
-          margin-bottom: 22px;
-        }
-
-        .heading h2 {
-          margin: 0 0 7px;
-          font-size: 25px;
-        }
-
-        .heading p {
-          margin: 0;
-          color: #94a3b8;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-
-        .heading strong {
-          color: #d4af37;
-        }
-
-        label {
-          display: block;
-          margin: 14px 0 7px;
-          color: #cbd5e1;
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        input {
-          width: 100%;
-          height: 50px;
-          padding: 0 14px;
-          border-radius: 11px;
-          border: 1px solid #26384d;
-          outline: none;
-          background: #081827;
-          color: white;
-          font-size: 14px;
-        }
-
-        input:focus {
-          border-color: #d4af37;
-        }
-
-        .otp {
-          text-align: center;
-          font-size: 23px;
-          font-weight: 700;
-          letter-spacing: 8px;
-        }
-
-        .primary {
-          width: 100%;
-          height: 51px;
-          margin-top: 20px;
-          border: 0;
-          border-radius: 11px;
-          background: #d4af37;
-          color: #07111f;
-          font-size: 15px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-
-        .primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .secondary {
-          width: 100%;
-          height: 48px;
-          margin-top: 10px;
-          border: 1px solid #2b4058;
-          border-radius: 11px;
-          background: transparent;
-          color: #d4af37;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .forgot,
-        .back {
-          border: 0;
-          background: transparent;
-          color: #94a3b8;
-          cursor: pointer;
-          font-size: 13px;
-        }
-
-        .forgot {
-          display: block;
-          margin: 15px auto 0;
-        }
-
-        .back {
-          padding: 0;
-          margin-bottom: 20px;
-        }
-
-        .error,
-        .message {
-          margin-top: 17px;
-          padding: 12px;
-          border-radius: 10px;
-          font-size: 13px;
-          line-height: 1.4;
-        }
-
-        .error {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.25);
-          color: #fca5a5;
-        }
-
-        .message {
-          background: rgba(212, 175, 55, 0.08);
-          border: 1px solid rgba(212, 175, 55, 0.2);
-          color: #e5c968;
-        }
-
-        .footer {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 26px;
-          padding-top: 17px;
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
-          color: #64748b;
-          font-size: 11px;
-        }
-
-        @media (max-width: 480px) {
-          .page {
-            padding: 14px;
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={otp}
+          onChange={(e) =>
+            setOtp(
+              e.target.value
+                .replace(/\D/g, "")
+            )
           }
+          placeholder="000000"
+          style={{
+            ...styles.input,
+            textAlign: "center",
+            fontSize: "20px",
+            letterSpacing: "7px",
+            fontWeight: "900",
+          }}
+        />
 
-          .card {
-            padding: 24px 20px;
-            border-radius: 20px;
+        <button
+          type="button"
+          disabled={loading}
+          onClick={verifySignupOtp}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "VERIFYING..."
+            : "VERIFY EMAIL →"}
+        </button>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "15px",
+          }}
+        >
+          {cooldown > 0 ? (
+            <span
+              style={{
+                color: "#999",
+                fontSize: "9px",
+                fontWeight: "700",
+              }}
+            >
+              Resend OTP in {cooldown}s
+            </span>
+          ) : (
+            <button
+              type="button"
+              style={styles.link}
+              onClick={sendSignupOtp}
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
+
+      </div>
+
+      <div style={styles.switchText}>
+        Wrong email?{" "}
+        <button
+          type="button"
+          style={styles.switchButton}
+          onClick={() =>
+            setStep("form")
           }
-        }
-      `}</style>
+        >
+          Change Email
+        </button>
+      </div>
+    </>
+  );
+
+
+  /* ======================================================
+     SIGNUP PASSWORD
+     ====================================================== */
+
+  const renderSignupPassword = () => (
+    <>
+      <div style={styles.eyebrow}>
+        SECURE YOUR ACCOUNT
+      </div>
+
+      <h1 style={styles.title}>
+        Create your password.
+      </h1>
+
+      <p style={styles.subtitle}>
+        Your email has been verified.
+        Set a secure password to finish
+        creating your account.
+      </p>
+
+      <form
+        onSubmit={handleSignup}
+        style={styles.form}
+      >
+
+        <label style={styles.label}>
+          PASSWORD
+        </label>
+
+        <div style={styles.passwordWrap}>
+          <input
+            type={
+              showPassword
+                ? "text"
+                : "password"
+            }
+            value={password}
+            onChange={(e) =>
+              setPassword(
+                e.target.value
+              )
+            }
+            placeholder="Minimum 8 characters"
+            autoComplete="new-password"
+            style={{
+              ...styles.input,
+              ...styles.passwordInput,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowPassword(
+                (value) => !value
+              )
+            }
+            style={styles.showButton}
+          >
+            {showPassword
+              ? "HIDE"
+              : "SHOW"}
+          </button>
+        </div>
+
+        <label style={styles.label}>
+          CONFIRM PASSWORD
+        </label>
+
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) =>
+            setConfirmPassword(
+              e.target.value
+            )
+          }
+          placeholder="Re-enter password"
+          autoComplete="new-password"
+          style={styles.input}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "CREATING ACCOUNT..."
+            : "CREATE ACCOUNT →"}
+        </button>
+
+      </form>
+    </>
+  );
+
+
+  /* ======================================================
+     FORGOT PASSWORD - EMAIL
+     ====================================================== */
+
+  const renderForgot = () => (
+    <>
+      <div style={styles.eyebrow}>
+        ACCOUNT RECOVERY
+      </div>
+
+      <h1 style={styles.title}>
+        Reset your password.
+      </h1>
+
+      <p style={styles.subtitle}>
+        Enter your registered email and
+        we'll send you a verification OTP.
+      </p>
+
+      <div style={styles.form}>
+
+        <label style={styles.label}>
+          EMAIL ADDRESS
+        </label>
+
+        <input
+          type="email"
+          value={email}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
+          placeholder="you@example.com"
+          autoComplete="email"
+          style={styles.input}
+        />
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={sendForgotOtp}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "SENDING OTP..."
+            : "SEND RESET OTP →"}
+        </button>
+
+      </div>
+
+      <div style={styles.switchText}>
+        Remember your password?{" "}
+        <button
+          type="button"
+          style={styles.switchButton}
+          onClick={() =>
+            changeMode("signin")
+          }
+        >
+          Sign In
+        </button>
+      </div>
+    </>
+  );
+
+
+  /* ======================================================
+     FORGOT PASSWORD - OTP
+     ====================================================== */
+
+  const renderForgotOtp = () => (
+    <>
+      <div style={styles.eyebrow}>
+        ACCOUNT RECOVERY
+      </div>
+
+      <h1 style={styles.title}>
+        Verify your email.
+      </h1>
+
+      <p style={styles.subtitle}>
+        Enter the OTP sent to:
+        <br />
+        <strong>
+          {email}
+        </strong>
+      </p>
+
+      <div style={styles.form}>
+
+        <label style={styles.label}>
+          6-DIGIT OTP
+        </label>
+
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={otp}
+          onChange={(e) =>
+            setOtp(
+              e.target.value
+                .replace(/\D/g, "")
+            )
+          }
+          placeholder="000000"
+          style={{
+            ...styles.input,
+            textAlign: "center",
+            fontSize: "20px",
+            letterSpacing: "7px",
+            fontWeight: "900",
+          }}
+        />
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={verifyForgotOtp}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "VERIFYING..."
+            : "VERIFY OTP →"}
+        </button>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "15px",
+          }}
+        >
+          {cooldown > 0 ? (
+            <span
+              style={{
+                color: "#999",
+                fontSize: "9px",
+              }}
+            >
+              Resend OTP in {cooldown}s
+            </span>
+          ) : (
+            <button
+              type="button"
+              style={styles.link}
+              onClick={sendForgotOtp}
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
+
+      </div>
+    </>
+  );
+
+
+  /* ======================================================
+     NEW PASSWORD
+     ====================================================== */
+
+  const renderNewPassword = () => (
+    <>
+      <div style={styles.eyebrow}>
+        NEW PASSWORD
+      </div>
+
+      <h1 style={styles.title}>
+        Set a new password.
+      </h1>
+
+      <p style={styles.subtitle}>
+        Create a new secure password for
+        your SAMBHAV account.
+      </p>
+
+      <form
+        onSubmit={resetPassword}
+        style={styles.form}
+      >
+
+        <label style={styles.label}>
+          NEW PASSWORD
+        </label>
+
+        <input
+          type="password"
+          value={password}
+          onChange={(e) =>
+            setPassword(
+              e.target.value
+            )
+          }
+          placeholder="Minimum 8 characters"
+          autoComplete="new-password"
+          style={styles.input}
+        />
+
+        <label style={styles.label}>
+          CONFIRM PASSWORD
+        </label>
+
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) =>
+            setConfirmPassword(
+              e.target.value
+            )
+          }
+          placeholder="Re-enter password"
+          autoComplete="new-password"
+          style={styles.input}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            ...styles.primary,
+            opacity:
+              loading ? 0.65 : 1,
+          }}
+        >
+          {loading
+            ? "RESETTING..."
+            : "RESET PASSWORD →"}
+        </button>
+
+      </form>
+    </>
+  );
+
+
+  /* ======================================================
+     SCREEN SELECTOR
+     ====================================================== */
+
+  let content;
+
+  if (mode === "signin") {
+    content = renderSignin();
+  }
+
+  if (
+    mode === "signup" &&
+    step === "form"
+  ) {
+    content =
+      renderSignupForm();
+  }
+
+  if (
+    mode === "signup" &&
+    step === "otp"
+  ) {
+    content =
+      renderSignupOtp();
+  }
+
+  if (
+    mode === "signup" &&
+    step === "password"
+  ) {
+    content =
+      renderSignupPassword();
+  }
+
+  if (
+    mode === "forgot" &&
+    step === "form"
+  ) {
+    content = renderForgot();
+  }
+
+  if (
+    mode === "forgot" &&
+    step === "forgotOtp"
+  ) {
+    content =
+      renderForgotOtp();
+  }
+
+  if (
+    mode === "forgot" &&
+    step === "newPassword"
+  ) {
+    content =
+      renderNewPassword();
+  }
+
+
+  return (
+    <main style={styles.page}>
+      <div style={styles.wrapper}>
+
+        <header style={styles.top}>
+          <a
+            href="/"
+            style={{
+              textDecoration: "none",
+              color: "#111",
+            }}
+          >
+            <div style={styles.brand}>
+              SAMBHAV{" "}
+              <span style={styles.gold}>
+                UPSC
+              </span>
+            </div>
+
+            <div style={styles.brandSub}>
+              Intelligence • Preparation • Performance
+            </div>
+          </a>
+
+          <a
+            href="/"
+            style={styles.back}
+          >
+            ← Explore
+          </a>
+        </header>
+
+
+        <section style={styles.card}>
+
+          {content}
+
+          {message && (
+            <div style={styles.message}>
+              ✓ {message}
+            </div>
+          )}
+
+          {error && (
+            <div style={styles.error}>
+              {error}
+            </div>
+          )}
+
+        </section>
+
+
+        <div style={styles.footer}>
+          <div>
+            SAMBHAV UPSC
+          </div>
+
+          <div>
+            Your preparation. Your SAMBHAV.
+          </div>
+        </div>
+
+      </div>
     </main>
   );
 }
