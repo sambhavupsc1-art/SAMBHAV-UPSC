@@ -632,7 +632,7 @@ const styles = {
     color: "#ffffff",
     borderRadius: "25px",
     padding: "21px",
-    marginBottom: "27px",
+    marginBottom: "18px",
     boxShadow:
       "0 15px 38px rgba(0,0,0,0.15)",
     position: "relative",
@@ -703,6 +703,78 @@ const styles = {
     borderRadius: "13px",
     background: "#ffffff",
     color: "#111111",
+    fontSize: "11px",
+    fontWeight: "850",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  adminCard: {
+    background:
+      "linear-gradient(135deg, #f0e7cf 0%, #e2d4b1 55%, #d5c398 100%)",
+    color: "#111111",
+    borderRadius: "25px",
+    padding: "21px",
+    marginBottom: "27px",
+    boxShadow:
+      "0 15px 38px rgba(95,75,25,0.13)",
+    position: "relative",
+    overflow: "hidden",
+    cursor: "pointer",
+    border:
+      "1px solid #d4c49e",
+  },
+
+  adminGlow: {
+    position: "absolute",
+    width: "180px",
+    height: "180px",
+    borderRadius: "50%",
+    background:
+      "rgba(255,255,255,0.42)",
+    right: "-70px",
+    top: "-80px",
+  },
+
+  adminBadge: {
+    display: "inline-flex",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: "#111111",
+    color: "#d6bd79",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  adminTitle: {
+    marginTop: "13px",
+    fontSize: "20px",
+    fontWeight: "900",
+    lineHeight: "1.2",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  adminSub: {
+    marginTop: "7px",
+    color: "#655d4e",
+    fontSize: "11px",
+    lineHeight: "1.55",
+    maxWidth: "390px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  adminAction: {
+    marginTop: "16px",
+    display: "inline-flex",
+    padding: "10px 14px",
+    borderRadius: "13px",
+    background: "#111111",
+    color: "#ffffff",
     fontSize: "11px",
     fontWeight: "850",
     position: "relative",
@@ -990,7 +1062,6 @@ function PublicLanding() {
     <>
       <main style={styles.page}>
         <div style={styles.container}>
-
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
@@ -1029,7 +1100,6 @@ function PublicLanding() {
             <h1 style={styles.landingTitle}>
               Prepare with clarity.
               <br />
-
               <span style={styles.landingGold}>
                 Perform with SAMBHAV.
               </span>
@@ -1060,33 +1130,18 @@ function PublicLanding() {
 
             <div style={styles.heroStats}>
               <div>
-                <div style={styles.heroStatNumber}>
-                  01
-                </div>
-
-                <div style={styles.heroStatText}>
-                  Focused
-                </div>
+                <div style={styles.heroStatNumber}>01</div>
+                <div style={styles.heroStatText}>Focused</div>
               </div>
 
               <div>
-                <div style={styles.heroStatNumber}>
-                  02
-                </div>
-
-                <div style={styles.heroStatText}>
-                  Structured
-                </div>
+                <div style={styles.heroStatNumber}>02</div>
+                <div style={styles.heroStatText}>Structured</div>
               </div>
 
               <div>
-                <div style={styles.heroStatNumber}>
-                  03
-                </div>
-
-                <div style={styles.heroStatText}>
-                  Intelligent
-                </div>
+                <div style={styles.heroStatNumber}>03</div>
+                <div style={styles.heroStatText}>Intelligent</div>
               </div>
             </div>
           </section>
@@ -1158,7 +1213,6 @@ function PublicLanding() {
             </div>
 
             <div style={styles.previewOuter}>
-
               <div style={styles.previewHeader}>
                 <div>
                   <div style={styles.previewBrand}>
@@ -1189,17 +1243,9 @@ function PublicLanding() {
                 </div>
 
                 <div style={styles.previewMiniGrid}>
-                  <div style={styles.previewMini}>
-                    CA
-                  </div>
-
-                  <div style={styles.previewMini}>
-                    PYQ
-                  </div>
-
-                  <div style={styles.previewMini}>
-                    MAINS
-                  </div>
+                  <div style={styles.previewMini}>CA</div>
+                  <div style={styles.previewMini}>PYQ</div>
+                  <div style={styles.previewMini}>MAINS</div>
                 </div>
               </div>
 
@@ -1222,20 +1268,13 @@ function PublicLanding() {
                   </div>
                 ))}
               </div>
-
             </div>
           </section>
 
-          <section
-            style={styles.premiumLandingCard}
-          >
-            <div
-              style={styles.premiumLandingGlow}
-            />
+          <section style={styles.premiumLandingCard}>
+            <div style={styles.premiumLandingGlow} />
 
-            <div
-              style={styles.premiumLandingContent}
-            >
+            <div style={styles.premiumLandingContent}>
               <div style={styles.premiumLabel}>
                 PREMIUM ACCESS
               </div>
@@ -1305,45 +1344,27 @@ function PublicLanding() {
 
           <footer style={styles.publicFooter}>
             <div style={styles.footerLinks}>
-              <a
-                href="/about"
-                style={styles.footerLink}
-              >
+              <a href="/about" style={styles.footerLink}>
                 About
               </a>
 
-              <a
-                href="/contact"
-                style={styles.footerLink}
-              >
+              <a href="/contact" style={styles.footerLink}>
                 Contact
               </a>
 
-              <a
-                href="/pricing"
-                style={styles.footerLink}
-              >
+              <a href="/pricing" style={styles.footerLink}>
                 Pricing
               </a>
 
-              <a
-                href="/privacy"
-                style={styles.footerLink}
-              >
+              <a href="/privacy" style={styles.footerLink}>
                 Privacy
               </a>
 
-              <a
-                href="/terms"
-                style={styles.footerLink}
-              >
+              <a href="/terms" style={styles.footerLink}>
                 Terms
               </a>
 
-              <a
-                href="/refund"
-                style={styles.footerLink}
-              >
+              <a href="/refund" style={styles.footerLink}>
                 Refund
               </a>
             </div>
@@ -1353,7 +1374,6 @@ function PublicLanding() {
               All rights reserved.
             </div>
           </footer>
-
         </div>
       </main>
     </>
@@ -1366,21 +1386,12 @@ MAIN HOME
 
 export default function Home() {
   const [user, setUser] = useState(null);
-
-  /*
-   * Active subscription returned directly
-   * by /api/auth/me
-   */
-  const [subscription, setSubscription] =
-    useState(null);
-
+  const [subscription, setSubscription] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [telegramMode, setTelegramMode] =
-    useState(false);
-  const [showWelcome, setShowWelcome] =
-    useState(false);
+  const [telegramMode, setTelegramMode] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   /* =====================================================
   AUTHENTICATION
@@ -1389,11 +1400,36 @@ export default function Home() {
   useEffect(() => {
     let stopped = false;
 
+    const verifyAdmin = async () => {
+      try {
+        const response = await fetch(
+          "/api/admin/users",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        /*
+         * 200 = authenticated admin.
+         * 401/403 = normal user.
+         */
+        if (!stopped && response.ok) {
+          setIsAdmin(true);
+        }
+      } catch (adminError) {
+        console.error(
+          "Admin verification error:",
+          adminError
+        );
+      }
+    };
+
     const authenticate = async () => {
       if (stopped) return;
 
       try {
-
         /* ===============================================
         1. EMAIL SESSION
         =============================================== */
@@ -1408,9 +1444,9 @@ export default function Home() {
         );
 
         const emailData =
-          await emailResponse.json().catch(
-            () => ({})
-          );
+          await emailResponse
+            .json()
+            .catch(() => ({}));
 
         if (
           emailResponse.ok &&
@@ -1422,17 +1458,26 @@ export default function Home() {
 
           setUser(emailData.user);
 
-          /*
-           * IMPORTANT:
-           * Store active subscription separately.
-           */
           setSubscription(
             emailData.subscription || null
           );
 
+          /*
+           * First use backend's normal auth result.
+           */
           setIsAdmin(
             emailData.isAdmin === true
           );
+
+          /*
+           * Then independently verify through
+           * the protected admin endpoint.
+           *
+           * This fixes cases where the dashboard
+           * auth response is stale but the admin
+           * mapping already exists.
+           */
+          await verifyAdmin();
 
           if (
             emailData.user?.status ===
@@ -1447,7 +1492,7 @@ export default function Home() {
         }
 
         /* ===============================================
-        2. TELEGRAM AUTHENTICATION
+        2. LEGACY TELEGRAM AUTH
         =============================================== */
 
         const webApp =
@@ -1490,10 +1535,6 @@ export default function Home() {
             telegramData.user
           );
 
-          /*
-           * IMPORTANT:
-           * Store active Telegram subscription too.
-           */
           setSubscription(
             telegramData.subscription || null
           );
@@ -1523,11 +1564,11 @@ export default function Home() {
         setTelegramMode(false);
         setUser(null);
         setSubscription(null);
+        setIsAdmin(false);
         setError("");
         setLoading(false);
 
       } catch (err) {
-
         if (stopped) return;
 
         console.error(
@@ -1591,7 +1632,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <div
               style={{
                 ...styles.pendingCard,
@@ -1609,7 +1649,6 @@ export default function Home() {
                 Checking access...
               </p>
             </div>
-
           </div>
         </main>
       </>
@@ -1634,7 +1673,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
@@ -1678,7 +1716,6 @@ export default function Home() {
                 Authentication Required
               </div>
             </div>
-
           </div>
         </main>
       </>
@@ -1701,8 +1738,7 @@ export default function Home() {
     user.status !==
     "approved"
   ) {
-    let title =
-      "Access Pending";
+    let title = "Access Pending";
 
     let text =
       "Admin approval ke baad aap SAMBHAV UPSC application access kar sakenge.";
@@ -1753,7 +1789,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <header style={styles.header}>
               <div>
                 <div style={styles.brand}>
@@ -1811,7 +1846,6 @@ export default function Home() {
                 </a>
               )}
             </div>
-
           </div>
         </main>
       </>
@@ -1821,17 +1855,6 @@ export default function Home() {
   /* =====================================================
   PREMIUM STATUS
   ===================================================== */
-
-  /*
-   * IMPORTANT:
-   *
-   * Premium is determined from the active
-   * subscription returned by the backend.
-   *
-   * This prevents expired subscriptions from
-   * remaining Premium just because users.plan
-   * still contains "premium".
-   */
 
   const isPremium =
     subscription?.status === "active" &&
@@ -1868,7 +1891,6 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-
             <div style={styles.welcomeCard}>
               <div style={styles.welcomeLabel}>
                 WELCOME
@@ -1894,7 +1916,6 @@ export default function Home() {
                   : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
               </div>
             </div>
-
           </div>
         </main>
       </>
@@ -1916,30 +1937,31 @@ export default function Home() {
       .charAt(0)
       .toUpperCase();
 
-  /*
-   * Dynamic Premium card content.
-   */
-  const premiumBadgeText = isPremium
-    ? premiumPlan === "demo"
-      ? "✦ PREMIUM DEMO ACTIVE"
-      : "✦ PREMIUM ACTIVE"
-    : "✦ PREMIUM ACCESS";
+  const premiumBadgeText =
+    isPremium
+      ? premiumPlan === "demo"
+        ? "✦ PREMIUM DEMO ACTIVE"
+        : "✦ PREMIUM ACTIVE"
+      : "✦ PREMIUM ACCESS";
 
-  const premiumTitleText = isPremium
-    ? premiumPlan === "demo"
-      ? "Your Premium Demo is Active"
-      : "Your Premium Access is Active"
-    : "Unlock the Full SAMBHAV Experience";
+  const premiumTitleText =
+    isPremium
+      ? premiumPlan === "demo"
+        ? "Your Premium Demo is Active"
+        : "Your Premium Access is Active"
+      : "Unlock the Full SAMBHAV Experience";
 
-  const premiumSubText = isPremium
-    ? premiumPlan === "demo"
-      ? "Your 2-day Premium Demo is currently active. Open your Premium workspace and explore SAMBHAV."
-      : "Your Premium subscription is currently active. Open your Premium workspace and continue your preparation."
-    : "Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation & premium study resources — all in one place.";
+  const premiumSubText =
+    isPremium
+      ? premiumPlan === "demo"
+        ? "Your 2-day Premium Demo is currently active. Open your Premium workspace and explore SAMBHAV."
+        : "Your Premium subscription is currently active. Open your Premium workspace and continue your preparation."
+      : "Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation & premium study resources — all in one place.";
 
-  const premiumActionText = isPremium
-    ? "Open Premium →"
-    : "Explore Premium →";
+  const premiumActionText =
+    isPremium
+      ? "Open Premium →"
+      : "Explore Premium →";
 
   return (
     <>
@@ -2048,6 +2070,41 @@ export default function Home() {
             </div>
           </section>
 
+          {/* =================================================
+          ADMIN CONTROL CENTER
+          ONLY ADMIN CAN SEE THIS
+          ================================================= */}
+
+          {isAdmin && (
+            <section
+              style={styles.adminCard}
+              onClick={() => {
+                window.location.href =
+                  "/admin";
+              }}
+            >
+              <div style={styles.adminGlow} />
+
+              <div style={styles.adminBadge}>
+                🔐 ADMIN ACCESS
+              </div>
+
+              <div style={styles.adminTitle}>
+                Admin Control Center
+              </div>
+
+              <div style={styles.adminSub}>
+                Manage users, access requests,
+                approvals, Premium accounts,
+                subscriptions and account status.
+              </div>
+
+              <div style={styles.adminAction}>
+                Open Admin Panel →
+              </div>
+            </section>
+          )}
+
           {/* QUICK LAUNCH */}
 
           <div style={styles.sectionHeader}>
@@ -2095,44 +2152,12 @@ export default function Home() {
                 </div>
               </div>
             ))}
-
-            {/* ADMIN ONLY */}
-
-            {isAdmin && (
-              <div
-                style={styles.card}
-                onClick={() => {
-                  window.location.href =
-                    "/admin";
-                }}
-              >
-                <div style={styles.iconBox}>
-                  🔐
-                </div>
-
-                <div style={styles.cardContent}>
-                  <div style={styles.cardTitle}>
-                    Admin Panel
-                  </div>
-
-                  <div style={styles.cardSubtitle}>
-                    Members • Requests • Approvals
-                  </div>
-                </div>
-
-                <div style={styles.arrow}>
-                  ›
-                </div>
-              </div>
-            )}
           </section>
-
         </div>
 
         {/* BOTTOM NAV */}
 
         <nav style={styles.bottomNav}>
-
           <div
             style={{
               ...styles.navItem,
@@ -2186,9 +2211,7 @@ export default function Home() {
 
             AI
           </div>
-
         </nav>
-
       </main>
     </>
   );
