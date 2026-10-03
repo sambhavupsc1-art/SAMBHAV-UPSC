@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/current-affairs/cron",
-      "schedule": "30 4 * * *"
+      "schedule": "2 6 * * *"
     },
     {
       "path": "/api/current-affairs/magazine/generate",
