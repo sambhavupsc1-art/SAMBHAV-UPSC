@@ -1,91 +1,215 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import crypto from "crypto";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+function verifyEmailSession(token) {
+  try {
+    const secret = process.env.AUTH_SESSION_SECRET;
+
+    if (!secret || !token) return null;
+
+    const parts = token.split(".");
+
+    if (parts.length !== 2) return null;
+
+    const [payload, signature] = parts;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("base64url");
+
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      )
+    ) {
+      return null;
+    }
+
+    const data = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    );
+
+    if (!data.exp || Date.now() > data.exp) {
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Session verification error:", error);
+    return null;
+  }
+}
+
+async function getUserById(userId) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+      userId
+    )}&select=id,email,telegram_id,first_name,username,status,plan,created_at`,
+    {
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    console.error("User lookup error:", await response.text());
+    return null;
+  }
+
+  const users = await response.json();
+
+  return users.length ? users[0] : null;
+}
+
+async function getAdminStatus(telegramId) {
+  if (!telegramId) return false;
+
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${encodeURIComponent(
+      telegramId
+    )}&is_active=eq.true&select=id,telegram_id`,
+    {
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    console.error("Admin lookup error:", await response.text());
+    return false;
+  }
+
+  const admins = await response.json();
+
+  return admins.length > 0;
+}
 
 export async function GET(request) {
   try {
-    const authorization = request.headers.get("authorization");
-
-    if (!authorization?.startsWith("tma ")) {
+    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
       return NextResponse.json(
-        { error: "Telegram authentication required" },
-        { status: 401 }
-      );
-    }
-
-    const initData = authorization.slice(4);
-
-    const telegramUser = validateTelegramInitData(initData);
-
-    if (!telegramUser?.id) {
-      return NextResponse.json(
-        { error: "Invalid Telegram authentication" },
-        { status: 401 }
-      );
-    }
-
-    // Get normal user
-    const userResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramUser.id}&select=telegram_id,first_name,username,status,plan`,
-      {
-        headers: {
-          apikey: SUPABASE_SECRET_KEY,
-          Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-        },
-        cache: "no-store",
-      }
-    );
-
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.error("User lookup error:", errorText);
-
-      return NextResponse.json(
-        { error: "Database error" },
+        { error: "Supabase environment variables are missing" },
         { status: 500 }
       );
     }
 
-    const users = await userResponse.json();
+    /*
+     * ------------------------------------------------
+     * 1. EXISTING TELEGRAM LOGIN
+     * ------------------------------------------------
+     */
 
-    if (users.length === 0) {
+    const authorization = request.headers.get("authorization");
+
+    if (authorization?.startsWith("tma ")) {
+      const initData = authorization.slice(4);
+
+      const telegramUser = validateTelegramInitData(initData);
+
+      if (!telegramUser?.id) {
+        return NextResponse.json(
+          { error: "Invalid Telegram authentication" },
+          { status: 401 }
+        );
+      }
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
+          telegramUser.id
+        )}&select=id,email,telegram_id,first_name,username,status,plan,created_at`,
+        {
+          headers: {
+            apikey: SUPABASE_SECRET_KEY,
+            Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Telegram user lookup error:", await response.text());
+
+        return NextResponse.json(
+          { error: "Database error" },
+          { status: 500 }
+        );
+      }
+
+      const users = await response.json();
+
+      if (users.length === 0) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      const user = users[0];
+
+      const isAdmin = await getAdminStatus(telegramUser.id);
+
+      return NextResponse.json({
+        user,
+        isAdmin,
+        authMethod: "telegram",
+      });
+    }
+
+    /*
+     * ------------------------------------------------
+     * 2. EMAIL SESSION LOGIN
+     * ------------------------------------------------
+     */
+
+    const cookieStore = await cookies();
+
+    const sessionCookie = cookieStore.get("sambhav_session");
+
+    if (!sessionCookie?.value) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const session = verifyEmailSession(sessionCookie.value);
+
+    if (!session?.userId) {
+      return NextResponse.json(
+        { error: "Invalid or expired session" },
+        { status: 401 }
+      );
+    }
+
+    const user = await getUserById(session.userId);
+
+    if (!user) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
       );
     }
 
-    // Check admin
-    const adminResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${telegramUser.id}&is_active=eq.true&select=id,telegram_id`,
-      {
-        headers: {
-          apikey: SUPABASE_SECRET_KEY,
-          Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-        },
-        cache: "no-store",
-      }
-    );
-
-    if (!adminResponse.ok) {
-      const errorText = await adminResponse.text();
-      console.error("Admin lookup error:", errorText);
-
-      return NextResponse.json(
-        { error: "Admin verification failed" },
-        { status: 500 }
-      );
-    }
-
-    const admins = await adminResponse.json();
-
-    const isAdmin = admins.length > 0;
+    const isAdmin = await getAdminStatus(user.telegram_id);
 
     return NextResponse.json({
-      user: users[0],
+      user,
       isAdmin,
+      authMethod: "email",
     });
   } catch (error) {
     console.error("Auth error:", error);
