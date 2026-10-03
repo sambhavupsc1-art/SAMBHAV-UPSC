@@ -98,10 +98,6 @@ const styles = {
     boxShadow: "0 7px 18px rgba(0,0,0,0.13)",
   },
 
-  /* =========================
-     PUBLIC LANDING
-     ========================= */
-
   landingHero: {
     background:
       "linear-gradient(145deg, #111111 0%, #191919 55%, #252525 100%)",
@@ -323,10 +319,6 @@ const styles = {
     color: "#999999",
     fontSize: "9px",
   },
-
-  /* =========================
-     EXISTING APP
-     ========================= */
 
   greeting: {
     marginBottom: "20px",
@@ -993,100 +985,175 @@ export default function Home() {
     useState(false);
 
   /*
-   * IMPORTANT:
+   * ==========================================
+   * AUTHENTICATION
+   * ==========================================
    *
-   * Telegram JS SDK being loaded does NOT mean
-   * this is a Telegram Mini App.
+   * Priority:
    *
-   * Only valid Telegram initData means
-   * Telegram authentication flow should run.
+   * 1. Email session cookie
+   * 2. Telegram initData
+   * 3. Public landing
+   *
+   * This keeps both authentication systems
+   * working without requiring Telegram for
+   * normal browser users.
    */
 
   useEffect(() => {
-    let attempts = 0;
     let stopped = false;
 
-    const authenticate = () => {
+    const authenticate = async () => {
       if (stopped) return;
 
-      attempts++;
+      try {
+        /*
+         * ==========================================
+         * 1. EMAIL SESSION
+         * ==========================================
+         *
+         * Browser automatically sends the
+         * HTTP-only sambhav_session cookie.
+         */
 
-      const webApp =
-        window.Telegram?.WebApp;
+        const emailResponse = await fetch(
+          "/api/auth/me",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
 
-      /*
-       * Real Telegram Mini App:
-       * initData exists.
-       */
-      if (webApp?.initData) {
-        setTelegramMode(true);
+        const emailData =
+          await emailResponse.json().catch(
+            () => ({})
+          );
 
-        webApp.ready();
-        webApp.expand();
+        /*
+         * Valid email session
+         */
 
-        fetch("/api/auth/me", {
-          method: "GET",
-          headers: {
-            Authorization:
-              `tma ${webApp.initData}`,
-          },
-          cache: "no-store",
-        })
-          .then(async (response) => {
-            const data =
-              await response.json();
+        if (
+          emailResponse.ok &&
+          emailData?.user
+        ) {
+          if (stopped) return;
 
-            if (!response.ok) {
-              throw new Error(
-                data.error ||
-                  "Authentication failed"
-              );
-            }
+          setTelegramMode(false);
 
-            setUser(data.user);
-            setIsAdmin(
-              data.isAdmin === true
+          setUser(
+            emailData.user
+          );
+
+          setIsAdmin(
+            emailData.isAdmin === true
+          );
+
+          if (
+            emailData.user?.status ===
+            "approved"
+          ) {
+            setShowWelcome(true);
+          }
+
+          setLoading(false);
+          return;
+        }
+
+        /*
+         * ==========================================
+         * 2. TELEGRAM AUTHENTICATION
+         * ==========================================
+         */
+
+        const webApp =
+          window.Telegram?.WebApp;
+
+        /*
+         * Only real Telegram initData
+         * activates Telegram authentication.
+         */
+
+        if (webApp?.initData) {
+          if (stopped) return;
+
+          setTelegramMode(true);
+
+          webApp.ready();
+          webApp.expand();
+
+          const telegramResponse =
+            await fetch(
+              "/api/auth/me",
+              {
+                method: "GET",
+                headers: {
+                  Authorization:
+                    `tma ${webApp.initData}`,
+                },
+                cache: "no-store",
+              }
             );
 
-            if (
-              data.user?.status ===
-              "approved"
-            ) {
-              setShowWelcome(true);
-            }
-          })
-          .catch((err) => {
-            setError(
-              err.message ||
-                "Server connection failed."
+          const telegramData =
+            await telegramResponse.json();
+
+          if (!telegramResponse.ok) {
+            throw new Error(
+              telegramData.error ||
+                "Authentication failed"
             );
-          })
-          .finally(() => {
-            setLoading(false);
-          });
+          }
 
-        return;
-      }
+          if (stopped) return;
 
-      /*
-       * Normal browser:
-       *
-       * Telegram script may exist, but there
-       * is no initData.
-       *
-       * We simply show the public website.
-       */
-      if (attempts >= 15) {
+          setUser(
+            telegramData.user
+          );
+
+          setIsAdmin(
+            telegramData.isAdmin === true
+          );
+
+          if (
+            telegramData.user?.status ===
+            "approved"
+          ) {
+            setShowWelcome(true);
+          }
+
+          setLoading(false);
+          return;
+        }
+
+        /*
+         * ==========================================
+         * 3. PUBLIC WEBSITE
+         * ==========================================
+         */
+
+        if (stopped) return;
+
         setTelegramMode(false);
+        setUser(null);
         setError("");
         setLoading(false);
-        return;
-      }
+      } catch (err) {
+        if (stopped) return;
 
-      setTimeout(
-        authenticate,
-        200
-      );
+        console.error(
+          "SAMBHAV authentication error:",
+          err
+        );
+
+        setError(
+          err.message ||
+            "Server connection failed."
+        );
+
+        setLoading(false);
+      }
     };
 
     authenticate();
@@ -1122,7 +1189,7 @@ export default function Home() {
 
   /*
    * ==========================================
-   * TELEGRAM LOADING
+   * AUTH LOADING
    * ==========================================
    */
 
@@ -1417,13 +1484,14 @@ export default function Home() {
 
   /*
    * ==========================================
-   * APPROVED TELEGRAM USER
+   * APPROVED USER DASHBOARD
    * ==========================================
    */
 
   const firstName =
     user.first_name ||
     user.firstName ||
+    user.name ||
     "Aspirant";
 
   const initial =
