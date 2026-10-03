@@ -10,16 +10,25 @@ const SUPABASE_SECRET_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SECRET_KEY;
 
+/*
+ * ------------------------------------------------
+ * VERIFY EMAIL SESSION
+ * ------------------------------------------------
+ */
 function verifyEmailSession(token) {
   try {
     const secret =
       process.env.AUTH_SESSION_SECRET;
 
-    if (!secret || !token) return null;
+    if (!secret || !token) {
+      return null;
+    }
 
     const parts = token.split(".");
 
-    if (parts.length !== 2) return null;
+    if (parts.length !== 2) {
+      return null;
+    }
 
     const [payload, signature] = parts;
 
@@ -66,7 +75,7 @@ function verifyEmailSession(token) {
 
 /*
  * ------------------------------------------------
- * GET USER
+ * GET USER BY ID
  * ------------------------------------------------
  */
 async function getUserById(userId) {
@@ -150,43 +159,106 @@ async function getActiveSubscription(userId) {
  * ------------------------------------------------
  * GET ADMIN STATUS
  * ------------------------------------------------
+ *
+ * Website / Email:
+ * admin_users.user_id
+ *
+ * Telegram:
+ * admin_users.telegram_id
+ *
+ * This supports both systems.
  */
-async function getAdminStatus(
-  telegramId
-) {
-  if (!telegramId) return false;
-
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${encodeURIComponent(
-      telegramId
-    )}&is_active=eq.true&select=id,telegram_id`,
-    {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_SECRET_KEY}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    console.error(
-      "Admin lookup error:",
-      await response.text()
+async function getAdminStatus({
+  userId = null,
+  telegramId = null,
+}) {
+  /*
+   * ==============================================
+   * 1. WEBSITE / EMAIL ADMIN CHECK
+   * ==============================================
+   */
+  if (userId) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/admin_users?user_id=eq.${encodeURIComponent(
+        userId
+      )}&is_active=eq.true&select=id,user_id,telegram_id`,
+      {
+        headers: {
+          apikey: SUPABASE_SECRET_KEY,
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+        cache: "no-store",
+      }
     );
 
-    return false;
+    if (!response.ok) {
+      console.error(
+        "Admin user_id lookup error:",
+        await response.text()
+      );
+
+      return false;
+    }
+
+    const admins =
+      await response.json();
+
+    if (admins.length > 0) {
+      return true;
+    }
   }
 
-  const admins =
-    await response.json();
+  /*
+   * ==============================================
+   * 2. LEGACY TELEGRAM ADMIN CHECK
+   * ==============================================
+   */
+  if (telegramId) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/admin_users?telegram_id=eq.${encodeURIComponent(
+        telegramId
+      )}&is_active=eq.true&select=id,user_id,telegram_id`,
+      {
+        headers: {
+          apikey: SUPABASE_SECRET_KEY,
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+        cache: "no-store",
+      }
+    );
 
-  return admins.length > 0;
+    if (!response.ok) {
+      console.error(
+        "Admin telegram_id lookup error:",
+        await response.text()
+      );
+
+      return false;
+    }
+
+    const admins =
+      await response.json();
+
+    return admins.length > 0;
+  }
+
+  return false;
 }
 
+/*
+ * ========================================================
+ * GET
+ * ========================================================
+ */
 export async function GET(request) {
   try {
+    /*
+     * ------------------------------------------------
+     * ENVIRONMENT CHECK
+     * ------------------------------------------------
+     */
     if (
       !SUPABASE_URL ||
       !SUPABASE_SECRET_KEY
@@ -202,10 +274,9 @@ export async function GET(request) {
 
     /*
      * ========================================================
-     * 1. EXISTING TELEGRAM LOGIN
+     * 1. TELEGRAM LOGIN
      * ========================================================
      */
-
     const authorization =
       request.headers.get(
         "authorization"
@@ -288,10 +359,15 @@ export async function GET(request) {
           user.id
         );
 
+      /*
+       * Check admin by both user_id
+       * and Telegram ID.
+       */
       const isAdmin =
-        await getAdminStatus(
-          telegramUser.id
-        );
+        await getAdminStatus({
+          userId: user.id,
+          telegramId: telegramUser.id,
+        });
 
       return NextResponse.json({
         user,
@@ -325,6 +401,9 @@ export async function GET(request) {
       );
     }
 
+    /*
+     * Verify session cookie.
+     */
     const session =
       verifyEmailSession(
         sessionCookie.value
@@ -366,10 +445,19 @@ export async function GET(request) {
         user.id
       );
 
+    /*
+     * IMPORTANT:
+     *
+     * Email users are checked using
+     * admin_users.user_id.
+     *
+     * Telegram ID is optional.
+     */
     const isAdmin =
-      await getAdminStatus(
-        user.telegram_id
-      );
+      await getAdminStatus({
+        userId: user.id,
+        telegramId: user.telegram_id,
+      });
 
     return NextResponse.json({
       user,
