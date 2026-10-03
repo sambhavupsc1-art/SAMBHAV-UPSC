@@ -35,6 +35,32 @@ function hashOtp(otp) {
     .digest("hex");
 }
 
+function createSessionToken(user) {
+  const secret = process.env.AUTH_SESSION_SECRET;
+
+  if (!secret) {
+    throw new Error("AUTH_SESSION_SECRET is missing.");
+  }
+
+  const payload = {
+    userId: user.id,
+    email: user.email,
+    iat: Date.now(),
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  };
+
+  const encodedPayload = Buffer.from(
+    JSON.stringify(payload)
+  ).toString("base64url");
+
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+
+  return `${encodedPayload}.${signature}`;
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -44,14 +70,20 @@ export async function POST(request) {
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
-        { success: false, message: "Valid email is required." },
+        {
+          success: false,
+          message: "Valid email is required.",
+        },
         { status: 400 }
       );
     }
 
     if (!/^\d{6}$/.test(otp)) {
       return NextResponse.json(
-        { success: false, message: "Enter a valid 6-digit OTP." },
+        {
+          success: false,
+          message: "Enter a valid 6-digit OTP.",
+        },
         { status: 400 }
       );
     }
@@ -71,7 +103,10 @@ export async function POST(request) {
       console.error("OTP lookup error:", otpError);
 
       return NextResponse.json(
-        { success: false, message: "Unable to verify OTP." },
+        {
+          success: false,
+          message: "Unable to verify OTP.",
+        },
         { status: 500 }
       );
     }
@@ -168,11 +203,11 @@ export async function POST(request) {
       const { data: newUser, error: createUserError } = await supabase
         .from("users")
         .insert({
-  email,
-  telegram_id: `email_${crypto.randomUUID()}`,
-  status: "pending",
-  plan: "free",
-})
+          email,
+          telegram_id: `email_${crypto.randomUUID()}`,
+          status: "pending",
+          plan: "free",
+        })
         .select("*")
         .single();
 
@@ -191,7 +226,9 @@ export async function POST(request) {
       user = newUser;
     }
 
-    return NextResponse.json({
+    const sessionToken = createSessionToken(user);
+
+    const response = NextResponse.json({
       success: true,
       message: "Email verified successfully.",
       user: {
@@ -200,11 +237,20 @@ export async function POST(request) {
         status: user.status,
         plan: user.plan,
       },
-      next:
-        user.status === "approved"
-          ? "app"
-          : "approval",
+      next: user.status === "approved" ? "app" : "approval",
     });
+
+    response.cookies.set({
+      name: "sambhav_session",
+      value: sessionToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (error) {
     console.error("Verify OTP error:", error);
 
