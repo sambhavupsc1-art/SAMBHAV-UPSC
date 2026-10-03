@@ -99,7 +99,7 @@ const styles = {
   },
 
   /* =========================
-     PUBLIC LANDING PAGE
+     PUBLIC LANDING
      ========================= */
 
   landingHero: {
@@ -325,7 +325,7 @@ const styles = {
   },
 
   /* =========================
-     EXISTING APP STYLES
+     EXISTING APP
      ========================= */
 
   greeting: {
@@ -389,7 +389,6 @@ const styles = {
     fontWeight: "750",
     marginBottom: "17px",
     cursor: "pointer",
-    boxShadow: "0 7px 18px rgba(0,0,0,0.08)",
   },
 
   premiumCard: {
@@ -414,7 +413,6 @@ const styles = {
     background: "rgba(255,255,255,0.055)",
     right: "-75px",
     top: "-85px",
-    pointerEvents: "none",
   },
 
   premiumGlowSmall: {
@@ -425,12 +423,10 @@ const styles = {
     background: "rgba(255,255,255,0.035)",
     right: "80px",
     bottom: "-45px",
-    pointerEvents: "none",
   },
 
   premiumBadge: {
     display: "inline-flex",
-    alignItems: "center",
     padding: "6px 10px",
     borderRadius: "999px",
     background: "#ffffff",
@@ -446,7 +442,6 @@ const styles = {
     marginTop: "13px",
     fontSize: "20px",
     fontWeight: "850",
-    letterSpacing: "-0.6px",
     lineHeight: "1.2",
     position: "relative",
     zIndex: 2,
@@ -465,8 +460,6 @@ const styles = {
   premiumAction: {
     marginTop: "16px",
     display: "inline-flex",
-    alignItems: "center",
-    gap: "7px",
     padding: "10px 14px",
     borderRadius: "13px",
     background: "#ffffff",
@@ -487,7 +480,6 @@ const styles = {
   sectionTitle: {
     fontSize: "21px",
     fontWeight: "850",
-    letterSpacing: "-0.6px",
   },
 
   sectionSmall: {
@@ -529,8 +521,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "21px",
-    boxShadow:
-      "0 5px 12px rgba(0,0,0,0.12)",
   },
 
   cardContent: {
@@ -591,14 +581,12 @@ const styles = {
     color: "#a7a7a7",
     letterSpacing: "2px",
     fontWeight: "800",
-    textTransform: "uppercase",
   },
 
   welcomeTitle: {
     marginTop: "8px",
     fontSize: "27px",
     fontWeight: "900",
-    letterSpacing: "-0.8px",
   },
 
   welcomeUser: {
@@ -649,8 +637,6 @@ const styles = {
       "repeat(4, 1fr)",
     alignItems: "center",
     zIndex: 50,
-    backdropFilter: "blur(14px)",
-    WebkitBackdropFilter: "blur(14px)",
   },
 
   navItem: {
@@ -696,7 +682,6 @@ const styles = {
     margin: 0,
     fontSize: "25px",
     fontWeight: "900",
-    letterSpacing: "-0.7px",
   },
 
   lockedText: {
@@ -717,7 +702,6 @@ const styles = {
     fontSize: "10px",
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: ".7px",
   },
 };
 
@@ -780,11 +764,6 @@ function PublicLanding() {
 
   return (
     <>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-
       <main style={styles.page}>
         <div style={styles.container}>
           <header style={styles.header}>
@@ -1008,20 +987,19 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [telegramMode, setTelegramMode] =
+    useState(false);
   const [showWelcome, setShowWelcome] =
     useState(false);
 
   /*
-   * IMPORTANT ARCHITECTURE
+   * IMPORTANT:
    *
-   * Normal browser:
-   *   Public Landing Page
+   * Telegram JS SDK being loaded does NOT mean
+   * this is a Telegram Mini App.
    *
-   * Telegram Mini App:
-   *   Existing Telegram authentication
-   *   Existing SAMBHAV dashboard
-   *
-   * No protected API is bypassed.
+   * Only valid Telegram initData means
+   * Telegram authentication flow should run.
    */
 
   useEffect(() => {
@@ -1037,98 +1015,84 @@ export default function Home() {
         window.Telegram?.WebApp;
 
       /*
-       * Normal browser:
-       *
-       * Telegram WebApp is not available.
-       * Do NOT authenticate against the
-       * protected API and do NOT show the
-       * old "Access Required" screen.
-       *
-       * Instead the public landing page is shown.
+       * Real Telegram Mini App:
+       * initData exists.
        */
-      if (!webApp) {
-        setLoading(false);
+      if (webApp?.initData) {
+        setTelegramMode(true);
+
+        webApp.ready();
+        webApp.expand();
+
+        fetch("/api/auth/me", {
+          method: "GET",
+          headers: {
+            Authorization:
+              `tma ${webApp.initData}`,
+          },
+          cache: "no-store",
+        })
+          .then(async (response) => {
+            const data =
+              await response.json();
+
+            if (!response.ok) {
+              throw new Error(
+                data.error ||
+                  "Authentication failed"
+              );
+            }
+
+            setUser(data.user);
+            setIsAdmin(
+              data.isAdmin === true
+            );
+
+            if (
+              data.user?.status ===
+              "approved"
+            ) {
+              setShowWelcome(true);
+            }
+          })
+          .catch((err) => {
+            setError(
+              err.message ||
+                "Server connection failed."
+            );
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+
         return;
       }
 
       /*
-       * Telegram script exists but initData
-       * may need a moment to become available.
+       * Normal browser:
+       *
+       * Telegram script may exist, but there
+       * is no initData.
+       *
+       * We simply show the public website.
        */
-      if (!webApp.initData) {
-        if (attempts < 30) {
-          setTimeout(authenticate, 200);
-          return;
-        }
-
-        /*
-         * If Telegram WebApp exists but no
-         * authentication data is available,
-         * keep the application protected.
-         */
+      if (attempts >= 15) {
+        setTelegramMode(false);
+        setError("");
         setLoading(false);
-        setError(
-          "Telegram authentication data nahi mila."
-        );
         return;
       }
 
-      webApp.ready();
-      webApp.expand();
-
-      fetch("/api/auth/me", {
-        method: "GET",
-        headers: {
-          Authorization:
-            `tma ${webApp.initData}`,
-        },
-        cache: "no-store",
-      })
-        .then(async (response) => {
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            throw new Error(
-              data.error ||
-                "Authentication failed"
-            );
-          }
-
-          setUser(data.user);
-          setIsAdmin(
-            data.isAdmin === true
-          );
-
-          if (
-            data.user?.status ===
-            "approved"
-          ) {
-            setShowWelcome(true);
-          }
-        })
-        .catch((err) => {
-          setError(
-            err.message ||
-              "Server connection failed."
-          );
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      setTimeout(
+        authenticate,
+        200
+      );
     };
 
-    /*
-     * Give Telegram script a moment.
-     */
-    const timer = setTimeout(
-      authenticate,
-      150
-    );
+    authenticate();
 
     return () => {
       stopped = true;
-      clearTimeout(timer);
     };
   }, []);
 
@@ -1143,26 +1107,23 @@ export default function Home() {
   }, [showWelcome]);
 
   /*
-   * ==================================================
-   * NORMAL BROWSER
-   * ==================================================
-   *
-   * This is intentionally public.
+   * ==========================================
+   * PUBLIC WEBSITE
+   * ==========================================
    */
 
   if (
     !loading &&
-    !window.Telegram?.WebApp &&
-    !user &&
-    !error
+    !telegramMode &&
+    !user
   ) {
     return <PublicLanding />;
   }
 
   /*
-   * ==================================================
-   * LOADING
-   * ==================================================
+   * ==========================================
+   * TELEGRAM LOADING
+   * ==========================================
    */
 
   if (loading) {
@@ -1191,12 +1152,13 @@ export default function Home() {
   }
 
   /*
-   * ==================================================
+   * ==========================================
    * TELEGRAM AUTH ERROR
-   * ==================================================
+   * ==========================================
    */
 
   if (
+    telegramMode &&
     error &&
     !user
   ) {
@@ -1220,12 +1182,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  ...styles.avatar,
-                  fontSize: "20px",
-                }}
-              >
+              <div style={styles.avatar}>
                 🔒
               </div>
             </header>
@@ -1261,9 +1218,9 @@ export default function Home() {
   }
 
   /*
-   * ==================================================
+   * ==========================================
    * SAFETY
-   * ==================================================
+   * ==========================================
    */
 
   if (!user) {
@@ -1271,9 +1228,9 @@ export default function Home() {
   }
 
   /*
-   * ==================================================
+   * ==========================================
    * NOT APPROVED
-   * ==================================================
+   * ==========================================
    */
 
   if (
@@ -1393,9 +1350,9 @@ export default function Home() {
   }
 
   /*
-   * ==================================================
-   * WELCOME SCREEN
-   * ==================================================
+   * ==========================================
+   * WELCOME
+   * ==========================================
    */
 
   if (
@@ -1459,9 +1416,9 @@ export default function Home() {
   }
 
   /*
-   * ==================================================
+   * ==========================================
    * APPROVED TELEGRAM USER
-   * ==================================================
+   * ==========================================
    */
 
   const firstName =
