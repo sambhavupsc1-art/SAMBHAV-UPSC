@@ -503,6 +503,44 @@ export default function CurrentAffairsPage() {
         </div>
       </section>
 
+      <section className="ca-premium-hero">
+        <div className="ca-hero-copy">
+          <span className="ca-hero-eyebrow">SAMBHAV UPSC • DAILY INTELLIGENCE</span>
+          <h2>
+            {hi ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।" : "Not just news. The right news for UPSC."}
+          </h2>
+          <p>
+            {hi
+              ? "PIB, GKToday, The Hindu और Better India को एक structured UPSC view में पढ़ें — Prelims + Mains + Ethics."
+              : "PIB, GKToday, The Hindu and Better India in one structured UPSC view — Prelims + Mains + Ethics."}
+          </p>
+
+          <div className="ca-hero-stats">
+            <div className="ca-hero-stat">
+              <strong>{news.filter((item) => !isEthicsExample(item)).length}</strong>
+              <span>Daily Updates</span>
+            </div>
+            <div className="ca-hero-stat">
+              <strong>4</strong>
+              <span>Core Sources</span>
+            </div>
+            <div className="ca-hero-stat">
+              <strong>GS I–IV</strong>
+              <span>UPSC Mapping</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="ca-hero-seal">
+          <div className="ca-hero-seal-ring">
+            <span>CA</span>
+            <small>2026</small>
+          </div>
+          <div className="ca-hero-seal-line" />
+          <span className="ca-hero-date">UPDATED • {getLatestDate()}</span>
+        </div>
+      </section>
+
       {notificationOpen && (
         <section className="notification-panel">
           <div className="notification-title">
@@ -921,9 +959,9 @@ export default function CurrentAffairsPage() {
 .ca-page {
           min-height: 100vh;
           background:
-            radial-gradient(circle at 8% 0%, rgba(30, 64, 175, 0.055), transparent 28%),
-            radial-gradient(circle at 92% 8%, rgba(15, 23, 42, 0.045), transparent 25%),
-            #f6f8fb;
+            radial-gradient(circle at 12% 0%, rgba(195,161,90,.10), transparent 24%),
+            radial-gradient(circle at 88% 6%, rgba(15,23,42,.055), transparent 25%),
+            linear-gradient(180deg,#f8f6f1 0%,#f3f5f7 48%,#eef1f4 100%);
           color: #172033;
           padding: 32px 18px 90px;
           font-family:
@@ -945,6 +983,170 @@ export default function CurrentAffairsPage() {
           max-width: 1050px;
           margin-left: auto;
           margin-right: auto;
+        }
+
+        /* ---------- PREMIUM UPSC HERO ---------- */
+        .ca-premium-hero {
+          position: relative;
+          overflow: hidden;
+          max-width: 1050px;
+          margin: 0 auto 16px;
+          padding: 27px 29px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 28px;
+          color: #fff;
+          border: 1px solid rgba(195,161,90,.30);
+          border-radius: 25px;
+          background:
+            radial-gradient(circle at 88% 10%, rgba(195,161,90,.25), transparent 25%),
+            radial-gradient(circle at 65% 120%, rgba(52,64,84,.55), transparent 35%),
+            linear-gradient(145deg, #0d1118 0%, #151b25 62%, #0b0f15 100%);
+          box-shadow: 0 22px 55px rgba(15,23,42,.15);
+        }
+
+        .ca-premium-hero::before {
+          content: "";
+          position: absolute;
+          width: 230px;
+          height: 230px;
+          right: 75px;
+          bottom: -170px;
+          border: 1px solid rgba(226,199,125,.16);
+          border-radius: 50%;
+          pointer-events: none;
+        }
+
+        .ca-premium-hero::after {
+          content: "";
+          position: absolute;
+          width: 150px;
+          height: 150px;
+          right: -70px;
+          top: -75px;
+          border: 1px solid rgba(226,199,125,.13);
+          border-radius: 50%;
+          pointer-events: none;
+        }
+
+        .ca-hero-copy {
+          position: relative;
+          z-index: 1;
+          max-width: 720px;
+        }
+
+        .ca-hero-eyebrow {
+          display: inline-flex;
+          color: #e2c77d;
+          font-size: 9px;
+          line-height: 1;
+          letter-spacing: .18em;
+          font-weight: 950;
+        }
+
+        .ca-hero-copy h2 {
+          margin: 10px 0 8px;
+          font-size: clamp(25px, 3.2vw, 38px);
+          line-height: 1.06;
+          letter-spacing: -1.25px;
+          color: #fffdf9;
+          max-width: 650px;
+        }
+
+        .ca-hero-copy p {
+          margin: 0;
+          max-width: 650px;
+          color: #b9c0ca;
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        .ca-hero-stats {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 19px;
+        }
+
+        .ca-hero-stat {
+          min-width: 108px;
+          padding: 9px 11px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 12px;
+          background: rgba(255,255,255,.055);
+          backdrop-filter: blur(8px);
+        }
+
+        .ca-hero-stat strong {
+          display: block;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .ca-hero-stat span {
+          display: block;
+          margin-top: 3px;
+          color: #929ba8;
+          font-size: 8px;
+          font-weight: 800;
+          letter-spacing: .03em;
+        }
+
+        .ca-hero-seal {
+          position: relative;
+          z-index: 1;
+          flex: 0 0 155px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .ca-hero-seal-ring {
+          width: 112px;
+          height: 112px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(226,199,125,.45);
+          outline: 1px solid rgba(226,199,125,.12);
+          outline-offset: 7px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(226,199,125,.13), rgba(255,255,255,.015) 68%);
+        }
+
+        .ca-hero-seal-ring span {
+          color: #e2c77d;
+          font-size: 29px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: -.06em;
+        }
+
+        .ca-hero-seal-ring small {
+          margin-top: 7px;
+          color: #aeb5bf;
+          font-size: 8px;
+          letter-spacing: .2em;
+          font-weight: 900;
+        }
+
+        .ca-hero-seal-line {
+          width: 46px;
+          height: 1px;
+          margin: 18px 0 8px;
+          background: rgba(226,199,125,.38);
+        }
+
+        .ca-hero-date {
+          color: #8e97a4;
+          font-size: 7px;
+          letter-spacing: .13em;
+          font-weight: 900;
+          text-align: center;
         }
 
         .source-nav-wrap {
@@ -2040,6 +2242,19 @@ export default function CurrentAffairsPage() {
           .premium-clean-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
+        @media (max-width: 800px) {
+          .ca-premium-hero {
+            padding: 22px;
+          }
+          .ca-hero-seal {
+            flex-basis: 125px;
+          }
+          .ca-hero-seal-ring {
+            width: 94px;
+            height: 94px;
+          }
+        }
+
         @media (max-width: 600px) {
   .page-back-button {
     width: 100%;
@@ -2048,6 +2263,14 @@ export default function CurrentAffairsPage() {
     margin-bottom: 10px;
   }
           .ca-page { width:100%; max-width:100%; min-width:0; padding:12px 10px 48px; overflow-x:hidden; }
+          .ca-premium-hero { display:block; padding:19px; border-radius:19px; }
+          .ca-hero-copy h2 { font-size:26px; line-height:1.1; margin-top:9px; }
+          .ca-hero-copy p { font-size:11.5px; line-height:1.65; }
+          .ca-hero-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:15px; }
+          .ca-hero-stat { min-width:0; padding:8px 7px; border-radius:10px; }
+          .ca-hero-stat strong { font-size:11px; }
+          .ca-hero-stat span { font-size:7px; }
+          .ca-hero-seal { display:none; }
           .ca-header { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:17px; padding:17px; border-radius:18px; }
           h1 { font-size:clamp(29px,9vw,38px); }
           .sub { font-size:12.5px; }
