@@ -168,10 +168,11 @@ export async function POST(request) {
       const { data: newUser, error: createUserError } = await supabase
         .from("users")
         .insert({
-          email,
-          status: "pending",
-          plan: "free",
-        })
+  email,
+  telegram_id: `email_${crypto.randomUUID()}`,
+  status: "pending",
+  plan: "free",
+})
         .select("*")
         .single();
 
