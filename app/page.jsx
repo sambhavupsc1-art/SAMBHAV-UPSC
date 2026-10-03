@@ -98,6 +98,236 @@ const styles = {
     boxShadow: "0 7px 18px rgba(0,0,0,0.13)",
   },
 
+  /* =========================
+     PUBLIC LANDING PAGE
+     ========================= */
+
+  landingHero: {
+    background:
+      "linear-gradient(145deg, #111111 0%, #191919 55%, #252525 100%)",
+    color: "#ffffff",
+    borderRadius: "30px",
+    padding: "32px 24px",
+    marginBottom: "18px",
+    boxShadow: "0 18px 42px rgba(0,0,0,0.16)",
+    position: "relative",
+    overflow: "hidden",
+  },
+
+  landingGlow: {
+    position: "absolute",
+    width: "240px",
+    height: "240px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.055)",
+    right: "-100px",
+    top: "-100px",
+    pointerEvents: "none",
+  },
+
+  landingEyebrow: {
+    fontSize: "10px",
+    fontWeight: "850",
+    letterSpacing: "1.8px",
+    color: "#bdbdbd",
+    textTransform: "uppercase",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  landingTitle: {
+    margin: "12px 0 0",
+    fontSize: "38px",
+    lineHeight: "1.05",
+    fontWeight: "900",
+    letterSpacing: "-1.5px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  landingText: {
+    marginTop: "13px",
+    color: "#c2c2c2",
+    fontSize: "14px",
+    lineHeight: "1.65",
+    maxWidth: "540px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  landingButtons: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    marginTop: "22px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  primaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "13px 18px",
+    borderRadius: "15px",
+    background: "#ffffff",
+    color: "#111111",
+    textDecoration: "none",
+    fontSize: "12px",
+    fontWeight: "850",
+  },
+
+  secondaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "13px 18px",
+    borderRadius: "15px",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "#ffffff",
+    textDecoration: "none",
+    fontSize: "12px",
+    fontWeight: "750",
+  },
+
+  landingSection: {
+    marginTop: "25px",
+  },
+
+  landingSectionTitle: {
+    fontSize: "22px",
+    fontWeight: "850",
+    letterSpacing: "-0.6px",
+  },
+
+  landingSectionSub: {
+    marginTop: "6px",
+    color: "#777777",
+    fontSize: "13px",
+    lineHeight: "1.5",
+  },
+
+  featureGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+    marginTop: "14px",
+  },
+
+  featureCard: {
+    background: "#ffffff",
+    border: "1px solid #e8e8e6",
+    borderRadius: "21px",
+    padding: "17px",
+    minHeight: "128px",
+    boxSizing: "border-box",
+    boxShadow:
+      "0 5px 16px rgba(0,0,0,0.045)",
+  },
+
+  featureIcon: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(145deg, #181818, #080808)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+  },
+
+  featureTitle: {
+    marginTop: "12px",
+    fontSize: "14px",
+    fontWeight: "850",
+  },
+
+  featureText: {
+    marginTop: "5px",
+    fontSize: "10px",
+    color: "#858585",
+    lineHeight: "1.4",
+  },
+
+  pricingGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+    marginTop: "14px",
+  },
+
+  pricingCard: {
+    background: "#ffffff",
+    border: "1px solid #e4e4e2",
+    borderRadius: "21px",
+    padding: "18px",
+    boxSizing: "border-box",
+  },
+
+  pricingName: {
+    fontSize: "13px",
+    fontWeight: "800",
+  },
+
+  pricingPrice: {
+    marginTop: "10px",
+    fontSize: "26px",
+    fontWeight: "900",
+    letterSpacing: "-0.8px",
+  },
+
+  pricingDuration: {
+    marginTop: "3px",
+    color: "#888888",
+    fontSize: "10px",
+  },
+
+  pricingButton: {
+    display: "block",
+    marginTop: "14px",
+    padding: "10px",
+    borderRadius: "12px",
+    background: "#111111",
+    color: "#ffffff",
+    textAlign: "center",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  publicFooter: {
+    marginTop: "32px",
+    paddingTop: "22px",
+    borderTop: "1px solid #dfdfdd",
+  },
+
+  footerLinks: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "13px",
+  },
+
+  footerLink: {
+    color: "#666666",
+    textDecoration: "none",
+    fontSize: "10px",
+    fontWeight: "650",
+  },
+
+  footerCopy: {
+    marginTop: "14px",
+    color: "#999999",
+    fontSize: "9px",
+  },
+
+  /* =========================
+     EXISTING APP STYLES
+     ========================= */
+
   greeting: {
     marginBottom: "20px",
   },
@@ -286,8 +516,6 @@ const styles = {
     cursor: "pointer",
     boxShadow:
       "0 5px 16px rgba(0,0,0,0.045)",
-    transition:
-      "transform 0.15s ease, box-shadow 0.15s ease",
   },
 
   iconBox: {
@@ -314,7 +542,6 @@ const styles = {
     fontSize: "14px",
     fontWeight: "800",
     lineHeight: "1.2",
-    letterSpacing: "-0.15px",
   },
 
   cardSubtitle: {
@@ -335,7 +562,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "17px",
-    fontWeight: "500",
   },
 
   pendingCard: {
@@ -391,7 +617,6 @@ const styles = {
     color: "#111111",
     fontSize: "11px",
     fontWeight: "900",
-    letterSpacing: "0.8px",
   },
 
   welcomePremium: {
@@ -404,7 +629,6 @@ const styles = {
     color: "#ffffff",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "0.4px",
   },
 
   bottomNav: {
@@ -479,8 +703,7 @@ const styles = {
     color: "#777",
     fontSize: "13px",
     lineHeight: "1.6",
-    margin:
-      "10px auto 0",
+    margin: "10px auto 0",
     maxWidth: "430px",
   },
 
@@ -498,6 +721,288 @@ const styles = {
   },
 };
 
+function PublicLanding() {
+  const features = [
+    {
+      icon: "📰",
+      title: "Current Affairs",
+      text: "UPSC-focused current affairs and revision support.",
+    },
+    {
+      icon: "🎯",
+      title: "PYQ Intelligence",
+      text: "Previous Year Questions with structured practice.",
+    },
+    {
+      icon: "📝",
+      title: "Prelims",
+      text: "Practice and test-oriented preparation.",
+    },
+    {
+      icon: "✍️",
+      title: "Mains",
+      text: "Answer-writing practice and preparation tools.",
+    },
+    {
+      icon: "🤖",
+      title: "AI Evaluation",
+      text: "AI-assisted analysis for Mains answer practice.",
+    },
+    {
+      icon: "📚",
+      title: "Study Material",
+      text: "Notes, PDFs and preparation resources.",
+    },
+  ];
+
+  const plans = [
+    {
+      name: "2-Day Demo",
+      price: "₹0",
+      duration: "2 Days",
+    },
+    {
+      name: "Monthly",
+      price: "₹99",
+      duration: "30 Days",
+    },
+    {
+      name: "Quarterly",
+      price: "₹399",
+      duration: "90 Days",
+    },
+    {
+      name: "Annual",
+      price: "₹999",
+      duration: "365 Days",
+    },
+  ];
+
+  return (
+    <>
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="beforeInteractive"
+      />
+
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.header}>
+            <div>
+              <div style={styles.brand}>
+                SAMBHAV UPSC
+              </div>
+
+              <div style={styles.brandSub}>
+                UPSC Preparation Platform
+              </div>
+            </div>
+
+            <div style={styles.avatar}>
+              ✦
+            </div>
+          </header>
+
+          <section style={styles.landingHero}>
+            <div style={styles.landingGlow} />
+
+            <div style={styles.landingEyebrow}>
+              UPSC • PREPARATION • 2026
+            </div>
+
+            <h1 style={styles.landingTitle}>
+              Your Complete
+              <br />
+              UPSC Preparation
+              <br />
+              Platform.
+            </h1>
+
+            <p style={styles.landingText}>
+              SAMBHAV UPSC brings current affairs,
+              PYQs, Prelims, Mains, CSAT, study
+              material and AI-assisted learning
+              tools together in one platform.
+            </p>
+
+            <div style={styles.landingButtons}>
+              <a
+                href="/login"
+                style={styles.primaryButton}
+              >
+                Login / Get Started →
+              </a>
+
+              <a
+                href="/pricing"
+                style={styles.secondaryButton}
+              >
+                View Plans
+              </a>
+            </div>
+          </section>
+
+          <section style={styles.landingSection}>
+            <div style={styles.landingSectionTitle}>
+              Everything for UPSC
+            </div>
+
+            <div style={styles.landingSectionSub}>
+              Structured tools for different stages of your
+              preparation.
+            </div>
+
+            <div style={styles.featureGrid}>
+              {features.map((feature) => (
+                <div
+                  key={feature.title}
+                  style={styles.featureCard}
+                >
+                  <div style={styles.featureIcon}>
+                    {feature.icon}
+                  </div>
+
+                  <div style={styles.featureTitle}>
+                    {feature.title}
+                  </div>
+
+                  <div style={styles.featureText}>
+                    {feature.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={styles.landingSection}>
+            <div style={styles.landingSectionTitle}>
+              Premium Plans
+            </div>
+
+            <div style={styles.landingSectionSub}>
+              Choose the plan that fits your preparation.
+            </div>
+
+            <div style={styles.pricingGrid}>
+              {plans.map((plan) => (
+                <div
+                  key={plan.name}
+                  style={styles.pricingCard}
+                >
+                  <div style={styles.pricingName}>
+                    {plan.name}
+                  </div>
+
+                  <div style={styles.pricingPrice}>
+                    {plan.price}
+                  </div>
+
+                  <div style={styles.pricingDuration}>
+                    {plan.duration}
+                  </div>
+
+                  <a
+                    href="/pricing"
+                    style={styles.pricingButton}
+                  >
+                    View Plan
+                  </a>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={styles.landingSection}>
+            <div style={styles.landingHero}>
+              <div style={styles.landingGlow} />
+
+              <div style={styles.landingEyebrow}>
+                START YOUR PREPARATION
+              </div>
+
+              <div
+                style={{
+                  ...styles.landingTitle,
+                  fontSize: "28px",
+                }}
+              >
+                Build your UPSC
+                <br />
+                preparation with SAMBHAV.
+              </div>
+
+              <p style={styles.landingText}>
+                Create your account, complete verification
+                and get access to the SAMBHAV UPSC platform.
+              </p>
+
+              <div style={styles.landingButtons}>
+                <a
+                  href="/login"
+                  style={styles.primaryButton}
+                >
+                  Get Started →
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <footer style={styles.publicFooter}>
+            <div style={styles.footerLinks}>
+              <a
+                href="/about"
+                style={styles.footerLink}
+              >
+                About
+              </a>
+
+              <a
+                href="/contact"
+                style={styles.footerLink}
+              >
+                Contact
+              </a>
+
+              <a
+                href="/pricing"
+                style={styles.footerLink}
+              >
+                Pricing
+              </a>
+
+              <a
+                href="/privacy"
+                style={styles.footerLink}
+              >
+                Privacy Policy
+              </a>
+
+              <a
+                href="/terms"
+                style={styles.footerLink}
+              >
+                Terms & Conditions
+              </a>
+
+              <a
+                href="/refund"
+                style={styles.footerLink}
+              >
+                Refund & Cancellation
+              </a>
+            </div>
+
+            <div style={styles.footerCopy}>
+              © {new Date().getFullYear()} SAMBHAV UPSC.
+              All rights reserved.
+            </div>
+          </footer>
+        </div>
+      </main>
+    </>
+  );
+}
+
 export default function Home() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -507,14 +1012,16 @@ export default function Home() {
     useState(false);
 
   /*
-   * IMPORTANT:
-   * Web URL can now OPEN normally.
+   * IMPORTANT ARCHITECTURE
    *
-   * But the actual application remains locked
-   * until Telegram authentication succeeds and
-   * the user exists in Supabase.
+   * Normal browser:
+   *   Public Landing Page
    *
-   * No protected API is bypassed here.
+   * Telegram Mini App:
+   *   Existing Telegram authentication
+   *   Existing SAMBHAV dashboard
+   *
+   * No protected API is bypassed.
    */
 
   useEffect(() => {
@@ -531,20 +1038,37 @@ export default function Home() {
 
       /*
        * Normal browser:
-       * Telegram object may not exist.
        *
-       * We DO NOT show the dashboard.
-       * We show the locked/access screen instead.
+       * Telegram WebApp is not available.
+       * Do NOT authenticate against the
+       * protected API and do NOT show the
+       * old "Access Required" screen.
+       *
+       * Instead the public landing page is shown.
        */
-      if (!webApp?.initData) {
+      if (!webApp) {
+        setLoading(false);
+        return;
+      }
+
+      /*
+       * Telegram script exists but initData
+       * may need a moment to become available.
+       */
+      if (!webApp.initData) {
         if (attempts < 30) {
           setTimeout(authenticate, 200);
           return;
         }
 
+        /*
+         * If Telegram WebApp exists but no
+         * authentication data is available,
+         * keep the application protected.
+         */
         setLoading(false);
         setError(
-          "Telegram authentication required."
+          "Telegram authentication data nahi mila."
         );
         return;
       }
@@ -594,29 +1118,51 @@ export default function Home() {
         });
     };
 
-    authenticate();
+    /*
+     * Give Telegram script a moment.
+     */
+    const timer = setTimeout(
+      authenticate,
+      150
+    );
 
     return () => {
       stopped = true;
+      clearTimeout(timer);
     };
   }, []);
 
   useEffect(() => {
     if (!showWelcome) return;
 
-    const timer =
-      setTimeout(() => {
-        setShowWelcome(false);
-      }, 1200);
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 1200);
 
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [showWelcome]);
 
   /*
-   * ------------------------------------------------
+   * ==================================================
+   * NORMAL BROWSER
+   * ==================================================
+   *
+   * This is intentionally public.
+   */
+
+  if (
+    !loading &&
+    !window.Telegram?.WebApp &&
+    !user &&
+    !error
+  ) {
+    return <PublicLanding />;
+  }
+
+  /*
+   * ==================================================
    * LOADING
-   * ------------------------------------------------
+   * ==================================================
    */
 
   if (loading) {
@@ -629,18 +1175,12 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div
-              style={styles.pendingCard}
-            >
-              <div
-                style={styles.brand}
-              >
+            <div style={styles.pendingCard}>
+              <div style={styles.brand}>
                 SAMBHAV UPSC
               </div>
 
-              <p
-                style={styles.greetingSub}
-              >
+              <p style={styles.greetingSub}>
                 Checking access...
               </p>
             </div>
@@ -651,12 +1191,9 @@ export default function Home() {
   }
 
   /*
-   * ------------------------------------------------
-   * NO TELEGRAM AUTH / WEB BROWSER
-   * ------------------------------------------------
-   *
-   * URL itself is accessible.
-   * Application is NOT accessible.
+   * ==================================================
+   * TELEGRAM AUTH ERROR
+   * ==================================================
    */
 
   if (
@@ -674,15 +1211,11 @@ export default function Home() {
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div
-                  style={styles.brand}
-                >
+                <div style={styles.brand}>
                   SAMBHAV UPSC
                 </div>
 
-                <div
-                  style={styles.brandSub}
-                >
+                <div style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
@@ -703,34 +1236,21 @@ export default function Home() {
                 marginTop: "45px",
               }}
             >
-              <div
-                style={styles.lockedIcon}
-              >
+              <div style={styles.lockedIcon}>
                 🔐
               </div>
 
-              <h1
-                style={
-                  styles.lockedTitle
-                }
-              >
+              <h1 style={styles.lockedTitle}>
                 Access Required
               </h1>
 
-              <p
-                style={
-                  styles.lockedText
-                }
-              >
-                SAMBHAV UPSC ka application
-                access karne ke liye
-                Telegram se authorized login
-                required hai.
+              <p style={styles.lockedText}>
+                SAMBHAV UPSC application access
+                ke liye Telegram se authorized
+                login required hai.
               </p>
 
-              <div
-                style={styles.statusPill}
-              >
+              <div style={styles.statusPill}>
                 Authentication Required
               </div>
             </div>
@@ -741,9 +1261,9 @@ export default function Home() {
   }
 
   /*
-   * ------------------------------------------------
+   * ==================================================
    * SAFETY
-   * ------------------------------------------------
+   * ==================================================
    */
 
   if (!user) {
@@ -751,12 +1271,9 @@ export default function Home() {
   }
 
   /*
-   * ------------------------------------------------
+   * ==================================================
    * NOT APPROVED
-   * ------------------------------------------------
-   *
-   * Pending / rejected / banned users
-   * CANNOT enter the application.
+   * ==================================================
    */
 
   if (
@@ -817,22 +1334,16 @@ export default function Home() {
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div
-                  style={styles.brand}
-                >
+                <div style={styles.brand}>
                   SAMBHAV UPSC
                 </div>
 
-                <div
-                  style={styles.brandSub}
-                >
+                <div style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
 
-              <div
-                style={styles.avatar}
-              >
+              <div style={styles.avatar}>
                 🔒
               </div>
             </header>
@@ -843,27 +1354,19 @@ export default function Home() {
                 marginTop: "45px",
               }}
             >
-              <div
-                style={styles.lockedIcon}
-              >
+              <div style={styles.lockedIcon}>
                 {icon}
               </div>
 
-              <h1
-                style={styles.lockedTitle}
-              >
+              <h1 style={styles.lockedTitle}>
                 {title}
               </h1>
 
-              <p
-                style={styles.lockedText}
-              >
+              <p style={styles.lockedText}>
                 {text}
               </p>
 
-              <div
-                style={styles.statusPill}
-              >
+              <div style={styles.statusPill}>
                 {pill}
               </div>
 
@@ -871,18 +1374,12 @@ export default function Home() {
                 <a
                   href="/admin"
                   style={{
-                    display:
-                      "inline-block",
-                    marginTop:
-                      "20px",
-                    color:
-                      "#111",
-                    fontSize:
-                      "12px",
-                    fontWeight:
-                      "800",
-                    textDecoration:
-                      "none",
+                    display: "inline-block",
+                    marginTop: "20px",
+                    color: "#111",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    textDecoration: "none",
                   }}
                 >
                   Open Admin Panel →
@@ -896,9 +1393,9 @@ export default function Home() {
   }
 
   /*
-   * ------------------------------------------------
+   * ==================================================
    * WELCOME SCREEN
-   * ------------------------------------------------
+   * ==================================================
    */
 
   if (
@@ -932,36 +1429,24 @@ export default function Home() {
 
         <main style={styles.page}>
           <div style={styles.container}>
-            <div
-              style={styles.welcomeCard}
-            >
-              <div
-                style={styles.welcomeLabel}
-              >
+            <div style={styles.welcomeCard}>
+              <div style={styles.welcomeLabel}>
                 WELCOME
               </div>
 
-              <div
-                style={styles.welcomeTitle}
-              >
+              <div style={styles.welcomeTitle}>
                 SAMBHAV UPSC
               </div>
 
-              <div
-                style={styles.welcomeUser}
-              >
+              <div style={styles.welcomeUser}>
                 {firstName}
               </div>
 
-              <div
-                style={styles.welcomeStatus}
-              >
+              <div style={styles.welcomeStatus}>
                 ✓ APPROVED
               </div>
 
-              <div
-                style={styles.welcomePremium}
-              >
+              <div style={styles.welcomePremium}>
                 {isPremium
                   ? "✦ PREMIUM ACTIVE"
                   : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
@@ -974,9 +1459,9 @@ export default function Home() {
   }
 
   /*
-   * ------------------------------------------------
-   * APPROVED USER
-   * ------------------------------------------------
+   * ==================================================
+   * APPROVED TELEGRAM USER
+   * ==================================================
    */
 
   const firstName =
@@ -1000,72 +1485,46 @@ export default function Home() {
         <div style={styles.container}>
           <header style={styles.header}>
             <div>
-              <div
-                style={styles.brand}
-              >
+              <div style={styles.brand}>
                 SAMBHAV UPSC
               </div>
 
-              <div
-                style={styles.brandSub}
-              >
+              <div style={styles.brandSub}>
                 UPSC Preparation Platform
               </div>
             </div>
 
-            <div
-              style={styles.avatar}
-            >
+            <div style={styles.avatar}>
               {initial}
             </div>
           </header>
 
-          <section
-            style={styles.greeting}
-          >
-            <h1
-              style={
-                styles.greetingTitle
-              }
-            >
+          <section style={styles.greeting}>
+            <h1 style={styles.greetingTitle}>
               Hello, {firstName}
             </h1>
 
-            <p
-              style={
-                styles.greetingSub
-              }
-            >
+            <p style={styles.greetingSub}>
               Continue your preparation.
             </p>
           </section>
 
-          <section
-            style={styles.accessCard}
-          >
-            <div
-              style={styles.accessLabel}
-            >
+          <section style={styles.accessCard}>
+            <div style={styles.accessLabel}>
               Officer Access Card
             </div>
 
-            <div
-              style={styles.accessTitle}
-            >
+            <div style={styles.accessTitle}>
               {firstName}
             </div>
 
-            <div
-              style={styles.accessSub}
-            >
+            <div style={styles.accessSub}>
               Clearance: ACTIVE
             </div>
           </section>
 
           <button
-            style={
-              styles.secretaryButton
-            }
+            style={styles.secretaryButton}
             onClick={() =>
               console.log(
                 "AI Secretary coming soon"
@@ -1075,240 +1534,105 @@ export default function Home() {
             ✦ Open AI Secretary →
           </button>
 
-          {/* PREMIUM ENTRY */}
           <section
-            style={
-              styles.premiumCard
-            }
+            style={styles.premiumCard}
             onClick={() => {
               window.location.href =
                 "/premium";
             }}
           >
-            <div
-              style={
-                styles.premiumGlow
-              }
-            />
+            <div style={styles.premiumGlow} />
+            <div style={styles.premiumGlowSmall} />
 
-            <div
-              style={
-                styles.premiumGlowSmall
-              }
-            />
-
-            <div
-              style={
-                styles.premiumBadge
-              }
-            >
+            <div style={styles.premiumBadge}>
               ✦ PREMIUM ACCESS
             </div>
 
-            <div
-              style={
-                styles.premiumTitle
-              }
-            >
-              Unlock the Full SAMBHAV
-              Experience
+            <div style={styles.premiumTitle}>
+              Unlock the Full SAMBHAV Experience
             </div>
 
-            <div
-              style={
-                styles.premiumSub
-              }
-            >
-              Current Affairs, PYQ
-              Intelligence, Tests, Mains
-              practice, AI evaluation &
-              premium study resources —
-              all in one place.
+            <div style={styles.premiumSub}>
+              Current Affairs, PYQ Intelligence,
+              Tests, Mains practice, AI evaluation
+              & premium study resources — all in
+              one place.
             </div>
 
-            <div
-              style={
-                styles.premiumAction
-              }
-            >
+            <div style={styles.premiumAction}>
               Explore Batches →
             </div>
           </section>
 
-          <div
-            style={
-              styles.sectionHeader
-            }
-          >
-            <div
-              style={
-                styles.sectionTitle
-              }
-            >
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitle}>
               Quick Launch
             </div>
 
-            <div
-              style={
-                styles.sectionSmall
-              }
-            >
+            <div style={styles.sectionSmall}>
               UPSC • 2026
             </div>
           </div>
 
           <section style={styles.grid}>
-            {modules.map(
-              (module) => (
-                <div
-                  key={
-                    module.title
+            {modules.map((module) => (
+              <div
+                key={module.title}
+                style={styles.card}
+                onClick={() => {
+                  if (module.route) {
+                    window.location.href =
+                      module.route;
+                  } else {
+                    console.log(
+                      `${module.title} coming soon`
+                    );
                   }
-                  style={
-                    styles.card
-                  }
-                  onClick={() => {
-                    if (
-                      module.route
-                    ) {
-                      window.location.href =
-                        module.route;
-                    } else {
-                      console.log(
-                        `${module.title} coming soon`
-                      );
-                    }
-                  }}
-                  onMouseEnter={(
-                    e
-                  ) => {
-                    e.currentTarget.style.transform =
-                      "translateY(-2px)";
+                }}
+              >
+                <div style={styles.iconBox}>
+                  {module.icon}
+                </div>
 
-                    e.currentTarget.style.boxShadow =
-                      "0 9px 22px rgba(0,0,0,0.07)";
-                  }}
-                  onMouseLeave={(
-                    e
-                  ) => {
-                    e.currentTarget.style.transform =
-                      "translateY(0)";
-
-                    e.currentTarget.style.boxShadow =
-                      "0 5px 16px rgba(0,0,0,0.045)";
-                  }}
-                >
-                  <div
-                    style={
-                      styles.iconBox
-                    }
-                  >
-                    {
-                      module.icon
-                    }
+                <div style={styles.cardContent}>
+                  <div style={styles.cardTitle}>
+                    {module.title}
                   </div>
 
-                  <div
-                    style={
-                      styles.cardContent
-                    }
-                  >
-                    <div
-                      style={
-                        styles.cardTitle
-                      }
-                    >
-                      {
-                        module.title
-                      }
-                    </div>
-
-                    <div
-                      style={
-                        styles.cardSubtitle
-                      }
-                    >
-                      {
-                        module.subtitle
-                      }
-                    </div>
-                  </div>
-
-                  <div
-                    style={
-                      styles.arrow
-                    }
-                  >
-                    ›
+                  <div style={styles.cardSubtitle}>
+                    {module.subtitle}
                   </div>
                 </div>
-              )
-            )}
+
+                <div style={styles.arrow}>
+                  ›
+                </div>
+              </div>
+            ))}
 
             {isAdmin && (
               <div
-                style={
-                  styles.card
-                }
+                style={styles.card}
                 onClick={() => {
                   window.location.href =
                     "/admin";
                 }}
-                onMouseEnter={(
-                  e
-                ) => {
-                  e.currentTarget.style.transform =
-                    "translateY(-2px)";
-
-                  e.currentTarget.style.boxShadow =
-                    "0 9px 22px rgba(0,0,0,0.07)";
-                }}
-                onMouseLeave={(
-                  e
-                ) => {
-                  e.currentTarget.style.transform =
-                    "translateY(0)";
-
-                  e.currentTarget.style.boxShadow =
-                    "0 5px 16px rgba(0,0,0,0.045)";
-                }}
               >
-                <div
-                  style={
-                    styles.iconBox
-                  }
-                >
+                <div style={styles.iconBox}>
                   🔐
                 </div>
 
-                <div
-                  style={
-                    styles.cardContent
-                  }
-                >
-                  <div
-                    style={
-                      styles.cardTitle
-                    }
-                  >
+                <div style={styles.cardContent}>
+                  <div style={styles.cardTitle}>
                     Admin Panel
                   </div>
 
-                  <div
-                    style={
-                      styles.cardSubtitle
-                    }
-                  >
-                    Members • Requests •
-                    Approvals
+                  <div style={styles.cardSubtitle}>
+                    Members • Requests • Approvals
                   </div>
                 </div>
 
-                <div
-                  style={
-                    styles.arrow
-                  }
-                >
+                <div style={styles.arrow}>
                   ›
                 </div>
               </div>
@@ -1316,22 +1640,14 @@ export default function Home() {
           </section>
         </div>
 
-        <nav
-          style={
-            styles.bottomNav
-          }
-        >
+        <nav style={styles.bottomNav}>
           <div
             style={{
               ...styles.navItem,
               ...styles.navActive,
             }}
           >
-            <span
-              style={
-                styles.navIcon
-              }
-            >
+            <span style={styles.navIcon}>
               ⌂
             </span>
             Home
@@ -1340,16 +1656,10 @@ export default function Home() {
           <div
             style={styles.navItem}
             onClick={() =>
-              console.log(
-                "Current Affairs"
-              )
+              console.log("Current Affairs")
             }
           >
-            <span
-              style={
-                styles.navIcon
-              }
-            >
+            <span style={styles.navIcon}>
               ▤
             </span>
             CA
@@ -1361,11 +1671,7 @@ export default function Home() {
               console.log("GS")
             }
           >
-            <span
-              style={
-                styles.navIcon
-              }
-            >
+            <span style={styles.navIcon}>
               ▣
             </span>
             GS
@@ -1377,11 +1683,7 @@ export default function Home() {
               console.log("AI")
             }
           >
-            <span
-              style={
-                styles.navIcon
-              }
-            >
+            <span style={styles.navIcon}>
               ▦
             </span>
             AI
