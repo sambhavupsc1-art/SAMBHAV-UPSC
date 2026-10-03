@@ -35,7 +35,6 @@ export default function AdminPage() {
 
   /* =========================================================
      AUTO REFRESH
-     10 SECONDS
   ========================================================= */
 
   useEffect(() => {
@@ -76,29 +75,21 @@ export default function AdminPage() {
         );
       }
 
-      const nextUsers = Array.isArray(
-        data.users
-      )
+      const nextUsers = Array.isArray(data.users)
         ? data.users
         : [];
 
       const nextPendingCount =
         nextUsers.filter(
-          (user) =>
-            user.status === "pending"
+          (user) => user.status === "pending"
         ).length;
-
-      /* =====================================================
-         NEW REQUEST DETECTION
-      ===================================================== */
 
       if (
         lastPendingCount !== null &&
         nextPendingCount > lastPendingCount
       ) {
         const difference =
-          nextPendingCount -
-          lastPendingCount;
+          nextPendingCount - lastPendingCount;
 
         setNotificationCount(
           (previous) =>
@@ -108,27 +99,18 @@ export default function AdminPage() {
         if (
           typeof window !== "undefined" &&
           "Notification" in window &&
-          Notification.permission ===
-            "granted"
+          Notification.permission === "granted"
         ) {
-          new Notification(
-            "SAMBHAV UPSC",
-            {
-              body:
-                `${difference} new access request` +
-                (difference > 1
-                  ? "s"
-                  : "") +
-                " received.",
-            }
-          );
+          new Notification("SAMBHAV UPSC", {
+            body:
+              `${difference} new access request` +
+              (difference > 1 ? "s" : "") +
+              " received.",
+          });
         }
       }
 
-      setLastPendingCount(
-        nextPendingCount
-      );
-
+      setLastPendingCount(nextPendingCount);
       setUsers(nextUsers);
 
       if (data.admin) {
@@ -154,7 +136,7 @@ export default function AdminPage() {
   }
 
   /* =========================================================
-     ENABLE NOTIFICATIONS
+     NOTIFICATIONS
   ========================================================= */
 
   async function enableNotifications() {
@@ -184,10 +166,6 @@ export default function AdminPage() {
       );
     }
   }
-
-  /* =========================================================
-     CLEAR NOTIFICATIONS
-  ========================================================= */
 
   function clearNotifications() {
     setNotificationCount(0);
@@ -278,17 +256,8 @@ export default function AdminPage() {
     [users]
   );
 
-  const rejectedUsers = useMemo(
-    () =>
-      users.filter(
-        (user) =>
-          user.status === "rejected"
-      ),
-    [users]
-  );
-
   /* =========================================================
-     PREMIUM / DEMO / FREE
+     PREMIUM
   ========================================================= */
 
   const premiumUsers = useMemo(
@@ -334,7 +303,7 @@ export default function AdminPage() {
   );
 
   /* =========================================================
-     SEARCH
+     FILTER + SEARCH
   ========================================================= */
 
   const filterUsers = (list) => {
@@ -387,37 +356,24 @@ export default function AdminPage() {
 
     return result.filter((user) => {
       return (
-        String(
-          user.first_name || ""
-        )
+        String(user.first_name || "")
           .toLowerCase()
           .includes(query) ||
-        String(
-          user.email || ""
-        )
+        String(user.email || "")
           .toLowerCase()
           .includes(query) ||
-        String(
-          user.username || ""
-        )
+        String(user.username || "")
           .toLowerCase()
           .includes(query) ||
-        String(
-          user.telegram_id || ""
-        ).includes(query) ||
-        String(
-          user.id || ""
-        )
+        String(user.telegram_id || "")
+          .includes(query) ||
+        String(user.id || "")
           .toLowerCase()
           .includes(query) ||
-        String(
-          user.order_id || ""
-        )
+        String(user.order_id || "")
           .toLowerCase()
           .includes(query) ||
-        String(
-          user.payment_id || ""
-        )
+        String(user.payment_id || "")
           .toLowerCase()
           .includes(query)
       );
@@ -442,13 +398,117 @@ export default function AdminPage() {
 
   return (
     <main style={styles.page}>
-      <div style={styles.container}>
+      <style jsx global>{`
+        @media (max-width: 760px) {
+          .sambhav-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          .sambhav-header-right {
+            width: 100% !important;
+            justify-content: flex-start !important;
+          }
+
+          .sambhav-hero {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 28px 22px !important;
+          }
+
+          .sambhav-hero-right {
+            width: 100% !important;
+            text-align: left !important;
+          }
+
+          .sambhav-panel-header {
+            padding: 20px 16px !important;
+          }
+
+          .sambhav-user-card {
+            padding: 18px 14px !important;
+          }
+
+          .sambhav-account-details {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .sambhav-subscription-box {
+            grid-template-columns:
+              1fr !important;
+          }
+
+          .sambhav-user-card-actions {
+            justify-content: stretch !important;
+          }
+
+          .sambhav-user-card-actions button {
+            flex: 1 !important;
+            min-height: 42px !important;
+          }
+
+          .sambhav-premium-overview {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          .sambhav-premium-numbers {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .sambhav-page {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+          }
+
+          .sambhav-hero-title {
+            font-size: 34px !important;
+          }
+
+          .sambhav-stats-grid {
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .sambhav-user-identity {
+            gap: 10px !important;
+          }
+
+          .sambhav-user-name {
+            font-size: 13px !important;
+          }
+
+          .sambhav-info-item {
+            padding: 10px !important;
+          }
+
+          .sambhav-info-value {
+            font-size: 11px !important;
+          }
+
+          .sambhav-panel-title {
+            font-size: 20px !important;
+          }
+        }
+      `}</style>
+
+      <div
+        style={styles.container}
+        className="sambhav-page"
+      >
 
         {/* =================================================
             HEADER
         ================================================= */}
 
-        <header style={styles.header}>
+        <header
+          style={styles.header}
+          className="sambhav-header"
+        >
           <div>
             <button
               onClick={() =>
@@ -467,26 +527,20 @@ export default function AdminPage() {
               }
             >
               <div
-                style={
-                  styles.logo
-                }
+                style={styles.logo}
               >
                 S
               </div>
 
               <div>
                 <div
-                  style={
-                    styles.brand
-                  }
+                  style={styles.brand}
                 >
                   SAMBHAV UPSC
                 </div>
 
                 <div
-                  style={
-                    styles.subtitle
-                  }
+                  style={styles.subtitle}
                 >
                   Administration Center
                 </div>
@@ -495,9 +549,8 @@ export default function AdminPage() {
           </div>
 
           <div
-            style={
-              styles.headerRight
-            }
+            style={styles.headerRight}
+            className="sambhav-header-right"
           >
             {admin?.email && (
               <div
@@ -522,8 +575,6 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-
-            {/* NOTIFICATION */}
 
             <div
               style={
@@ -649,13 +700,11 @@ export default function AdminPage() {
                             "pending"
                           );
 
-                          window.scrollTo(
-                            {
-                              top: 600,
-                              behavior:
-                                "smooth",
-                            }
-                          );
+                          window.scrollTo({
+                            top: 600,
+                            behavior:
+                              "smooth",
+                          });
                         }}
                         style={
                           styles.reviewButton
@@ -723,6 +772,7 @@ export default function AdminPage() {
 
         <section
           style={styles.hero}
+          className="sambhav-hero"
         >
           <div>
             <div
@@ -734,9 +784,8 @@ export default function AdminPage() {
             </div>
 
             <h1
-              style={
-                styles.heroTitle
-              }
+              style={styles.heroTitle}
+              className="sambhav-hero-title"
             >
               Platform
               <br />
@@ -756,9 +805,8 @@ export default function AdminPage() {
           </div>
 
           <div
-            style={
-              styles.heroRight
-            }
+            style={styles.heroRight}
+            className="sambhav-hero-right"
           >
             <div
               style={
@@ -796,15 +844,12 @@ export default function AdminPage() {
         ================================================= */}
 
         <section
-          style={
-            styles.statsGrid
-          }
+          style={styles.statsGrid}
+          className="sambhav-stats-grid"
         >
           <StatCard
             label="Total Users"
-            value={
-              users.length
-            }
+            value={users.length}
             detail="All accounts"
             icon="◎"
           />
@@ -922,7 +967,7 @@ export default function AdminPage() {
                   e.target.value
                 )
               }
-              placeholder="Search name, email, username, Telegram ID, order ID..."
+              placeholder="Search name, email, username, order ID..."
               style={
                 styles.searchInput
               }
@@ -1047,8 +1092,7 @@ export default function AdminPage() {
 
             <div>
               <strong>
-                Unable to load admin
-                data
+                Unable to load admin data
               </strong>
 
               <div
@@ -1106,19 +1150,18 @@ export default function AdminPage() {
         {!loading &&
           !error && (
             <>
-              {/* ===========================================
+              {/* =================================================
                   ACCESS REQUESTS
-              =========================================== */}
+              ================================================= */}
 
               <section
-                style={
-                  styles.panel
-                }
+                style={styles.panel}
               >
                 <div
                   style={
                     styles.panelHeader
                   }
+                  className="sambhav-panel-header"
                 >
                   <div>
                     <div
@@ -1133,6 +1176,7 @@ export default function AdminPage() {
                       style={
                         styles.panelTitle
                       }
+                      className="sambhav-panel-title"
                     >
                       Access Requests
                     </h2>
@@ -1156,6 +1200,7 @@ export default function AdminPage() {
                     {
                       filteredPending.length
                     }
+
                     <span>
                       pending
                     </span>
@@ -1204,19 +1249,18 @@ export default function AdminPage() {
                 )}
               </section>
 
-              {/* ===========================================
+              {/* =================================================
                   JOINED USERS
-              =========================================== */}
+              ================================================= */}
 
               <section
-                style={
-                  styles.panel
-                }
+                style={styles.panel}
               >
                 <div
                   style={
                     styles.panelHeader
                   }
+                  className="sambhav-panel-header"
                 >
                   <div>
                     <div
@@ -1231,6 +1275,7 @@ export default function AdminPage() {
                       style={
                         styles.panelTitle
                       }
+                      className="sambhav-panel-title"
                     >
                       Joined Users
                     </h2>
@@ -1253,6 +1298,7 @@ export default function AdminPage() {
                     {
                       filteredJoined.length
                     }
+
                     <span>
                       active
                     </span>
@@ -1301,9 +1347,9 @@ export default function AdminPage() {
                 )}
               </section>
 
-              {/* ===========================================
+              {/* =================================================
                   BLOCKED
-              =========================================== */}
+              ================================================= */}
 
               {filteredBanned.length >
                 0 && (
@@ -1316,6 +1362,7 @@ export default function AdminPage() {
                     style={
                       styles.panelHeader
                     }
+                    className="sambhav-panel-header"
                   >
                     <div>
                       <div
@@ -1352,6 +1399,7 @@ export default function AdminPage() {
                       {
                         filteredBanned.length
                       }
+
                       <span>
                         blocked
                       </span>
@@ -1386,14 +1434,15 @@ export default function AdminPage() {
                 </section>
               )}
 
-              {/* ===========================================
+              {/* =================================================
                   PREMIUM OVERVIEW
-              =========================================== */}
+              ================================================= */}
 
               <section
                 style={
                   styles.premiumOverview
                 }
+                className="sambhav-premium-overview"
               >
                 <div>
                   <div
@@ -1418,7 +1467,9 @@ export default function AdminPage() {
                       styles.premiumDescription
                     }
                   >
-                    {paidPremiumUsers.length}{" "}
+                    {
+                      paidPremiumUsers.length
+                    }{" "}
                     paid Premium account
                     {paidPremiumUsers.length !==
                     1
@@ -1438,6 +1489,7 @@ export default function AdminPage() {
                   style={
                     styles.premiumNumbers
                   }
+                  className="sambhav-premium-numbers"
                 >
                   <div>
                     <strong>
@@ -1445,7 +1497,6 @@ export default function AdminPage() {
                         paidPremiumUsers.length
                       }
                     </strong>
-
                     <span>
                       Paid
                     </span>
@@ -1457,7 +1508,6 @@ export default function AdminPage() {
                         demoUsers.length
                       }
                     </strong>
-
                     <span>
                       Demo
                     </span>
@@ -1469,7 +1519,6 @@ export default function AdminPage() {
                         premiumUsers.length
                       }
                     </strong>
-
                     <span>
                       Active
                     </span>
@@ -1477,9 +1526,9 @@ export default function AdminPage() {
                 </div>
               </section>
 
-              {/* ===========================================
+              {/* =================================================
                   SECURITY
-              =========================================== */}
+              ================================================= */}
 
               <section
                 style={
@@ -1524,9 +1573,7 @@ export default function AdminPage() {
           )}
 
         <footer
-          style={
-            styles.footer
-          }
+          style={styles.footer}
         >
           <span>
             SAMBHAV UPSC
@@ -1570,39 +1617,29 @@ function StatCard({
       }}
     >
       <div
-        style={
-          styles.statTop
-        }
+        style={styles.statTop}
       >
         <span
-          style={
-            styles.statLabel
-          }
+          style={styles.statLabel}
         >
           {label}
         </span>
 
         <span
-          style={
-            styles.statIcon
-          }
+          style={styles.statIcon}
         >
           {icon}
         </span>
       </div>
 
       <div
-        style={
-          styles.statValue
-        }
+        style={styles.statValue}
       >
         {value}
       </div>
 
       <div
-        style={
-          styles.statDetail
-        }
+        style={styles.statDetail}
       >
         {detail}
       </div>
@@ -1666,49 +1703,50 @@ function PendingUserCard({
 
   return (
     <div
-      style={
-        styles.userCard
-      }
+      style={styles.userCard}
     >
-      <UserInfo
-        user={user}
-        status="pending"
-      />
-
       <div
-        style={
-          styles.actions
-        }
+        style={styles.userCardContent}
       >
-        <button
-          onClick={onReject}
-          disabled={
-            rejecting ||
-            approving
-          }
-          style={
-            styles.cancelButton
-          }
-        >
-          {rejecting
-            ? "Cancelling..."
-            : "Reject"}
-        </button>
+        <UserInfo
+          user={user}
+          status="pending"
+        />
 
-        <button
-          onClick={onApprove}
-          disabled={
-            rejecting ||
-            approving
-          }
-          style={
-            styles.approveButton
-          }
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
         >
-          {approving
-            ? "Approving..."
-            : "Approve"}
-        </button>
+          <button
+            onClick={onReject}
+            disabled={
+              rejecting ||
+              approving
+            }
+            style={
+              styles.cancelButton
+            }
+          >
+            {rejecting
+              ? "Rejecting..."
+              : "Reject"}
+          </button>
+
+          <button
+            onClick={onApprove}
+            disabled={
+              rejecting ||
+              approving
+            }
+            style={
+              styles.approveButton
+            }
+          >
+            {approving
+              ? "Approving..."
+              : "Approve"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1771,50 +1809,49 @@ function JoinedUserCard({
           : {}),
       }}
     >
-      <UserInfo
-        user={user}
-        status="approved"
-        joined
-      />
-
       <div
-        style={
-          styles.actions
-        }
+        style={styles.userCardContent}
       >
-        <button
-          onClick={
-            handleRemove
-          }
-          disabled={
-            removing ||
-            blocking
-          }
-          style={
-            styles.removeButton
-          }
-        >
-          {removing
-            ? "Removing..."
-            : "Remove"}
-        </button>
+        <UserInfo
+          user={user}
+          status="approved"
+          joined
+        />
 
-        <button
-          onClick={
-            handleBlock
-          }
-          disabled={
-            removing ||
-            blocking
-          }
-          style={
-            styles.blockButton
-          }
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
         >
-          {blocking
-            ? "Blocking..."
-            : "Block"}
-        </button>
+          <button
+            onClick={handleRemove}
+            disabled={
+              removing ||
+              blocking
+            }
+            style={
+              styles.removeButton
+            }
+          >
+            {removing
+              ? "Removing..."
+              : "Remove Access"}
+          </button>
+
+          <button
+            onClick={handleBlock}
+            disabled={
+              removing ||
+              blocking
+            }
+            style={
+              styles.blockButton
+            }
+          >
+            {blocking
+              ? "Blocking..."
+              : "Block User"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1850,30 +1887,37 @@ function BannedUserCard({
 
   return (
     <div
-      style={
-        styles.userCard
-      }
+      style={styles.userCard}
     >
-      <UserInfo
-        user={user}
-        status="banned"
-      />
-
-      <button
-        onClick={
-          handleUnblock
-        }
-        disabled={
-          unblocking
-        }
-        style={
-          styles.unblockButton
-        }
+      <div
+        style={styles.userCardContent}
       >
-        {unblocking
-          ? "Unblocking..."
-          : "Unblock"}
-      </button>
+        <UserInfo
+          user={user}
+          status="banned"
+        />
+
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
+        >
+          <button
+            onClick={
+              handleUnblock
+            }
+            disabled={
+              unblocking
+            }
+            style={
+              styles.unblockButton
+            }
+          >
+            {unblocking
+              ? "Unblocking..."
+              : "Unblock User"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1887,22 +1931,20 @@ function UserInfo({
   status,
   joined,
 }) {
-  const initials =
-    (
-      user.first_name ||
-      user.email ||
-      "U"
-    )
-      .trim()
-      .charAt(0)
-      .toUpperCase();
+  const initials = (
+    user.first_name ||
+    user.email ||
+    "U"
+  )
+    .trim()
+    .charAt(0)
+    .toUpperCase();
 
-  const plan =
-    String(
-      user.premium_plan ||
-        user.plan ||
-        "free"
-    ).toLowerCase();
+  const plan = String(
+    user.premium_plan ||
+      user.plan ||
+      "free"
+  ).toLowerCase();
 
   const isPremium =
     user.premium_active === true;
@@ -1913,182 +1955,236 @@ function UserInfo({
 
   return (
     <div
-      style={
-        styles.userMain
-      }
+      style={styles.userMain}
     >
+      {/* USER IDENTITY */}
+
       <div
-        style={{
-          ...styles.avatar,
-          ...(isPremium
-            ? styles.premiumAvatar
-            : {}),
-        }}
+        style={styles.userIdentity}
+        className="sambhav-user-identity"
       >
-        {initials}
+        <div
+          style={{
+            ...styles.avatar,
+            ...(isPremium
+              ? styles.premiumAvatar
+              : {}),
+          }}
+        >
+          {initials}
+        </div>
+
+        <div
+          style={styles.userInfo}
+        >
+          <div
+            style={
+              styles.userNameRow
+            }
+          >
+            <h3
+              style={styles.userName}
+              className="sambhav-user-name"
+            >
+              {user.first_name ||
+                "Unknown User"}
+            </h3>
+
+            <StatusBadge
+              status={status}
+            />
+
+            {isPremium && (
+              <span
+                style={
+                  isDemo
+                    ? styles.demoBadge
+                    : styles.premiumBadge
+                }
+              >
+                {isDemo
+                  ? "DEMO"
+                  : "PREMIUM"}
+              </span>
+            )}
+          </div>
+
+          <div
+            style={styles.email}
+          >
+            {user.email ||
+              "No email"}
+          </div>
+
+          <div
+            style={
+              styles.userMetaRow
+            }
+          >
+            {user.username ? (
+              <span>
+                @{user.username}
+              </span>
+            ) : (
+              <span>
+                No username
+              </span>
+            )}
+
+            {user.telegram_id && (
+              <>
+                <span>•</span>
+
+                <span>
+                  TG {user.telegram_id}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* ACCOUNT DETAILS */}
 
       <div
         style={
-          styles.userInfo
+          styles.accountDetails
         }
+        className="sambhav-account-details"
       >
-        <div
-          style={
-            styles.userNameRow
-          }
-        >
-          <h3
-            style={
-              styles.userName
-            }
-          >
-            {user.first_name ||
-              "Unknown User"}
-          </h3>
-
-          <StatusBadge
-            status={status}
-          />
-
-          {isPremium && (
-            <span
-              style={
-                isDemo
-                  ? styles.demoBadge
-                  : styles.premiumBadge
-              }
-            >
-              {isDemo
-                ? "DEMO"
-                : "PREMIUM"}
-            </span>
+        <InfoItem
+          label="Joined"
+          value={formatDate(
+            user.created_at
           )}
-        </div>
+        />
 
-        <div
-          style={
-            styles.email
-          }
-        >
-          {user.email ||
-            "No email"}
-        </div>
-
-        <div
-          style={
-            styles.userMetaRow
-          }
-        >
-          <span>
-            {user.username
-              ? `@${user.username}`
-              : "No username"}
-          </span>
-
-          {user.telegram_id && (
-            <>
-              <span>•</span>
-
-              <span>
-                TG {user.telegram_id}
-              </span>
-            </>
+        <InfoItem
+          label="Last Login"
+          value={formatDateTime(
+            user.last_login_at
           )}
-        </div>
+        />
 
+        <InfoItem
+          label="Plan"
+          value={
+            isPremium
+              ? formatPlan(plan)
+              : "Free"
+          }
+        />
+
+        <InfoItem
+          label="Expires"
+          value={
+            isPremium
+              ? formatDate(
+                  user.premium_expires_at
+                )
+              : "—"
+          }
+        />
+      </div>
+
+      {/* SUBSCRIPTION */}
+
+      {isPremium && (
         <div
           style={
-            styles.accountDetails
+            styles.subscriptionBox
           }
+          className="sambhav-subscription-box"
         >
-          <InfoItem
-            label="Joined"
-            value={formatDate(
-              user.created_at
-            )}
-          />
-
-          <InfoItem
-            label="Last login"
-            value={formatDateTime(
-              user.last_login_at
-            )}
-          />
-
-          <InfoItem
-            label="Plan"
-            value={
-              isPremium
-                ? formatPlan(
-                    plan
-                  )
-                : "Free"
-            }
-          />
-
-          {isPremium && (
-            <InfoItem
-              label="Expires"
-              value={formatDateTime(
-                user.premium_expires_at
-              )}
-            />
-          )}
-        </div>
-
-        {isPremium && (
           <div
             style={
-              styles.subscriptionRow
+              styles.subscriptionItem
             }
           >
-            {user.order_id && (
-              <span>
-                Order:{" "}
-                {shortId(
-                  user.order_id
-                )}
-              </span>
-            )}
-
-            {user.payment_id && (
-              <span>
-                Payment:{" "}
-                {shortId(
-                  user.payment_id
-                )}
-              </span>
-            )}
-
-            {user.subscription_amount !==
-              null &&
-              user.subscription_amount !==
-                undefined && (
-                <span>
-                  ₹
-                  {
-                    user.subscription_amount
-                  }
-                </span>
-              )}
-          </div>
-        )}
-
-        {!joined &&
-          user.created_at && (
-            <div
+            <span
               style={
-                styles.requested
+                styles.subscriptionLabel
               }
             >
-              Requested{" "}
-              {formatDateTime(
-                user.created_at
-              )}
-            </div>
-          )}
-      </div>
+              ORDER ID
+            </span>
+
+            <strong
+              style={
+                styles.subscriptionValue
+              }
+            >
+              {user.order_id
+                ? shortId(
+                    user.order_id
+                  )
+                : "—"}
+            </strong>
+          </div>
+
+          <div
+            style={
+              styles.subscriptionItem
+            }
+          >
+            <span
+              style={
+                styles.subscriptionLabel
+              }
+            >
+              PAYMENT ID
+            </span>
+
+            <strong
+              style={
+                styles.subscriptionValue
+              }
+            >
+              {user.payment_id
+                ? shortId(
+                    user.payment_id
+                  )
+                : "—"}
+            </strong>
+          </div>
+
+          <div
+            style={
+              styles.subscriptionItem
+            }
+          >
+            <span
+              style={
+                styles.subscriptionLabel
+              }
+            >
+              AMOUNT
+            </span>
+
+            <strong
+              style={
+                styles.subscriptionValue
+              }
+            >
+              ₹
+              {user.subscription_amount ??
+                0}
+            </strong>
+          </div>
+        </div>
+      )}
+
+      {!joined &&
+        user.created_at && (
+          <div
+            style={styles.requested}
+          >
+            Requested{" "}
+            {formatDateTime(
+              user.created_at
+            )}
+          </div>
+        )}
     </div>
   );
 }
@@ -2103,15 +2199,19 @@ function InfoItem({
 }) {
   return (
     <div
-      style={
-        styles.infoItem
-      }
+      style={styles.infoItem}
+      className="sambhav-info-item"
     >
-      <span>
+      <span
+        style={styles.infoLabel}
+      >
         {label}
       </span>
 
-      <strong>
+      <strong
+        style={styles.infoValue}
+        className="sambhav-info-value"
+      >
         {value}
       </strong>
     </div>
@@ -2178,30 +2278,22 @@ function EmptyState({
 }) {
   return (
     <div
-      style={
-        styles.emptyState
-      }
+      style={styles.emptyState}
     >
       <div
-        style={
-          styles.emptyIcon
-        }
+        style={styles.emptyIcon}
       >
         {icon}
       </div>
 
       <h3
-        style={
-          styles.emptyTitle
-        }
+        style={styles.emptyTitle}
       >
         {title}
       </h3>
 
       <p
-        style={
-          styles.emptyText
-        }
+        style={styles.emptyText}
       >
         {text}
       </p>
@@ -2264,10 +2356,12 @@ function formatDateTime(value) {
 function formatPlan(plan) {
   if (!plan) return "Free";
 
-  return String(plan)
-    .charAt(0)
-    .toUpperCase() +
-    String(plan).slice(1);
+  const text = String(plan);
+
+  return (
+    text.charAt(0).toUpperCase() +
+    text.slice(1)
+  );
 }
 
 function shortId(value) {
@@ -2320,8 +2414,7 @@ const styles = {
 
   headerRight: {
     display: "flex",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "8px",
     flexWrap: "wrap",
     justifyContent:
@@ -2355,10 +2448,8 @@ const styles = {
       "linear-gradient(145deg,#111,#303030)",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontSize: "19px",
     fontWeight: "900",
     boxShadow:
@@ -2368,8 +2459,7 @@ const styles = {
   brand: {
     fontSize: "15px",
     fontWeight: "900",
-    letterSpacing:
-      ".3px",
+    letterSpacing: ".3px",
   },
 
   subtitle: {
@@ -2385,8 +2475,7 @@ const styles = {
       "rgba(255,255,255,.75)",
     border:
       "1px solid #ddd",
-    borderRadius:
-      "11px",
+    borderRadius: "11px",
   },
 
   adminIdentityLabel: {
@@ -2408,8 +2497,7 @@ const styles = {
       "1px solid #ddd",
     background: "#fff",
     color: "#111",
-    borderRadius:
-      "11px",
+    borderRadius: "11px",
     padding:
       "10px 13px",
     fontSize: "11px",
@@ -2428,8 +2516,7 @@ const styles = {
       "1px solid #ddd",
     background: "#fff",
     color: "#111",
-    borderRadius:
-      "12px",
+    borderRadius: "12px",
     fontSize: "18px",
     cursor: "pointer",
     position: "relative",
@@ -2441,17 +2528,13 @@ const styles = {
     right: "-5px",
     minWidth: "18px",
     height: "18px",
-    padding:
-      "0 5px",
-    borderRadius:
-      "999px",
+    padding: "0 5px",
+    borderRadius: "999px",
     background: "#111",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontSize: "8px",
     fontWeight: "900",
     border:
@@ -2466,8 +2549,7 @@ const styles = {
     background: "#fff",
     border:
       "1px solid #ddd",
-    borderRadius:
-      "17px",
+    borderRadius: "17px",
     boxShadow:
       "0 20px 60px rgba(0,0,0,.16)",
     zIndex: 100,
@@ -2480,8 +2562,7 @@ const styles = {
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems:
-      "center",
+    alignItems: "center",
     borderBottom:
       "1px solid #eee",
   },
@@ -2513,8 +2594,7 @@ const styles = {
   notificationDot: {
     width: "8px",
     height: "8px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#111",
     marginTop: "5px",
     flexShrink: 0,
@@ -2552,15 +2632,12 @@ const styles = {
     height: "36px",
     margin:
       "0 auto 9px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#111",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: "900",
   },
 
@@ -2568,30 +2645,24 @@ const styles = {
     background:
       "linear-gradient(135deg,#0b0b0b,#202020)",
     color: "#fff",
-    borderRadius:
-      "28px",
-    padding:
-      "38px 38px",
+    borderRadius: "28px",
+    padding: "38px",
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "30px",
-    marginBottom:
-      "15px",
+    marginBottom: "15px",
     boxShadow:
       "0 18px 50px rgba(0,0,0,.12)",
   },
 
   heroEyebrow: {
     fontSize: "9px",
-    letterSpacing:
-      "2px",
+    letterSpacing: "2px",
     color: "#999",
     fontWeight: "900",
-    marginBottom:
-      "12px",
+    marginBottom: "12px",
   },
 
   heroTitle: {
@@ -2599,8 +2670,7 @@ const styles = {
     fontSize:
       "clamp(30px,5vw,48px)",
     lineHeight: "1.02",
-    letterSpacing:
-      "-2px",
+    letterSpacing: "-2px",
   },
 
   heroText: {
@@ -2619,27 +2689,23 @@ const styles = {
 
   liveBadge: {
     display: "inline-flex",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "7px",
     padding:
       "7px 10px",
     border:
       "1px solid #444",
-    borderRadius:
-      "999px",
+    borderRadius: "999px",
     fontSize: "8px",
     fontWeight: "900",
-    letterSpacing:
-      "1px",
+    letterSpacing: "1px",
     color: "#ccc",
   },
 
   liveDot: {
     width: "6px",
     height: "6px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#fff",
   },
 
@@ -2647,15 +2713,13 @@ const styles = {
     marginTop: "20px",
     fontSize: "42px",
     fontWeight: "900",
-    letterSpacing:
-      "-2px",
+    letterSpacing: "-2px",
   },
 
   heroTotalLabel: {
     color: "#777",
     fontSize: "8px",
-    letterSpacing:
-      "1.4px",
+    letterSpacing: "1.4px",
     fontWeight: "900",
   },
 
@@ -2664,19 +2728,15 @@ const styles = {
     gridTemplateColumns:
       "repeat(auto-fit,minmax(155px,1fr))",
     gap: "10px",
-    marginBottom:
-      "15px",
+    marginBottom: "15px",
   },
 
   statCard: {
     background: "#fff",
     border:
       "1px solid #e2e2df",
-    borderRadius:
-      "17px",
+    borderRadius: "17px",
     padding: "17px",
-    transition:
-      "transform .2s ease",
   },
 
   statActive: {
@@ -2686,24 +2746,20 @@ const styles = {
   statPremium: {
     background:
       "linear-gradient(145deg,#fff,#f5f0e4)",
-    borderColor:
-      "#d8c79e",
+    borderColor: "#d8c79e",
   },
 
   statTop: {
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems:
-      "center",
+    alignItems: "center",
   },
 
   statLabel: {
     color: "#777",
     fontSize: "9px",
     fontWeight: "800",
-    letterSpacing:
-      ".3px",
   },
 
   statIcon: {
@@ -2712,17 +2768,14 @@ const styles = {
   },
 
   statValue: {
-    marginTop:
-      "12px",
+    marginTop: "12px",
     fontSize: "29px",
     fontWeight: "900",
-    letterSpacing:
-      "-1px",
+    letterSpacing: "-1px",
   },
 
   statDetail: {
-    marginTop:
-      "3px",
+    marginTop: "3px",
     color: "#999",
     fontSize: "9px",
   },
@@ -2731,27 +2784,22 @@ const styles = {
     background: "#fff",
     border:
       "1px solid #e2e2df",
-    borderRadius:
-      "20px",
+    borderRadius: "20px",
     padding: "16px",
-    marginBottom:
-      "15px",
+    marginBottom: "15px",
   },
 
   searchHeader: {
     display: "flex",
-    alignItems:
-      "center",
+    alignItems: "center",
     justifyContent:
       "space-between",
-    marginBottom:
-      "12px",
+    marginBottom: "12px",
   },
 
   searchEyebrow: {
     fontSize: "8px",
-    letterSpacing:
-      "1.4px",
+    letterSpacing: "1.4px",
     color: "#999",
     fontWeight: "900",
   },
@@ -2769,17 +2817,13 @@ const styles = {
 
   searchBox: {
     height: "45px",
-    background:
-      "#f6f6f4",
+    background: "#f6f6f4",
     border:
       "1px solid #e6e6e3",
-    borderRadius:
-      "12px",
+    borderRadius: "12px",
     display: "flex",
-    alignItems:
-      "center",
-    padding:
-      "0 12px",
+    alignItems: "center",
+    padding: "0 12px",
   },
 
   searchIcon: {
@@ -2792,16 +2836,14 @@ const styles = {
     width: "100%",
     border: "none",
     outline: "none",
-    background:
-      "transparent",
+    background: "transparent",
     fontSize: "12px",
     color: "#111",
   },
 
   clearSearch: {
     border: "none",
-    background:
-      "transparent",
+    background: "transparent",
     color: "#888",
     fontSize: "18px",
     cursor: "pointer",
@@ -2811,8 +2853,7 @@ const styles = {
     display: "flex",
     gap: "7px",
     flexWrap: "wrap",
-    marginTop:
-      "11px",
+    marginTop: "11px",
   },
 
   filterButton: {
@@ -2820,16 +2861,13 @@ const styles = {
       "1px solid #ddd",
     background: "#fff",
     color: "#555",
-    borderRadius:
-      "999px",
-    padding:
-      "7px 9px",
+    borderRadius: "999px",
+    padding: "7px 9px",
     fontSize: "9px",
     fontWeight: "800",
     cursor: "pointer",
     display: "inline-flex",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "6px",
   },
 
@@ -2840,28 +2878,22 @@ const styles = {
   },
 
   filterCount: {
-    background:
-      "#f0f0ed",
+    background: "#f0f0ed",
     color: "#777",
-    borderRadius:
-      "999px",
-    padding:
-      "2px 5px",
+    borderRadius: "999px",
+    padding: "2px 5px",
     fontSize: "8px",
   },
 
   filterCountActive: {
-    background:
-      "#333",
+    background: "#333",
     color: "#fff",
   },
 
   errorBox: {
-    marginBottom:
-      "15px",
+    marginBottom: "15px",
     padding: "16px",
-    borderRadius:
-      "16px",
+    borderRadius: "16px",
     background: "#fff",
     border:
       "1px solid #ddd",
@@ -2875,15 +2907,12 @@ const styles = {
   errorIcon: {
     width: "27px",
     height: "27px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#111",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: "900",
     flexShrink: 0,
   },
@@ -2894,15 +2923,12 @@ const styles = {
   },
 
   retryButton: {
-    marginTop:
-      "8px",
+    marginTop: "8px",
     border: "none",
     background: "#111",
     color: "#fff",
-    borderRadius:
-      "8px",
-    padding:
-      "7px 10px",
+    borderRadius: "8px",
+    padding: "7px 10px",
     fontSize: "10px",
     fontWeight: "800",
     cursor: "pointer",
@@ -2912,14 +2938,11 @@ const styles = {
     background: "#fff",
     border:
       "1px solid #e2e2df",
-    borderRadius:
-      "20px",
-    padding:
-      "65px 20px",
+    borderRadius: "20px",
+    padding: "65px 20px",
     textAlign: "center",
     display: "flex",
-    flexDirection:
-      "column",
+    flexDirection: "column",
     alignItems: "center",
     color: "#777",
     fontSize: "11px",
@@ -2929,35 +2952,28 @@ const styles = {
   loadingOrb: {
     width: "28px",
     height: "28px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     border:
       "3px solid #ddd",
-    borderTopColor:
-      "#111",
-    marginBottom:
-      "8px",
+    borderTopColor: "#111",
+    marginBottom: "8px",
   },
 
   panel: {
     background: "#fff",
     border:
       "1px solid #e2e2df",
-    borderRadius:
-      "23px",
+    borderRadius: "23px",
     overflow: "hidden",
-    marginBottom:
-      "15px",
+    marginBottom: "15px",
   },
 
   panelHeader: {
-    padding:
-      "23px 24px",
+    padding: "23px 24px",
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems:
-      "flex-start",
+    alignItems: "flex-start",
     gap: "20px",
     borderBottom:
       "1px solid #eee",
@@ -2965,133 +2981,133 @@ const styles = {
 
   panelEyebrow: {
     fontSize: "8px",
-    letterSpacing:
-      "1.5px",
+    letterSpacing: "1.5px",
     fontWeight: "900",
     color: "#999",
-    marginBottom:
-      "6px",
+    marginBottom: "6px",
   },
 
   panelTitle: {
     margin: 0,
     fontSize: "22px",
-    letterSpacing:
-      "-.5px",
+    letterSpacing: "-.5px",
   },
 
   panelDescription: {
     color: "#888",
     fontSize: "11px",
-    margin:
-      "6px 0 0",
+    margin: "6px 0 0",
   },
 
   panelCounter: {
-    background:
-      "#f1f1ee",
-    borderRadius:
-      "999px",
-    padding:
-      "8px 10px",
+    background: "#f1f1ee",
+    borderRadius: "999px",
+    padding: "8px 10px",
     fontSize: "15px",
     fontWeight: "900",
-    whiteSpace:
-      "nowrap",
+    whiteSpace: "nowrap",
   },
 
   panelCounterDark: {
     background: "#111",
     color: "#fff",
-    borderRadius:
-      "999px",
-    padding:
-      "8px 10px",
+    borderRadius: "999px",
+    padding: "8px 10px",
     fontSize: "15px",
     fontWeight: "900",
-    whiteSpace:
-      "nowrap",
+    whiteSpace: "nowrap",
   },
 
   userList: {
     display: "flex",
-    flexDirection:
-      "column",
+    flexDirection: "column",
   },
 
+  /* =======================================================
+     NEW PREMIUM USER CARD STRUCTURE
+  ======================================================= */
+
   userCard: {
-    padding:
-      "18px 24px",
+    padding: "22px 24px",
     borderBottom:
-      "1px solid #eee",
-    display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems:
-      "center",
-    gap: "20px",
+      "1px solid #ecebe7",
+    background: "#fff",
   },
 
   premiumUserCard: {
     background:
-      "linear-gradient(90deg,#fffdf8,#fff)",
+      "linear-gradient(135deg,#fffdf8 0%,#fff 72%)",
+    borderLeft:
+      "3px solid #b59a57",
+  },
+
+  userCardContent: {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "17px",
   },
 
   userMain: {
+    width: "100%",
     display: "flex",
-    alignItems:
-      "flex-start",
-    gap: "13px",
+    flexDirection: "column",
+    gap: "17px",
+    minWidth: 0,
+  },
+
+  userIdentity: {
+    width: "100%",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "14px",
     minWidth: 0,
   },
 
   avatar: {
-    width: "44px",
-    height: "44px",
+    width: "48px",
+    height: "48px",
     flexShrink: 0,
-    borderRadius:
-      "13px",
+    borderRadius: "14px",
     background:
       "linear-gradient(145deg,#111,#333)",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
-    fontSize: "14px",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "15px",
     fontWeight: "900",
   },
 
   premiumAvatar: {
     background:
-      "linear-gradient(145deg,#171717,#6d5a2e)",
+      "linear-gradient(145deg,#171717,#705d30)",
   },
 
   userInfo: {
     minWidth: 0,
+    flex: 1,
   },
 
   userNameRow: {
     display: "flex",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "6px",
     flexWrap: "wrap",
   },
 
   userName: {
     margin: 0,
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: "900",
+    letterSpacing: "-.2px",
   },
 
   email: {
     color: "#444",
     fontSize: "11px",
-    marginTop: "3px",
-    wordBreak:
-      "break-word",
+    marginTop: "4px",
+    wordBreak: "break-word",
   },
 
   userMetaRow: {
@@ -3104,64 +3120,103 @@ const styles = {
   },
 
   accountDetails: {
-    display: "flex",
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(4,minmax(0,1fr))",
     gap: "10px",
-    flexWrap: "wrap",
-    marginTop: "8px",
   },
 
   infoItem: {
+    minWidth: 0,
+    background: "#f7f7f4",
+    border:
+      "1px solid #ecebe7",
+    borderRadius: "12px",
+    padding: "11px 12px",
     display: "flex",
-    flexDirection:
-      "column",
-    gap: "2px",
+    flexDirection: "column",
+    gap: "5px",
   },
 
-  infoItemLabel: {
+  infoLabel: {
     fontSize: "8px",
-    color: "#aaa",
-  },
-
-  subscriptionRow: {
-    display: "flex",
-    gap: "9px",
-    flexWrap: "wrap",
-    marginTop: "7px",
-    color: "#8a7540",
-    fontSize: "8px",
+    color: "#999",
     fontWeight: "800",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+  },
+
+  infoValue: {
+    fontSize: "12px",
+    color: "#171717",
+    fontWeight: "900",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  subscriptionBox: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(3,minmax(0,1fr))",
+    gap: "8px",
+    padding: "11px",
+    background:
+      "linear-gradient(135deg,#f8f4e8,#fbfaf6)",
+    border:
+      "1px solid #e5dcc4",
+    borderRadius: "13px",
+  },
+
+  subscriptionItem: {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+
+  subscriptionLabel: {
+    fontSize: "7px",
+    color: "#9b8b61",
+    fontWeight: "900",
+    letterSpacing: "1px",
+  },
+
+  subscriptionValue: {
+    fontSize: "9px",
+    color: "#514525",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
 
   requested: {
     color: "#aaa",
     fontSize: "9px",
-    marginTop: "6px",
+    marginTop: "1px",
   },
 
   badge: {
-    borderRadius:
-      "999px",
-    padding:
-      "4px 7px",
+    borderRadius: "999px",
+    padding: "4px 7px",
     fontSize: "8px",
     fontWeight: "900",
   },
 
   pendingBadge: {
-    background:
-      "#f0f0ed",
+    background: "#f0f0ed",
     color: "#555",
   },
 
   approvedBadge: {
-    background:
-      "#e7e7e3",
+    background: "#e7e7e3",
     color: "#111",
   },
 
   rejectedBadge: {
-    background:
-      "#f1f1ef",
+    background: "#f1f1ef",
     color: "#777",
   },
 
@@ -3171,52 +3226,42 @@ const styles = {
   },
 
   premiumBadge: {
-    background:
-      "#eadfbe",
+    background: "#eadfbe",
     color: "#695522",
     border:
       "1px solid #d9c793",
-    borderRadius:
-      "999px",
-    padding:
-      "4px 7px",
+    borderRadius: "999px",
+    padding: "4px 7px",
     fontSize: "8px",
     fontWeight: "900",
   },
 
   demoBadge: {
-    background:
-      "#eeeae0",
+    background: "#eeeae0",
     color: "#77705d",
     border:
       "1px solid #ddd7c7",
-    borderRadius:
-      "999px",
-    padding:
-      "4px 7px",
+    borderRadius: "999px",
+    padding: "4px 7px",
     fontSize: "8px",
     fontWeight: "900",
   },
 
-  actions: {
+  userCardActions: {
+    width: "100%",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "flex-end",
-    gap: "7px",
-    flexShrink: 0,
-    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: "8px",
+    paddingTop: "1px",
   },
 
   approveButton: {
     border: "none",
     background: "#111",
     color: "#fff",
-    borderRadius:
-      "9px",
-    padding:
-      "9px 12px",
+    borderRadius: "9px",
+    padding: "10px 15px",
     fontSize: "10px",
     fontWeight: "900",
     cursor: "pointer",
@@ -3227,10 +3272,8 @@ const styles = {
       "1px solid #ddd",
     background: "#fff",
     color: "#444",
-    borderRadius:
-      "9px",
-    padding:
-      "9px 12px",
+    borderRadius: "9px",
+    padding: "10px 15px",
     fontSize: "10px",
     fontWeight: "900",
     cursor: "pointer",
@@ -3241,10 +3284,8 @@ const styles = {
       "1px solid #d8d8d5",
     background: "#fff",
     color: "#333",
-    borderRadius:
-      "9px",
-    padding:
-      "9px 12px",
+    borderRadius: "9px",
+    padding: "10px 15px",
     fontSize: "10px",
     fontWeight: "900",
     cursor: "pointer",
@@ -3254,10 +3295,8 @@ const styles = {
     border: "none",
     background: "#111",
     color: "#fff",
-    borderRadius:
-      "9px",
-    padding:
-      "9px 12px",
+    borderRadius: "9px",
+    padding: "10px 15px",
     fontSize: "10px",
     fontWeight: "900",
     cursor: "pointer",
@@ -3268,20 +3307,16 @@ const styles = {
       "1px solid #111",
     background: "#fff",
     color: "#111",
-    borderRadius:
-      "9px",
-    padding:
-      "9px 12px",
+    borderRadius: "9px",
+    padding: "10px 15px",
     fontSize: "10px",
     fontWeight: "900",
     cursor: "pointer",
   },
 
   emptyState: {
-    padding:
-      "55px 25px",
-    textAlign:
-      "center",
+    padding: "55px 25px",
+    textAlign: "center",
     color: "#777",
   },
 
@@ -3290,21 +3325,17 @@ const styles = {
     height: "43px",
     margin:
       "0 auto 11px",
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#111",
     color: "#fff",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: "900",
   },
 
   emptyTitle: {
-    margin:
-      "0 0 5px",
+    margin: "0 0 5px",
     color: "#111",
     fontSize: "15px",
   },
@@ -3318,86 +3349,71 @@ const styles = {
     background:
       "linear-gradient(135deg,#171717,#292929)",
     color: "#fff",
-    borderRadius:
-      "23px",
-    padding:
-      "25px",
-    marginBottom:
-      "15px",
+    borderRadius: "23px",
+    padding: "25px",
+    marginBottom: "15px",
     display: "flex",
     justifyContent:
       "space-between",
-    alignItems:
-      "center",
+    alignItems: "center",
     gap: "20px",
   },
 
   premiumEyebrow: {
     fontSize: "8px",
-    letterSpacing:
-      "1.6px",
+    letterSpacing: "1.6px",
     color: "#b9a976",
     fontWeight: "900",
   },
 
   premiumTitle: {
-    margin:
-      "6px 0 0",
+    margin: "6px 0 0",
     fontSize: "23px",
-    letterSpacing:
-      "-.5px",
+    letterSpacing: "-.5px",
   },
 
   premiumDescription: {
-    margin:
-      "7px 0 0",
+    margin: "7px 0 0",
     color: "#aaa",
     fontSize: "10px",
   },
 
   premiumNumbers: {
     display: "flex",
-    gap: "20px",
+    gap: "22px",
   },
 
-  premiumNumbers: {
-    display: "flex",
-    gap: "18px",
+  premiumNumbersStrong: {
+    fontSize: "24px",
+    fontWeight: "900",
   },
 
   securityCard: {
     display: "flex",
     gap: "13px",
-    alignItems:
-      "center",
+    alignItems: "center",
     background: "#111",
     color: "#fff",
-    borderRadius:
-      "18px",
+    borderRadius: "18px",
     padding: "17px 19px",
-    marginBottom:
-      "18px",
+    marginBottom: "18px",
   },
 
   securityIcon: {
     width: "28px",
     height: "28px",
     flexShrink: 0,
-    borderRadius:
-      "50%",
+    borderRadius: "50%",
     background: "#fff",
     color: "#111",
     display: "flex",
-    alignItems:
-      "center",
-    justifyContent:
-      "center",
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: "900",
   },
 
   securityText: {
-    margin:
-      "4px 0 0",
+    margin: "4px 0 0",
     color: "#aaa",
     fontSize: "9px",
     lineHeight: "1.5",
@@ -3408,19 +3424,15 @@ const styles = {
     border:
       "1px solid #444",
     color: "#aaa",
-    borderRadius:
-      "999px",
-    padding:
-      "5px 8px",
+    borderRadius: "999px",
+    padding: "5px 8px",
     fontSize: "7px",
     fontWeight: "900",
-    letterSpacing:
-      "1px",
+    letterSpacing: "1px",
   },
 
   footer: {
-    padding:
-      "20px 3px",
+    padding: "20px 3px",
     display: "flex",
     justifyContent:
       "space-between",
