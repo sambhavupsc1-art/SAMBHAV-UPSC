@@ -3,19 +3,71 @@
 import { useState } from "react";
 
 export default function LoginPage() {
-  const [step, setStep] = useState("email");
+  const [mode, setMode] = useState("signin");
+  const [step, setStep] = useState("form");
+
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [username, setUsername] = useState("");
 
-  async function sendOtp() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  function clearMessages() {
     setError("");
     setMessage("");
+  }
+
+  function switchMode(newMode) {
+    setMode(newMode);
+    setStep("form");
+    setOtp("");
+    setPassword("");
+    setConfirmPassword("");
+    setFirstName("");
+    setUsername("");
+    clearMessages();
+  }
+
+  async function sendSignupOtp() {
+    clearMessages();
+
+    if (!firstName.trim()) {
+      setError("Name is required.");
+      return;
+    }
 
     if (!email.trim()) {
-      setError("Email address enter karo.");
+      setError("Email is required.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain one uppercase letter.");
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError("Password must contain one lowercase letter.");
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain one number.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
@@ -40,148 +92,336 @@ export default function LoginPage() {
       }
 
       setStep("otp");
-      setMessage("OTP aapke email par bhej diya gaya hai.");
-    } catch (err) {
-      console.error(err);
+      setMessage("OTP has been sent to your email.");
+    } catch (error) {
+      console.error(error);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function verifyOtp() {
-    setError("");
-    setMessage("");
+  async function verifyAndCreateAccount() {
+    clearMessages();
 
     if (!/^\d{6}$/.test(otp)) {
-      setError("6 digit OTP enter karo.");
+      setError("Enter a valid 6-digit OTP.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          otp,
-        }),
-      });
+      const verifyResponse = await fetch(
+        "/api/auth/verify-otp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            otp,
+          }),
+        }
+      );
 
-      const data = await response.json();
+      const verifyData = await verifyResponse.json();
 
-      if (!response.ok) {
-        setError(data.message || "OTP verify nahi ho saka.");
+      if (!verifyResponse.ok) {
+        setError(
+          verifyData.message || "OTP verification failed."
+        );
         return;
       }
 
-      if (data.next === "approval") {
-        setStep("success");
-        setMessage(
-          "Email verified. Aapka account admin approval ke liye pending hai."
+      const signupResponse = await fetch(
+        "/api/auth/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password,
+            firstName: firstName.trim(),
+            username: username.trim(),
+            otpVerified: true,
+          }),
+        }
+      );
+
+      const signupData = await signupResponse.json();
+
+      if (!signupResponse.ok) {
+        setError(
+          signupData.message || "Account creation failed."
         );
-      } else {
-        setStep("success");
-        setMessage("Email verified successfully.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
+
+      window.location.href = "/";
+    } catch (error) {
+      console.error(error);
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  function changeEmail() {
-    setStep("email");
-    setOtp("");
-    setError("");
-    setMessage("");
+  async function signIn() {
+    clearMessages();
+
+    if (!email.trim()) {
+      setError("Email is required.");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Invalid email or password.");
+        return;
+      }
+
+      window.location.href = "/";
+    } catch (error) {
+      console.error(error);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <main className="login-page">
-      <div className="login-card">
+    <main className="page">
+      <div className="card">
+
         <div className="brand">
           <div className="logo">S</div>
+
           <div>
             <h1>SAMBHAV</h1>
             <p>UPSC Preparation Platform</p>
           </div>
         </div>
 
-        {step === "email" && (
+        <div className="tabs">
+          <button
+            className={mode === "signin" ? "active" : ""}
+            onClick={() => switchMode("signin")}
+          >
+            Sign In
+          </button>
+
+          <button
+            className={mode === "signup" ? "active" : ""}
+            onClick={() => switchMode("signup")}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        {mode === "signin" && (
           <>
             <div className="heading">
-              <h2>Welcome to SAMBHAV</h2>
-              <p>Continue with your email to access your account.</p>
+              <h2>Welcome back</h2>
+              <p>Sign in to continue to SAMBHAV.</p>
             </div>
 
             <label>Email Address</label>
 
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder="Registered email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendOtp();
-              }}
               autoComplete="email"
             />
 
-            <button onClick={sendOtp} disabled={loading}>
-              {loading ? "Sending OTP..." : "Continue"}
+            <label>Password</label>
+
+            <input
+              type="password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") signIn();
+              }}
+              autoComplete="current-password"
+            />
+
+            <button
+              className="primary"
+              onClick={signIn}
+              disabled={loading}
+            >
+              {loading ? "Signing In..." : "Sign In"}
             </button>
 
-            <p className="security">
-              A 6-digit verification code will be sent to your email.
-            </p>
+            <button
+              className="forgot"
+              onClick={() => {
+                setError("");
+                setMessage(
+                  "Forgot password feature will be added next."
+                );
+              }}
+            >
+              Forgot Password?
+            </button>
           </>
         )}
 
-        {step === "otp" && (
+        {mode === "signup" && step === "form" && (
           <>
-            <button className="back-btn" onClick={changeEmail}>
-              ← Change Email
-            </button>
-
             <div className="heading">
-              <h2>Verify OTP</h2>
+              <h2>Create your account</h2>
               <p>
-                OTP sent to <strong>{email}</strong>
+                Join SAMBHAV and start your UPSC preparation.
               </p>
             </div>
 
-            <label>6-Digit OTP</label>
+            <label>Full Name</label>
 
             <input
-              className="otp-input"
+              type="text"
+              placeholder="Your full name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="name"
+            />
+
+            <label>Username</label>
+
+            <input
+              type="text"
+              placeholder="Choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+            />
+
+            <label>Email Address</label>
+
+            <input
+              type="email"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+
+            <label>Password</label>
+
+            <input
+              type="password"
+              placeholder="Minimum 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+
+            <label>Confirm Password</label>
+
+            <input
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(e.target.value)
+              }
+              autoComplete="new-password"
+            />
+
+            <button
+              className="primary"
+              onClick={sendSignupOtp}
+              disabled={loading}
+            >
+              {loading ? "Sending OTP..." : "Continue"}
+            </button>
+          </>
+        )}
+
+        {mode === "signup" && step === "otp" && (
+          <>
+            <button
+              className="back"
+              onClick={() => {
+                setStep("form");
+                clearMessages();
+              }}
+            >
+              ← Back
+            </button>
+
+            <div className="heading">
+              <h2>Verify your email</h2>
+              <p>
+                Enter the 6-digit OTP sent to{" "}
+                <strong>{email}</strong>
+              </p>
+            </div>
+
+            <label>Verification Code</label>
+
+            <input
+              className="otp"
               type="text"
               inputMode="numeric"
               maxLength={6}
               placeholder="000000"
               value={otp}
               onChange={(e) =>
-                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                setOtp(
+                  e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 6)
+                )
               }
               onKeyDown={(e) => {
-                if (e.key === "Enter") verifyOtp();
+                if (e.key === "Enter") {
+                  verifyAndCreateAccount();
+                }
               }}
               autoFocus
             />
 
-            <button onClick={verifyOtp} disabled={loading}>
-              {loading ? "Verifying..." : "Verify OTP"}
+            <button
+              className="primary"
+              onClick={verifyAndCreateAccount}
+              disabled={loading}
+            >
+              {loading
+                ? "Creating Account..."
+                : "Verify & Create Account"}
             </button>
 
             <button
-              className="secondary-btn"
-              onClick={sendOtp}
+              className="secondary"
+              onClick={sendSignupOtp}
               disabled={loading}
             >
               Resend OTP
@@ -189,28 +429,14 @@ export default function LoginPage() {
           </>
         )}
 
-        {step === "success" && (
-          <>
-            <div className="success-icon">✓</div>
-
-            <div className="heading">
-              <h2>Email Verified</h2>
-              <p>{message}</p>
-            </div>
-
-            <button onClick={() => (window.location.href = "/")}>
-              Continue
-            </button>
-          </>
-        )}
-
         {error && <div className="error">{error}</div>}
-        {message && step !== "success" && (
+
+        {message && (
           <div className="message">{message}</div>
         )}
 
         <div className="footer">
-          <span>© SAMBHAV UPSC</span>
+          <span>SAMBHAV UPSC</span>
           <span>Secure Login</span>
         </div>
       </div>
@@ -220,7 +446,7 @@ export default function LoginPage() {
           box-sizing: border-box;
         }
 
-        .login-page {
+        .page {
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -229,11 +455,11 @@ export default function LoginPage() {
           background:
             radial-gradient(
               circle at top,
-              rgba(212, 175, 55, 0.12),
+              rgba(212, 175, 55, 0.13),
               transparent 35%
             ),
             #07111f;
-          color: #ffffff;
+          color: white;
           font-family:
             Inter,
             -apple-system,
@@ -242,21 +468,21 @@ export default function LoginPage() {
             sans-serif;
         }
 
-        .login-card {
+        .card {
           width: 100%;
-          max-width: 430px;
+          max-width: 450px;
           padding: 32px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 24px;
-          background: rgba(12, 27, 46, 0.96);
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+          background: #0c1b2e;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
         }
 
         .brand {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 36px;
+          margin-bottom: 28px;
         }
 
         .logo {
@@ -284,25 +510,54 @@ export default function LoginPage() {
           font-size: 12px;
         }
 
+        .tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 5px;
+          padding: 5px;
+          margin-bottom: 28px;
+          border-radius: 12px;
+          background: #081827;
+        }
+
+        .tabs button {
+          height: 42px;
+          border: 0;
+          border-radius: 9px;
+          background: transparent;
+          color: #94a3b8;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .tabs button.active {
+          background: #d4af37;
+          color: #07111f;
+        }
+
         .heading {
-          margin-bottom: 24px;
+          margin-bottom: 22px;
         }
 
         .heading h2 {
-          margin: 0 0 8px;
+          margin: 0 0 7px;
           font-size: 25px;
         }
 
         .heading p {
           margin: 0;
           color: #94a3b8;
-          line-height: 1.5;
           font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .heading strong {
+          color: #d4af37;
         }
 
         label {
           display: block;
-          margin-bottom: 8px;
+          margin: 14px 0 7px;
           color: #cbd5e1;
           font-size: 13px;
           font-weight: 600;
@@ -310,26 +565,33 @@ export default function LoginPage() {
 
         input {
           width: 100%;
-          height: 52px;
-          padding: 0 15px;
+          height: 50px;
+          padding: 0 14px;
+          border-radius: 11px;
           border: 1px solid #26384d;
-          border-radius: 12px;
           outline: none;
           background: #081827;
-          color: #ffffff;
-          font-size: 15px;
-          margin-bottom: 14px;
+          color: white;
+          font-size: 14px;
         }
 
         input:focus {
           border-color: #d4af37;
         }
 
-        button {
+        .otp {
+          text-align: center;
+          font-size: 23px;
+          font-weight: 700;
+          letter-spacing: 8px;
+        }
+
+        .primary {
           width: 100%;
-          height: 52px;
+          height: 51px;
+          margin-top: 20px;
           border: 0;
-          border-radius: 12px;
+          border-radius: 11px;
           background: #d4af37;
           color: #07111f;
           font-size: 15px;
@@ -337,49 +599,46 @@ export default function LoginPage() {
           cursor: pointer;
         }
 
-        button:disabled {
+        .primary:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
 
-        .otp-input {
-          text-align: center;
-          letter-spacing: 9px;
-          font-size: 22px;
-          font-weight: 700;
-        }
-
-        .secondary-btn {
+        .secondary {
+          width: 100%;
+          height: 48px;
           margin-top: 10px;
-          background: transparent;
           border: 1px solid #2b4058;
+          border-radius: 11px;
+          background: transparent;
           color: #d4af37;
+          font-weight: 600;
+          cursor: pointer;
         }
 
-        .back-btn {
-          width: auto;
-          height: auto;
-          padding: 0;
-          margin-bottom: 24px;
+        .forgot,
+        .back {
+          border: 0;
           background: transparent;
           color: #94a3b8;
+          cursor: pointer;
           font-size: 13px;
-          font-weight: 500;
-          text-align: left;
         }
 
-        .security {
-          margin: 14px 0 0;
-          text-align: center;
-          color: #64748b;
-          font-size: 12px;
-          line-height: 1.5;
+        .forgot {
+          display: block;
+          margin: 15px auto 0;
+        }
+
+        .back {
+          padding: 0;
+          margin-bottom: 20px;
         }
 
         .error,
         .message {
-          margin-top: 16px;
-          padding: 12px 14px;
+          margin-top: 17px;
+          padding: 12px;
           border-radius: 10px;
           font-size: 13px;
           line-height: 1.4;
@@ -397,43 +656,24 @@ export default function LoginPage() {
           color: #e5c968;
         }
 
-        .success-icon {
-          width: 64px;
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 22px;
-          border-radius: 50%;
-          background: rgba(34, 197, 94, 0.12);
-          border: 1px solid rgba(34, 197, 94, 0.25);
-          color: #4ade80;
-          font-size: 30px;
-          font-weight: 700;
-        }
-
         .footer {
           display: flex;
           justify-content: space-between;
-          margin-top: 28px;
-          padding-top: 18px;
+          margin-top: 26px;
+          padding-top: 17px;
           border-top: 1px solid rgba(255, 255, 255, 0.07);
           color: #64748b;
           font-size: 11px;
         }
 
         @media (max-width: 480px) {
-          .login-page {
+          .page {
             padding: 14px;
           }
 
-          .login-card {
+          .card {
             padding: 24px 20px;
             border-radius: 20px;
-          }
-
-          .brand {
-            margin-bottom: 30px;
           }
         }
       `}</style>
