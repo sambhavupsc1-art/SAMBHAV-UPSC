@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 
 const modules = [
@@ -484,157 +483,86 @@ export default function PremiumHome() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let attempts = 0;
     let stopped = false;
-    let retryTimer = null;
 
-    const authenticate = () => {
-      if (stopped) return;
+    const authenticate = async () => {
+      try {
+        /*
+         * Authenticate using the existing SAMBHAV
+         * HTTP-only email session cookie.
+         *
+         * No Telegram authentication is required.
+         */
+        const response = await fetch(
+          "/api/auth/me",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
 
-      attempts++;
+        const data =
+          await response.json().catch(
+            () => ({})
+          );
 
-      const webApp = window.Telegram?.WebApp;
-
-      /*
-       * IMPORTANT:
-       *
-       * When Telegram Mini App returns from another internal route,
-       * Telegram WebApp can temporarily expose an empty initData.
-       *
-       * First try live Telegram initData.
-       * If unavailable, use the authenticated value saved in
-       * sessionStorage during the first successful load.
-       */
-      let telegramInitData = webApp?.initData || "";
-
-      if (!telegramInitData) {
-        try {
-          telegramInitData =
-            sessionStorage.getItem(
-              "sambhav_telegram_init_data"
-            ) || "";
-        } catch (storageError) {
-          console.warn(
-            "Unable to read Telegram auth session:",
-            storageError
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Authentication failed"
           );
         }
-      }
 
-      /*
-       * Telegram script may still be initializing.
-       * Give it time before showing authentication error.
-       */
-      if (!telegramInitData) {
-        if (attempts < 40) {
-          retryTimer = window.setTimeout(
-            authenticate,
-            250
+        if (!data?.user) {
+          throw new Error(
+            "User authentication failed."
           );
-          return;
         }
+
+        if (
+          data.user.status &&
+          data.user.status !== "approved"
+        ) {
+          throw new Error(
+            "Your SAMBHAV account is not approved."
+          );
+        }
+
+        if (stopped) return;
+
+        setUser(data.user);
+        setError("");
+      } catch (err) {
+        if (stopped) return;
+
+        console.error(
+          "Premium Home authentication error:",
+          err
+        );
 
         setError(
-          "Telegram authentication data nahi mila. Mini App ko Telegram ke andar se reopen karein."
+          err.message ||
+            "Authentication failed."
         );
-
-        setLoading(false);
-        return;
-      }
-
-      /*
-       * Telegram WebApp UI setup.
-       */
-      if (webApp) {
-        try {
-          webApp.ready();
-          webApp.expand();
-        } catch (telegramError) {
-          console.warn(
-            "Telegram WebApp setup warning:",
-            telegramError
-          );
+      } finally {
+        if (!stopped) {
+          setLoading(false);
         }
       }
-
-      /*
-       * Save auth context for navigation/back navigation.
-       *
-       * sessionStorage survives internal route navigation
-       * but is cleared when the Mini App session is closed.
-       */
-      try {
-        sessionStorage.setItem(
-          "sambhav_telegram_init_data",
-          telegramInitData
-        );
-      } catch (storageError) {
-        console.warn(
-          "Unable to save Telegram auth session:",
-          storageError
-        );
-      }
-
-      fetch("/api/auth/me", {
-        headers: {
-          Authorization: `tma ${telegramInitData}`,
-        },
-        cache: "no-store",
-      })
-        .then(async (response) => {
-          let data = {};
-
-          try {
-            data = await response.json();
-          } catch {
-            data = {};
-          }
-
-          if (!response.ok) {
-            throw new Error(
-              data.error || "Authentication failed"
-            );
-          }
-
-          if (data.user?.status !== "approved") {
-            throw new Error(
-              "Your SAMBHAV account is not approved."
-            );
-          }
-
-          setUser(data.user);
-          setError("");
-        })
-        .catch((err) => {
-          console.error(
-            "Premium authentication error:",
-            err
-          );
-
-          setError(
-            err.message ||
-              "Authentication failed."
-          );
-        })
-        .finally(() => {
-          setLoading(false);
-        });
     };
 
     authenticate();
 
     return () => {
       stopped = true;
-
-      if (retryTimer) {
-        window.clearTimeout(retryTimer);
-      }
     };
   }, []);
 
   const firstName =
     user?.first_name ||
     user?.firstName ||
+    user?.name ||
     "Aspirant";
 
   const initial =
@@ -643,477 +571,451 @@ export default function PremiumHome() {
   const go = (route) => {
     if (!route) return;
 
-    /*
-     * Normal internal navigation.
-     * sessionStorage keeps Telegram auth available
-     * when Premium Home is opened again.
-     */
     window.location.href = route;
   };
 
   if (loading) {
     return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
+      <main
+        style={{
+          ...styles.page,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div style={styles.brand}>
+            SAMBHAV UPSC
+          </div>
 
-        <main
-          style={{
-            ...styles.page,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              marginTop: "8px",
+              color: "#77736b",
+              fontSize: "11px",
+            }}
+          >
+            Loading Premium...
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <div
+            style={{
+              background: "#fffdf9",
+              borderRadius: "23px",
+              padding: "25px",
+              marginTop: "80px",
+              textAlign: "center",
+              border:
+                "1px solid rgba(16,16,16,.08)",
+            }}
+          >
             <div style={styles.brand}>
               SAMBHAV UPSC
             </div>
 
             <div
               style={{
-                marginTop: "8px",
-                color: "#77736b",
+                marginTop: "12px",
+                color: "#b52b22",
                 fontSize: "11px",
+                lineHeight: "1.5",
               }}
             >
-              Loading Premium...
+              {error ||
+                "Premium access verification failed."}
             </div>
-          </div>
-        </main>
-      </>
-    );
-  }
 
-  if (error || !user) {
-    return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
-        <main style={styles.page}>
-          <div style={styles.container}>
-            <div
+            <button
               style={{
-                background: "#fffdf9",
-                borderRadius: "23px",
-                padding: "25px",
-                marginTop: "80px",
-                textAlign: "center",
-                border:
-                  "1px solid rgba(16,16,16,.08)",
+                marginTop: "18px",
+                width: "100%",
+                padding: "14px",
+                border: "none",
+                borderRadius: "14px",
+                background: "#101010",
+                color: "#fff",
+                fontWeight: "800",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                window.location.href = "/";
               }}
             >
-              <div style={styles.brand}>
-                SAMBHAV UPSC
-              </div>
-
-              <div
-                style={{
-                  marginTop: "12px",
-                  color: "#b52b22",
-                  fontSize: "11px",
-                  lineHeight: "1.5",
-                }}
-              >
-                {error ||
-                  "Premium access verification failed."}
-              </div>
-
-              <button
-                style={{
-                  marginTop: "18px",
-                  width: "100%",
-                  padding: "14px",
-                  border: "none",
-                  borderRadius: "14px",
-                  background: "#101010",
-                  color: "#fff",
-                  fontWeight: "800",
-                  cursor: "pointer",
-                }}
-                onClick={() => {
-                  window.location.href = "/";
-                }}
-              >
-                ← Back to SAMBHAV
-              </button>
-            </div>
+              ← Back to SAMBHAV
+            </button>
           </div>
-        </main>
-      </>
+        </div>
+      </main>
     );
   }
 
   return (
-    <>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-
-      <main style={styles.page}>
-        <div style={styles.container}>
-          <header style={styles.header}>
-            <div>
-              <div style={styles.brand}>
-                SAMBHAV UPSC
-              </div>
-
-              <div style={styles.brandSub}>
-                Premium Preparation Platform
-              </div>
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <div>
+            <div style={styles.brand}>
+              SAMBHAV UPSC
             </div>
 
-            <div style={styles.avatar}>
-              {initial}
-            </div>
-          </header>
-
-          <section style={styles.greeting}>
-            <div style={styles.greetingSmall}>
-              GOOD MORNING
-            </div>
-
-            <h1 style={styles.greetingTitle}>
-              {firstName}
-            </h1>
-
-            <div style={styles.greetingSub}>
-              Your preparation. Your SAMBHAV.
-            </div>
-          </section>
-
-          <section style={styles.premiumCard}>
-            <div style={styles.glow} />
-
-            <div style={styles.premiumLabel}>
-              ✦ PREMIUM ACCESS
-            </div>
-
-            <div style={styles.premiumTitle}>
-              Officer Access Active
-            </div>
-
-            <div style={styles.premiumSub}>
-              Your Premium learning environment
-              is active.
-            </div>
-
-            <div style={styles.validity}>
-              ✓ PREMIUM ACTIVE
-            </div>
-          </section>
-
-          <section style={styles.stats}>
-            <div style={styles.stat}>
-              <div style={styles.statValue}>
-                0%
-              </div>
-
-              <div style={styles.statLabel}>
-                SYLLABUS
-              </div>
-            </div>
-
-            <div style={styles.stat}>
-              <div style={styles.statValue}>
-                0
-              </div>
-
-              <div style={styles.statLabel}>
-                QUESTIONS SOLVED
-              </div>
-            </div>
-
-            <div style={styles.stat}>
-              <div style={styles.statValue}>
-                0
-              </div>
-
-              <div style={styles.statLabel}>
-                DAY STREAK
-              </div>
-            </div>
-          </section>
-
-          <section style={styles.countdown}>
-            <div style={styles.countdownTop}>
-              <div style={styles.countdownTitle}>
-                UPSC 2027
-              </div>
-
-              <div style={styles.countdownValue}>
-                Countdown
-              </div>
-            </div>
-
-            <div style={styles.progressTrack}>
-              <div style={styles.progressFill} />
-            </div>
-          </section>
-
-          <div style={styles.sectionHeader}>
-            <div style={styles.sectionTitle}>
-              Premium Modules
-            </div>
-
-            <div style={styles.sectionSub}>
-              ALL ACCESS
+            <div style={styles.brandSub}>
+              Premium Preparation Platform
             </div>
           </div>
 
-          <section style={styles.grid}>
-            {modules.map((module) => (
-              <div
-                key={module.title}
-                style={{
-                  ...styles.module,
-                  opacity: module.route
-                    ? 1
-                    : 0.72,
-                  cursor: module.route
-                    ? "pointer"
-                    : "default",
-                }}
-                onClick={() =>
-                  module.route &&
-                  go(module.route)
-                }
-              >
-                <div style={styles.icon}>
-                  {module.icon}
-                </div>
+          <div style={styles.avatar}>
+            {initial}
+          </div>
+        </header>
 
-                <div style={styles.moduleTitle}>
-                  {module.title}
-                </div>
+        <section style={styles.greeting}>
+          <div style={styles.greetingSmall}>
+            GOOD MORNING
+          </div>
 
-                <div style={styles.moduleSub}>
-                  {module.subtitle}
-                </div>
-              </div>
-            ))}
-          </section>
+          <h1 style={styles.greetingTitle}>
+            {firstName}
+          </h1>
 
-          <section style={styles.mission}>
-            <div style={styles.sectionTitle}>
-              Today's Mission
+          <div style={styles.greetingSub}>
+            Your preparation. Your SAMBHAV.
+          </div>
+        </section>
+
+        <section style={styles.premiumCard}>
+          <div style={styles.glow} />
+
+          <div style={styles.premiumLabel}>
+            ✦ PREMIUM ACCESS
+          </div>
+
+          <div style={styles.premiumTitle}>
+            Officer Access Active
+          </div>
+
+          <div style={styles.premiumSub}>
+            Your Premium learning environment
+            is active.
+          </div>
+
+          <div style={styles.validity}>
+            ✓ PREMIUM ACTIVE
+          </div>
+        </section>
+
+        <section style={styles.stats}>
+          <div style={styles.stat}>
+            <div style={styles.statValue}>
+              0%
             </div>
 
-            <div style={styles.missionRow}>
-              <div style={styles.missionTop}>
-                <span>
-                  Read Today's Current Affairs
-                </span>
+            <div style={styles.statLabel}>
+              SYLLABUS
+            </div>
+          </div>
 
-                <span style={styles.missionMuted}>
-                  0%
-                </span>
-              </div>
-
-              <div style={styles.missionTrack}>
-                <div
-                  style={{
-                    ...styles.missionFill,
-                    width: "0%",
-                  }}
-                />
-              </div>
+          <div style={styles.stat}>
+            <div style={styles.statValue}>
+              0
             </div>
 
-            <div style={styles.missionRow}>
-              <div style={styles.missionTop}>
-                <span>
-                  Solve 25 PYQs
-                </span>
+            <div style={styles.statLabel}>
+              QUESTIONS SOLVED
+            </div>
+          </div>
 
-                <span style={styles.missionMuted}>
-                  0%
-                </span>
-              </div>
-
-              <div style={styles.missionTrack}>
-                <div
-                  style={{
-                    ...styles.missionFill,
-                    width: "0%",
-                  }}
-                />
-              </div>
+          <div style={styles.stat}>
+            <div style={styles.statValue}>
+              0
             </div>
 
-            <div style={styles.missionRow}>
-              <div style={styles.missionTop}>
-                <span>
-                  Write 1 Mains Answer
-                </span>
-
-                <span style={styles.missionMuted}>
-                  0%
-                </span>
-              </div>
-
-              <div style={styles.missionTrack}>
-                <div
-                  style={{
-                    ...styles.missionFill,
-                    width: "0%",
-                  }}
-                />
-              </div>
+            <div style={styles.statLabel}>
+              DAY STREAK
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section style={styles.intelligence}>
-            <div style={styles.sectionTitle}>
-              Daily Intelligence
+        <section style={styles.countdown}>
+          <div style={styles.countdownTop}>
+            <div style={styles.countdownTitle}>
+              UPSC 2027
             </div>
 
-            <div style={styles.intelligenceRow}>
-              <div style={styles.intelligenceIcon}>
-                🇮🇳
-              </div>
-
-              <div style={styles.intelligenceText}>
-                India Governance & Polity
-
-                <div style={styles.intelligenceSub}>
-                  Governance • Constitution • Policy
-                </div>
-              </div>
-
-              <div style={styles.arrow}>
-                ›
-              </div>
+            <div style={styles.countdownValue}>
+              Countdown
             </div>
+          </div>
 
-            <div style={styles.intelligenceRow}>
-              <div style={styles.intelligenceIcon}>
-                🌍
-              </div>
+          <div style={styles.progressTrack}>
+            <div style={styles.progressFill} />
+          </div>
+        </section>
 
-              <div style={styles.intelligenceText}>
-                World & International Relations
+        <div style={styles.sectionHeader}>
+          <div style={styles.sectionTitle}>
+            Premium Modules
+          </div>
 
-                <div style={styles.intelligenceSub}>
-                  IR • Global Affairs • Diplomacy
-                </div>
-              </div>
-
-              <div style={styles.arrow}>
-                ›
-              </div>
-            </div>
-
-            <div
-              style={{
-                ...styles.intelligenceRow,
-                borderBottom: "none",
-              }}
-            >
-              <div style={styles.intelligenceIcon}>
-                ₹
-              </div>
-
-              <div style={styles.intelligenceText}>
-                Economy
-
-                <div style={styles.intelligenceSub}>
-                  Economy • Banking • Markets
-                </div>
-              </div>
-
-              <div style={styles.arrow}>
-                ›
-              </div>
-            </div>
-          </section>
-
-          <section style={styles.aiInsight}>
-            <div style={styles.aiBadge}>
-              ✦ AI INSIGHT
-            </div>
-
-            <div style={styles.aiTitle}>
-              Build consistency first.
-            </div>
-
-            <div style={styles.aiText}>
-              Your analytics will appear here as
-              you solve questions, write answers
-              and complete daily missions.
-            </div>
-          </section>
+          <div style={styles.sectionSub}>
+            ALL ACCESS
+          </div>
         </div>
 
-        <nav style={styles.bottomNav}>
+        <section style={styles.grid}>
+          {modules.map((module) => (
+            <div
+              key={module.title}
+              style={{
+                ...styles.module,
+                opacity: module.route
+                  ? 1
+                  : 0.72,
+                cursor: module.route
+                  ? "pointer"
+                  : "default",
+              }}
+              onClick={() =>
+                module.route &&
+                go(module.route)
+              }
+            >
+              <div style={styles.icon}>
+                {module.icon}
+              </div>
+
+              <div style={styles.moduleTitle}>
+                {module.title}
+              </div>
+
+              <div style={styles.moduleSub}>
+                {module.subtitle}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section style={styles.mission}>
+          <div style={styles.sectionTitle}>
+            Today's Mission
+          </div>
+
+          <div style={styles.missionRow}>
+            <div style={styles.missionTop}>
+              <span>
+                Read Today's Current Affairs
+              </span>
+
+              <span style={styles.missionMuted}>
+                0%
+              </span>
+            </div>
+
+            <div style={styles.missionTrack}>
+              <div
+                style={{
+                  ...styles.missionFill,
+                  width: "0%",
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={styles.missionRow}>
+            <div style={styles.missionTop}>
+              <span>
+                Solve 25 PYQs
+              </span>
+
+              <span style={styles.missionMuted}>
+                0%
+              </span>
+            </div>
+
+            <div style={styles.missionTrack}>
+              <div
+                style={{
+                  ...styles.missionFill,
+                  width: "0%",
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={styles.missionRow}>
+            <div style={styles.missionTop}>
+              <span>
+                Write 1 Mains Answer
+              </span>
+
+              <span style={styles.missionMuted}>
+                0%
+              </span>
+            </div>
+
+            <div style={styles.missionTrack}>
+              <div
+                style={{
+                  ...styles.missionFill,
+                  width: "0%",
+                }}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section style={styles.intelligence}>
+          <div style={styles.sectionTitle}>
+            Daily Intelligence
+          </div>
+
+          <div style={styles.intelligenceRow}>
+            <div style={styles.intelligenceIcon}>
+              🇮🇳
+            </div>
+
+            <div style={styles.intelligenceText}>
+              India Governance & Polity
+
+              <div style={styles.intelligenceSub}>
+                Governance • Constitution • Policy
+              </div>
+            </div>
+
+            <div style={styles.arrow}>
+              ›
+            </div>
+          </div>
+
+          <div style={styles.intelligenceRow}>
+            <div style={styles.intelligenceIcon}>
+              🌍
+            </div>
+
+            <div style={styles.intelligenceText}>
+              World & International Relations
+
+              <div style={styles.intelligenceSub}>
+                IR • Global Affairs • Diplomacy
+              </div>
+            </div>
+
+            <div style={styles.arrow}>
+              ›
+            </div>
+          </div>
+
           <div
             style={{
-              ...styles.navItem,
-              ...styles.navActive,
+              ...styles.intelligenceRow,
+              borderBottom: "none",
             }}
           >
-            <span style={styles.navIcon}>
-              ⌂
-            </span>
+            <div style={styles.intelligenceIcon}>
+              ₹
+            </div>
 
-            Home
+            <div style={styles.intelligenceText}>
+              Economy
+
+              <div style={styles.intelligenceSub}>
+                Economy • Banking • Markets
+              </div>
+            </div>
+
+            <div style={styles.arrow}>
+              ›
+            </div>
+          </div>
+        </section>
+
+        <section style={styles.aiInsight}>
+          <div style={styles.aiBadge}>
+            ✦ AI INSIGHT
           </div>
 
-          <div
-            style={styles.navItem}
-            onClick={() => go("/pyq")}
-          >
-            <span style={styles.navIcon}>
-              ▣
-            </span>
-
-            Practice
+          <div style={styles.aiTitle}>
+            Build consistency first.
           </div>
 
-          <div
-            style={styles.navItem}
-            onClick={() =>
-              go("/current-affairs")
-            }
-          >
-            <span style={styles.navIcon}>
-              ▤
-            </span>
-
-            Current
+          <div style={styles.aiText}>
+            Your analytics will appear here as
+            you solve questions, write answers
+            and complete daily missions.
           </div>
+        </section>
+      </div>
 
-          <div
-            style={styles.navItem}
-            onClick={() => {
-              console.log("AI module");
-            }}
-          >
-            <span style={styles.navIcon}>
-              ✦
-            </span>
+      <nav style={styles.bottomNav}>
+        <div
+          style={{
+            ...styles.navItem,
+            ...styles.navActive,
+          }}
+        >
+          <span style={styles.navIcon}>
+            ⌂
+          </span>
 
-            AI
-          </div>
+          Home
+        </div>
 
-          <div
-            style={styles.navItem}
-            onClick={() => go("/")}
-          >
-            <span style={styles.navIcon}>
-              ●
-            </span>
+        <div
+          style={styles.navItem}
+          onClick={() => go("/pyq")}
+        >
+          <span style={styles.navIcon}>
+            ▣
+          </span>
 
-            Profile
-          </div>
-        </nav>
-      </main>
-    </>
+          Practice
+        </div>
+
+        <div
+          style={styles.navItem}
+          onClick={() =>
+            go("/current-affairs")
+          }
+        >
+          <span style={styles.navIcon}>
+            ▤
+          </span>
+
+          Current
+        </div>
+
+        <div
+          style={styles.navItem}
+          onClick={() => {
+            console.log("AI module");
+          }}
+        >
+          <span style={styles.navIcon}>
+            ✦
+          </span>
+
+          AI
+        </div>
+
+        <div
+          style={styles.navItem}
+          onClick={() => go("/")}
+        >
+          <span style={styles.navIcon}>
+            ●
+          </span>
+
+          Profile
+        </div>
+      </nav>
+    </main>
   );
 }
