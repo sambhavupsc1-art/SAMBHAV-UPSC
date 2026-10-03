@@ -420,90 +420,63 @@ export default function CurrentAffairsPage() {
         <span>Back</span>
       </button>
 
-      <section className="ca-header">
-        <div>
-          <p className="eyebrow">SAMBHAV UPSC</p>
-
-          <h1>Current Affairs</h1>
-
-          <p className="sub">
-            {hi
-              ? "UPSC प्रासंगिक दैनिक करेंट अफेयर्स — Prelims + Mains"
-              : "UPSC-relevant daily current affairs — Prelims + Mains"}
-          </p>
-        </div>
-
-        <div className="header-actions">
-          <div className="language-box">
-            <span>
-              {hi ? "भाषा" : "Language"}
-            </span>
-
-            <div className="language-buttons">
-              <button
-                className={
-                  hi ? "lang active" : "lang"
-                }
-                onClick={() =>
-                  setLanguage("hi")
-                }
-              >
-                हिन्दी
-              </button>
-
-              <button
-                className={
-                  !hi
-                    ? "lang active"
-                    : "lang"
-                }
-                onClick={() =>
-                  setLanguage("en")
-                }
-              >
-                English
-              </button>
-            </div>
-          </div>
-
-          <div className="date-card">
-            <span>Latest Update</span>
-
-            <strong>
-              {getLatestDate()}
-            </strong>
-
-            <small>
-              Daily update: 10:00 AM
-            </small>
-          </div>
-
-          <button
-            className="magazine-button"
-            onClick={() =>
-              (window.location.href =
-                "/current-affairs/magazine")
-            }
-          >
-            📖
-            <span>Monthly Magazine</span>
-          </button>
-
-          <button
-            className="notification-button"
-            onClick={() =>
-              setNotificationOpen(
-                !notificationOpen
-              )
-            }
-          >
-            🔔
-            <span>Notifications</span>
-          </button>
-        </div>
-      </section>
-
       <section className="ca-premium-hero">
+        <div className="ca-hero-topbar">
+          <div className="ca-hero-brand">
+            <span className="ca-hero-brand-kicker">SAMBHAV UPSC</span>
+            <strong>Current Affairs</strong>
+            <small>UPSC Daily Intelligence • Prelims + Mains</small>
+          </div>
+
+          <div className="ca-hero-actions">
+            <div className="ca-hero-action-card ca-language-card">
+              <span>{hi ? "भाषा" : "Language"}</span>
+              <div className="ca-lang-pills">
+                <button
+                  type="button"
+                  className={hi ? "ca-lang-pill active" : "ca-lang-pill"}
+                  onClick={() => setLanguage("hi")}
+                >
+                  हिन्दी
+                </button>
+                <button
+                  type="button"
+                  className={!hi ? "ca-lang-pill active" : "ca-lang-pill"}
+                  onClick={() => setLanguage("en")}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            <div className="ca-hero-action-card ca-date-card">
+              <span>Latest Update</span>
+              <strong>{getLatestDate()}</strong>
+              <small>Daily update • 10:00 AM</small>
+            </div>
+
+            <button
+              type="button"
+              className="ca-hero-utility-btn magazine"
+              onClick={() => (window.location.href = "/current-affairs/magazine")}
+            >
+              <span>▣</span>
+              <b>Monthly Magazine</b>
+            </button>
+
+            <button
+              type="button"
+              className="ca-hero-utility-btn notification"
+              onClick={() => setNotificationOpen(!notificationOpen)}
+            >
+              <span>◉</span>
+              <b>Notifications</b>
+            </button>
+          </div>
+        </div>
+
+        <div className="ca-hero-divider" />
+
         <div className="ca-hero-copy">
           <span className="ca-hero-eyebrow">SAMBHAV UPSC • DAILY INTELLIGENCE</span>
           <h2>
@@ -2335,6 +2308,311 @@ export default function CurrentAffairsPage() {
           .news-card h3 { font-size:17px; }
           .card-actions { grid-template-columns:1fr; }
           .source { grid-column:auto; }
+        }
+
+        /* =========================================================
+           SAMBHAV PREMIUM CA POLISH
+           Single-card hero: brand + language + update + actions
+           ========================================================= */
+        .ca-premium-hero {
+          display:grid;
+          grid-template-columns:minmax(0,1fr) 165px;
+          gap:24px;
+          align-items:center;
+          padding:18px 20px 23px;
+          border-radius:26px;
+          border:1px solid rgba(195,161,90,.34);
+          box-shadow:0 24px 60px rgba(15,23,42,.17);
+        }
+
+        .ca-hero-topbar {
+          grid-column:1 / -1;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:18px;
+          position:relative;
+          z-index:2;
+        }
+
+        .ca-hero-brand {
+          min-width:185px;
+        }
+        .ca-hero-brand-kicker {
+          display:block;
+          color:#d9bd72;
+          font-size:8px;
+          letter-spacing:.18em;
+          font-weight:950;
+          text-transform:uppercase;
+          margin-bottom:5px;
+        }
+        .ca-hero-brand strong {
+          display:block;
+          color:#fffdf9;
+          font-size:21px;
+          line-height:1.05;
+          letter-spacing:-.6px;
+        }
+        .ca-hero-brand small {
+          display:block;
+          color:#8f98a5;
+          font-size:9px;
+          line-height:1.4;
+          margin-top:5px;
+        }
+
+        .ca-hero-actions {
+          display:flex;
+          align-items:stretch;
+          justify-content:flex-end;
+          gap:7px;
+          flex-wrap:wrap;
+        }
+
+        .ca-hero-action-card,
+        .ca-hero-utility-btn {
+          min-height:52px;
+          border-radius:14px;
+          border:1px solid rgba(255,255,255,.10);
+          background:rgba(255,255,255,.055);
+          color:#fff;
+          backdrop-filter:blur(10px);
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+        }
+
+        .ca-hero-action-card {
+          padding:8px 10px;
+        }
+        .ca-language-card { min-width:148px; }
+        .ca-date-card { min-width:138px; }
+        .ca-hero-action-card > span {
+          display:block;
+          color:#8e97a4;
+          font-size:7px;
+          font-weight:850;
+          letter-spacing:.08em;
+          text-transform:uppercase;
+          margin-bottom:5px;
+        }
+        .ca-date-card strong {
+          display:block;
+          color:#fffdf9;
+          font-size:11px;
+          line-height:1;
+        }
+        .ca-date-card small {
+          display:block;
+          color:#7f8996;
+          font-size:7px;
+          margin-top:5px;
+        }
+        .ca-lang-pills { display:flex; gap:4px; }
+        .ca-lang-pill {
+          border:1px solid rgba(255,255,255,.10);
+          background:rgba(255,255,255,.05);
+          color:#aeb5bf;
+          border-radius:8px;
+          padding:6px 8px;
+          font-size:9px;
+          font-weight:900;
+          cursor:pointer;
+        }
+        .ca-lang-pill.active {
+          background:#f7f1df;
+          color:#111827;
+          border-color:#f7f1df;
+          box-shadow:0 4px 12px rgba(0,0,0,.14);
+        }
+
+        .ca-hero-utility-btn {
+          min-width:126px;
+          padding:0 12px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:6px;
+          cursor:pointer;
+          font-size:9px;
+          transition:transform .16s ease, background .16s ease, border-color .16s ease;
+        }
+        .ca-hero-utility-btn span {
+          color:#e2c77d;
+          font-size:12px;
+        }
+        .ca-hero-utility-btn:hover {
+          transform:translateY(-1px);
+          background:rgba(255,255,255,.09);
+          border-color:rgba(226,199,125,.28);
+        }
+        .ca-hero-utility-btn.notification {
+          background:#f7f1df;
+          color:#172033;
+          border-color:#f7f1df;
+        }
+        .ca-hero-utility-btn.notification span { color:#8d6a22; }
+
+        .ca-hero-divider {
+          grid-column:1 / -1;
+          height:1px;
+          background:linear-gradient(90deg,transparent,rgba(226,199,125,.25),transparent);
+          margin:0 0 -4px;
+        }
+
+        .ca-hero-copy { min-width:0; }
+        .ca-hero-copy h2 {
+          font-size:clamp(24px,3vw,37px);
+          line-height:1.08;
+          letter-spacing:-1.45px;
+          max-width:720px;
+          margin:7px 0 9px;
+        }
+        .ca-hero-copy p {
+          max-width:700px;
+          font-size:12px;
+          line-height:1.75;
+          color:#aeb6c1;
+        }
+        .ca-hero-stats { margin-top:18px; gap:8px; }
+        .ca-hero-stat {
+          min-width:112px;
+          padding:10px 12px;
+          border-radius:13px;
+          background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+          border-color:rgba(255,255,255,.10);
+        }
+        .ca-hero-stat strong { font-size:14px; letter-spacing:-.2px; }
+        .ca-hero-stat span { font-size:8px; text-transform:uppercase; letter-spacing:.07em; }
+
+        .source-nav-wrap {
+          padding:14px;
+          border-radius:20px;
+          background:rgba(255,255,255,.94);
+          border-color:#e1e5eb;
+          box-shadow:0 12px 32px rgba(15,23,42,.055);
+        }
+        .source-nav-head { padding:1px 3px 11px; }
+        .source-nav-head strong { font-size:14px; letter-spacing:-.25px; }
+        .source-tab {
+          min-height:48px;
+          border-radius:14px;
+          background:linear-gradient(180deg,#fff,#fafbfc);
+          box-shadow:0 2px 5px rgba(15,23,42,.025);
+        }
+        .source-tab.active {
+          background:linear-gradient(145deg,#1a2232,#111827);
+          box-shadow:0 9px 20px rgba(15,23,42,.15);
+        }
+        .source-tab.ethics.active {
+          background:linear-gradient(145deg,#8b3046,#682235);
+        }
+
+        .filter-row {
+          gap:8px;
+          padding:4px 0 15px;
+        }
+        .filter {
+          min-height:43px;
+          padding:10px 15px;
+          border-radius:13px;
+          border:1px solid #e1e6ed;
+          background:linear-gradient(180deg,#fff,#f8fafc);
+          color:#344054;
+          font-size:11px;
+          font-weight:900;
+          letter-spacing:-.05px;
+          box-shadow:0 4px 12px rgba(15,23,42,.035);
+        }
+        .filter:hover {
+          transform:translateY(-1px);
+          box-shadow:0 8px 18px rgba(15,23,42,.07);
+        }
+        .filter.active {
+          background:#172033;
+          border-color:#172033;
+          color:#fff;
+          box-shadow:0 9px 20px rgba(15,23,42,.14);
+        }
+        .filter.important.active { background:#8d6a22; border-color:#8d6a22; }
+
+        .section-heading {
+          padding:15px 18px;
+          margin-bottom:12px;
+          border:1px solid #e3e7ed;
+          border-radius:17px;
+          background:rgba(255,255,255,.82);
+          box-shadow:0 7px 22px rgba(15,23,42,.04);
+        }
+        .section-heading h2 {
+          font-size:22px;
+          letter-spacing:-.7px;
+        }
+        .section-heading p { color:#7d8794; }
+
+        .news-card {
+          border-radius:19px;
+          border-color:#e2e7ee;
+          box-shadow:0 10px 28px rgba(15,23,42,.055);
+          transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .news-card:hover {
+          transform:translateY(-2px);
+          border-color:#d5dce5;
+          box-shadow:0 17px 35px rgba(15,23,42,.085);
+        }
+        .news-card h3 {
+          font-size:19px;
+          line-height:1.42;
+          letter-spacing:-.35px;
+        }
+        .summary { color:#5f6b79; line-height:1.75; }
+        .read-button,
+        .important-button {
+          border-radius:11px;
+          min-height:40px;
+          font-weight:900;
+        }
+
+        .premium-facts-wrap,
+        .special-section {
+          border-radius:21px;
+        }
+
+        @media (max-width: 900px) {
+          .ca-premium-hero { grid-template-columns:1fr; }
+          .ca-hero-seal { display:none; }
+          .ca-hero-topbar { align-items:flex-start; flex-direction:column; }
+          .ca-hero-actions { width:100%; justify-content:flex-start; }
+        }
+
+        @media (max-width: 600px) {
+          .ca-premium-hero {
+            display:block;
+            padding:15px;
+            border-radius:20px;
+          }
+          .ca-hero-topbar { display:block; }
+          .ca-hero-brand { margin-bottom:12px; }
+          .ca-hero-brand strong { font-size:20px; }
+          .ca-hero-actions {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:7px;
+          }
+          .ca-hero-action-card,
+          .ca-hero-utility-btn { width:100%; min-width:0; }
+          .ca-language-card, .ca-date-card { min-width:0; }
+          .ca-hero-utility-btn { min-height:46px; }
+          .ca-hero-divider { margin:13px 0 3px; }
+          .ca-hero-copy h2 { font-size:25px; letter-spacing:-1px; }
+          .ca-hero-copy p { font-size:11.5px; }
+          .ca-hero-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+          .ca-hero-stat { min-width:0; padding:8px 7px; }
+          .ca-hero-stat strong { font-size:11px; }
+          .ca-hero-stat span { font-size:6.5px; }
+          .source-nav-wrap { border-radius:17px; }
+          .source-tab { min-height:43px; border-radius:12px; }
+          .filter { border-radius:12px; }
         }
 
         html, body { max-width:100%; overflow-x:hidden; }
