@@ -431,6 +431,97 @@ const styles = {
     lineHeight: "1.5",
   },
 
+  profileCard: {
+    background: "#fffdf9",
+    border: "1px solid rgba(16,16,16,.08)",
+    borderRadius: "25px",
+    padding: "20px",
+    marginBottom: "15px",
+  },
+
+  profileTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    marginBottom: "20px",
+  },
+
+  profileAvatar: {
+    width: "64px",
+    height: "64px",
+    borderRadius: "20px",
+    background: "#101010",
+    color: "#dfc477",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "24px",
+    fontWeight: "900",
+    flexShrink: 0,
+  },
+
+  profileName: {
+    fontSize: "20px",
+    fontWeight: "900",
+    letterSpacing: "-.5px",
+  },
+
+  profileEmail: {
+    marginTop: "5px",
+    color: "#77736b",
+    fontSize: "10px",
+    wordBreak: "break-word",
+  },
+
+  profileRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    padding: "13px 0",
+    borderTop: "1px solid rgba(16,16,16,.07)",
+  },
+
+  profileLabel: {
+    color: "#77736b",
+    fontSize: "10px",
+    fontWeight: "700",
+  },
+
+  profileValue: {
+    fontSize: "10px",
+    fontWeight: "850",
+    textAlign: "right",
+    wordBreak: "break-word",
+  },
+
+  activeBadge: {
+    display: "inline-flex",
+    padding: "6px 9px",
+    borderRadius: "999px",
+    background: "#101010",
+    color: "#dfc477",
+    fontSize: "8px",
+    fontWeight: "900",
+  },
+
+  logoutButton: {
+    width: "100%",
+    padding: "15px",
+    border: "1px solid rgba(181,43,34,.18)",
+    borderRadius: "16px",
+    background: "#fffdf9",
+    color: "#b52b22",
+    fontSize: "11px",
+    fontWeight: "900",
+    cursor: "pointer",
+  },
+
+  logoutLoading: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+
   bottomNav: {
     position: "fixed",
     left: "50%",
@@ -481,18 +572,14 @@ export default function PremiumHome() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeView, setActiveView] = useState("home");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let stopped = false;
 
     const authenticate = async () => {
       try {
-        /*
-         * Authenticate using the existing SAMBHAV
-         * HTTP-only email session cookie.
-         *
-         * No Telegram authentication is required.
-         */
         const response = await fetch(
           "/api/auth/me",
           {
@@ -572,6 +659,48 @@ export default function PremiumHome() {
     if (!route) return;
 
     window.location.href = route;
+  };
+
+  const logout = async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      const response = await fetch(
+        "/api/auth/logout",
+        {
+          method: "POST",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      const data =
+        await response.json().catch(
+          () => ({})
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Logout failed."
+        );
+      }
+
+      window.location.href = "/login";
+    } catch (err) {
+      console.error(
+        "SAMBHAV logout error:",
+        err
+      );
+
+      setLoggingOut(false);
+      alert(
+        err.message ||
+          "Logout failed. Please try again."
+      );
+    }
   };
 
   if (loading) {
@@ -657,6 +786,284 @@ export default function PremiumHome() {
       </main>
     );
   }
+
+  /*
+   * =========================================================
+   * PROFILE VIEW
+   * =========================================================
+   */
+  if (activeView === "profile") {
+    const plan =
+      user?.plan ||
+      "free";
+
+    const status =
+      user?.status ||
+      "approved";
+
+    const email =
+      user?.email ||
+      "Email not available";
+
+    const createdAt =
+      user?.created_at ||
+      user?.createdAt ||
+      null;
+
+    const premiumExpiry =
+      user?.premium_expires_at ||
+      user?.expires_at ||
+      user?.subscription?.expires_at ||
+      null;
+
+    const formatDate = (value) => {
+      if (!value) {
+        return "Not available";
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Not available";
+      }
+
+      return date.toLocaleDateString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }
+      );
+    };
+
+    return (
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.header}>
+            <div>
+              <div style={styles.brand}>
+                SAMBHAV UPSC
+              </div>
+
+              <div style={styles.brandSub}>
+                Profile
+              </div>
+            </div>
+
+            <div style={styles.avatar}>
+              {initial}
+            </div>
+          </header>
+
+          <button
+            onClick={() =>
+              setActiveView("home")
+            }
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: "0",
+              marginBottom: "18px",
+              fontSize: "11px",
+              fontWeight: "800",
+              color: "#77736b",
+              cursor: "pointer",
+            }}
+          >
+            ← Back to Premium Home
+          </button>
+
+          <section style={styles.profileCard}>
+            <div style={styles.profileTop}>
+              <div style={styles.profileAvatar}>
+                {initial}
+              </div>
+
+              <div
+                style={{
+                  minWidth: 0,
+                  flex: 1,
+                }}
+              >
+                <div style={styles.profileName}>
+                  {firstName}
+                </div>
+
+                <div style={styles.profileEmail}>
+                  {email}
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.profileRow}>
+              <div style={styles.profileLabel}>
+                Account Status
+              </div>
+
+              <div style={styles.activeBadge}>
+                {String(status).toUpperCase()}
+              </div>
+            </div>
+
+            <div style={styles.profileRow}>
+              <div style={styles.profileLabel}>
+                Current Plan
+              </div>
+
+              <div style={styles.profileValue}>
+                {String(plan).toUpperCase()}
+              </div>
+            </div>
+
+            <div style={styles.profileRow}>
+              <div style={styles.profileLabel}>
+                Premium Expiry
+              </div>
+
+              <div style={styles.profileValue}>
+                {formatDate(premiumExpiry)}
+              </div>
+            </div>
+
+            <div style={styles.profileRow}>
+              <div style={styles.profileLabel}>
+                Account Created
+              </div>
+
+              <div style={styles.profileValue}>
+                {formatDate(createdAt)}
+              </div>
+            </div>
+          </section>
+
+          <section
+            style={{
+              ...styles.profileCard,
+              padding: "17px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "13px",
+                fontWeight: "900",
+                marginBottom: "6px",
+              }}
+            >
+              Account Security
+            </div>
+
+            <div
+              style={{
+                color: "#77736b",
+                fontSize: "9px",
+                lineHeight: "1.5",
+                marginBottom: "15px",
+              }}
+            >
+              Your SAMBHAV account session is
+              protected by a secure HTTP-only
+              authentication cookie.
+            </div>
+
+            <button
+              onClick={logout}
+              disabled={loggingOut}
+              style={{
+                ...styles.logoutButton,
+                ...(loggingOut
+                  ? styles.logoutLoading
+                  : {}),
+              }}
+            >
+              {loggingOut
+                ? "LOGGING OUT..."
+                : "LOG OUT"}
+            </button>
+          </section>
+        </div>
+
+        <nav style={styles.bottomNav}>
+          <div
+            style={{
+              ...styles.navItem,
+              ...(activeView === "home"
+                ? styles.navActive
+                : {}),
+            }}
+            onClick={() =>
+              setActiveView("home")
+            }
+          >
+            <span style={styles.navIcon}>
+              ⌂
+            </span>
+
+            Home
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() => go("/pyq")}
+          >
+            <span style={styles.navIcon}>
+              ▣
+            </span>
+
+            Practice
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              go("/current-affairs")
+            }
+          >
+            <span style={styles.navIcon}>
+              ▤
+            </span>
+
+            Current
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() => {
+              console.log("AI module");
+            }}
+          >
+            <span style={styles.navIcon}>
+              ✦
+            </span>
+
+            AI
+          </div>
+
+          <div
+            style={{
+              ...styles.navItem,
+              ...styles.navActive,
+            }}
+            onClick={() =>
+              setActiveView("profile")
+            }
+          >
+            <span style={styles.navIcon}>
+              ●
+            </span>
+
+            Profile
+          </div>
+        </nav>
+      </main>
+    );
+  }
+
+  /*
+   * =========================================================
+   * PREMIUM HOME
+   * =========================================================
+   */
 
   return (
     <main style={styles.page}>
@@ -960,6 +1367,9 @@ export default function PremiumHome() {
             ...styles.navItem,
             ...styles.navActive,
           }}
+          onClick={() =>
+            setActiveView("home")
+          }
         >
           <span style={styles.navIcon}>
             ⌂
@@ -1007,7 +1417,9 @@ export default function PremiumHome() {
 
         <div
           style={styles.navItem}
-          onClick={() => go("/")}
+          onClick={() =>
+            setActiveView("profile")
+          }
         >
           <span style={styles.navIcon}>
             ●
