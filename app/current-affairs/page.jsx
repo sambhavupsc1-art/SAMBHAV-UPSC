@@ -11,8 +11,26 @@ const filters = [
   "Prelims",
 ];
 
+function getSourceKey(item) {
+  const source = String(item?.source_name || "").toLowerCase();
+
+  if (source.includes("press information bureau") || source === "pib") return "pib";
+  if (source.includes("gktoday")) return "gktoday";
+  if (source.startsWith("the hindu")) return "the-hindu";
+  if (source.includes("the better india")) return "better-india";
+  return "other";
+}
+
+function isEthicsExample(item) {
+  return (
+    item?.report_type === "ethics_example" ||
+    getSourceKey(item) === "better-india"
+  );
+}
+
 export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
+  const [activeSource, setActiveSource] = useState("all");
   const [language, setLanguage] = useState("hi");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
@@ -243,33 +261,71 @@ export default function CurrentAffairsPage() {
     [important]
   );
 
+  const sourceFilteredNews = useMemo(
+    () => news.filter(sourceMatches),
+    [news, activeSource]
+  );
+
   const filteredNews = useMemo(() => {
-    if (active === "Today") return news;
+    const base = sourceFilteredNews;
+
+    if (active === "Today") {
+      return base.filter((item) => !isEthicsExample(item));
+    }
 
     if (active === "Prelims") {
-      return news.filter(
+      return base.filter(
         (item) =>
-          item.prelims ||
-          item.prelims_hi ||
-          item.prelims_en ||
-          item.prelims_mcq ||
-          item.prelims_mcq_hi ||
-          item.prelims_mcq_en
+          !isEthicsExample(item) &&
+          (item.prelims ||
+            item.prelims_hi ||
+            item.prelims_en ||
+            item.prelims_mcq ||
+            item.prelims_mcq_hi ||
+            item.prelims_mcq_en)
       );
     }
 
     if (active === "Important") {
-      return news.filter((item) =>
+      return base.filter((item) =>
         importantIds.includes(Number(item.id))
       );
     }
 
-    return news.filter(
+    if (active === "Premium") return base;
+
+    if (active === "GS-IV") {
+      return base.filter(
+        (item) =>
+          item.gs === "GS-IV" ||
+          item.paper === "GS-IV" ||
+          isEthicsExample(item)
+      );
+    }
+
+    return base.filter(
       (item) =>
         item.gs === active ||
         item.paper === active
     );
-  }, [active, news, importantIds]);
+  }, [active, sourceFilteredNews, importantIds]);
+
+  const sourceTabs = [
+    { key: "all", label: "ALL" },
+    { key: "pib", label: "PIB" },
+    { key: "gktoday", label: "GK TODAY" },
+    { key: "the-hindu", label: "THE HINDU" },
+    { key: "better-india", label: "BETTER INDIA", sub: "GS-IV" },
+  ];
+
+  function selectSource(key) {
+    setActiveSource(key);
+    if (key === "better-india") {
+      setActive("GS-IV");
+    } else if (active === "Premium" || active === "Important" || active === "GS-IV") {
+      setActive("Today");
+    }
+  }
 
   async function toggleImportant(id) {
     try {
@@ -576,6 +632,42 @@ export default function CurrentAffairsPage() {
         </section>
       )}
 
+      <section className="source-nav-wrap">
+        <div className="source-nav-head">
+          <div>
+            <span className="source-nav-eyebrow">SOURCES</span>
+            <strong>Current Affairs Sources</strong>
+          </div>
+          <span className="source-nav-note">
+            {activeSource === "better-india" ? "Better India → GS-IV Ethics" : "Select a source"}
+          </span>
+        </div>
+
+        <div className="source-nav">
+          {sourceTabs.map((tab) => {
+            const count =
+              tab.key === "all"
+                ? news.filter((item) => !isEthicsExample(item)).length
+                : news.filter((item) => getSourceKey(item) === tab.key).length;
+
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={`source-tab ${
+                  activeSource === tab.key ? "active" : ""
+                } ${tab.key === "better-india" ? "ethics" : ""}`}
+                onClick={() => selectSource(tab.key)}
+              >
+                <span className="source-tab-main">{tab.label}</span>
+                {tab.sub && <span className="source-tab-sub">{tab.sub}</span>}
+                <span className="source-tab-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <nav className="filter-row">
         {filters.map((filter) => (
           <button
@@ -712,7 +804,7 @@ export default function CurrentAffairsPage() {
         </section>
       ) : active === "Premium" ? (
         <PremiumFacts
-          news={news}
+          news={sourceFilteredNews}
           language={language}
           hi={hi}
         />
@@ -803,6 +895,121 @@ export default function CurrentAffairsPage() {
           max-width: 1050px;
           margin-left: auto;
           margin-right: auto;
+        }
+
+        .source-nav-wrap {
+          max-width: 1050px;
+          margin: 0 auto 14px;
+          padding: 12px;
+          background: rgba(255,255,255,.88);
+          border: 1px solid #e2e7ef;
+          border-radius: 18px;
+          box-shadow: 0 8px 24px rgba(15,23,42,.045);
+          backdrop-filter: blur(10px);
+        }
+
+        .source-nav-head {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          padding: 2px 4px 10px;
+        }
+
+        .source-nav-eyebrow {
+          display:block;
+          color:#98a2b3;
+          font-size:9px;
+          font-weight:950;
+          letter-spacing:.14em;
+          margin-bottom:3px;
+        }
+
+        .source-nav-head strong {
+          font-size:13px;
+          font-weight:900;
+        }
+
+        .source-nav-note {
+          color:#667085;
+          font-size:10px;
+          font-weight:700;
+          text-align:right;
+        }
+
+        .source-nav {
+          display:grid;
+          grid-template-columns: repeat(5, minmax(0,1fr));
+          gap:7px;
+        }
+
+        .source-tab {
+          min-width:0;
+          min-height:46px;
+          border:1px solid #e1e6ee;
+          background:#fff;
+          color:#344054;
+          border-radius:12px;
+          padding:8px 10px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:7px;
+          cursor:pointer;
+          font-weight:900;
+          transition:transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+        }
+
+        .source-tab:hover {
+          transform:translateY(-1px);
+          box-shadow:0 6px 14px rgba(15,23,42,.06);
+        }
+
+        .source-tab.active {
+          background:#172033;
+          color:#fff;
+          border-color:#172033;
+          box-shadow:0 7px 16px rgba(15,23,42,.14);
+        }
+
+        .source-tab.ethics.active {
+          background:#7a263a;
+          border-color:#7a263a;
+        }
+
+        .source-tab-main {
+          overflow:hidden;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+          font-size:11px;
+        }
+
+        .source-tab-sub {
+          font-size:8px;
+          padding:3px 5px;
+          border-radius:999px;
+          background:#f2f4f7;
+          color:#667085;
+        }
+
+        .source-tab.active .source-tab-sub {
+          background:rgba(255,255,255,.14);
+          color:#fff;
+        }
+
+        .source-tab-count {
+          min-width:22px;
+          padding:3px 5px;
+          border-radius:999px;
+          background:#f2f4f7;
+          color:#475467;
+          font-size:9px;
+          text-align:center;
+        }
+
+        .source-tab.active .source-tab-count {
+          background:rgba(255,255,255,.14);
+          color:#fff;
         }
 
         .ca-header {
@@ -1192,6 +1399,32 @@ export default function CurrentAffairsPage() {
           gap: 12px;
           align-items: center;
         }
+
+        .card-badges {
+          display:flex;
+          align-items:center;
+          gap:6px;
+          flex-wrap:wrap;
+          min-width:0;
+        }
+
+        .source-chip {
+          display:inline-flex;
+          align-items:center;
+          min-height:22px;
+          padding:4px 7px;
+          border-radius:7px;
+          background:#f2f4f7;
+          color:#475467;
+          font-size:8px;
+          font-weight:950;
+          letter-spacing:.05em;
+        }
+
+        .source-chip.pib { background:#eef4ff; color:#175cd3; }
+        .source-chip.gktoday { background:#ecfdf3; color:#027a48; }
+        .source-chip.the-hindu { background:#fff1f3; color:#b42318; }
+        .source-chip.better-india { background:#fff7e6; color:#9a6700; }
 
         .meta,
         .source {
@@ -1723,140 +1956,112 @@ export default function CurrentAffairsPage() {
           outline-offset: 2px;
         }
 
-        @media (max-width: 800px) {
-          .premium-clean-grid {
-            grid-template-columns: 1fr;
-          }
+        /* =========================================================
+           RESPONSIVE SYSTEM
+           Mobile + Tablet + Laptop + Desktop
+           ========================================================= */
 
-          .premium-tabs {
-            grid-template-columns: 1fr;
-          }
+        @media (min-width: 1400px) {
+          .ca-page { padding-left:32px; padding-right:32px; }
+          .ca-header, .source-nav-wrap, .notification-panel, .filter-row,
+          .section-heading, .news-list, .special-section { max-width:1180px; }
+          .ca-header { padding:30px; }
+        }
 
-          .premium-active-heading {
-            align-items: flex-start;
-          }
+        @media (min-width: 1025px) and (max-width: 1399px) {
+          .ca-page { padding:28px 20px 80px; }
+          .ca-header, .source-nav-wrap, .notification-panel, .filter-row,
+          .section-heading, .news-list, .special-section { max-width:1100px; }
+          .ca-header { align-items:flex-start; }
+          .header-actions { max-width:560px; justify-content:flex-end; }
+        }
 
-          .ca-header {
-            display: block;
-          }
-
-          .header-actions {
-            margin-top: 15px;
-          }
-
-          .notification-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .fact-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .filter-row {
-            top: 4px;
-          }
+        @media (min-width: 601px) and (max-width: 1024px) {
+          .ca-page { padding:22px 16px 70px; }
+          .ca-header { display:flex; flex-direction:column; align-items:stretch; gap:20px; padding:22px; }
+          .header-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
+          .language-box, .date-card, .notification-button, .magazine-button { width:100%; min-width:0; }
+          .source-nav { grid-template-columns:repeat(3,minmax(0,1fr)); }
+          .source-nav-wrap { width:100%; }
+          .filter-row { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+          .filter { flex:0 0 auto; }
+          .news-card { padding:20px; }
+          .fact-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .premium-clean-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
         @media (max-width: 600px) {
-          .ca-page {
-            padding: 16px 11px 55px;
-          }
+          .ca-page { width:100%; max-width:100%; min-width:0; padding:12px 10px 48px; overflow-x:hidden; }
+          .ca-header { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:17px; padding:17px; border-radius:18px; }
+          h1 { font-size:clamp(29px,9vw,38px); }
+          .sub { font-size:12.5px; }
+          .header-actions { width:100%; display:grid; grid-template-columns:1fr; gap:8px; }
+          .language-box, .date-card, .notification-button, .magazine-button { width:100%; min-width:0; box-sizing:border-box; }
+          .lang { flex:1; min-height:40px; }
 
-          .ca-header {
-            padding: 19px;
-            border-radius: 20px;
-          }
+          .source-nav-wrap { width:100%; max-width:100%; box-sizing:border-box; padding:10px; margin-bottom:10px; border-radius:15px; }
+          .source-nav-head { align-items:flex-start; }
+          .source-nav-note { font-size:9px; max-width:45%; }
+          .source-nav { display:flex; overflow-x:auto; gap:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+          .source-nav::-webkit-scrollbar { display:none; }
+          .source-tab { flex:0 0 auto; min-height:40px; padding:7px 10px; }
 
-          .section-heading {
-            display: block;
-          }
+          .notification-panel { width:100%; max-width:100%; box-sizing:border-box; padding:15px; border-radius:16px; }
+          .notification-grid { grid-template-columns:1fr; }
+          .notification-info { display:block; font-size:12px; }
+          .notification-info span { display:block; margin-top:5px; }
+          .setting-box input { width:100%; box-sizing:border-box; margin:0 0 8px; }
+          .save-time { width:100%; }
 
-          .section-heading p {
-            margin-top: 8px;
-          }
+          .filter-row { width:100%; max-width:100%; display:flex; overflow-x:auto; gap:7px; padding:3px 1px 13px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+          .filter-row::-webkit-scrollbar { display:none; }
+          .filter { flex:0 0 auto; min-height:40px; padding:9px 13px; font-size:12px; }
 
-          .topline {
-            display: block;
-          }
+          .section-heading { width:100%; max-width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:7px; margin-bottom:11px; }
+          .section-heading h2 { font-size:20px; }
+          .news-list { width:100%; max-width:100%; grid-template-columns:1fr; gap:11px; }
+          .news-card { width:100%; min-width:0; box-sizing:border-box; padding:15px; border-radius:16px; }
+          .topline { align-items:flex-start; }
+          .meta { font-size:10px; text-align:right; }
+          .news-card h3 { font-size:18px; line-height:1.38; overflow-wrap:anywhere; }
+          .summary { font-size:12.5px; line-height:1.7; }
+          .card-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; align-items:stretch; }
+          .read-button, .important-button { width:100%; min-height:42px; font-size:12px; }
+          .source { grid-column:1 / -1; width:100%; font-size:10px; overflow-wrap:anywhere; }
+          .card-badges { max-width:70%; }
+          .source-chip { font-size:7px; }
 
-          .meta {
-            display: block;
-            margin-top: 8px;
-          }
+          .inline-analysis { margin-top:13px; padding-top:13px; }
+          .inline-analysis-card { width:100%; max-width:100%; box-sizing:border-box; padding:15px; border-radius:14px; }
+          .modal h2 { font-size:21px; line-height:1.35; }
+          .modal p, .content-block { font-size:13px; line-height:1.7; }
 
-          .date-card,
-          .language-box,
-          .notification-button,
-          .magazine-button {
-            width: 100%;
-          }
-
-          .language-buttons {
-            width: 100%;
-          }
-
-          .lang {
-            flex: 1;
-          }
-
-          .notification-info {
-            display: block;
-          }
-
-          .notification-info span {
-            display: block;
-            margin-top: 5px;
-          }
-
-          .setting-box input {
-            width: 100%;
-            margin: 0 0 8px;
-          }
-
-          .save-time {
-            width: 100%;
-          }
-
-          .notification-title {
-            align-items: flex-start;
-          }
-
-          .news-card {
-            padding: 17px;
-            border-radius: 18px;
-          }
-
-          .news-card h3 {
-            font-size: 20px;
-          }
-
-          .card-actions {
-            align-items: stretch;
-          }
-
-          .read-button,
-          .important-button {
-            flex: 1;
-          }
-
-          .source {
-            width: 100%;
-          }
-
-          .inline-analysis {
-            margin-top: 15px;
-            padding-top: 15px;
-          }
-
-          .inline-analysis-card {
-            padding: 17px;
-            border-radius: 15px;
-          }
-
-          .modal h3 {
-            margin-top: 21px;
-          }
+          .premium-facts-wrap { width:100%; max-width:100%; }
+          .premium-main-heading { padding:17px; border-radius:17px; }
+          .premium-tabs { grid-template-columns:1fr; }
+          .premium-active-heading { display:flex; flex-direction:column; align-items:flex-start; }
+          .premium-clean-grid { grid-template-columns:1fr; }
+          .fact-grid { width:100%; grid-template-columns:1fr; }
+          .empty, .state-card { width:100%; max-width:100%; box-sizing:border-box; padding:30px 15px; }
         }
+
+        @media (max-width: 380px) {
+          .ca-page { padding-left:7px; padding-right:7px; }
+          .ca-header { padding:14px; }
+          h1 { font-size:28px; }
+          .source-nav-head { display:block; }
+          .source-nav-note { display:block; max-width:none; text-align:left; margin-top:4px; }
+          .filter { padding:8px 11px; font-size:11px; }
+          .news-card { padding:13px; }
+          .news-card h3 { font-size:17px; }
+          .card-actions { grid-template-columns:1fr; }
+          .source { grid-column:auto; }
+        }
+
+        html, body { max-width:100%; overflow-x:hidden; }
+        *, *::before, *::after { box-sizing:border-box; }
+        button, input, select, textarea { max-width:100%; }
+        img, video, iframe { max-width:100%; height:auto; }
       `}</style>
     </main>
   );
@@ -1900,11 +2105,25 @@ function ArticleCard({
   return (
     <article className="news-card">
       <div className="topline">
-        <span className="badge">
-          {item.gs ||
-            item.paper ||
-            "UPSC"}
-        </span>
+        <div className="card-badges">
+          <span className="badge">
+            {isEthicsExample(item)
+              ? "GS-IV • ETHICS"
+              : item.gs || item.paper || "UPSC"}
+          </span>
+
+          <span className={`source-chip ${getSourceKey(item)}`}>
+            {getSourceKey(item) === "pib"
+              ? "PIB"
+              : getSourceKey(item) === "gktoday"
+                ? "GK TODAY"
+                : getSourceKey(item) === "the-hindu"
+                  ? "THE HINDU"
+                  : getSourceKey(item) === "better-india"
+                    ? "BETTER INDIA"
+                    : "SOURCE"}
+          </span>
+        </div>
 
         <span className="meta">
           {item.subject ||
