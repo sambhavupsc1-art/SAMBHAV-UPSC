@@ -3,13 +3,17 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY;
 
 function verifyEmailSession(token) {
   try {
-    const secret = process.env.AUTH_SESSION_SECRET;
+    const secret =
+      process.env.AUTH_SESSION_SECRET;
 
     if (!secret || !token) return null;
 
@@ -25,6 +29,8 @@ function verifyEmailSession(token) {
       .digest("base64url");
 
     if (
+      signature.length !==
+        expectedSignature.length ||
       !crypto.timingSafeEqual(
         Buffer.from(signature),
         Buffer.from(expectedSignature)
@@ -34,20 +40,35 @@ function verifyEmailSession(token) {
     }
 
     const data = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8")
+      Buffer.from(
+        payload,
+        "base64url"
+      ).toString("utf8")
     );
 
-    if (!data.exp || Date.now() > data.exp) {
+    if (
+      !data.exp ||
+      Date.now() > data.exp
+    ) {
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error("Session verification error:", error);
+    console.error(
+      "Session verification error:",
+      error
+    );
+
     return null;
   }
 }
 
+/*
+ * ------------------------------------------------
+ * GET USER
+ * ------------------------------------------------
+ */
 async function getUserById(userId) {
   const response = await fetch(
     `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
@@ -56,23 +77,83 @@ async function getUserById(userId) {
     {
       headers: {
         apikey: SUPABASE_SECRET_KEY,
-        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+        Authorization:
+          `Bearer ${SUPABASE_SECRET_KEY}`,
       },
       cache: "no-store",
     }
   );
 
   if (!response.ok) {
-    console.error("User lookup error:", await response.text());
+    console.error(
+      "User lookup error:",
+      await response.text()
+    );
+
     return null;
   }
 
-  const users = await response.json();
+  const users =
+    await response.json();
 
-  return users.length ? users[0] : null;
+  return users.length
+    ? users[0]
+    : null;
 }
 
-async function getAdminStatus(telegramId) {
+/*
+ * ------------------------------------------------
+ * GET ACTIVE SUBSCRIPTION
+ * ------------------------------------------------
+ *
+ * Only an active subscription whose expiry
+ * is still in the future is returned.
+ */
+async function getActiveSubscription(userId) {
+  const now =
+    new Date().toISOString();
+
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
+      userId
+    )}&status=eq.active&expires_at=gt.${encodeURIComponent(
+      now
+    )}&select=id,plan,status,amount,started_at,expires_at,order_id,payment_id&order=expires_at.desc&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization:
+          `Bearer ${SUPABASE_SECRET_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    console.error(
+      "Subscription lookup error:",
+      await response.text()
+    );
+
+    return null;
+  }
+
+  const subscriptions =
+    await response.json();
+
+  return subscriptions.length
+    ? subscriptions[0]
+    : null;
+}
+
+/*
+ * ------------------------------------------------
+ * GET ADMIN STATUS
+ * ------------------------------------------------
+ */
+async function getAdminStatus(
+  telegramId
+) {
   if (!telegramId) return false;
 
   const response = await fetch(
@@ -82,140 +163,231 @@ async function getAdminStatus(telegramId) {
     {
       headers: {
         apikey: SUPABASE_SECRET_KEY,
-        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+        Authorization:
+          `Bearer ${SUPABASE_SECRET_KEY}`,
       },
       cache: "no-store",
     }
   );
 
   if (!response.ok) {
-    console.error("Admin lookup error:", await response.text());
+    console.error(
+      "Admin lookup error:",
+      await response.text()
+    );
+
     return false;
   }
 
-  const admins = await response.json();
+  const admins =
+    await response.json();
 
   return admins.length > 0;
 }
 
 export async function GET(request) {
   try {
-    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    if (
+      !SUPABASE_URL ||
+      !SUPABASE_SECRET_KEY
+    ) {
       return NextResponse.json(
-        { error: "Supabase environment variables are missing" },
+        {
+          error:
+            "Supabase environment variables are missing",
+        },
         { status: 500 }
       );
     }
 
     /*
-     * ------------------------------------------------
+     * ========================================================
      * 1. EXISTING TELEGRAM LOGIN
-     * ------------------------------------------------
+     * ========================================================
      */
 
-    const authorization = request.headers.get("authorization");
+    const authorization =
+      request.headers.get(
+        "authorization"
+      );
 
-    if (authorization?.startsWith("tma ")) {
-      const initData = authorization.slice(4);
+    if (
+      authorization?.startsWith(
+        "tma "
+      )
+    ) {
+      const initData =
+        authorization.slice(4);
 
-      const telegramUser = validateTelegramInitData(initData);
+      const telegramUser =
+        validateTelegramInitData(
+          initData
+        );
 
       if (!telegramUser?.id) {
         return NextResponse.json(
-          { error: "Invalid Telegram authentication" },
+          {
+            error:
+              "Invalid Telegram authentication",
+          },
           { status: 401 }
         );
       }
 
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
-          telegramUser.id
-        )}&select=id,email,telegram_id,first_name,username,status,plan,created_at`,
-        {
-          headers: {
-            apikey: SUPABASE_SECRET_KEY,
-            Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-          },
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
+            telegramUser.id
+          )}&select=id,email,telegram_id,first_name,username,status,plan,created_at`,
+          {
+            headers: {
+              apikey:
+                SUPABASE_SECRET_KEY,
+              Authorization:
+                `Bearer ${SUPABASE_SECRET_KEY}`,
+            },
+            cache: "no-store",
+          }
+        );
 
       if (!response.ok) {
-        console.error("Telegram user lookup error:", await response.text());
+        console.error(
+          "Telegram user lookup error:",
+          await response.text()
+        );
 
         return NextResponse.json(
-          { error: "Database error" },
+          {
+            error:
+              "Database error",
+          },
           { status: 500 }
         );
       }
 
-      const users = await response.json();
+      const users =
+        await response.json();
 
       if (users.length === 0) {
         return NextResponse.json(
-          { error: "User not found" },
+          {
+            error:
+              "User not found",
+          },
           { status: 404 }
         );
       }
 
       const user = users[0];
 
-      const isAdmin = await getAdminStatus(telegramUser.id);
+      /*
+       * Get active Premium subscription.
+       */
+      const subscription =
+        await getActiveSubscription(
+          user.id
+        );
+
+      const isAdmin =
+        await getAdminStatus(
+          telegramUser.id
+        );
 
       return NextResponse.json({
         user,
+        subscription,
         isAdmin,
         authMethod: "telegram",
       });
     }
 
     /*
-     * ------------------------------------------------
+     * ========================================================
      * 2. EMAIL SESSION LOGIN
-     * ------------------------------------------------
+     * ========================================================
      */
 
-    const cookieStore = await cookies();
+    const cookieStore =
+      await cookies();
 
-    const sessionCookie = cookieStore.get("sambhav_session");
+    const sessionCookie =
+      cookieStore.get(
+        "sambhav_session"
+      );
 
     if (!sessionCookie?.value) {
       return NextResponse.json(
-        { error: "Authentication required" },
+        {
+          error:
+            "Authentication required",
+        },
         { status: 401 }
       );
     }
 
-    const session = verifyEmailSession(sessionCookie.value);
+    const session =
+      verifyEmailSession(
+        sessionCookie.value
+      );
 
     if (!session?.userId) {
       return NextResponse.json(
-        { error: "Invalid or expired session" },
+        {
+          error:
+            "Invalid or expired session",
+        },
         { status: 401 }
       );
     }
 
-    const user = await getUserById(session.userId);
+    /*
+     * Get authenticated user.
+     */
+    const user =
+      await getUserById(
+        session.userId
+      );
 
     if (!user) {
       return NextResponse.json(
-        { error: "User not found" },
+        {
+          error:
+            "User not found",
+        },
         { status: 404 }
       );
     }
 
-    const isAdmin = await getAdminStatus(user.telegram_id);
+    /*
+     * Get active Premium subscription.
+     */
+    const subscription =
+      await getActiveSubscription(
+        user.id
+      );
+
+    const isAdmin =
+      await getAdminStatus(
+        user.telegram_id
+      );
 
     return NextResponse.json({
       user,
+      subscription,
       isAdmin,
       authMethod: "email",
     });
   } catch (error) {
-    console.error("Auth error:", error);
+    console.error(
+      "Auth error:",
+      error
+    );
 
     return NextResponse.json(
-      { error: "Server error" },
+      {
+        error:
+          "Server error",
+      },
       { status: 500 }
     );
   }
