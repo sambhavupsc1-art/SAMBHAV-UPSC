@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-
-export const dynamic = "force-dynamic";
+import { createClient } from "@supabase/supabase-js";
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,41 +18,34 @@ function getSupabase() {
   });
 }
 
-function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
 function hashOtp(otp) {
+  const secret = process.env.OTP_HASH_SECRET;
+
+  if (!secret) {
+    throw new Error("OTP_HASH_SECRET is missing.");
+  }
+
   return crypto
     .createHash("sha256")
-    .update(`${otp}:${process.env.OTP_HASH_SECRET || "sambhav-otp-secret"}`)
+    .update(`${otp}:${secret}`)
     .digest("hex");
 }
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const email = normalizeEmail(body?.email);
 
-    if (!email || !isValidEmail(email)) {
+    const email = normalizeEmail(body.email);
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
         {
           success: false,
-          error: "Valid email address required.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (email.length > 254) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Email address is too long.",
+          message: "Valid email is required.",
         },
         { status: 400 }
       );
@@ -62,56 +53,63 @@ export async function POST(request) {
 
     const supabase = getSupabase();
 
-    // ---------------------------------------------------
-    // Rate limit: latest OTP request must be at least
-    // 60 seconds old.
-    // ---------------------------------------------------
+    // Check if account already exists
+    const { data: existingUser, error: userError } = await supabase
+      .from("users")
+      .select("id,email")
+      .eq("email", email)
+      .maybeSingle();
 
-    const { data: recentOtp, error: recentError } =
-      await supabase
-        .from("email_otps")
-        .select("id, created_at")
-        .eq("email", email)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (recentError) {
-      console.error("OTP recent lookup error:", recentError);
+    if (userError) {
+      console.error("User lookup error:", userError);
 
       return NextResponse.json(
         {
           success: false,
-          error: "Unable to process OTP request.",
+          message: "Unable to check account.",
         },
         { status: 500 }
       );
     }
 
-    if (recentOtp?.created_at) {
-      const createdAt = new Date(recentOtp.created_at).getTime();
-      const elapsed = Date.now() - createdAt;
+    if (existingUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "An account with this email already exists.",
+        },
+        { status: 409 }
+      );
+    }
 
-      if (elapsed < 60 * 1000) {
-        const remaining = Math.ceil(
-          (60 * 1000 - elapsed) / 1000
-        );
+    // Rate limit: 60 seconds
+    const { data: recentOtp } = await supabase
+      .from("email_otps")
+      .select("created_at")
+      .eq("email", email)
+      .is("verified_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentOtp) {
+      const secondsSinceLast =
+        (Date.now() - new Date(recentOtp.created_at).getTime()) / 1000;
+
+      if (secondsSinceLast < 60) {
+        const remaining = Math.ceil(60 - secondsSinceLast);
 
         return NextResponse.json(
           {
             success: false,
-            error: `Please wait ${remaining} seconds before requesting another OTP.`,
-            retry_after: remaining,
+            message: `Please wait ${remaining} seconds before requesting another OTP.`,
           },
           { status: 429 }
         );
       }
     }
 
-    // ---------------------------------------------------
-    // Invalidate previous unused OTPs
-    // ---------------------------------------------------
-
+    // Invalidate previous unverified OTPs
     await supabase
       .from("email_otps")
       .update({
@@ -120,10 +118,7 @@ export async function POST(request) {
       .eq("email", email)
       .is("verified_at", null);
 
-    // ---------------------------------------------------
-    // Generate OTP
-    // ---------------------------------------------------
-
+    // Generate 6-digit OTP
     const otp = crypto.randomInt(100000, 1000000).toString();
 
     const otpHash = hashOtp(otp);
@@ -131,10 +126,6 @@ export async function POST(request) {
     const expiresAt = new Date(
       Date.now() + 10 * 60 * 1000
     ).toISOString();
-
-    // ---------------------------------------------------
-    // Store only HASH
-    // ---------------------------------------------------
 
     const { error: insertError } = await supabase
       .from("email_otps")
@@ -151,114 +142,115 @@ export async function POST(request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unable to create OTP.",
+          message: "Unable to create OTP.",
         },
         { status: 500 }
       );
     }
 
-    // ---------------------------------------------------
-    // Send email using Resend
-    // ---------------------------------------------------
+    // Brevo API
+    const brevoApiKey = process.env.BREVO_API_KEY;
 
-    const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail =
-      process.env.RESEND_FROM_EMAIL ||
-      "SAMBHAV UPSC <onboarding@resend.dev>";
-
-    if (!resendKey) {
-      console.error("RESEND_API_KEY missing.");
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Email service is not configured yet.",
-        },
-        { status: 500 }
-      );
+    if (!brevoApiKey) {
+      throw new Error("BREVO_API_KEY is missing.");
     }
 
-    const resendResponse = await fetch(
-      "https://api.resend.com/emails",
+    const brevoResponse = await fetch(
+      "https://api.brevo.com/v3/smtp/email",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
+          accept: "application/json",
+          "api-key": brevoApiKey,
+          "content-type": "application/json",
         },
         body: JSON.stringify({
-          from: fromEmail,
-          to: [email],
-          subject: "Your SAMBHAV UPSC verification code",
-          html: `
-            <div style="margin:0;padding:40px 20px;background:#f5f2eb;font-family:Arial,sans-serif;">
-              <div style="max-width:520px;margin:auto;background:#ffffff;border-radius:24px;padding:32px;border:1px solid #e7e1d5;">
-                
-                <div style="font-size:11px;letter-spacing:4px;font-weight:800;color:#a88745;">
-                  SAMBHAV
-                </div>
+          sender: {
+            name: "SAMBHAV UPSC",
+            email: "sambhavupsc1@gmail.com",
+          },
+          to: [
+            {
+              email,
+            },
+          ],
+          subject: "Your SAMBHAV UPSC Verification Code",
+          htmlContent: `
+            <!DOCTYPE html>
+            <html>
+              <body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,sans-serif;">
+                <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;padding:32px;">
+                  
+                  <h2 style="margin:0 0 10px;color:#0b1f33;">
+                    SAMBHAV UPSC
+                  </h2>
 
-                <div style="font-size:30px;font-weight:900;color:#111;margin-top:4px;">
-                  UPSC
-                </div>
+                  <p style="color:#555;font-size:16px;">
+                    Your email verification code is:
+                  </p>
 
-                <p style="color:#777;font-size:14px;line-height:1.6;margin-top:24px;">
-                  Use the verification code below to continue with your SAMBHAV UPSC account.
-                </p>
-
-                <div style="margin:26px 0;padding:20px;text-align:center;background:#111;border-radius:18px;">
-                  <div style="font-size:34px;letter-spacing:10px;font-weight:900;color:#e2c77d;">
-                    ${otp}
+                  <div style="
+                    margin:25px 0;
+                    padding:18px;
+                    background:#0b1f33;
+                    border-radius:12px;
+                    text-align:center;
+                  ">
+                    <span style="
+                      font-size:32px;
+                      letter-spacing:10px;
+                      font-weight:bold;
+                      color:#e4b936;
+                    ">
+                      ${otp}
+                    </span>
                   </div>
+
+                  <p style="color:#666;font-size:14px;">
+                    This OTP is valid for 10 minutes.
+                  </p>
+
+                  <p style="color:#999;font-size:13px;">
+                    If you did not request this code, you can safely ignore this email.
+                  </p>
+
                 </div>
-
-                <p style="font-size:12px;color:#777;">
-                  This code expires in <strong>10 minutes</strong>.
-                </p>
-
-                <p style="font-size:11px;color:#aaa;margin-top:28px;">
-                  If you did not request this code, you can safely ignore this email.
-                </p>
-
-              </div>
-            </div>
+              </body>
+            </html>
           `,
         }),
       }
     );
 
-    const resendData = await resendResponse.json();
+    if (!brevoResponse.ok) {
+      const errorText = await brevoResponse.text();
 
-    if (!resendResponse.ok) {
-      console.error(
-        "Resend API error:",
-        resendData
-      );
+      console.error("Brevo API error:", errorText);
 
       return NextResponse.json(
         {
           success: false,
-          error: "OTP email could not be sent.",
+          message: "Unable to send verification email.",
         },
-        { status: 502 }
+        { status: 500 }
       );
     }
+
+    const brevoResult = await brevoResponse.json();
+
+    console.log("Brevo OTP email sent:", brevoResult);
 
     return NextResponse.json({
       success: true,
       message: "OTP sent successfully.",
-      expires_in: 600,
     });
   } catch (error) {
-    console.error("SEND OTP ERROR:", error);
+    console.error("Send OTP error:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error?.message ||
-          "Unable to send OTP.",
+        message: "Something went wrong while sending OTP.",
       },
       { status: 500 }
     );
