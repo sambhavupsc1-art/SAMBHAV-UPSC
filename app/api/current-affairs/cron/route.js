@@ -3,32 +3,88 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const CRON_SECRET = process.env.CRON_SECRET;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const CRON_SECRET =
+  process.env.CRON_SECRET;
+
+/* ---------------------------------------
+   SOURCE URLS
+--------------------------------------- */
 
 const PIB_URL =
   "https://www.pib.gov.in/AllReleasem.aspx?lang=1&reg=3";
+
+const GKTODAY_URL =
+  "https://www.gktoday.in/current-affairs/";
+
+const THE_HINDU_FEEDS = [
+  {
+    name: "The Hindu - National",
+    url: "https://www.thehindu.com/news/national/feeder/default.rss",
+  },
+  {
+    name: "The Hindu - International",
+    url: "https://www.thehindu.com/news/international/feeder/default.rss",
+  },
+  {
+    name: "The Hindu - Business",
+    url: "https://www.thehindu.com/business/feeder/default.rss",
+  },
+  {
+    name: "The Hindu - Science & Technology",
+    url: "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
+  },
+  {
+    name: "The Hindu - Opinion",
+    url: "https://www.thehindu.com/opinion/feeder/default.rss",
+  },
+];
+
+const BETTER_INDIA_FEEDS = [
+  {
+    name: "The Better India - Civic Sense",
+    url:
+      "https://campaign.thebetterindia.com/civic-sense-revolution/",
+  },
+  {
+    name: "The Better India - Changemakers",
+    url:
+      "https://thebetterindia.com/topics/changemakers/",
+  },
+];
 
 /* ---------------------------------------
    SUPABASE
 --------------------------------------- */
 
-async function supabaseRequest(path, options = {}) {
+async function supabaseRequest(
+  path,
+  options = {}
+) {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error("Supabase environment variables missing.");
+    throw new Error(
+      "Supabase environment variables missing."
+    );
   }
 
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    cache: "no-store",
-  });
+  return fetch(
+    `${SUPABASE_URL}/rest/v1/${path}`,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      cache: "no-store",
+    }
+  );
 }
 
 /* ---------------------------------------
@@ -36,16 +92,19 @@ async function supabaseRequest(path, options = {}) {
 --------------------------------------- */
 
 function todayIST() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }
+  ).format(new Date());
 }
 
 /* ---------------------------------------
-   HTML HELPERS
+   HTML / TEXT HELPERS
 --------------------------------------- */
 
 function decodeHtml(value = "") {
@@ -61,20 +120,45 @@ function decodeHtml(value = "") {
     .replace(/&apos;/gi, "'")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
-    .replace(/&#(\d+);/g, (_, n) => {
-      try {
-        return String.fromCharCode(Number(n));
-      } catch {
-        return "";
+    .replace(
+      /&#(\d+);/g,
+      (_, n) => {
+        try {
+          return String.fromCharCode(
+            Number(n)
+          );
+        } catch {
+          return "";
+        }
       }
-    });
+    );
 }
 
 function stripHtml(value = "") {
   return decodeHtml(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
+    .replace(
+      /<script[\s\S]*?<\/script>/gi,
+      " "
+    )
+    .replace(
+      /<style[\s\S]*?<\/style>/gi,
+      " "
+    )
+    .replace(
+      /<[^>]*>/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+}
+
+function normalizeText(value = "") {
+  return stripHtml(value)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -83,13 +167,15 @@ function stripHtml(value = "") {
    URL NORMALIZATION
 --------------------------------------- */
 
-function normalizeUrl(value = "") {
+function normalizeUrl(value = "", base = "") {
   let url = decodeHtml(value)
     .replace(/&amp;/gi, "&")
     .replace(/^['"]|['"]$/g, "")
     .trim();
 
-  if (!url) return "";
+  if (!url) {
+    return "";
+  }
 
   if (/^https?:\/\//i.test(url)) {
     return url;
@@ -100,17 +186,57 @@ function normalizeUrl(value = "") {
   }
 
   if (url.startsWith("/")) {
-    return `https://www.pib.gov.in${url}`;
+    if (base) {
+      try {
+        return new URL(
+          url,
+          base
+        ).toString();
+      } catch {
+        return url;
+      }
+    }
+
+    return url;
   }
 
-  return `https://www.pib.gov.in/${url}`;
+  if (base) {
+    try {
+      return new URL(
+        url,
+        base
+      ).toString();
+    } catch {
+      return url;
+    }
+  }
+
+  return url;
+}
+
+/* ---------------------------------------
+   FETCH HEADERS
+--------------------------------------- */
+
+function browserHeaders() {
+  return {
+    "User-Agent":
+      "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language":
+      "en-IN,en;q=0.9",
+  };
 }
 
 /* ---------------------------------------
    UPSC RELEVANCE
 --------------------------------------- */
 
-function relevanceScore(title = "", content = "") {
+function relevanceScore(
+  title = "",
+  content = ""
+) {
   const text =
     `${title} ${content}`.toLowerCase();
 
@@ -309,13 +435,30 @@ function relevanceScore(title = "", content = "") {
     connectivity: 4,
     "public service": 4,
     "civil services": 4,
+
+    ethics: 5,
+    integrity: 5,
+    empathy: 5,
+    compassion: 5,
+    accountability: 5,
+    honesty: 5,
+    courage: 4,
+    leadership: 4,
+    "public spirit": 5,
+    "civic sense": 5,
+    "social responsibility": 5,
+    altruism: 5,
+    volunteer: 4,
+    volunteering: 4,
+    changemaker: 5,
   };
 
   let score = 0;
 
-  for (const [keyword, points] of Object.entries(
-    keywords
-  )) {
+  for (
+    const [keyword, points]
+    of Object.entries(keywords)
+  ) {
     if (text.includes(keyword)) {
       score += points;
     }
@@ -325,10 +468,13 @@ function relevanceScore(title = "", content = "") {
 }
 
 /* ---------------------------------------
-   LOW-VALUE PIB NOISE FILTER
+   LOW VALUE NOISE
 --------------------------------------- */
 
-function isLowValueNoise(title = "", content = "") {
+function isLowValueNoise(
+  title = "",
+  content = ""
+) {
   const text =
     `${title} ${content}`.toLowerCase();
 
@@ -353,7 +499,8 @@ function isLowValueNoise(title = "", content = "") {
   ];
 
   return noisePatterns.some(
-    (pattern) => text.includes(pattern)
+    (pattern) =>
+      text.includes(pattern)
   );
 }
 
@@ -361,27 +508,46 @@ function isLowValueNoise(title = "", content = "") {
    PIB PARSER
 --------------------------------------- */
 
-function extractReleaseLinks(html) {
+function extractReleaseLinks(
+  html
+) {
   const results = [];
   const seen = new Set();
 
-  function add(url, title = "") {
+  function add(
+    url,
+    title = ""
+  ) {
     if (!url) return;
 
-    let cleanUrl = decodeHtml(url)
-      .replace(/&amp;/gi, "&")
-      .replace(/^['"]|['"]$/g, "")
-      .trim();
+    let cleanUrl =
+      decodeHtml(url)
+        .replace(
+          /&amp;/gi,
+          "&"
+        )
+        .replace(
+          /^['"]|['"]$/g,
+          ""
+        )
+        .trim();
 
     if (!cleanUrl) return;
 
-    if (cleanUrl.startsWith("/")) {
+    if (
+      cleanUrl.startsWith("/")
+    ) {
       cleanUrl =
         `https://www.pib.gov.in${cleanUrl}`;
-    } else if (cleanUrl.startsWith("//")) {
-      cleanUrl = `https:${cleanUrl}`;
     } else if (
-      !/^https?:\/\//i.test(cleanUrl)
+      cleanUrl.startsWith("//")
+    ) {
+      cleanUrl =
+        `https:${cleanUrl}`;
+    } else if (
+      !/^https?:\/\//i.test(
+        cleanUrl
+      )
     ) {
       cleanUrl =
         `https://www.pib.gov.in/${cleanUrl}`;
@@ -391,9 +557,15 @@ function extractReleaseLinks(html) {
       cleanUrl.toLowerCase();
 
     if (
-      !lower.includes("pressrelesedetail") &&
-      !lower.includes("pressreleasedetail") &&
-      !lower.includes("prid=")
+      !lower.includes(
+        "pressrelesedetail"
+      ) &&
+      !lower.includes(
+        "pressreleasedetail"
+      ) &&
+      !lower.includes(
+        "prid="
+      )
     ) {
       return;
     }
@@ -416,43 +588,70 @@ function extractReleaseLinks(html) {
   let match;
 
   while (
-    (match = anchorRegex.exec(html)) !== null
+    (match =
+      anchorRegex.exec(
+        html
+      )) !== null
   ) {
-    add(match[1], match[2]);
+    add(
+      match[1],
+      match[2]
+    );
   }
 
   const hrefRegex =
     /href\s*=\s*["']([^"']*(?:PressReleseDetailm|PressReleaseDetailm)[^"']*)["']/gi;
 
   while (
-    (match = hrefRegex.exec(html)) !== null
+    (match =
+      hrefRegex.exec(
+        html
+      )) !== null
   ) {
-    add(match[1], "");
+    add(
+      match[1],
+      ""
+    );
   }
 
   const directRegex =
     /(?:https?:\/\/)?(?:www\.)?pib\.gov\.in\/PressReleseDetailm\.aspx\?[^"'<> ]+/gi;
 
   while (
-    (match = directRegex.exec(html)) !== null
+    (match =
+      directRegex.exec(
+        html
+      )) !== null
   ) {
-    add(match[0], "");
+    add(
+      match[0],
+      ""
+    );
   }
 
   const relativeRegex =
     /PressReleseDetailm\.aspx\?[^"'<> )]+/gi;
 
   while (
-    (match = relativeRegex.exec(html)) !== null
+    (match =
+      relativeRegex.exec(
+        html
+      )) !== null
   ) {
-    add(match[0], "");
+    add(
+      match[0],
+      ""
+    );
   }
 
   const pridRegex =
     /(?:PressReleseDetailm|PressReleaseDetailm)\.aspx[^"'<>]*?PRID\s*=\s*(\d+)/gi;
 
   while (
-    (match = pridRegex.exec(html)) !== null
+    (match =
+      pridRegex.exec(
+        html
+      )) !== null
   ) {
     add(
       `https://www.pib.gov.in/PressReleseDetailm.aspx?PRID=${match[1]}`,
@@ -464,24 +663,20 @@ function extractReleaseLinks(html) {
 }
 
 /* ---------------------------------------
-   PIB PAGE
+   FETCH PIB PAGE
 --------------------------------------- */
 
 async function fetchPIBPage() {
-  const response = await fetch(
-    PIB_URL,
-    {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language":
-          "en-IN,en;q=0.9",
-      },
-      cache: "no-store",
-    }
-  );
+  const response =
+    await fetch(
+      PIB_URL,
+      {
+        headers:
+          browserHeaders(),
+        cache:
+          "no-store",
+      }
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -509,22 +704,20 @@ async function fetchPIBPage() {
    INDIVIDUAL PIB RELEASE
 --------------------------------------- */
 
-async function fetchReleaseContent(url) {
+async function fetchReleaseContent(
+  url
+) {
   try {
-    const response = await fetch(
-      url,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (compatible; SAMBHAV-UPSC/1.0)",
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language":
-            "en-IN,en;q=0.9",
-        },
-        cache: "no-store",
-      }
-    );
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            browserHeaders(),
+          cache:
+            "no-store",
+        }
+      );
 
     if (!response.ok) {
       console.log(
@@ -539,7 +732,9 @@ async function fetchReleaseContent(url) {
     const html =
       await response.text();
 
-    return stripHtml(html).slice(
+    return stripHtml(
+      html
+    ).slice(
       0,
       30000
     );
@@ -554,158 +749,1179 @@ async function fetchReleaseContent(url) {
 }
 
 /* ---------------------------------------
-   DUPLICATE REMOVAL
+   GKToday ARTICLE LINKS
 --------------------------------------- */
 
-function removeDuplicates(items) {
+function extractGKTodayLinks(
+  html
+) {
+  const results = [];
   const seen = new Set();
 
-  return items.filter((item) => {
-    const key =
-      item.title
-        .toLowerCase()
-        .replace(/\s+/g, " ")
-        .trim();
+  const anchorRegex =
+    /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
-    if (!key || seen.has(key)) {
-      return false;
+  let match;
+
+  while (
+    (match =
+      anchorRegex.exec(
+        html
+      )) !== null
+  ) {
+    const href =
+      normalizeUrl(
+        match[1],
+        GKTODAY_URL
+      );
+
+    const title =
+      stripHtml(
+        match[2]
+      );
+
+    if (!href || !title) {
+      continue;
+    }
+
+    let parsed;
+
+    try {
+      parsed =
+        new URL(href);
+    } catch {
+      continue;
+    }
+
+    if (
+      parsed.hostname !==
+        "www.gktoday.in" &&
+      parsed.hostname !==
+        "gktoday.in"
+    ) {
+      continue;
+    }
+
+    const path =
+      parsed.pathname.toLowerCase();
+
+    if (
+      !path.includes(
+        "/current-affairs/"
+      )
+    ) {
+      continue;
+    }
+
+    if (
+      path.includes(
+        "/category/"
+      ) ||
+      path.includes(
+        "/page/"
+      ) ||
+      path.includes(
+        "/quiz"
+      ) ||
+      path.includes(
+        "daily-current-affairs-quiz"
+      )
+    ) {
+      continue;
+    }
+
+    const key =
+      href.split("#")[0];
+
+    if (seen.has(key)) {
+      continue;
     }
 
     seen.add(key);
 
-    return true;
-  });
+    results.push({
+      url: key,
+      title,
+    });
+  }
+
+  return results;
 }
 
 /* ---------------------------------------
-   COLLECT PIB ARTICLES
+   FETCH GKTODAY PAGE
 --------------------------------------- */
 
-async function collectSources() {
-  const html =
-    await fetchPIBPage();
-
-  const releaseLinks =
-    extractReleaseLinks(html);
-
-  console.log(
-    "PIB RELEASE LINKS FOUND:",
-    releaseLinks.length
-  );
-
-  if (!releaseLinks.length) {
-    console.log(
-      "PIB RELEASE LINK PARSER FAILED."
+async function fetchGKTodayPage() {
+  const response =
+    await fetch(
+      GKTODAY_URL,
+      {
+        headers:
+          browserHeaders(),
+        cache:
+          "no-store",
+      }
     );
 
-    console.log(
-      "HAS PRESSRELESEDETAIL:",
-      /pressrelesedetail/i.test(html)
+  if (!response.ok) {
+    throw new Error(
+      `GKToday page request failed: HTTP ${response.status}`
     );
+  }
 
-    console.log(
-      "HAS PRESSRELEASEDETAIL:",
-      /pressreleasedetail/i.test(html)
-    );
+  return response.text();
+}
 
-    console.log(
-      "HAS PRID:",
-      /prid=/i.test(html)
-    );
+/* ---------------------------------------
+   FETCH GKTODAY ARTICLE
+--------------------------------------- */
 
-    const pridPosition =
-      html
-        .toLowerCase()
-        .indexOf("prid");
-
-    if (pridPosition >= 0) {
-      console.log(
-        "PRID HTML SAMPLE:",
-        html.slice(
-          Math.max(
-            0,
-            pridPosition - 500
-          ),
-          pridPosition + 1000
-        )
+async function fetchGKTodayArticle(
+  url
+) {
+  try {
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            browserHeaders(),
+          cache:
+            "no-store",
+        }
       );
+
+    if (!response.ok) {
+      return "";
     }
+
+    const html =
+      await response.text();
+
+    return stripHtml(
+      html
+    ).slice(
+      0,
+      25000
+    );
+  } catch (error) {
+    console.error(
+      "GKToday article fetch failed:",
+      error.message
+    );
+
+    return "";
+  }
+}
+
+/* ---------------------------------------
+   THE HINDU RSS
+--------------------------------------- */
+
+function extractRSSItems(
+  xml,
+  sourceName
+) {
+  const items = [];
+
+  const itemRegex =
+    /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+
+  let match;
+
+  while (
+    (match =
+      itemRegex.exec(
+        xml
+      )) !== null
+  ) {
+    const block =
+      match[1];
+
+    const titleMatch =
+      block.match(
+        /<title[^>]*>([\s\S]*?)<\/title>/i
+      );
+
+    const linkMatch =
+      block.match(
+        /<link[^>]*>([\s\S]*?)<\/link>/i
+      );
+
+    const descriptionMatch =
+      block.match(
+        /<description[^>]*>([\s\S]*?)<\/description>/i
+      );
+
+    const dateMatch =
+      block.match(
+        /<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i
+      );
+
+    const title =
+      stripHtml(
+        titleMatch?.[1] || ""
+      );
+
+    const link =
+      normalizeUrl(
+        linkMatch?.[1] || ""
+      );
+
+    const description =
+      stripHtml(
+        descriptionMatch?.[1] || ""
+      );
+
+    const publishedAt =
+      stripHtml(
+        dateMatch?.[1] || ""
+      );
+
+    if (
+      !title ||
+      !link
+    ) {
+      continue;
+    }
+
+    items.push({
+      title,
+      description,
+      url: link,
+      source_url: link,
+      source_name:
+        sourceName,
+      published_at:
+        publishedAt,
+    });
+  }
+
+  return items;
+}
+
+async function fetchTheHinduFeed(
+  feed
+) {
+  try {
+    const response =
+      await fetch(
+        feed.url,
+        {
+          headers: {
+            ...browserHeaders(),
+            Accept:
+              "application/rss+xml, application/xml, text/xml, */*",
+          },
+          cache:
+            "no-store",
+        }
+      );
+
+    if (!response.ok) {
+      console.log(
+        "THE HINDU FEED HTTP:",
+        response.status,
+        feed.name
+      );
+
+      return [];
+    }
+
+    const xml =
+      await response.text();
+
+    const items =
+      extractRSSItems(
+        xml,
+        feed.name
+      );
+
+    console.log(
+      "THE HINDU FEED:",
+      feed.name,
+      "| ITEMS:",
+      items.length
+    );
+
+    return items;
+  } catch (error) {
+    console.error(
+      "The Hindu feed failed:",
+      feed.name,
+      error.message
+    );
 
     return [];
   }
+}
 
-  const candidates =
-    releaseLinks.slice(0, 35);
+/* ---------------------------------------
+   THE HINDU IMPORTANCE FILTER
+--------------------------------------- */
 
-  console.log(
-    "PIB CANDIDATES:",
-    candidates.length
+function isImportantTheHinduArticle(
+  item
+) {
+  const text =
+    `${item.title} ${item.description}`.toLowerCase();
+
+  const score =
+    relevanceScore(
+      item.title,
+      item.description
+    );
+
+  const importantTerms = [
+    "supreme court",
+    "parliament",
+    "constitution",
+    "government",
+    "policy",
+    "rbi",
+    "sebi",
+    "economy",
+    "gdp",
+    "inflation",
+    "climate",
+    "environment",
+    "biodiversity",
+    "international",
+    "foreign policy",
+    "china",
+    "united states",
+    "russia",
+    "india",
+    "united nations",
+    "security",
+    "defence",
+    "technology",
+    "artificial intelligence",
+    "semiconductor",
+    "agriculture",
+    "farmer",
+    "health",
+    "education",
+    "social justice",
+    "women",
+    "report",
+    "index",
+    "governance",
+    "federalism",
+    "judiciary",
+    "election",
+    "diplomacy",
+    "geopolitics",
+  ];
+
+  const hasImportantTerm =
+    importantTerms.some(
+      (term) =>
+        text.includes(term)
+    );
+
+  return (
+    score >= 5 ||
+    (hasImportantTerm &&
+      score >= 3)
   );
+}
 
-  const collected = [];
+/* ---------------------------------------
+   BETTER INDIA ETHICS LINKS
+--------------------------------------- */
 
-  for (const release of candidates) {
-    try {
-      const content =
-        await fetchReleaseContent(
-          release.url
-        );
+function extractBetterIndiaLinks(
+  html,
+  baseUrl
+) {
+  const results = [];
+  const seen = new Set();
 
-      const title =
-        release.title ||
-        content.slice(0, 300);
+  const anchorRegex =
+    /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
-      if (!title) {
-        continue;
-      }
+  let match;
 
-      const score =
-        relevanceScore(
-          title,
-          content
-        );
-
-      const noise =
-        isLowValueNoise(
-          title,
-          content
-        );
-
-      console.log(
-        "PIB RELEASE:",
-        title.slice(0, 120),
-        "| SCORE:",
-        score,
-        "| NOISE:",
-        noise
+  while (
+    (match =
+      anchorRegex.exec(
+        html
+      )) !== null
+  ) {
+    const href =
+      normalizeUrl(
+        match[1],
+        baseUrl
       );
 
-      if (noise) {
-        continue;
+    const title =
+      stripHtml(
+        match[2]
+      );
+
+    if (
+      !href ||
+      !title ||
+      title.length < 20
+    ) {
+      continue;
+    }
+
+    let parsed;
+
+    try {
+      parsed =
+        new URL(href);
+    } catch {
+      continue;
+    }
+
+    if (
+      !parsed.hostname.includes(
+        "thebetterindia.com"
+      )
+    ) {
+      continue;
+    }
+
+    const key =
+      href.split("#")[0];
+
+    if (
+      seen.has(key)
+    ) {
+      continue;
+    }
+
+    seen.add(key);
+
+    results.push({
+      url: key,
+      title,
+    });
+  }
+
+  return results;
+}
+
+/* ---------------------------------------
+   BETTER INDIA ETHICS FILTER
+--------------------------------------- */
+
+function isEthicsExample(
+  title = "",
+  content = ""
+) {
+  const text =
+    `${title} ${content}`.toLowerCase();
+
+  const ethicsKeywords = [
+    "civic sense",
+    "civic responsibility",
+    "changemaker",
+    "compassion",
+    "empathy",
+    "integrity",
+    "honesty",
+    "kindness",
+    "volunteer",
+    "volunteering",
+    "social worker",
+    "social responsibility",
+    "community",
+    "public service",
+    "citizen",
+    "citizens",
+    "helped",
+    "helping",
+    "saved",
+    "rescue",
+    "cleaned",
+    "cleaning",
+    "restored",
+    "restoration",
+    "education",
+    "empower",
+    "empowered",
+    "women empowerment",
+    "equality",
+    "courage",
+    "leadership",
+    "sacrifice",
+    "environmental responsibility",
+    "wildlife conservation",
+    "water conservation",
+    "justice",
+  ];
+
+  let hits = 0;
+
+  for (
+    const keyword
+    of ethicsKeywords
+  ) {
+    if (
+      text.includes(
+        keyword
+      )
+    ) {
+      hits++;
+    }
+  }
+
+  return hits >= 2;
+}
+
+/* ---------------------------------------
+   FETCH BETTER INDIA PAGE
+--------------------------------------- */
+
+async function fetchBetterIndiaPage(
+  feed
+) {
+  try {
+    const response =
+      await fetch(
+        feed.url,
+        {
+          headers:
+            browserHeaders(),
+          cache:
+            "no-store",
+        }
+      );
+
+    if (!response.ok) {
+      console.log(
+        "BETTER INDIA HTTP:",
+        response.status,
+        feed.url
+      );
+
+      return [];
+    }
+
+    const html =
+      await response.text();
+
+    const links =
+      extractBetterIndiaLinks(
+        html,
+        feed.url
+      );
+
+    console.log(
+      "BETTER INDIA LINKS:",
+      feed.name,
+      links.length
+    );
+
+    return links;
+  } catch (error) {
+    console.error(
+      "Better India page failed:",
+      feed.name,
+      error.message
+    );
+
+    return [];
+  }
+}
+
+/* ---------------------------------------
+   FETCH BETTER INDIA ARTICLE
+--------------------------------------- */
+
+async function fetchBetterIndiaArticle(
+  url
+) {
+  try {
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            browserHeaders(),
+          cache:
+            "no-store",
+        }
+      );
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const html =
+      await response.text();
+
+    return stripHtml(
+      html
+    ).slice(
+      0,
+      20000
+    );
+  } catch (error) {
+    console.error(
+      "Better India article fetch failed:",
+      error.message
+    );
+
+    return "";
+  }
+}
+
+/* ---------------------------------------
+   DUPLICATE REMOVAL
+--------------------------------------- */
+
+function removeDuplicates(
+  items
+) {
+  const seenTitles =
+    new Set();
+
+  const seenUrls =
+    new Set();
+
+  return items.filter(
+    (item) => {
+      const normalizedTitle =
+        normalizeText(
+          item.title
+        );
+
+      const normalizedUrl =
+        normalizeText(
+          item.source_url ||
+            item.url ||
+            ""
+        );
+
+      if (
+        !normalizedTitle &&
+        !normalizedUrl
+      ) {
+        return false;
       }
 
-      if (score >= 4) {
+      if (
+        normalizedUrl &&
+        seenUrls.has(
+          normalizedUrl
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        normalizedTitle &&
+        seenTitles.has(
+          normalizedTitle
+        )
+      ) {
+        return false;
+      }
+
+      if (normalizedUrl) {
+        seenUrls.add(
+          normalizedUrl
+        );
+      }
+
+      if (normalizedTitle) {
+        seenTitles.add(
+          normalizedTitle
+        );
+      }
+
+      return true;
+    }
+  );
+}
+
+/* ---------------------------------------
+   COLLECT PIB
+--------------------------------------- */
+
+async function collectPIB() {
+  try {
+    const html =
+      await fetchPIBPage();
+
+    const releaseLinks =
+      extractReleaseLinks(
+        html
+      );
+
+    console.log(
+      "PIB RELEASE LINKS FOUND:",
+      releaseLinks.length
+    );
+
+    if (
+      !releaseLinks.length
+    ) {
+      console.log(
+        "PIB RELEASE LINK PARSER FAILED."
+      );
+
+      return [];
+    }
+
+    const candidates =
+      releaseLinks.slice(
+        0,
+        35
+      );
+
+    const collected = [];
+
+    for (
+      const release
+      of candidates
+    ) {
+      try {
+        const content =
+          await fetchReleaseContent(
+            release.url
+          );
+
+        const title =
+          release.title ||
+          content.slice(
+            0,
+            300
+          );
+
+        if (!title) {
+          continue;
+        }
+
+        const score =
+          relevanceScore(
+            title,
+            content
+          );
+
+        const noise =
+          isLowValueNoise(
+            title,
+            content
+          );
+
+        console.log(
+          "PIB:",
+          title.slice(
+            0,
+            100
+          ),
+          "| SCORE:",
+          score,
+          "| NOISE:",
+          noise
+        );
+
+        if (noise) {
+          continue;
+        }
+
+        if (
+          score >= 4
+        ) {
+          collected.push({
+            title,
+            description:
+              content ||
+              title,
+            url:
+              release.url,
+            source_url:
+              release.url,
+            source_name:
+              "Press Information Bureau (PIB)",
+            score,
+            source_type:
+              "current_affairs",
+            report_type:
+              "current_affairs",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "PIB release processing failed:",
+          error.message
+        );
+      }
+    }
+
+    return collected;
+  } catch (error) {
+    console.error(
+      "PIB source failed:",
+      error.message
+    );
+
+    return [];
+  }
+}
+
+/* ---------------------------------------
+   COLLECT GKTODAY
+--------------------------------------- */
+
+async function collectGKToday() {
+  try {
+    const html =
+      await fetchGKTodayPage();
+
+    const links =
+      extractGKTodayLinks(
+        html
+      );
+
+    console.log(
+      "GKTODAY LINKS FOUND:",
+      links.length
+    );
+
+    const candidates =
+      links.slice(
+        0,
+        30
+      );
+
+    const collected = [];
+
+    for (
+      const article
+      of candidates
+    ) {
+      try {
+        const content =
+          await fetchGKTodayArticle(
+            article.url
+          );
+
+        const title =
+          article.title;
+
+        const score =
+          relevanceScore(
+            title,
+            content
+          );
+
+        const noise =
+          isLowValueNoise(
+            title,
+            content
+          );
+
+        console.log(
+          "GKTODAY:",
+          title.slice(
+            0,
+            100
+          ),
+          "| SCORE:",
+          score,
+          "| NOISE:",
+          noise
+        );
+
+        if (
+          noise ||
+          score < 4
+        ) {
+          continue;
+        }
+
         collected.push({
           title,
           description:
-            content || title,
-          url: release.url,
+            content ||
+            title,
+          url:
+            article.url,
           source_url:
-            release.url,
+            article.url,
           source_name:
-            "Press Information Bureau (PIB)",
-          score,
+            "GKToday",
+          score:
+            score + 1,
+          source_type:
+            "current_affairs",
+          report_type:
+            "current_affairs",
         });
+      } catch (error) {
+        console.error(
+          "GKToday processing failed:",
+          error.message
+        );
+      }
+    }
+
+    return collected;
+  } catch (error) {
+    console.error(
+      "GKToday source failed:",
+      error.message
+    );
+
+    return [];
+  }
+}
+
+/* ---------------------------------------
+   COLLECT THE HINDU
+--------------------------------------- */
+
+async function collectTheHindu() {
+  const allItems = [];
+
+  for (
+    const feed
+    of THE_HINDU_FEEDS
+  ) {
+    const items =
+      await fetchTheHinduFeed(
+        feed
+      );
+
+    allItems.push(
+      ...items
+    );
+  }
+
+  const unique =
+    removeDuplicates(
+      allItems
+    );
+
+  const important =
+    unique
+      .filter(
+        isImportantTheHinduArticle
+      )
+      .map(
+        (item) => ({
+          ...item,
+          score:
+            relevanceScore(
+              item.title,
+              item.description
+            ) + 2,
+          source_type:
+            "current_affairs",
+          report_type:
+            "current_affairs",
+        })
+      )
+      .sort(
+        (a, b) =>
+          b.score -
+          a.score
+      )
+      .slice(
+        0,
+        12
+      );
+
+  console.log(
+    "THE HINDU IMPORTANT ARTICLES:",
+    important.length
+  );
+
+  return important;
+}
+
+/* ---------------------------------------
+   COLLECT BETTER INDIA ETHICS
+--------------------------------------- */
+
+async function collectBetterIndiaEthics() {
+  const allLinks = [];
+
+  for (
+    const feed
+    of BETTER_INDIA_FEEDS
+  ) {
+    const links =
+      await fetchBetterIndiaPage(
+        feed
+      );
+
+    allLinks.push(
+      ...links
+    );
+  }
+
+  const uniqueLinks =
+    removeDuplicates(
+      allLinks.map(
+        (item) => ({
+          ...item,
+          source_url:
+            item.url,
+          source_name:
+            "The Better India",
+        })
+      )
+    );
+
+  const candidates =
+    uniqueLinks.slice(
+      0,
+      20
+    );
+
+  const collected = [];
+
+  for (
+    const article
+    of candidates
+  ) {
+    try {
+      const content =
+        await fetchBetterIndiaArticle(
+          article.url
+        );
+
+      if (
+        !isEthicsExample(
+          article.title,
+          content
+        )
+      ) {
+        continue;
+      }
+
+      collected.push({
+        title:
+          article.title,
+        description:
+          content ||
+          article.title,
+        url:
+          article.url,
+        source_url:
+          article.url,
+        source_name:
+          "The Better India",
+        score:
+          relevanceScore(
+            article.title,
+            content
+          ) + 3,
+        source_type:
+          "ethics_example",
+        report_type:
+          "ethics_example",
+      });
+
+      console.log(
+        "BETTER INDIA ETHICS:",
+        article.title.slice(
+          0,
+          120
+        )
+      );
+
+      if (
+        collected.length >= 4
+      ) {
+        break;
       }
     } catch (error) {
       console.error(
-        "Release processing failed:",
+        "Better India processing failed:",
         error.message
       );
     }
   }
 
   return collected;
+}
+
+/* ---------------------------------------
+   COLLECT ALL SOURCES
+--------------------------------------- */
+
+async function collectSources() {
+  const [
+    pib,
+    gktoday,
+    hindu,
+    betterIndia,
+  ] =
+    await Promise.all([
+      collectPIB(),
+      collectGKToday(),
+      collectTheHindu(),
+      collectBetterIndiaEthics(),
+    ]);
+
+  console.log(
+    "SOURCE COUNTS:",
+    {
+      PIB:
+        pib.length,
+      GKToday:
+        gktoday.length,
+      "The Hindu":
+        hindu.length,
+      "The Better India Ethics":
+        betterIndia.length,
+    }
+  );
+
+  const currentAffairs =
+    removeDuplicates([
+      ...pib,
+      ...gktoday,
+      ...hindu,
+    ])
+      .sort(
+        (a, b) =>
+          b.score -
+          a.score
+      )
+      .slice(
+        0,
+        10
+      );
+
+  const ethicsExamples =
+    removeDuplicates(
+      betterIndia
+    )
+      .sort(
+        (a, b) =>
+          b.score -
+          a.score
+      )
+      .slice(
+        0,
+        4
+      );
+
+  console.log(
+    "CURRENT AFFAIRS SELECTED:",
+    currentAffairs.length
+  );
+
+  console.log(
+    "ETHICS EXAMPLES SELECTED:",
+    ethicsExamples.length
+  );
+
+  return {
+    currentAffairs,
+    ethicsExamples,
+  };
 }
 
 /* ---------------------------------------
@@ -719,11 +1935,14 @@ async function createOrResetRun(
     await supabaseRequest(
       `current_affairs_runs?run_date=eq.${runDate}&select=id`,
       {
-        method: "GET",
+        method:
+          "GET",
       }
     );
 
-  if (!existingResponse.ok) {
+  if (
+    !existingResponse.ok
+  ) {
     throw new Error(
       `Run lookup failed: ${await existingResponse.text()}`
     );
@@ -732,29 +1951,40 @@ async function createOrResetRun(
   const existing =
     await existingResponse.json();
 
-  if (existing.length > 0) {
+  if (
+    existing.length > 0
+  ) {
     const response =
       await supabaseRequest(
         `current_affairs_runs?run_date=eq.${runDate}`,
         {
-          method: "PATCH",
+          method:
+            "PATCH",
           headers: {
             Prefer:
               "return=minimal",
           },
-          body: JSON.stringify({
-            status: "started",
-            articles_found: 0,
-            articles_created: 0,
-            error_message: null,
-            completed_at: null,
-            started_at:
-              new Date().toISOString(),
-          }),
+          body:
+            JSON.stringify({
+              status:
+                "started",
+              articles_found:
+                0,
+              articles_created:
+                0,
+              error_message:
+                null,
+              completed_at:
+                null,
+              started_at:
+                new Date().toISOString(),
+            }),
         }
       );
 
-    if (!response.ok) {
+    if (
+      !response.ok
+    ) {
       throw new Error(
         `Run reset failed: ${await response.text()}`
       );
@@ -767,21 +1997,29 @@ async function createOrResetRun(
     await supabaseRequest(
       "current_affairs_runs",
       {
-        method: "POST",
+        method:
+          "POST",
         headers: {
           Prefer:
             "return=minimal",
         },
-        body: JSON.stringify({
-          run_date: runDate,
-          status: "started",
-          articles_found: 0,
-          articles_created: 0,
-        }),
+        body:
+          JSON.stringify({
+            run_date:
+              runDate,
+            status:
+              "started",
+            articles_found:
+              0,
+            articles_created:
+              0,
+          }),
       }
     );
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     throw new Error(
       `Run creation failed: ${await response.text()}`
     );
@@ -797,18 +2035,22 @@ async function updateRun(
       await supabaseRequest(
         `current_affairs_runs?run_date=eq.${runDate}`,
         {
-          method: "PATCH",
+          method:
+            "PATCH",
           headers: {
             Prefer:
               "return=minimal",
           },
-          body: JSON.stringify(
-            values
-          ),
+          body:
+            JSON.stringify(
+              values
+            ),
         }
       );
 
-    if (!response.ok) {
+    if (
+      !response.ok
+    ) {
       console.error(
         "Run update failed:",
         await response.text()
@@ -823,7 +2065,7 @@ async function updateRun(
 }
 
 /* ---------------------------------------
-   BATCH AI ARTICLE CREATION
+   AI ARTICLE CREATION
 --------------------------------------- */
 
 async function generateArticleBatch(
@@ -837,15 +2079,18 @@ async function generateArticleBatch(
     await fetch(
       `${baseUrl}/api/current-affairs/ai`,
       {
-        method: "POST",
+        method:
+          "POST",
         headers: {
           "Content-Type":
             "application/json",
         },
-        body: JSON.stringify({
-          items,
-        }),
-        cache: "no-store",
+        body:
+          JSON.stringify({
+            items,
+          }),
+        cache:
+          "no-store",
       }
     );
 
@@ -855,7 +2100,8 @@ async function generateArticleBatch(
   let data;
 
   try {
-    data = JSON.parse(text);
+    data =
+      JSON.parse(text);
   } catch {
     throw new Error(
       `AI endpoint returned invalid JSON: ${text.slice(
@@ -865,14 +2111,18 @@ async function generateArticleBatch(
     );
   }
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
     throw new Error(
       data?.error ||
         `AI batch generation failed with HTTP ${response.status}.`
     );
   }
 
-  if (!data?.success) {
+  if (
+    !data?.success
+  ) {
     throw new Error(
       data?.error ||
         "AI endpoint reported failure."
@@ -900,12 +2150,14 @@ export async function GET(
     if (!CRON_SECRET) {
       return NextResponse.json(
         {
-          success: false,
+          success:
+            false,
           error:
             "CRON_SECRET environment variable missing.",
         },
         {
-          status: 500,
+          status:
+            500,
         }
       );
     }
@@ -921,18 +2173,29 @@ export async function GET(
     ) {
       return NextResponse.json(
         {
-          success: false,
-          error: "Unauthorized.",
+          success:
+            false,
+          error:
+            "Unauthorized.",
         },
         {
-          status: 401,
+          status:
+            401,
         }
       );
     }
 
     console.log(
-      "CURRENT AFFAIRS CRON START:",
+      "======================================"
+    );
+
+    console.log(
+      "SAMBHAV UPSC CURRENT AFFAIRS CRON START:",
       runDate
+    );
+
+    console.log(
+      "======================================"
     );
 
     /* -----------------------------------
@@ -944,45 +2207,37 @@ export async function GET(
     );
 
     /* -----------------------------------
-       COLLECT PIB
+       COLLECT ALL SOURCES
     ----------------------------------- */
 
-    const collected =
+    const {
+      currentAffairs,
+      ethicsExamples,
+    } =
       await collectSources();
 
     console.log(
-      "TOTAL COLLECTED:",
-      collected.length
+      "CURRENT AFFAIRS:",
+      currentAffairs.length
     );
-
-    /* -----------------------------------
-       DEDUPLICATION
-    ----------------------------------- */
-
-    const unique =
-      removeDuplicates(
-        collected
-      );
 
     console.log(
-      "UNIQUE ARTICLES:",
-      unique.length
+      "ETHICS:",
+      ethicsExamples.length
     );
 
     /* -----------------------------------
-       SELECT TOP UPSC ARTICLES
+       FINAL SELECTION
     ----------------------------------- */
 
     const selected =
-      unique
-        .sort(
-          (a, b) =>
-            b.score - a.score
-        )
-        .slice(0, 10);
+      [
+        ...currentAffairs,
+        ...ethicsExamples,
+      ];
 
     console.log(
-      "UPSC RELEVANT ARTICLES:",
+      "TOTAL FINAL ARTICLES:",
       selected.length
     );
 
@@ -991,6 +2246,10 @@ export async function GET(
         console.log(
           `SELECTED ${index + 1}:`,
           item.title,
+          "| SOURCE:",
+          item.source_name,
+          "| TYPE:",
+          item.report_type,
           "| SCORE:",
           item.score
         );
@@ -1009,48 +2268,61 @@ export async function GET(
        NO ARTICLES
     ----------------------------------- */
 
-    if (!selected.length) {
+    if (
+      !selected.length
+    ) {
       await updateRun(
         runDate,
         {
-          status: "success",
-          articles_found: 0,
-          articles_created: 0,
+          status:
+            "success",
+          articles_found:
+            0,
+          articles_created:
+            0,
           error_message:
-            "No UPSC-relevant PIB articles found.",
+            "No UPSC-relevant articles found from configured sources.",
           completed_at:
             new Date().toISOString(),
         }
       );
 
-      console.log(
-        "CURRENT AFFAIRS CRON COMPLETE:",
-        {
-          date: runDate,
-          articles_found: 0,
-          articles_created: 0,
-        }
-      );
-
       return NextResponse.json({
-        success: true,
-        date: runDate,
-        source:
-          "PIB All Releases",
-        articles_found: 0,
-        articles_created: 0,
+        success:
+          true,
+        date:
+          runDate,
+        sources: [
+          "PIB",
+          "GKToday",
+          "The Hindu",
+          "The Better India - Ethics",
+        ],
+        articles_found:
+          0,
+        articles_created:
+          0,
       });
     }
 
     /* -----------------------------------
-       ONE BATCH GEMINI REQUEST
+       AI PROCESSING
     ----------------------------------- */
 
-    let created = 0;
-    let aiError = null;
+    let created =
+      0;
+
+    let skipped =
+      0;
+
+    let failed =
+      0;
+
+    let aiError =
+      null;
 
     console.log(
-      "BATCH PROCESSING START:",
+      "AI PROCESSING START:",
       selected.length,
       "articles"
     );
@@ -1070,15 +2342,40 @@ export async function GET(
                 item.source_url,
               date:
                 runDate,
+
+              /*
+               * IMPORTANT:
+               * Better India items are explicitly
+               * marked as Ethics examples.
+               *
+               * The existing AI route already
+               * supports report_type.
+               */
+              report_type:
+                item.report_type,
+
+              source_type:
+                item.source_type,
             })
           )
         );
 
       console.log(
         "AI BATCH RESULT:",
-        result?.success,
-        result?.articles_received,
-        result?.articles_created
+        {
+          success:
+            result?.success,
+          received:
+            result?.articles_received,
+          created:
+            result?.articles_created,
+          skipped:
+            result?.articles_skipped,
+          processed:
+            result?.articles_processed,
+          failed:
+            result?.failed_articles,
+        }
       );
 
       created =
@@ -1087,13 +2384,47 @@ export async function GET(
             0
         );
 
+      skipped =
+        Number(
+          result?.articles_skipped ||
+            0
+        );
+
+      failed =
+        Number(
+          result?.failed_articles ||
+            result?.failed_batches ||
+            0
+        );
+
+      /*
+       * IMPORTANT FIX:
+       *
+       * If the articles already exist,
+       * AI can return:
+       *
+       * created = 0
+       * skipped > 0
+       *
+       * This is NOT a failure.
+       *
+       * It means today's data is already
+       * present in Supabase.
+       */
+
       if (
-        !result?.success ||
-        created <= 0
+        !result?.success
       ) {
         aiError =
           result?.error ||
-          "AI processing completed without creating articles.";
+          "AI endpoint reported failure.";
+      } else if (
+        created === 0 &&
+        skipped === 0
+      ) {
+        aiError =
+          result?.error ||
+          "AI processing completed but no articles were created or skipped.";
       }
     } catch (error) {
       aiError =
@@ -1101,40 +2432,29 @@ export async function GET(
         "AI batch processing failed.";
 
       console.error(
-        "BATCH ARTICLE PROCESSING FAILED:",
+        "AI PROCESSING FAILED:",
         aiError
       );
     }
 
     /* -----------------------------------
-       STRICT SUCCESS CHECK
+       STRICT BUT DUPLICATE-SAFE SUCCESS
     ----------------------------------- */
 
-    /*
-     * IMPORTANT:
-     *
-     * AI fail OR zero articles created
-     * must NEVER be marked as success.
-     */
-
     if (
-      aiError ||
-      created <= 0
+      aiError
     ) {
-      const finalError =
-        aiError ||
-        "AI processing failed or no articles were created.";
-
       await updateRun(
         runDate,
         {
-          status: "failed",
+          status:
+            "failed",
           articles_found:
             selected.length,
           articles_created:
             created,
           error_message:
-            finalError,
+            aiError,
           completed_at:
             new Date().toISOString(),
         }
@@ -1143,73 +2463,139 @@ export async function GET(
       console.error(
         "CURRENT AFFAIRS CRON FAILED:",
         {
-          date: runDate,
+          date:
+            runDate,
           articles_found:
             selected.length,
           articles_created:
             created,
+          articles_skipped:
+            skipped,
           error:
-            finalError,
+            aiError,
         }
       );
 
       return NextResponse.json(
         {
-          success: false,
-          date: runDate,
-          source:
-            "PIB All Releases",
+          success:
+            false,
+          date:
+            runDate,
           articles_found:
             selected.length,
           articles_created:
             created,
+          articles_skipped:
+            skipped,
           error:
-            finalError,
+            aiError,
         },
         {
-          status: 503,
+          status:
+            503,
         }
       );
     }
 
-    /* -----------------------------------
-       SUCCESS
-    ----------------------------------- */
+    /*
+     * SUCCESS CONDITIONS:
+     *
+     * 1. created > 0
+     * 2. created = 0 AND skipped > 0
+     *
+     * Only:
+     * created = 0 AND skipped = 0
+     * is considered failure.
+     */
+
+    const alreadyUpToDate =
+      created === 0 &&
+      skipped > 0;
 
     await updateRun(
       runDate,
       {
-        status: "success",
+        status:
+          "success",
         articles_found:
           selected.length,
         articles_created:
           created,
-        error_message: null,
+        error_message:
+          alreadyUpToDate
+            ? "Articles already existed; no duplicate articles were created."
+            : null,
         completed_at:
           new Date().toISOString(),
       }
     );
 
     console.log(
-      "CURRENT AFFAIRS CRON COMPLETE:",
+      "======================================"
+    );
+
+    console.log(
+      "CURRENT AFFAIRS CRON COMPLETE"
+    );
+
+    console.log(
       {
-        date: runDate,
+        date:
+          runDate,
+        current_affairs:
+          currentAffairs.length,
+        ethics_examples:
+          ethicsExamples.length,
         articles_found:
           selected.length,
         articles_created:
           created,
+        articles_skipped:
+          skipped,
+        articles_failed:
+          failed,
       }
     );
 
+    console.log(
+      "======================================"
+    );
+
     return NextResponse.json({
-      success: true,
-      date: runDate,
-      source:
-        "PIB All Releases",
+      success:
+        true,
+
+      date:
+        runDate,
+
+      sources: [
+        "PIB",
+        "GKToday",
+        "The Hindu",
+        "The Better India - Ethics",
+      ],
+
+      current_affairs_found:
+        currentAffairs.length,
+
+      ethics_examples_found:
+        ethicsExamples.length,
+
       articles_found:
         selected.length,
+
       articles_created:
         created,
+
+      articles_skipped:
+        skipped,
+
+      articles_failed:
+        failed,
+
+      already_up_to_date:
+        alreadyUpToDate,
     });
   } catch (error) {
     console.error(
@@ -1220,7 +2606,8 @@ export async function GET(
     await updateRun(
       runDate,
       {
-        status: "failed",
+        status:
+          "failed",
         error_message:
           error?.message ||
           "Unknown error",
@@ -1231,13 +2618,15 @@ export async function GET(
 
     return NextResponse.json(
       {
-        success: false,
+        success:
+          false,
         error:
           error?.message ||
           "Current Affairs cron failed.",
       },
       {
-        status: 500,
+        status:
+          500,
       }
     );
   }
