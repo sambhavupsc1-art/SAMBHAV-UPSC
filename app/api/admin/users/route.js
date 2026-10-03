@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const SUPABASE_SECRET_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -16,15 +17,19 @@ const AUTH_SESSION_SECRET =
 ========================================================= */
 
 async function supabaseFetch(path, options = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_SECRET_KEY,
-      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-      ...(options.headers || {}),
-    },
-    cache: "no-store",
-  });
+  return fetch(
+    `${SUPABASE_URL}/rest/v1/${path}`,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_SECRET_KEY,
+        Authorization:
+          `Bearer ${SUPABASE_SECRET_KEY}`,
+        ...(options.headers || {}),
+      },
+      cache: "no-store",
+    }
+  );
 }
 
 /* =========================================================
@@ -33,7 +38,10 @@ async function supabaseFetch(path, options = {}) {
 
 function verifyEmailSession(token) {
   try {
-    if (!token || !AUTH_SESSION_SECRET) {
+    if (
+      !token ||
+      !AUTH_SESSION_SECRET
+    ) {
       return null;
     }
 
@@ -45,36 +53,55 @@ function verifyEmailSession(token) {
 
     const [payload, signature] = parts;
 
-    const expectedSignature = crypto
-      .createHmac("sha256", AUTH_SESSION_SECRET)
-      .update(payload)
-      .digest("base64url");
+    const expectedSignature =
+      crypto
+        .createHmac(
+          "sha256",
+          AUTH_SESSION_SECRET
+        )
+        .update(payload)
+        .digest("base64url");
 
     if (
-      signature.length !== expectedSignature.length ||
+      signature.length !==
+        expectedSignature.length ||
       !crypto.timingSafeEqual(
         Buffer.from(signature),
-        Buffer.from(expectedSignature)
+        Buffer.from(
+          expectedSignature
+        )
       )
     ) {
       return null;
     }
 
     const data = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8")
+      Buffer.from(
+        payload,
+        "base64url"
+      ).toString("utf8")
     );
 
-    if (!data?.userId || !data?.exp) {
+    if (
+      !data?.userId ||
+      !data?.exp
+    ) {
       return null;
     }
 
-    if (Date.now() > data.exp) {
+    if (
+      Date.now() > data.exp
+    ) {
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error("Session verification error:", error);
+    console.error(
+      "Session verification error:",
+      error
+    );
+
     return null;
   }
 }
@@ -84,28 +111,33 @@ function verifyEmailSession(token) {
 ========================================================= */
 
 async function getCurrentUser() {
-  const cookieStore = await cookies();
+  const cookieStore =
+    await cookies();
 
   const sessionCookie =
-    cookieStore.get("sambhav_session");
+    cookieStore.get(
+      "sambhav_session"
+    );
 
   if (!sessionCookie?.value) {
     return null;
   }
 
-  const session = verifyEmailSession(
-    sessionCookie.value
-  );
+  const session =
+    verifyEmailSession(
+      sessionCookie.value
+    );
 
   if (!session?.userId) {
     return null;
   }
 
-  const response = await supabaseFetch(
-    `users?id=eq.${encodeURIComponent(
-      session.userId
-    )}&select=id,email,telegram_id,first_name,username,status,plan,created_at,approved_at,approved_by,last_login_at,updated_at`
-  );
+  const response =
+    await supabaseFetch(
+      `users?id=eq.${encodeURIComponent(
+        session.userId
+      )}&select=id,email,telegram_id,first_name,username,status,plan,created_at,approved_at,approved_by,last_login_at,updated_at`
+    );
 
   if (!response.ok) {
     console.error(
@@ -116,9 +148,12 @@ async function getCurrentUser() {
     return null;
   }
 
-  const users = await response.json();
+  const users =
+    await response.json();
 
-  return users.length ? users[0] : null;
+  return users.length
+    ? users[0]
+    : null;
 }
 
 /* =========================================================
@@ -131,63 +166,66 @@ async function getAdmin(user) {
   }
 
   /*
-   * Primary admin check:
+   * Admin authentication is based on:
+   *
    * admin_users.user_id
    *
-   * Email fallback is also supported.
+   * and
+   *
+   * admin_users.is_active = true
+   *
+   * No email column is required.
    */
 
-  let response = await supabaseFetch(
-    `admin_users?user_id=eq.${encodeURIComponent(
-      user.id
-    )}&is_active=eq.true&select=id,user_id,email,telegram_id,first_name,username`
-  );
-
-  if (response.ok) {
-    const admins = await response.json();
-
-    if (admins.length > 0) {
-      return admins[0];
-    }
-  }
-
-  /*
-   * Email fallback
-   */
-
-  if (user.email) {
-    response = await supabaseFetch(
-      `admin_users?email=ilike.${encodeURIComponent(
-        user.email
-      )}&is_active=eq.true&select=id,user_id,email,telegram_id,first_name,username`
+  const response =
+    await supabaseFetch(
+      `admin_users?user_id=eq.${encodeURIComponent(
+        user.id
+      )}&is_active=eq.true&select=id,user_id,telegram_id,first_name,username`
     );
 
-    if (response.ok) {
-      const admins = await response.json();
+  if (!response.ok) {
+    const errorText =
+      await response.text();
 
-      if (admins.length > 0) {
-        return admins[0];
-      }
-    }
+    console.error(
+      "Admin lookup failed:",
+      errorText
+    );
+
+    return null;
   }
 
-  return null;
+  const admins =
+    await response.json();
+
+  if (
+    !admins.length
+  ) {
+    return null;
+  }
+
+  return admins[0];
 }
 
 /* =========================================================
    ACTIVE SUBSCRIPTION
 ========================================================= */
 
-async function getActiveSubscription(userId) {
-  const now = new Date().toISOString();
+async function getActiveSubscription(
+  userId
+) {
+  const now =
+    new Date().toISOString();
 
-  const response = await supabaseFetch(
-    `subscriptions?user_id=eq.${encodeURIComponent(
-      userId
-    )}&status=eq.active&expires_at=gt.${encodeURIComponent(
-      now
-    )}&select=id,plan,status,amount,started_at,expires_at,order_id,payment_id&order=expires_at.desc&limit=1`
-  );
+  const response =
+    await supabaseFetch(
+      `subscriptions?user_id=eq.${encodeURIComponent(
+        userId
+      )}&status=eq.active&expires_at=gt.${encodeURIComponent(
+        now
+      )}&select=id,plan,status,amount,started_at,expires_at,order_id,payment_id&order=expires_at.desc&limit=1`
+    );
 
   if (!response.ok) {
     console.error(
@@ -198,7 +236,8 @@ async function getActiveSubscription(userId) {
     return null;
   }
 
-  const subscriptions = await response.json();
+  const subscriptions =
+    await response.json();
 
   return subscriptions.length
     ? subscriptions[0]
@@ -206,17 +245,19 @@ async function getActiveSubscription(userId) {
 }
 
 /* =========================================================
-   ADMIN AUTH
+   ADMIN AUTHENTICATION
 ========================================================= */
 
 async function authenticateAdmin() {
-  const user = await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
   if (!user) {
     return null;
   }
 
-  const admin = await getAdmin(user);
+  const admin =
+    await getAdmin(user);
 
   if (!admin) {
     return null;
@@ -229,11 +270,14 @@ async function authenticateAdmin() {
 }
 
 /* =========================================================
-   GET USERS
+   GET ALL USERS
 ========================================================= */
 
 export async function GET() {
   try {
+    /*
+     * Environment check
+     */
     if (
       !SUPABASE_URL ||
       !SUPABASE_SECRET_KEY ||
@@ -244,27 +288,43 @@ export async function GET() {
           error:
             "Required environment variables are missing",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    const auth = await authenticateAdmin();
+    /*
+     * Authenticate admin
+     */
+    const auth =
+      await authenticateAdmin();
 
     if (!auth) {
       return NextResponse.json(
         {
-          error: "Admin access denied",
+          error:
+            "Admin access denied",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const response = await supabaseFetch(
-      "users?select=id,email,telegram_id,first_name,username,status,plan,created_at,approved_at,approved_by,last_login_at,updated_at&order=created_at.desc"
-    );
+    /*
+     * Fetch ALL users.
+     *
+     * This is not restricted to the admin user.
+     */
+    const response =
+      await supabaseFetch(
+        "users?select=id,email,telegram_id,first_name,username,status,plan,created_at,approved_at,approved_by,last_login_at,updated_at&order=created_at.desc"
+      );
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText =
+        await response.text();
 
       console.error(
         "Users fetch error:",
@@ -273,59 +333,82 @@ export async function GET() {
 
       return NextResponse.json(
         {
-          error: "Failed to fetch users",
+          error:
+            "Failed to fetch users",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    const users = await response.json();
+    const users =
+      await response.json();
 
     /*
-     * Attach active subscription information
+     * Attach active subscription
+     * information to every user.
      */
+    const enrichedUsers =
+      await Promise.all(
+        users.map(
+          async (user) => {
+            const subscription =
+              await getActiveSubscription(
+                user.id
+              );
 
-    const enrichedUsers = await Promise.all(
-      users.map(async (user) => {
-        const subscription =
-          await getActiveSubscription(user.id);
+            const premiumActive =
+              subscription?.status ===
+                "active" &&
+              subscription?.expires_at &&
+              new Date(
+                subscription.expires_at
+              ) > new Date();
 
-        const premiumActive =
-          subscription?.status === "active" &&
-          subscription?.expires_at &&
-          new Date(subscription.expires_at) >
-            new Date();
+            return {
+              ...user,
 
-        return {
-          ...user,
+              subscription:
+                subscription ||
+                null,
 
-          subscription:
-            subscription || null,
+              premium_active:
+                Boolean(
+                  premiumActive
+                ),
 
-          premium_active:
-            Boolean(premiumActive),
+              premium_plan:
+                subscription?.plan ||
+                null,
 
-          premium_plan:
-            subscription?.plan || null,
+              premium_expires_at:
+                subscription?.expires_at ||
+                null,
 
-          premium_expires_at:
-            subscription?.expires_at || null,
+              payment_id:
+                subscription?.payment_id ||
+                null,
 
-          payment_id:
-            subscription?.payment_id || null,
+              order_id:
+                subscription?.order_id ||
+                null,
 
-          order_id:
-            subscription?.order_id || null,
+              subscription_amount:
+                subscription?.amount ??
+                null,
 
-          subscription_amount:
-            subscription?.amount ?? null,
+              subscription_started_at:
+                subscription?.started_at ||
+                null,
+            };
+          }
+        )
+      );
 
-          subscription_started_at:
-            subscription?.started_at || null,
-        };
-      })
-    );
-
+    /*
+     * Return ALL users.
+     */
     return NextResponse.json({
       success: true,
 
@@ -333,10 +416,19 @@ export async function GET() {
 
       admin: {
         id: auth.admin.id,
-        email: auth.admin.email || auth.user.email,
+
         user_id:
           auth.admin.user_id ||
           auth.user.id,
+
+        email:
+          auth.user.email,
+
+        first_name:
+          auth.user.first_name,
+
+        username:
+          auth.user.username,
       },
     });
   } catch (error) {
@@ -347,9 +439,12 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error: "Server error",
+        error:
+          "Server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -358,8 +453,13 @@ export async function GET() {
    UPDATE USER STATUS
 ========================================================= */
 
-export async function POST(request) {
+export async function POST(
+  request
+) {
   try {
+    /*
+     * Environment check
+     */
     if (
       !SUPABASE_URL ||
       !SUPABASE_SECRET_KEY ||
@@ -370,38 +470,59 @@ export async function POST(request) {
           error:
             "Required environment variables are missing",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
-    const auth = await authenticateAdmin();
+    /*
+     * Authenticate admin
+     */
+    const auth =
+      await authenticateAdmin();
 
     if (!auth) {
       return NextResponse.json(
         {
-          error: "Admin access denied",
+          error:
+            "Admin access denied",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const userId = body.user_id
-      ? String(body.user_id)
-      : null;
+    const userId =
+      body.user_id
+        ? String(body.user_id)
+        : null;
 
-    const status = body.status;
+    const status =
+      body.status;
 
+    /*
+     * Validate user ID
+     */
     if (!userId) {
       return NextResponse.json(
         {
-          error: "user_id is required",
+          error:
+            "user_id is required",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
+    /*
+     * Validate status
+     */
     if (
       ![
         "approved",
@@ -411,9 +532,31 @@ export async function POST(request) {
     ) {
       return NextResponse.json(
         {
-          error: "Invalid status",
+          error:
+            "Invalid status",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+     * Prevent admin from accidentally
+     * changing their own account status.
+     */
+    if (
+      userId ===
+      auth.user.id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You cannot change your own account status",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
@@ -431,26 +574,28 @@ export async function POST(request) {
           : null,
     };
 
-    const response = await supabaseFetch(
-      `users?id=eq.${encodeURIComponent(
-        userId
-      )}`,
-      {
-        method: "PATCH",
+    const response =
+      await supabaseFetch(
+        `users?id=eq.${encodeURIComponent(
+          userId
+        )}`,
+        {
+          method: "PATCH",
 
-        headers: {
-          "Content-Type":
-            "application/json",
+          headers: {
+            "Content-Type":
+              "application/json",
 
-          Prefer:
-            "return=representation",
-        },
+            Prefer:
+              "return=representation",
+          },
 
-        body: JSON.stringify(
-          updateData
-        ),
-      }
-    );
+          body:
+            JSON.stringify(
+              updateData
+            ),
+        }
+      );
 
     if (!response.ok) {
       const errorText =
@@ -466,7 +611,9 @@ export async function POST(request) {
           error:
             "User update failed",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -490,9 +637,12 @@ export async function POST(request) {
 
     return NextResponse.json(
       {
-        error: "Server error",
+        error:
+          "Server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
