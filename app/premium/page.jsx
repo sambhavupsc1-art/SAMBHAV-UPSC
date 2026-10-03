@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -349,87 +348,75 @@ export default function PremiumPage() {
   const [demoMessage, setDemoMessage] =
     useState("");
 
+  /*
+   * ==========================================
+   * AUTHENTICATION
+   * ==========================================
+   *
+   * Premium page now uses the same authenticated
+   * SAMBHAV session as the main dashboard.
+   *
+   * No Telegram authentication is required here.
+   *
+   * The browser automatically sends:
+   *
+   * sambhav_session
+   *
+   * because it is an HTTP-only cookie.
+   */
+
   useEffect(() => {
-    let attempts = 0;
     let stopped = false;
 
-    const authenticate = () => {
-      if (stopped) return;
-
-      attempts++;
-
-      const webApp =
-        window.Telegram?.WebApp;
-
-      if (!webApp?.initData) {
-        if (attempts < 30) {
-          setTimeout(authenticate, 200);
-          return;
-        }
-
-        setAuthError(
-          "Telegram authentication data nahi mila."
-        );
-
-        setLoading(false);
-        return;
-      }
-
+    const authenticate = async () => {
       try {
-        webApp.ready();
-        webApp.expand();
-      } catch (telegramError) {
-        console.warn(
-          "Telegram WebApp setup warning:",
-          telegramError
-        );
-      }
-
-      /*
-       * Save Telegram authentication data.
-       * Payment page will reuse this.
-       */
-      try {
-        sessionStorage.setItem(
-          "sambhav_telegram_init_data",
-          webApp.initData
-        );
-      } catch (storageError) {
-        console.warn(
-          "Telegram auth session save failed:",
-          storageError
-        );
-      }
-
-      fetch("/api/auth/me", {
-        headers: {
-          Authorization:
-            `tma ${webApp.initData}`,
-        },
-        cache: "no-store",
-      })
-        .then(async (response) => {
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            throw new Error(
-              data.error ||
-                "Authentication failed"
-            );
+        const response = await fetch(
+          "/api/auth/me",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
           }
+        );
 
-          setUser(data.user);
-        })
-        .catch((error) => {
-          setAuthError(
-            error.message ||
+        const data =
+          await response.json().catch(
+            () => ({})
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
               "Authentication failed."
           );
-        })
-        .finally(() => {
+        }
+
+        if (!data?.user) {
+          throw new Error(
+            "User authentication failed."
+          );
+        }
+
+        if (stopped) return;
+
+        setUser(data.user);
+      } catch (error) {
+        if (stopped) return;
+
+        console.error(
+          "SAMBHAV premium authentication error:",
+          error
+        );
+
+        setAuthError(
+          error.message ||
+            "Authentication failed."
+        );
+      } finally {
+        if (!stopped) {
           setLoading(false);
-        });
+        }
+      }
     };
 
     authenticate();
@@ -444,70 +431,52 @@ export default function PremiumPage() {
       plan.id === selectedPlan
   );
 
+  /*
+   * ==========================================
+   * FREE DEMO
+   * ==========================================
+   *
+   * IMPORTANT:
+   *
+   * No Telegram initData is sent.
+   *
+   * Backend must identify the user from
+   * sambhav_session itself.
+   *
+   * Never trust a frontend user_id.
+   */
+
   const activateDemo = async () => {
-    if (selectedPlan !== "demo") return;
+    if (selectedPlan !== "demo") {
+      return;
+    }
 
     setActivatingDemo(true);
     setDemoMessage("");
 
     try {
-      const webApp =
-        window.Telegram?.WebApp;
-
-      let telegramInitData =
-        webApp?.initData || "";
-
-      if (!telegramInitData) {
-        try {
-          telegramInitData =
-            sessionStorage.getItem(
-              "sambhav_telegram_init_data"
-            ) || "";
-        } catch (storageError) {
-          console.warn(
-            "Telegram auth session read failed:",
-            storageError
-          );
-        }
-      }
-
-      if (!telegramInitData) {
-        throw new Error(
-          "Telegram authentication data nahi mila."
-        );
-      }
-
-      try {
-        sessionStorage.setItem(
-          "sambhav_telegram_init_data",
-          telegramInitData
-        );
-      } catch (storageError) {
-        console.warn(
-          "Telegram auth session save failed:",
-          storageError
-        );
-      }
-
       const response = await fetch(
         "/api/premium/demo",
         {
           method: "POST",
-
+          credentials: "include",
           headers: {
-            Authorization:
-              `tma ${telegramInitData}`,
             "Content-Type":
               "application/json",
           },
-
           cache: "no-store",
+          body: JSON.stringify({}),
         }
       );
 
       const data =
-        await response.json();
+        await response.json().catch(
+          () => ({})
+        );
 
+      /*
+       * Existing active subscription
+       */
       if (
         response.status === 409 &&
         data?.subscription
@@ -517,18 +486,24 @@ export default function PremiumPage() {
         );
 
         setTimeout(() => {
-          window.location.href =
-            "/premium/home";
+          router.push("/premium/home");
         }, 500);
 
         return;
       }
 
+      /*
+       * Demo already consumed
+       */
       if (
         response.status === 409 &&
-        data?.error?.includes(
-          "already been used"
+        String(
+          data?.error || ""
         )
+          .toLowerCase()
+          .includes(
+            "already been used"
+          )
       ) {
         setDemoMessage(
           "Your 2-Day Premium Demo has already been used."
@@ -549,8 +524,7 @@ export default function PremiumPage() {
       );
 
       setTimeout(() => {
-        window.location.href =
-          "/premium/home";
+        router.push("/premium/home");
       }, 700);
     } catch (error) {
       setDemoMessage(
@@ -563,367 +537,321 @@ export default function PremiumPage() {
   };
 
   /*
-   * IMPORTANT:
-   * Paid plans use Next.js client navigation.
-   * This prevents Telegram Mini App from
-   * reloading the Premium landing page.
+   * ==========================================
+   * PAYMENT CONTINUE
+   * ==========================================
+   *
+   * Paid plans use authenticated server
+   * session. Telegram is not involved.
    */
+
   const continuePlan = () => {
-    try {
-      const webApp =
-        window.Telegram?.WebApp;
-
-      const telegramInitData =
-        webApp?.initData || "";
-
-      if (telegramInitData) {
-        sessionStorage.setItem(
-          "sambhav_telegram_init_data",
-          telegramInitData
-        );
-      }
-    } catch (storageError) {
-      console.warn(
-        "Telegram auth save before payment failed:",
-        storageError
-      );
-    }
-
     if (selectedPlan === "demo") {
       activateDemo();
       return;
     }
 
     router.push(
-      `/premium/payment?plan=${selectedPlan}`
+      `/premium/payment?plan=${encodeURIComponent(
+        selectedPlan
+      )}`
     );
   };
 
+  /*
+   * ==========================================
+   * LOADING
+   * ==========================================
+   */
+
   if (loading) {
     return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
-        <main style={styles.page}>
-          <div style={styles.container}>
-            <div
-              style={styles.loadingCard}
-            >
-              <div style={styles.brand}>
-                SAMBHAV UPSC
-              </div>
-
-              <p style={styles.heroSub}>
-                Authenticating...
-              </p>
-            </div>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  if (authError || !user) {
-    return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
-        <main style={styles.page}>
-          <div style={styles.container}>
-            <div
-              style={styles.loadingCard}
-            >
-              <div style={styles.brand}>
-                SAMBHAV UPSC
-              </div>
-
-              <div style={styles.error}>
-                {authError ||
-                  "User authentication failed."}
-              </div>
-
-              <button
-                style={{
-                  ...styles.bottomAction,
-                  marginTop: "22px",
-                }}
-                onClick={() => {
-                  router.push("/");
-                }}
-              >
-                ← Back to SAMBHAV
-              </button>
-            </div>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Script
-        src="https://telegram.org/js/telegram-web-app.js"
-        strategy="beforeInteractive"
-      />
-
       <main style={styles.page}>
         <div style={styles.container}>
-          <header style={styles.topBar}>
-            <button
-              style={styles.back}
-              onClick={() => {
-                router.push("/");
-              }}
-              aria-label="Back"
-            >
-              ‹
-            </button>
-
+          <div style={styles.loadingCard}>
             <div style={styles.brand}>
               SAMBHAV UPSC
             </div>
 
-            <div
-              style={styles.premiumBadge}
-            >
-              ✦ PREMIUM
-            </div>
-          </header>
-
-          <section style={styles.hero}>
-            <div style={styles.crown}>
-              ♛
-            </div>
-
-            <h1 style={styles.heroTitle}>
-              Your Preparation.
-              <br />
-              Your SAMBHAV.
-            </h1>
-
             <p style={styles.heroSub}>
-              Unlock structured UPSC
-              preparation, intelligent
-              practice and premium
-              learning tools.
+              Authenticating...
             </p>
-          </section>
-
-          <section
-            style={styles.officerCard}
-          >
-            <div
-              style={styles.officerGlow}
-            />
-
-            <div
-              style={styles.officerLabel}
-            >
-              Officer Access
-            </div>
-
-            <div
-              style={styles.officerTitle}
-            >
-              Welcome,{" "}
-              {user.first_name ||
-                user.firstName ||
-                "Aspirant"}
-            </div>
-
-            <div
-              style={styles.officerText}
-            >
-              Select your Premium access
-              plan below.
-            </div>
-          </section>
-
-          <div
-            style={styles.sectionTitle}
-          >
-            Choose your plan
-          </div>
-
-          <section style={styles.plans}>
-            {plans.map((plan) => {
-              const isSelected =
-                selectedPlan === plan.id;
-
-              const isDemo =
-                plan.id === "demo";
-
-              return (
-                <div
-                  key={plan.id}
-                  style={{
-                    ...styles.plan,
-
-                    ...(isDemo
-                      ? styles.demoPlan
-                      : {}),
-
-                    ...(isSelected
-                      ? styles.selectedPlan
-                      : {}),
-                  }}
-                  onClick={() =>
-                    setSelectedPlan(
-                      plan.id
-                    )
-                  }
-                >
-                  {plan.badge && (
-                    <div
-                      style={{
-                        ...styles.badge,
-
-                        ...(isDemo
-                          ? styles.demoBadge
-                          : {}),
-                      }}
-                    >
-                      {plan.badge}
-                    </div>
-                  )}
-
-                  <div
-                    style={
-                      styles.planTitle
-                    }
-                  >
-                    {plan.title}
-                  </div>
-
-                  <div
-                    style={
-                      styles.priceRow
-                    }
-                  >
-                    <div
-                      style={styles.price}
-                    >
-                      {plan.price}
-                    </div>
-
-                    <div
-                      style={{
-                        ...styles.period,
-
-                        ...(isDemo
-                          ? styles.demoPeriod
-                          : {}),
-                      }}
-                    >
-                      {plan.period}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.duration,
-
-                      ...(isDemo
-                        ? styles.demoDuration
-                        : {}),
-                    }}
-                  >
-                    {plan.duration}
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.description,
-
-                      ...(isDemo
-                        ? styles.demoDescription
-                        : {}),
-                    }}
-                  >
-                    {plan.description}
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.check,
-
-                      ...(isDemo
-                        ? styles.demoCheck
-                        : {}),
-                    }}
-                  >
-                    ✓ Full Premium access
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-
-          {demoMessage && (
-            <div
-              style={{
-                marginTop: "15px",
-                padding: "13px",
-                borderRadius: "15px",
-
-                background:
-                  demoMessage ===
-                    "PREMIUM DEMO ACTIVATED" ||
-                  demoMessage ===
-                    "PREMIUM ALREADY ACTIVE"
-                    ? "#eaf7ed"
-                    : "#fff0ee",
-
-                color:
-                  demoMessage ===
-                    "PREMIUM DEMO ACTIVATED" ||
-                  demoMessage ===
-                    "PREMIUM ALREADY ACTIVE"
-                    ? "#217a39"
-                    : "#b52b22",
-
-                textAlign: "center",
-                fontSize: "11px",
-                fontWeight: "800",
-              }}
-            >
-              {demoMessage}
-            </div>
-          )}
-
-          <button
-            style={{
-              ...styles.bottomAction,
-              opacity:
-                activatingDemo
-                  ? 0.65
-                  : 1,
-            }}
-            disabled={activatingDemo}
-            onClick={continuePlan}
-          >
-            {activatingDemo
-              ? "Activating..."
-              : selectedPlan ===
-                "demo"
-              ? "START FREE DEMO →"
-              : `CONTINUE WITH ${selected?.price} →`}
-          </button>
-
-          <div style={styles.secure}>
-            {selectedPlan === "demo"
-              ? "No payment required • 2-day Premium access"
-              : "Secure payment • Payment verification required"}
           </div>
         </div>
       </main>
-    </>
+    );
+  }
+
+  /*
+   * ==========================================
+   * AUTH ERROR
+   * ==========================================
+   */
+
+  if (authError || !user) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <div style={styles.loadingCard}>
+            <div style={styles.brand}>
+              SAMBHAV UPSC
+            </div>
+
+            <div style={styles.error}>
+              {authError ||
+                "User authentication failed."}
+            </div>
+
+            <button
+              style={{
+                ...styles.bottomAction,
+                marginTop: "22px",
+              }}
+              onClick={() => {
+                router.push("/login");
+              }}
+            >
+              ← Sign In
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * ==========================================
+   * PREMIUM PAGE
+   * ==========================================
+   */
+
+  return (
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <header style={styles.topBar}>
+          <button
+            style={styles.back}
+            onClick={() => {
+              router.push("/");
+            }}
+            aria-label="Back"
+          >
+            ‹
+          </button>
+
+          <div style={styles.brand}>
+            SAMBHAV UPSC
+          </div>
+
+          <div style={styles.premiumBadge}>
+            ✦ PREMIUM
+          </div>
+        </header>
+
+        <section style={styles.hero}>
+          <div style={styles.crown}>
+            ♛
+          </div>
+
+          <h1 style={styles.heroTitle}>
+            Your Preparation.
+            <br />
+            Your SAMBHAV.
+          </h1>
+
+          <p style={styles.heroSub}>
+            Unlock structured UPSC
+            preparation, intelligent
+            practice and premium
+            learning tools.
+          </p>
+        </section>
+
+        <section style={styles.officerCard}>
+          <div style={styles.officerGlow} />
+
+          <div style={styles.officerLabel}>
+            Officer Access
+          </div>
+
+          <div style={styles.officerTitle}>
+            Welcome,{" "}
+            {user.first_name ||
+              user.firstName ||
+              user.name ||
+              "Aspirant"}
+          </div>
+
+          <div style={styles.officerText}>
+            Select your Premium access
+            plan below.
+          </div>
+        </section>
+
+        <div style={styles.sectionTitle}>
+          Choose your plan
+        </div>
+
+        <section style={styles.plans}>
+          {plans.map((plan) => {
+            const isSelected =
+              selectedPlan === plan.id;
+
+            const isDemo =
+              plan.id === "demo";
+
+            return (
+              <div
+                key={plan.id}
+                style={{
+                  ...styles.plan,
+
+                  ...(isDemo
+                    ? styles.demoPlan
+                    : {}),
+
+                  ...(isSelected
+                    ? styles.selectedPlan
+                    : {}),
+                }}
+                onClick={() =>
+                  setSelectedPlan(
+                    plan.id
+                  )
+                }
+              >
+                {plan.badge && (
+                  <div
+                    style={{
+                      ...styles.badge,
+
+                      ...(isDemo
+                        ? styles.demoBadge
+                        : {}),
+                    }}
+                  >
+                    {plan.badge}
+                  </div>
+                )}
+
+                <div style={styles.planTitle}>
+                  {plan.title}
+                </div>
+
+                <div style={styles.priceRow}>
+                  <div style={styles.price}>
+                    {plan.price}
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.period,
+
+                      ...(isDemo
+                        ? styles.demoPeriod
+                        : {}),
+                    }}
+                  >
+                    {plan.period}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    ...styles.duration,
+
+                    ...(isDemo
+                      ? styles.demoDuration
+                      : {}),
+                  }}
+                >
+                  {plan.duration}
+                </div>
+
+                <div
+                  style={{
+                    ...styles.description,
+
+                    ...(isDemo
+                      ? styles.demoDescription
+                      : {}),
+                  }}
+                >
+                  {plan.description}
+                </div>
+
+                <div
+                  style={{
+                    ...styles.check,
+
+                    ...(isDemo
+                      ? styles.demoCheck
+                      : {}),
+                  }}
+                >
+                  ✓ Full Premium access
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        {demoMessage && (
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "13px",
+              borderRadius: "15px",
+
+              background:
+                demoMessage ===
+                  "PREMIUM DEMO ACTIVATED" ||
+                demoMessage ===
+                  "PREMIUM ALREADY ACTIVE"
+                  ? "#eaf7ed"
+                  : "#fff0ee",
+
+              color:
+                demoMessage ===
+                  "PREMIUM DEMO ACTIVATED" ||
+                demoMessage ===
+                  "PREMIUM ALREADY ACTIVE"
+                  ? "#217a39"
+                  : "#b52b22",
+
+              textAlign: "center",
+              fontSize: "11px",
+              fontWeight: "800",
+            }}
+          >
+            {demoMessage}
+          </div>
+        )}
+
+        <button
+          style={{
+            ...styles.bottomAction,
+            opacity:
+              activatingDemo
+                ? 0.65
+                : 1,
+          }}
+          disabled={activatingDemo}
+          onClick={continuePlan}
+        >
+          {activatingDemo
+            ? "Activating..."
+            : selectedPlan === "demo"
+            ? "START FREE DEMO →"
+            : `CONTINUE WITH ${selected?.price} →`}
+        </button>
+
+        <div style={styles.secure}>
+          {selectedPlan === "demo"
+            ? "No payment required • 2-day Premium access"
+            : "Secure payment • Server-side verification required"}
+        </div>
+      </div>
+    </main>
   );
 }
