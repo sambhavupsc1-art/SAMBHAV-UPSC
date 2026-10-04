@@ -2446,17 +2446,14 @@ export default function Home() {
             </div>
           </section>
 
-          {/* PREPARATION WORKSPACE */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div>
+          {/* SAMBHAV LEARNING ECOSYSTEM */}
+          <section style={{ marginTop: "2px" }}>
+            <div
+              style={{
+                marginBottom: "13px",
+                padding: "0 2px",
+              }}
+            >
               <div
                 style={{
                   fontSize: "9px",
@@ -2465,151 +2462,211 @@ export default function Home() {
                   color: "#a07d32",
                 }}
               >
-                PREPARATION WORKSPACE
+                SAMBHAV LEARNING ECOSYSTEM
               </div>
 
               <div
                 style={{
-                  marginTop: "4px",
-                  fontSize: "24px",
-                  lineHeight: "1.1",
+                  marginTop: "5px",
+                  fontSize: "23px",
+                  lineHeight: "1.15",
                   fontWeight: "900",
-                  letterSpacing: "-0.7px",
+                  letterSpacing: "-0.6px",
                 }}
               >
-                Your Modules
+                Complete UPSC Preparation
+              </div>
+
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "11px",
+                  lineHeight: "1.5",
+                  color: "#77736c",
+                  maxWidth: "620px",
+                }}
+              >
+                An integrated learning ecosystem built around the complete UPSC preparation cycle.
               </div>
             </div>
 
-            <div
+            <section
               style={{
-                fontSize: "9px",
-                fontWeight: "800",
-                color: "#8b877f",
-                letterSpacing: "0.8px",
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(230px, 1fr))",
+                gap: "11px",
               }}
             >
-              UPSC • 2026
-            </div>
-          </div>
-
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "11px",
-            }}
-          >
-            {modules.map((module, index) => (
-              <div
-                key={module.title}
-                style={{
-                  background:
-                    "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-                  border:
-                    "1px solid rgba(255,255,255,0.08)",
-                  color: "#ffffff",
-                  borderRadius: "20px",
-                  padding: "15px",
-                  minWidth: 0,
-                  minHeight: "150px",
-                  position: "relative",
-                  cursor: "pointer",
-                  boxShadow:
-                    "0 12px 28px rgba(0,0,0,0.12)",
-                }}
-                onClick={() => {
-                  if (module.route) {
-                    window.location.href =
-                      module.route;
-                  } else {
-                    console.log(
-                      `${module.title} coming soon`
-                    );
-                  }
-                }}
-              >
+              {[
+                {
+                  no: "01",
+                  title: "Current Affairs",
+                  label: "DAILY & MONTHLY INTELLIGENCE",
+                  points: [
+                    "Daily & Monthly Current Affairs",
+                    "UPSC-oriented Analysis",
+                    "The Hindu • PIB • Government Sources",
+                    "Prelims & Mains Relevance",
+                    "Revision-oriented Content",
+                  ],
+                },
+                {
+                  no: "02",
+                  title: "PYQ Intelligence",
+                  label: "PREVIOUS YEAR QUESTIONS",
+                  points: [
+                    "Prelims & Mains PYQs",
+                    "Subject & Topic-wise Classification",
+                    "Question-wise Practice",
+                    "Detailed Explanations",
+                    "Performance & Trend Analysis",
+                  ],
+                },
+                {
+                  no: "03",
+                  title: "Prelims Test",
+                  label: "PYQ-ORIENTED PRACTICE",
+                  points: [
+                    "PYQ-oriented MCQs",
+                    "Subject & Topic-wise Practice",
+                    "PYQ-based Tests",
+                    "Question Analysis",
+                    "Score & Performance Analysis",
+                  ],
+                },
+                {
+                  no: "04",
+                  title: "Mains",
+                  label: "ANSWER WRITING",
+                  points: [
+                    "GS I • II • III • IV",
+                    "PYQ-based Answer Writing",
+                    "Structured Answer Practice",
+                    "Answer Evaluation",
+                    "Improvement Guidance",
+                  ],
+                },
+                {
+                  no: "05",
+                  title: "AI Answer Evaluation",
+                  label: "AI-POWERED ANALYSIS",
+                  points: [
+                    "AI-powered Answer Evaluation",
+                    "Score & Assessment",
+                    "Strengths & Weaknesses",
+                    "Content & Structure Analysis",
+                    "Actionable Improvement Suggestions",
+                  ],
+                },
+                {
+                  no: "06",
+                  title: "Study Material",
+                  label: "NOTES & RESOURCES",
+                  points: [
+                    "GS Resources",
+                    "Conceptual Notes",
+                    "Revision Material",
+                    "UPSC-oriented Reference Resources",
+                    "CSAT Focus • Questions • Explanations",
+                  ],
+                },
+              ].map((item) => (
                 <div
+                  key={item.no}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    background:
+                      "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+                    border:
+                      "1px solid rgba(255,255,255,0.08)",
+                    color: "#ffffff",
+                    borderRadius: "21px",
+                    padding: "17px",
+                    minWidth: 0,
+                    minHeight: "218px",
+                    position: "relative",
+                    boxShadow:
+                      "0 12px 28px rgba(0,0,0,0.12)",
                   }}
                 >
                   <div
                     style={{
-                      width: "39px",
-                      height: "39px",
-                      borderRadius: "12px",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        "rgba(255,255,255,0.08)",
-                      color: "#d6bd79",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "8px",
+                        fontWeight: "900",
+                        letterSpacing: "1.2px",
+                        color: "#d6bd79",
+                      }}
+                    >
+                      {item.label}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "900",
+                        color:
+                          "rgba(255,255,255,0.34)",
+                      }}
+                    >
+                      {item.no}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "12px",
                       fontSize: "17px",
-                    }}
-                  >
-                    {module.icon}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "9px",
-                      fontWeight: "900",
-                      color:
-                        "rgba(255,255,255,0.38)",
-                      letterSpacing: "0.8px",
-                    }}
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "17px",
-                    paddingRight: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      lineHeight: "1.25",
+                      lineHeight: "1.2",
                       fontWeight: "900",
                     }}
                   >
-                    {module.title}
+                    {item.title}
                   </div>
 
                   <div
                     style={{
-                      marginTop: "5px",
-                      fontSize: "10px",
-                      lineHeight: "1.4",
-                      color:
-                        "rgba(255,255,255,0.55)",
+                      marginTop: "12px",
+                      display: "grid",
+                      gap: "6px",
                     }}
                   >
-                    {module.subtitle}
+                    {item.points.map((point) => (
+                      <div
+                        key={point}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "7px",
+                          fontSize: "10px",
+                          lineHeight: "1.35",
+                          color:
+                            "rgba(255,255,255,0.60)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#d6bd79",
+                            fontWeight: "900",
+                            flexShrink: 0,
+                          }}
+                        >
+                          •
+                        </span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                <div
-                  style={{
-                    position: "absolute",
-                    right: "14px",
-                    bottom: "13px",
-                    fontSize: "17px",
-                    fontWeight: "700",
-                    color: "#d6bd79",
-                  }}
-                >
-                  →
-                </div>
-              </div>
-            ))}
+              ))}
+            </section>
           </section>
 
         </div>
