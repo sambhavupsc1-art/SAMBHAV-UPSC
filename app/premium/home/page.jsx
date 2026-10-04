@@ -5,50 +5,38 @@ import { useEffect, useState } from "react";
 const modules = [
   {
     title: "Current Affairs",
-    subtitle: "Daily • Monthly • MCQs",
+    subtitle: "Daily • Monthly • UPSC Analysis",
     icon: "📰",
     route: "/current-affairs",
   },
   {
     title: "PYQ Intelligence",
-    subtitle: "2013–2026 • Topic Wise",
+    subtitle: "Prelims • Mains • Topic Wise",
     icon: "🎯",
     route: "/pyq",
   },
   {
     title: "Prelims Practice",
-    subtitle: "Practice • Revision • Tests",
+    subtitle: "PYQ Based • MCQs • Analysis",
     icon: "📝",
     route: null,
   },
   {
-    title: "Mock Tests",
-    subtitle: "Full Length • Sectional • CSAT",
-    icon: "⏱",
-    route: null,
-  },
-  {
-    title: "Mains Answer",
+    title: "Mains Answer Writing",
     subtitle: "GS I • II • III • IV",
     icon: "✍️",
     route: "/answer",
   },
   {
     title: "AI Evaluation",
-    subtitle: "Answer Analysis • Improvement",
+    subtitle: "Score • Feedback • Improvement",
     icon: "🤖",
     route: null,
   },
   {
     title: "Study Material",
-    subtitle: "Notes • PDFs • Revision",
+    subtitle: "GS • Notes • Revision",
     icon: "📚",
-    route: null,
-  },
-  {
-    title: "My Analytics",
-    subtitle: "Accuracy • Progress • Streak",
-    icon: "📊",
     route: null,
   },
 ];
@@ -128,6 +116,14 @@ const styles = {
     marginTop: "7px",
     color: "#77736b",
     fontSize: "12px",
+  },
+
+  tagline: {
+    marginTop: "9px",
+    color: "#101010",
+    fontSize: "11px",
+    fontWeight: "800",
+    letterSpacing: "-.1px",
   },
 
   premiumCard: {
@@ -570,48 +566,33 @@ const styles = {
 
 export default function PremiumHome() {
   const [user, setUser] = useState(null);
-  const [subscription, setSubscription] =
-    useState(null);
-
+  const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const [activeView, setActiveView] =
-    useState("home");
-
-  const [loggingOut, setLoggingOut] =
-    useState(false);
+  const [activeView, setActiveView] = useState("home");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let stopped = false;
 
     const authenticate = async () => {
       try {
-        const response = await fetch(
-          "/api/auth/me",
-          {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
-        const data =
-          await response.json().catch(
-            () => ({})
-          );
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           throw new Error(
-            data.error ||
-              "Authentication failed"
+            data.error || "Authentication failed"
           );
         }
 
         if (!data?.user) {
-          throw new Error(
-            "User authentication failed."
-          );
+          throw new Error("User authentication failed.");
         }
 
         if (
@@ -626,15 +607,7 @@ export default function PremiumHome() {
         if (stopped) return;
 
         setUser(data.user);
-
-        /*
-         * Active subscription comes directly
-         * from /api/auth/me.
-         */
-        setSubscription(
-          data.subscription || null
-        );
-
+        setSubscription(data.subscription || null);
         setError("");
       } catch (err) {
         if (stopped) return;
@@ -645,8 +618,7 @@ export default function PremiumHome() {
         );
 
         setError(
-          err.message ||
-            "Authentication failed."
+          err.message || "Authentication failed."
         );
       } finally {
         if (!stopped) {
@@ -673,7 +645,6 @@ export default function PremiumHome() {
 
   const go = (route) => {
     if (!route) return;
-
     window.location.href = route;
   };
 
@@ -693,14 +664,11 @@ export default function PremiumHome() {
       );
 
       const data =
-        await response.json().catch(
-          () => ({})
-        );
+        await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            "Logout failed."
+          data.error || "Logout failed."
         );
       }
 
@@ -721,9 +689,7 @@ export default function PremiumHome() {
   };
 
   const formatDate = (value) => {
-    if (!value) {
-      return "Not available";
-    }
+    if (!value) return "Not available";
 
     const date = new Date(value);
 
@@ -742,9 +708,7 @@ export default function PremiumHome() {
   };
 
   const formatDateTime = (value) => {
-    if (!value) {
-      return "Not available";
-    }
+    if (!value) return "Not available";
 
     const date = new Date(value);
 
@@ -946,9 +910,7 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.activeBadge}>
-                {String(
-                  status
-                ).toUpperCase()}
+                {String(status).toUpperCase()}
               </div>
             </div>
 
@@ -958,9 +920,7 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.profileValue}>
-                {String(
-                  plan
-                ).toUpperCase()}
+                {String(plan).toUpperCase()}
               </div>
             </div>
 
@@ -1010,9 +970,7 @@ export default function PremiumHome() {
               </div>
 
               <div style={styles.profileValue}>
-                {formatDate(
-                  createdAt
-                )}
+                {formatDate(createdAt)}
               </div>
             </div>
           </section>
@@ -1073,20 +1031,16 @@ export default function PremiumHome() {
             <span style={styles.navIcon}>
               ⌂
             </span>
-
             Home
           </div>
 
           <div
             style={styles.navItem}
-            onClick={() =>
-              go("/pyq")
-            }
+            onClick={() => go("/pyq")}
           >
             <span style={styles.navIcon}>
               ▣
             </span>
-
             Practice
           </div>
 
@@ -1099,22 +1053,18 @@ export default function PremiumHome() {
             <span style={styles.navIcon}>
               ▤
             </span>
-
             Current
           </div>
 
           <div
             style={styles.navItem}
             onClick={() => {
-              console.log(
-                "AI module"
-              );
+              console.log("AI module");
             }}
           >
             <span style={styles.navIcon}>
               ✦
             </span>
-
             AI
           </div>
 
@@ -1130,7 +1080,6 @@ export default function PremiumHome() {
             <span style={styles.navIcon}>
               ●
             </span>
-
             Profile
           </div>
         </nav>
@@ -1174,6 +1123,10 @@ export default function PremiumHome() {
 
           <div style={styles.greetingSub}>
             Your preparation. Your SAMBHAV.
+          </div>
+
+          <div style={styles.tagline}>
+            “संभव है, तो UPSC भी संभव है।”
           </div>
         </section>
 
@@ -1248,7 +1201,7 @@ export default function PremiumHome() {
 
         <div style={styles.sectionHeader}>
           <div style={styles.sectionTitle}>
-            Premium Modules
+            Learning Ecosystem
           </div>
 
           <div style={styles.sectionSub}>
@@ -1453,20 +1406,16 @@ export default function PremiumHome() {
           <span style={styles.navIcon}>
             ⌂
           </span>
-
           Home
         </div>
 
         <div
           style={styles.navItem}
-          onClick={() =>
-            go("/pyq")
-          }
+          onClick={() => go("/pyq")}
         >
           <span style={styles.navIcon}>
             ▣
           </span>
-
           Practice
         </div>
 
@@ -1479,22 +1428,18 @@ export default function PremiumHome() {
           <span style={styles.navIcon}>
             ▤
           </span>
-
           Current
         </div>
 
         <div
           style={styles.navItem}
           onClick={() => {
-            console.log(
-              "AI module"
-            );
+            console.log("AI module");
           }}
         >
           <span style={styles.navIcon}>
             ✦
           </span>
-
           AI
         </div>
 
@@ -1507,7 +1452,6 @@ export default function PremiumHome() {
           <span style={styles.navIcon}>
             ●
           </span>
-
           Profile
         </div>
       </nav>
