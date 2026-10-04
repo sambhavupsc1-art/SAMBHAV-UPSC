@@ -130,7 +130,7 @@ const styles = {
       "linear-gradient(180deg, #0b0b0b 0%, #111111 100%)",
     color: "#ffffff",
     fontFamily:
-      "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      "Inter, Poppins, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     paddingBottom: "105px",
   },
 
@@ -364,8 +364,8 @@ const styles = {
   },
 
   featureIcon: {
-    width: "40px",
-    height: "40px",
+    width: "38px",
+    height: "38px",
     borderRadius: "14px",
     background:
       "linear-gradient(145deg, #181818, #080808)",
@@ -1253,7 +1253,7 @@ const styles = {
 
   dashboardPremiumTitle: {
     marginTop: "9px",
-    fontSize: "17px",
+    fontSize: "18px",
     fontWeight: "950",
     position: "relative",
     zIndex: 2,
@@ -1352,8 +1352,8 @@ const styles = {
   ecosystemIntroText: {
     marginTop: "9px",
     color: "#a3a3a3",
-    fontSize: "11px",
-    lineHeight: "1.5",
+    fontSize: "11.5px",
+    lineHeight: "1.45",
     fontWeight: "900",
   },
 
@@ -1364,10 +1364,10 @@ const styles = {
   ecoButton: {
     width: "100%",
     display: "grid",
-    gridTemplateColumns: "24px 42px minmax(0,1fr) 30px",
+    gridTemplateColumns: "18px 38px minmax(0,1fr) 28px",
     alignItems: "center",
-    gap: "7px",
-    padding: "10px 10px",
+    gap: "6px",
+    padding: "10px 12px",
     textAlign: "left",
     justifyContent: "stretch",
     border: "none",
@@ -1407,8 +1407,8 @@ const styles = {
 
   ecoLabel: {
     color: "#d6bd79",
-    fontSize: "9px",
-    letterSpacing: "1.25px",
+    fontSize: "9.5px",
+    letterSpacing: "1.15px",
     fontWeight: "950",
     lineHeight: "1.2",
     textAlign: "left",
@@ -1438,7 +1438,7 @@ const styles = {
   },
 
   ecoDetails: {
-    padding: "0 12px 12px 73px",
+    padding: "0 12px 12px 66px",
     animation: "ecoReveal .18s ease-out",
   },
 
