@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
-import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -61,10 +60,7 @@ function verifyEmailSession(token) {
 
     const expectedSignature =
       crypto
-        .createHmac(
-          "sha256",
-          secret
-        )
+        .createHmac("sha256", secret)
         .update(payload)
         .digest("base64url");
 
@@ -235,185 +231,95 @@ async function getActiveSubscription(userId) {
 
 /*
  * ========================================================
- * AUTHENTICATED USER
- *
- * EMAIL SESSION = PRIMARY
- * TELEGRAM = FALLBACK
+ * EMAIL SESSION ONLY
  * ========================================================
  */
 
-async function getAuthenticatedUser(request) {
-  /*
-   * ======================================================
-   * 1. WEBSITE / EMAIL SESSION
-   * ======================================================
-   */
-
+async function getAuthenticatedUser() {
   try {
     /*
-     * First try request.cookies.
+     * First read request-scoped cookies.
      */
+
     let sessionToken = null;
 
     try {
+      const cookieStore =
+        await cookies();
+
       sessionToken =
-        request.cookies.get(
+        cookieStore.get(
           "sambhav_session"
         )?.value || null;
     } catch (error) {
       console.error(
-        "request.cookies read failed:",
+        "Cookie read failed:",
         error
       );
     }
 
     /*
-     * Fallback to next/headers cookies().
+     * No session = no payment authentication.
      */
-    if (!sessionToken) {
-      try {
-        const cookieStore =
-          await cookies();
 
-        sessionToken =
-          cookieStore.get(
-            "sambhav_session"
-          )?.value || null;
-      } catch (error) {
-        console.error(
-          "cookies() read failed:",
-          error
-        );
-      }
+    if (!sessionToken) {
+      console.error(
+        "Payment authentication failed: sambhav_session not found."
+      );
+
+      return null;
     }
 
     /*
-     * Verify session.
+     * Verify signed session.
      */
-    if (sessionToken) {
-      const session =
-        verifyEmailSession(
-          sessionToken
-        );
 
-      if (session?.userId) {
-        const user =
-          await getUserById(
-            session.userId
-          );
+    const session =
+      verifyEmailSession(
+        sessionToken
+      );
 
-        if (user) {
-          return {
-            user,
-            authMethod: "email",
-          };
-        }
-
-        console.error(
-          "Payment authentication: user not found for session.",
-          {
-            userId:
-              session.userId,
-          }
-        );
-      } else {
-        console.error(
-          "Payment authentication: invalid session."
-        );
-      }
-    } else {
+    if (!session?.userId) {
       console.error(
-        "Payment authentication: sambhav_session cookie not received."
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Payment email authentication error:",
-      error
-    );
-  }
-
-  /*
-   * ======================================================
-   * 2. TELEGRAM FALLBACK
-   * ======================================================
-   *
-   * Kept for legacy Telegram users.
-   *
-   * Current website payment page does NOT
-   * send Telegram Authorization.
-   */
-
-  try {
-    const authorization =
-      request.headers.get(
-        "authorization"
+        "Payment authentication failed: invalid session."
       );
 
-    if (
-      authorization?.startsWith(
-        "tma "
-      )
-    ) {
-      const initData =
-        authorization.slice(4);
-
-      const telegramUser =
-        validateTelegramInitData(
-          initData
-        );
-
-      if (!telegramUser?.id) {
-        return null;
-      }
-
-      const response =
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
-            telegramUser.id
-          )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
-          {
-            method: "GET",
-
-            headers: {
-              apikey:
-                SUPABASE_SECRET_KEY,
-
-              Authorization:
-                `Bearer ${SUPABASE_SECRET_KEY}`,
-            },
-
-            cache: "no-store",
-          }
-        );
-
-      if (!response.ok) {
-        console.error(
-          "Telegram payment user lookup failed:",
-          await response.text()
-        );
-
-        return null;
-      }
-
-      const users =
-        await response.json();
-
-      if (users?.length) {
-        return {
-          user: users[0],
-          authMethod: "telegram",
-        };
-      }
+      return null;
     }
+
+    /*
+     * Get user from Supabase.
+     */
+
+    const user =
+      await getUserById(
+        session.userId
+      );
+
+    if (!user) {
+      console.error(
+        "Payment authentication failed: user not found.",
+        {
+          userId:
+            session.userId,
+        }
+      );
+
+      return null;
+    }
+
+    return {
+      user,
+      authMethod: "email",
+    };
   } catch (error) {
     console.error(
-      "Telegram authentication error:",
+      "Payment authentication error:",
       error
     );
-  }
 
-  return null;
+    return null;
+  }
 }
 
 /*
@@ -481,9 +387,7 @@ export async function POST(request) {
      */
 
     const auth =
-      await getAuthenticatedUser(
-        request
-      );
+      await getAuthenticatedUser();
 
     if (!auth?.user?.id) {
       return NextResponse.json(
@@ -570,7 +474,7 @@ export async function POST(request) {
     const activePlan =
       String(
         activeSubscription?.plan ||
-          ""
+        ""
       ).toLowerCase();
 
     if (
@@ -642,9 +546,7 @@ export async function POST(request) {
      */
 
     const customerId =
-      user.telegram_id
-        ? `tg_${user.telegram_id}`
-        : `sambhav_${user.id}`;
+      `sambhav_${user.id}`;
 
     const customerName =
       user.first_name ||
@@ -765,7 +667,7 @@ export async function POST(request) {
      * ====================================================
      * PAYMENT SESSION
      * ====================================================
- */
+     */
 
     if (
       !cashfreeData?.payment_session_id
