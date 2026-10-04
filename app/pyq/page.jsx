@@ -91,63 +91,86 @@ export default function PYQPage() {
   /* ---------------- AUTH ---------------- */
 
   useEffect(() => {
-    let attempts = 0;
     let stopped = false;
 
     const authenticate = async () => {
-      if (stopped) return;
+      try {
+        // WEBSITE / EMAIL SESSION — PRIMARY
+        const sessionResponse = await fetch(
+          "/api/auth/me",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
 
-      attempts++;
+        const sessionData =
+          await sessionResponse.json().catch(() => ({}));
 
-      const webApp = window.Telegram?.WebApp;
+        if (sessionResponse.ok && sessionData?.user) {
+          if (stopped) return;
 
-      if (!webApp?.initData) {
-        if (attempts < 50) {
-          setTimeout(authenticate, 200);
+          setUser(sessionData.user);
+          setLoading(false);
           return;
         }
 
-        setError(
-          "Telegram authentication data nahi mila. Mini App ko Telegram ke andar se reopen karein."
-        );
+        // TELEGRAM — FALLBACK
+        const webApp = window.Telegram?.WebApp;
 
-        setLoading(false);
-        return;
-      }
+        if (webApp?.initData) {
+          webApp.ready();
+          webApp.expand();
 
-      webApp.ready();
-      webApp.expand();
+          if (stopped) return;
 
-      try {
-        const response = await fetch("/api/auth/me", {
-          method: "GET",
-          headers: {
-            Authorization: `tma ${webApp.initData}`,
-            "Cache-Control": "no-cache",
-          },
-          cache: "no-store",
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "Authentication failed"
+          const telegramResponse = await fetch(
+            "/api/auth/me",
+            {
+              method: "GET",
+              headers: {
+                Authorization: `tma ${webApp.initData}`,
+                "Cache-Control": "no-cache",
+              },
+              cache: "no-store",
+            }
           );
+
+          const telegramData = await telegramResponse.json();
+
+          if (!telegramResponse.ok) {
+            throw new Error(
+              telegramData.error || "Authentication failed"
+            );
+          }
+
+          if (!telegramData?.user) {
+            throw new Error("User information nahi mili.");
+          }
+
+          if (stopped) return;
+
+          setUser(telegramData.user);
+          setLoading(false);
+          return;
         }
 
-        if (!data.user) {
-          throw new Error("User information nahi mili.");
-        }
+        if (stopped) return;
 
-        setUser(data.user);
+        setError(
+          "Authentication required. Please login first."
+        );
+        setLoading(false);
       } catch (err) {
+        if (stopped) return;
+
         console.error("PYQ authentication error:", err);
 
         setError(
           err.message || "Authentication failed."
         );
-      } finally {
+
         setLoading(false);
       }
     };
@@ -386,16 +409,23 @@ export default function PYQPage() {
     const loadProgress = async () => {
       try {
         const webApp = window.Telegram?.WebApp;
+        const headers = {};
 
-        if (!webApp?.initData) return;
+        // Email session uses sambhav_session cookie.
+        // Telegram remains supported as fallback.
+        if (webApp?.initData) {
+          headers.Authorization = `tma ${webApp.initData}`;
+        }
 
-        const response = await fetch("/api/pyq/progress", {
-          method: "GET",
-          headers: {
-            Authorization: `tma ${webApp.initData}`,
-          },
-          cache: "no-store",
-        });
+        const response = await fetch(
+          "/api/pyq/progress",
+          {
+            method: "GET",
+            credentials: "include",
+            headers,
+            cache: "no-store",
+          }
+        );
 
         const data = await response.json();
 
@@ -410,9 +440,7 @@ export default function PYQPage() {
         const map = {};
 
         (data.progress || []).forEach((item) => {
-          map[
-            `${item.pyq_type}:${item.pyq_id}`
-          ] = item;
+          map[`${item.pyq_type}:${item.pyq_id}`] = item;
         });
 
         if (!cancelled) {
@@ -477,8 +505,6 @@ export default function PYQPage() {
     try {
       const webApp = window.Telegram?.WebApp;
 
-      if (!webApp?.initData) return;
-
       const old = getProgress(
         pyqId,
         pyqType
@@ -524,18 +550,25 @@ export default function PYQPage() {
           null,
       };
 
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      // Email session uses sambhav_session cookie.
+      // Telegram remains supported as fallback.
+      if (webApp?.initData) {
+        headers.Authorization =
+          `tma ${webApp.initData}`;
+      }
+
       setProgressLoading(true);
 
       const response = await fetch(
         "/api/pyq/progress",
         {
           method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `tma ${webApp.initData}`,
-          },
+          credentials: "include",
+          headers,
           body: JSON.stringify(payload),
         }
       );
@@ -544,16 +577,14 @@ export default function PYQPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            "Progress save failed"
+          data.error || "Progress save failed"
         );
       }
 
       if (data.progress) {
         setPyqProgress((prev) => ({
           ...prev,
-          [`${pyqType}:${pyqId}`]:
-            data.progress,
+          [`${pyqType}:${pyqId}`]: data.progress,
         }));
       }
     } catch (err) {
@@ -1319,7 +1350,7 @@ export default function PYQPage() {
             <button
               type="button"
               onClick={() =>
-                router.push("/")
+                router.push("/premium/home")
               }
               style={styles.back}
             >
