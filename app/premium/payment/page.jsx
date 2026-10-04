@@ -48,12 +48,10 @@ const PLANS = {
 
 function PaymentContent() {
   const router = useRouter();
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
 
   const planKey =
-    searchParams.get("plan") ||
-    "monthly";
+    searchParams.get("plan") || "monthly";
 
   const plan = useMemo(() => {
     return (
@@ -88,21 +86,15 @@ function PaymentContent() {
             "/api/auth/me",
             {
               method: "GET",
-
-              credentials:
-                "include",
-
-              cache:
-                "no-store",
+              credentials: "include",
+              cache: "no-store",
             }
           );
 
         const data =
           await response
             .json()
-            .catch(
-              () => ({})
-            );
+            .catch(() => ({}));
 
         if (!mounted) {
           return;
@@ -116,9 +108,7 @@ function PaymentContent() {
           return;
         }
 
-        setUser(
-          data.user
-        );
+        setUser(data.user);
       } catch (err) {
         console.error(
           "Auth check failed:",
@@ -130,9 +120,7 @@ function PaymentContent() {
         }
       } finally {
         if (mounted) {
-          setPageLoading(
-            false
-          );
+          setPageLoading(false);
         }
       }
     }
@@ -250,13 +238,6 @@ function PaymentContent() {
     setLoading(true);
 
     try {
-      /*
-       * Website authentication uses:
-       * sambhav_session cookie
-       *
-       * No Telegram Authorization header.
-       */
-
       const response =
         await fetch(
           "/api/payment/create-order",
@@ -285,18 +266,12 @@ function PaymentContent() {
       const data =
         await response
           .json()
-          .catch(
-            () => ({})
-          );
+          .catch(() => ({}));
 
       console.log(
         "Payment order response:",
         data
       );
-
-      /* ---------------------------------------------
-         AUTH ERROR
-      --------------------------------------------- */
 
       if (
         response.status ===
@@ -310,10 +285,6 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         FORBIDDEN
-      --------------------------------------------- */
-
       if (
         response.status ===
         403
@@ -323,10 +294,6 @@ function PaymentContent() {
             "Your account is not approved for premium payment."
         );
       }
-
-      /* ---------------------------------------------
-         CONFLICT
-      --------------------------------------------- */
 
       if (
         response.status ===
@@ -338,20 +305,11 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         CASHFREE / SERVER ERROR
-      --------------------------------------------- */
-
       if (!response.ok) {
         let errorMessage =
           data?.error ||
           data?.message ||
           "Unable to create payment order.";
-
-        /*
-         * If backend sends Cashfree details,
-         * show them too so debugging is easier.
-         */
 
         if (
           data?.cashfreeStatus
@@ -364,10 +322,6 @@ function PaymentContent() {
           errorMessage
         );
       }
-
-      /* ---------------------------------------------
-         PAYMENT SESSION
-      --------------------------------------------- */
 
       const paymentSessionId =
         data?.payment_session_id ||
@@ -388,24 +342,8 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         LOAD CASHFREE
-      --------------------------------------------- */
-
       const Cashfree =
         await loadCashfree();
-
-      /*
-       * IMPORTANT:
-       *
-       * SAMBHAV is currently using
-       * Cashfree PRODUCTION.
-       *
-       * Therefore the frontend SDK MUST
-       * also use production.
-       *
-       * Do NOT use sandbox here.
-       */
 
       const cashfree =
         Cashfree({
@@ -416,10 +354,6 @@ function PaymentContent() {
       console.log(
         "Opening Cashfree production checkout"
       );
-
-      /* ---------------------------------------------
-         OPEN CASHFREE CHECKOUT
-      --------------------------------------------- */
 
       await cashfree.checkout({
         paymentSessionId:
@@ -449,16 +383,18 @@ function PaymentContent() {
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen bg-[#f5f1e8] flex items-center justify-center px-6">
+      <main className="min-h-screen bg-[#f7f7f5] flex items-center justify-center px-6">
+
         <div className="text-center">
 
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" />
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/10 border-t-black" />
 
-          <p className="text-sm text-black/55">
+          <p className="text-sm font-medium text-black/50">
             Loading secure checkout...
           </p>
 
         </div>
+
       </main>
     );
   }
@@ -468,167 +404,377 @@ function PaymentContent() {
   =================================================== */
 
   return (
-    <main className="min-h-screen bg-[#f5f1e8] text-black">
+    <main className="min-h-screen bg-[#f7f7f5] text-[#111]">
 
-      <div className="mx-auto min-h-screen w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
+      {/* ================================================
+          TOP BAR
+      ================================================ */}
 
-        {/* BACK */}
+      <header className="border-b border-black/[0.06] bg-white/80 backdrop-blur-xl">
 
-        <button
-          type="button"
-          onClick={() =>
-            router.back()
-          }
-          className="mb-12 text-base text-black/65 transition hover:text-black"
-        >
-          ← Back
-        </button>
+        <div className="mx-auto flex h-[68px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
 
-        {/* HEADER */}
+          <button
+            type="button"
+            onClick={() =>
+              router.back()
+            }
+            className="group flex items-center gap-2 text-sm font-semibold text-black/65 transition hover:text-black"
+          >
+            <span className="text-lg transition-transform group-hover:-translate-x-0.5">
+              ←
+            </span>
 
-        <section className="mb-10">
+            Back
+          </button>
 
-          <p className="mb-3 text-xs font-semibold tracking-[0.22em] text-[#a18a46]">
-            SECURE CHECKOUT
-          </p>
+          <div className="flex items-center gap-2">
 
-          <h1 className="max-w-xl text-[52px] font-black leading-[0.94] tracking-[-0.045em] sm:text-[68px]">
-            Complete
-            <br />
-            Payment
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111] text-xs font-black text-[#e2c773]">
+              S
+            </div>
+
+            <span className="text-sm font-black tracking-tight">
+              SAMBHAV
+            </span>
+
+          </div>
+
+          <div className="hidden items-center gap-2 text-xs font-semibold text-black/45 sm:flex">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            Secure Checkout
+          </div>
+
+        </div>
+
+      </header>
+
+      {/* ================================================
+          CONTENT
+      ================================================ */}
+
+      <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10">
+
+        {/* ==============================================
+            HEADER
+        ============================================== */}
+
+        <section className="mx-auto mb-8 max-w-3xl text-center">
+
+          <div className="mb-3 inline-flex items-center rounded-full border border-[#d8bd61]/30 bg-[#fff9e7] px-3 py-1.5 text-[10px] font-black tracking-[0.18em] text-[#94782b]">
+            SAMBHAV PREMIUM
+          </div>
+
+          <h1 className="text-3xl font-black tracking-[-0.04em] sm:text-5xl">
+            Complete your payment
           </h1>
+
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-black/50 sm:text-base">
+            Unlock Premium access to the complete
+            SAMBHAV UPSC learning experience.
+          </p>
 
         </section>
 
-        <div className="mx-auto max-w-4xl">
+        {/* ==============================================
+            MAIN GRID
+        ============================================== */}
 
-          {/* PLAN CARD */}
+        <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1.05fr_0.95fr]">
 
-          <section className="mb-6 overflow-hidden rounded-[32px] bg-[#111111] px-8 py-9 text-white shadow-[0_20px_50px_rgba(0,0,0,0.10)] sm:px-10 sm:py-10">
+          {/* ============================================
+              PLAN CARD
+          ============================================ */}
 
-            <p className="mb-4 text-xs font-semibold tracking-[0.22em] text-[#dfc56f]">
-              SAMBHAV PREMIUM
-            </p>
+          <section className="relative overflow-hidden rounded-[28px] bg-[#111] p-7 text-white shadow-[0_24px_70px_rgba(0,0,0,0.12)] sm:p-9">
 
-            <h2 className="text-3xl font-bold tracking-[-0.025em] sm:text-4xl">
-              {plan.title}
-            </h2>
+            {/* decorative glow */}
 
-            <p className="mt-2 text-base text-white/55 sm:text-lg">
-              {plan.duration} · Full Premium Access
-            </p>
+            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#dfc56f]/10 blur-3xl" />
 
-            <div className="mt-8 text-5xl font-black tracking-[-0.04em] text-[#dfc56f] sm:text-6xl">
-              ₹{plan.price}
+            <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-white/[0.03] blur-3xl" />
+
+            <div className="relative">
+
+              <div className="flex items-start justify-between gap-4">
+
+                <div>
+
+                  <p className="text-[10px] font-black tracking-[0.2em] text-[#dfc56f]">
+                    SELECTED PLAN
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">
+                    {plan.title}
+                  </h2>
+
+                </div>
+
+                <div className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/70">
+                  {plan.duration}
+                </div>
+
+              </div>
+
+              <div className="mt-8 flex items-end gap-2">
+
+                <span className="text-5xl font-black tracking-[-0.05em] text-[#e2c773] sm:text-6xl">
+                  ₹{plan.price}
+                </span>
+
+                <span className="mb-2 text-sm text-white/45">
+                  / {plan.key === "monthly"
+                    ? "month"
+                    : plan.key === "quarterly"
+                    ? "3 months"
+                    : "year"}
+                </span>
+
+              </div>
+
+              <div className="my-8 h-px bg-white/10" />
+
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-white/45">
+                Included with Premium
+              </p>
+
+              <div className="space-y-3">
+
+                {[
+                  "Complete Premium Modules",
+                  "UPSC-focused learning resources",
+                  "Premium Current Affairs",
+                  "PYQ & Mock Test access",
+                  "Mains & Prelims preparation",
+                ].map(
+                  (item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3"
+                    >
+
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e2c773] text-[11px] font-black text-black">
+                        ✓
+                      </span>
+
+                      <span className="text-sm text-white/75">
+                        {item}
+                      </span>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+
+                <div className="flex items-center gap-3">
+
+                  <span className="text-lg">
+                    🔒
+                  </span>
+
+                  <div>
+
+                    <p className="text-xs font-bold text-white/80">
+                      Secure payment
+                    </p>
+
+                    <p className="mt-0.5 text-[11px] text-white/40">
+                      Payments are securely processed by Cashfree.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
             </div>
 
           </section>
 
-          {/* PAYMENT SUMMARY */}
-
-          <section className="rounded-[32px] border border-black/[0.06] bg-[#fffdfa] p-7 shadow-[0_15px_40px_rgba(0,0,0,0.04)] sm:p-9">
-
-            <p className="mb-6 text-xs font-bold tracking-[0.18em] text-black/45">
+          {/* ============================================
               PAYMENT SUMMARY
-            </p>
+          ============================================ */}
 
-            <div className="space-y-5">
+          <section className="rounded-[28px] border border-black/[0.07] bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.05)] sm:p-8">
 
-              {/* MEMBERSHIP */}
+            <div className="flex items-center justify-between">
 
-              <div className="flex items-center justify-between gap-5">
+              <div>
 
-                <span className="text-lg text-black/80">
-                  Membership
+                <p className="text-[10px] font-black tracking-[0.18em] text-black/40">
+                  ORDER SUMMARY
+                </p>
+
+                <h2 className="mt-1 text-xl font-black tracking-[-0.025em]">
+                  Payment details
+                </h2>
+
+              </div>
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f6f1df] text-lg">
+                ₹
+              </div>
+
+            </div>
+
+            {/* DETAILS */}
+
+            <div className="mt-7 space-y-4">
+
+              <div className="flex items-center justify-between gap-4">
+
+                <span className="text-sm text-black/50">
+                  Plan
                 </span>
 
-                <span className="text-right text-lg font-bold">
+                <span className="text-right text-sm font-bold">
                   {plan.title}
                 </span>
 
               </div>
 
-              {/* ACCESS */}
+              <div className="flex items-center justify-between gap-4">
 
-              <div className="flex items-center justify-between gap-5">
-
-                <span className="text-lg text-black/80">
-                  Access
+                <span className="text-sm text-black/50">
+                  Duration
                 </span>
 
-                <span className="text-right text-lg">
-                  All Premium Modules
+                <span className="text-sm font-semibold">
+                  {plan.duration}
                 </span>
 
               </div>
 
-              {/* TOTAL */}
+              <div className="flex items-center justify-between gap-4">
 
-              <div className="border-t border-black/10 pt-6">
+                <span className="text-sm text-black/50">
+                  Premium access
+                </span>
 
-                <div className="flex items-center justify-between gap-5">
+                <span className="text-sm font-semibold">
+                  Included
+                </span>
 
-                  <span className="text-xl font-bold">
+              </div>
+
+            </div>
+
+            {/* TOTAL */}
+
+            <div className="my-7 border-t border-black/[0.08] pt-6">
+
+              <div className="flex items-end justify-between gap-4">
+
+                <div>
+
+                  <p className="text-xs font-semibold text-black/40">
                     Total payable
-                  </span>
+                  </p>
 
-                  <span className="text-xl font-bold">
+                  <p className="mt-1 text-3xl font-black tracking-[-0.04em]">
                     ₹{plan.amount}
-                  </span>
+                  </p>
 
                 </div>
+
+                <span className="mb-1 rounded-full bg-[#f5f0dd] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#806923]">
+                  Secure
+                </span>
 
               </div>
 
-              {/* ERROR */}
+            </div>
 
-              {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium leading-6 text-red-700 break-words">
-                  {error}
-                </div>
+            {/* ERROR */}
+
+            {error && (
+              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-medium leading-5 text-red-700">
+                {error}
+              </div>
+            )}
+
+            {/* PAY */}
+
+            <button
+              type="button"
+              onClick={
+                handlePayment
+              }
+              disabled={
+                loading ||
+                !user
+              }
+              className="group flex min-h-[58px] w-full items-center justify-center gap-2 rounded-2xl bg-[#e2c773] px-6 text-base font-black text-black shadow-[0_10px_25px_rgba(226,199,115,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#d9bb5f] hover:shadow-[0_14px_30px_rgba(226,199,115,0.28)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
+            >
+
+              {loading ? (
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+
+                  <span>
+                    Processing payment...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    Pay ₹{plan.amount}
+                  </span>
+
+                  <span className="text-lg transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </>
               )}
 
-              {/* PAY BUTTON */}
+            </button>
 
-              <button
-                type="button"
-                onClick={
-                  handlePayment
-                }
-                disabled={
-                  loading ||
-                  !user
-                }
-                className="mt-2 flex w-full items-center justify-center rounded-2xl bg-[#e2c773] px-6 py-5 text-lg font-bold text-black transition hover:bg-[#d8bb61] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
+            {/* SECURITY */}
 
-                {loading ? (
-                  <span className="flex items-center gap-3">
+            <div className="mt-5 text-center">
 
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-
-                    Processing...
-
-                  </span>
-                ) : (
-                  <>
-                    Pay ₹{plan.amount} →
-                  </>
-                )}
-
-              </button>
-
-              {/* SECURITY */}
-
-              <p className="pt-1 text-center text-sm text-black/45">
-                🔒 Secure payment powered by Cashfree
+              <p className="text-[11px] leading-5 text-black/40">
+                You will be securely redirected to
+                Cashfree to complete your payment.
               </p>
+
+            </div>
+
+            {/* PAYMENT METHODS */}
+
+            <div className="mt-6 flex items-center justify-center gap-2 border-t border-black/[0.06] pt-5">
+
+              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
+                UPI
+              </span>
+
+              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
+                Cards
+              </span>
+
+              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
+                Net Banking
+              </span>
 
             </div>
 
           </section>
 
         </div>
+
+        {/* ==============================================
+            FOOTER NOTE
+        ============================================== */}
+
+        <p className="mx-auto mt-7 max-w-xl text-center text-[11px] leading-5 text-black/35">
+          By continuing, you agree to complete the
+          selected SAMBHAV Premium purchase through
+          our secure payment partner.
+        </p>
 
       </div>
 
@@ -642,13 +788,13 @@ function PaymentContent() {
 
 function PaymentLoading() {
   return (
-    <main className="min-h-screen bg-[#f5f1e8] flex items-center justify-center px-6">
+    <main className="flex min-h-screen items-center justify-center bg-[#f7f7f5] px-6">
 
       <div className="text-center">
 
-        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" />
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/10 border-t-black" />
 
-        <p className="text-sm text-black/55">
+        <p className="text-sm font-medium text-black/50">
           Loading secure checkout...
         </p>
 
