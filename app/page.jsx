@@ -562,68 +562,129 @@ const styles = {
   },
 
   greeting: {
-    marginBottom: "20px",
+    marginBottom: "16px",
   },
 
   greetingTitle: {
     margin: 0,
-    fontSize: "clamp(25px, 5vw, 29px)",
-    lineHeight: "1.15",
-    fontWeight: "850",
-    letterSpacing: "-1.1px",
+    fontSize: "clamp(25px, 5vw, 32px)",
+    lineHeight: "1.08",
+    fontWeight: "900",
+    letterSpacing: "-1.2px",
   },
 
   greetingSub: {
-    marginTop: "7px",
+    marginTop: "6px",
     color: "#777777",
-    fontSize: "14px",
+    fontSize: "12px",
+    lineHeight: "1.45",
+  },
+
+  mindsetCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "14px",
+    marginBottom: "16px",
+    padding: "13px 15px",
+    borderRadius: "18px",
+    background: "#ffffff",
+    border: "1px solid #e5e3de",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.035)",
+    boxSizing: "border-box",
+  },
+
+  mindsetLabel: {
+    fontSize: "8px",
+    color: "#9b7b2f",
+    fontWeight: "900",
+    letterSpacing: "1.3px",
+    textTransform: "uppercase",
+  },
+
+  mindsetText: {
+    marginTop: "5px",
+    fontSize: "12px",
+    lineHeight: "1.45",
+    fontWeight: "800",
+  },
+
+  mindsetMark: {
+    width: "34px",
+    height: "34px",
+    minWidth: "34px",
+    borderRadius: "12px",
+    background: "#111111",
+    color: "#d6bd79",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    fontWeight: "900",
   },
 
   accessCard: {
     background:
       "linear-gradient(145deg, #171717 0%, #0d0d0d 100%)",
     color: "#ffffff",
-    borderRadius: "24px",
-    padding: "21px",
-    marginBottom: "15px",
-    boxShadow:
-      "0 13px 32px rgba(0,0,0,0.13)",
-    border:
-      "1px solid rgba(255,255,255,0.05)",
+    borderRadius: "23px",
+    padding: "17px 18px",
+    marginBottom: "12px",
+    boxShadow: "0 13px 32px rgba(0,0,0,0.13)",
+    border: "1px solid rgba(255,255,255,0.05)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
   },
 
   accessLabel: {
-    fontSize: "10px",
+    fontSize: "8px",
     color: "#a7a7a7",
     letterSpacing: "1.3px",
     textTransform: "uppercase",
-    fontWeight: "750",
+    fontWeight: "800",
   },
 
   accessTitle: {
-    marginTop: "8px",
-    fontSize: "22px",
-    fontWeight: "850",
-    letterSpacing: "-0.4px",
+    marginTop: "5px",
+    fontSize: "18px",
+    fontWeight: "900",
+    letterSpacing: "-0.3px",
   },
 
   accessSub: {
-    marginTop: "6px",
+    marginTop: "3px",
     color: "#bdbdbd",
-    fontSize: "13px",
+    fontSize: "10px",
+  },
+
+  accessStatus: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    padding: "7px 9px",
+    borderRadius: "999px",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    color: "#d6bd79",
+    fontSize: "8px",
+    fontWeight: "900",
+    letterSpacing: "0.8px",
   },
 
   secretaryButton: {
     width: "100%",
-    border: "none",
+    border: "1px solid #dedbd3",
     borderRadius: "16px",
-    background: "#111111",
-    color: "#ffffff",
-    padding: "15px",
-    fontSize: "14px",
-    fontWeight: "750",
-    marginBottom: "17px",
+    background: "#ffffff",
+    color: "#111111",
+    padding: "12px 14px",
+    fontSize: "11px",
+    fontWeight: "850",
+    marginBottom: "15px",
     cursor: "pointer",
+    boxSizing: "border-box",
   },
 
   premiumCard: {
@@ -631,14 +692,12 @@ const styles = {
       "linear-gradient(135deg, #111111 0%, #191919 55%, #252525 100%)",
     color: "#ffffff",
     borderRadius: "25px",
-    padding: "21px",
-    marginBottom: "18px",
-    boxShadow:
-      "0 15px 38px rgba(0,0,0,0.15)",
+    padding: "19px",
+    marginBottom: "20px",
+    boxShadow: "0 15px 38px rgba(0,0,0,0.15)",
     position: "relative",
     overflow: "hidden",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   premiumGlow: {
@@ -646,8 +705,7 @@ const styles = {
     width: "190px",
     height: "190px",
     borderRadius: "50%",
-    background:
-      "rgba(255,255,255,0.055)",
+    background: "rgba(255,255,255,0.055)",
     right: "-75px",
     top: "-85px",
   },
@@ -657,8 +715,7 @@ const styles = {
     width: "80px",
     height: "80px",
     borderRadius: "50%",
-    background:
-      "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.035)",
     right: "80px",
     bottom: "-45px",
   },
@@ -669,7 +726,7 @@ const styles = {
     borderRadius: "999px",
     background: "#ffffff",
     color: "#111111",
-    fontSize: "9px",
+    fontSize: "8px",
     fontWeight: "900",
     letterSpacing: "1px",
     position: "relative",
@@ -677,32 +734,51 @@ const styles = {
   },
 
   premiumTitleDashboard: {
-    marginTop: "13px",
-    fontSize: "20px",
-    fontWeight: "850",
+    marginTop: "11px",
+    fontSize: "18px",
+    fontWeight: "900",
     lineHeight: "1.2",
     position: "relative",
     zIndex: 2,
   },
 
   premiumSub: {
-    marginTop: "7px",
+    marginTop: "6px",
     color: "#b9b9b9",
-    fontSize: "11px",
-    lineHeight: "1.55",
-    maxWidth: "315px",
+    fontSize: "10px",
+    lineHeight: "1.5",
+    maxWidth: "390px",
     position: "relative",
     zIndex: 2,
   },
 
+  premiumBenefits: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px",
+    marginTop: "12px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  premiumBenefit: {
+    padding: "6px 8px",
+    borderRadius: "9px",
+    background: "rgba(255,255,255,0.07)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    color: "#d0d0d0",
+    fontSize: "8px",
+    fontWeight: "750",
+  },
+
   premiumAction: {
-    marginTop: "16px",
+    marginTop: "13px",
     display: "inline-flex",
-    padding: "10px 14px",
-    borderRadius: "13px",
+    padding: "10px 13px",
+    borderRadius: "12px",
     background: "#ffffff",
     color: "#111111",
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: "850",
     position: "relative",
     zIndex: 2,
@@ -713,16 +789,14 @@ const styles = {
     background:
       "linear-gradient(135deg, #f0e7cf 0%, #e2d4b1 55%, #d5c398 100%)",
     color: "#111111",
-    borderRadius: "25px",
-    padding: "21px",
-    marginBottom: "27px",
-    boxShadow:
-      "0 15px 38px rgba(95,75,25,0.13)",
+    borderRadius: "23px",
+    padding: "18px",
+    marginBottom: "20px",
+    boxShadow: "0 15px 38px rgba(95,75,25,0.13)",
     position: "relative",
     overflow: "hidden",
     cursor: "pointer",
-    border:
-      "1px solid #d4c49e",
+    border: "1px solid #d4c49e",
   },
 
   adminGlow: {
@@ -730,8 +804,7 @@ const styles = {
     width: "180px",
     height: "180px",
     borderRadius: "50%",
-    background:
-      "rgba(255,255,255,0.42)",
+    background: "rgba(255,255,255,0.42)",
     right: "-70px",
     top: "-80px",
   },
@@ -742,7 +815,7 @@ const styles = {
     borderRadius: "999px",
     background: "#111111",
     color: "#d6bd79",
-    fontSize: "9px",
+    fontSize: "8px",
     fontWeight: "900",
     letterSpacing: "1px",
     position: "relative",
@@ -750,8 +823,8 @@ const styles = {
   },
 
   adminTitle: {
-    marginTop: "13px",
-    fontSize: "20px",
+    marginTop: "11px",
+    fontSize: "18px",
     fontWeight: "900",
     lineHeight: "1.2",
     position: "relative",
@@ -759,23 +832,23 @@ const styles = {
   },
 
   adminSub: {
-    marginTop: "7px",
+    marginTop: "6px",
     color: "#655d4e",
-    fontSize: "11px",
-    lineHeight: "1.55",
+    fontSize: "10px",
+    lineHeight: "1.5",
     maxWidth: "390px",
     position: "relative",
     zIndex: 2,
   },
 
   adminAction: {
-    marginTop: "16px",
+    marginTop: "13px",
     display: "inline-flex",
-    padding: "10px 14px",
-    borderRadius: "13px",
+    padding: "9px 12px",
+    borderRadius: "12px",
     background: "#111111",
     color: "#ffffff",
-    fontSize: "11px",
+    fontSize: "10px",
     fontWeight: "850",
     position: "relative",
     zIndex: 2,
@@ -785,84 +858,90 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "13px",
+    marginBottom: "11px",
   },
 
   sectionTitle: {
-    fontSize: "21px",
-    fontWeight: "850",
+    fontSize: "19px",
+    fontWeight: "900",
+    letterSpacing: "-0.5px",
   },
 
   sectionSmall: {
-    fontSize: "11px",
+    fontSize: "9px",
     color: "#999999",
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: "0.8px",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "12px",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "10px",
   },
 
   card: {
     background: "#ffffff",
-    border: "1px solid #e8e8e6",
-    borderRadius: "22px",
-    padding: "15px",
-    minHeight: "108px",
+    border: "1px solid #e6e4df",
+    borderRadius: "20px",
+    padding: "14px",
+    minHeight: "116px",
     display: "flex",
-    alignItems: "center",
-    gap: "12px",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "9px",
     boxSizing: "border-box",
     cursor: "pointer",
-    boxShadow:
-      "0 5px 16px rgba(0,0,0,0.045)",
+    boxShadow: "0 7px 20px rgba(0,0,0,0.04)",
+    position: "relative",
   },
 
   iconBox: {
-    width: "46px",
-    height: "46px",
-    minWidth: "46px",
-    borderRadius: "15px",
-    background:
-      "linear-gradient(145deg, #181818, #080808)",
+    width: "39px",
+    height: "39px",
+    minWidth: "39px",
+    borderRadius: "13px",
+    background: "linear-gradient(145deg, #181818, #080808)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "21px",
+    fontSize: "18px",
   },
 
   cardContent: {
     minWidth: 0,
+    width: "100%",
     flex: 1,
   },
 
   cardTitle: {
-    fontSize: "14px",
-    fontWeight: "800",
-    lineHeight: "1.2",
+    fontSize: "12px",
+    fontWeight: "850",
+    lineHeight: "1.25",
   },
 
   cardSubtitle: {
-    marginTop: "5px",
+    marginTop: "4px",
     color: "#858585",
-    fontSize: "10px",
+    fontSize: "9px",
     lineHeight: "1.35",
   },
 
   arrow: {
-    width: "28px",
-    height: "28px",
-    minWidth: "28px",
+    position: "absolute",
+    top: "13px",
+    right: "13px",
+    width: "24px",
+    height: "24px",
+    minWidth: "24px",
     borderRadius: "50%",
     background: "#f0f0ee",
     color: "#777777",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "17px",
+    fontSize: "15px",
   },
 
   pendingCard: {
@@ -1949,9 +2028,9 @@ export default function Home() {
   const premiumSubText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Your 2-day Premium Demo is active. Explore the complete SAMBHAV workspace and experience a more structured way to prepare."
-        : "Your Premium workspace is active. Keep your preparation focused, structured and consistent."
-      : "UPSC preparation needs more than information — it needs the right system. Unlock Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation and premium study resources in one focused workspace.";
+        ? "Your 2-day Premium Demo is active. Explore the complete preparation workspace."
+        : "Your Premium workspace is active. Continue with focused, structured preparation."
+      : "Everything you need for focused UPSC preparation — organised in one workspace.";
 
   const premiumActionText =
     isPremium
@@ -1993,62 +2072,51 @@ export default function Home() {
 
           <section style={styles.greeting}>
             <h1 style={styles.greetingTitle}>
-              Hello, {firstName}
+              Welcome, {firstName}
             </h1>
 
             <p style={styles.greetingSub}>
-              Your preparation deserves a system. Stay focused, stay consistent.
+              Your preparation workspace.
             </p>
           </section>
 
           {/* PREPARATION MINDSET */}
-          <section
-            style={{
-              marginBottom: "18px",
-              padding: "15px 16px",
-              borderRadius: "18px",
-              background: "#ffffff",
-              border: "1px solid #e5e3de",
-              boxShadow: "0 6px 18px rgba(0,0,0,.035)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "9px",
-                color: "#9b7b2f",
-                fontWeight: "900",
-                letterSpacing: "1.2px",
-                textTransform: "uppercase",
-              }}
-            >
-              PREPARATION MINDSET
+
+          <section style={styles.mindsetCard}>
+            <div>
+              <div style={styles.mindsetLabel}>
+                PREPARATION PRINCIPLE
+              </div>
+
+              <div style={styles.mindsetText}>
+                सही दिशा • निरंतर तैयारी • बेहतर परिणाम
+              </div>
             </div>
 
-            <div
-              style={{
-                marginTop: "6px",
-                fontSize: "13px",
-                lineHeight: "1.55",
-                fontWeight: "800",
-              }}
-            >
-              “UPSC sirf padhne se nahi, sahi direction mein consistently prepare karne se crack hota hai.”
+            <div style={styles.mindsetMark}>
+              ◆
             </div>
           </section>
 
           {/* ACCESS CARD */}
 
           <section style={styles.accessCard}>
-            <div style={styles.accessLabel}>
-              Officer Access Card
+            <div>
+              <div style={styles.accessLabel}>
+                ASPIRANT ACCESS
+              </div>
+
+              <div style={styles.accessTitle}>
+                {firstName}
+              </div>
+
+              <div style={styles.accessSub}>
+                Preparation access active
+              </div>
             </div>
 
-            <div style={styles.accessTitle}>
-              {firstName}
-            </div>
-
-            <div style={styles.accessSub}>
-              Clearance: ACTIVE
+            <div style={styles.accessStatus}>
+              ● ACTIVE
             </div>
           </section>
 
@@ -2062,7 +2130,7 @@ export default function Home() {
               )
             }
           >
-            ✦ Open AI Secretary →
+            AI Secretary <span style={{ color: "#9b7b2f" }}>→</span>
           </button>
 
           {/* PREMIUM */}
@@ -2087,40 +2155,12 @@ export default function Home() {
               {premiumSubText}
             </div>
 
-            {!isPremium && (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "7px",
-                  marginTop: "13px",
-                  position: "relative",
-                  zIndex: 2,
-                }}
-              >
-                {[
-                  "Daily Intelligence",
-                  "PYQ Practice",
-                  "Mains Practice",
-                  "AI Evaluation",
-                ].map((benefit) => (
-                  <span
-                    key={benefit}
-                    style={{
-                      padding: "6px 9px",
-                      borderRadius: "999px",
-                      background: "rgba(255,255,255,0.09)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "#e4e4e4",
-                      fontSize: "9px",
-                      fontWeight: "750",
-                    }}
-                  >
-                    {benefit}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div style={styles.premiumBenefits}>
+              <span style={styles.premiumBenefit}>Current Affairs</span>
+              <span style={styles.premiumBenefit}>PYQ Practice</span>
+              <span style={styles.premiumBenefit}>Mains Practice</span>
+              <span style={styles.premiumBenefit}>AI Evaluation</span>
+            </div>
 
             {/* DEMO USER */}
             {isPremium &&
@@ -2226,16 +2266,28 @@ export default function Home() {
 
           <div style={styles.sectionHeader}>
             <div style={styles.sectionTitle}>
-              Quick Launch
+              Preparation Modules
             </div>
 
             <div style={styles.sectionSmall}>
-              UPSC • 2026
+              06 MODULES
             </div>
           </div>
 
+          <div
+            style={{
+              marginTop: "-3px",
+              marginBottom: "11px",
+              color: "#8a8a8a",
+              fontSize: "10px",
+              fontWeight: "650",
+            }}
+          >
+            सही दिशा में पढ़ें। लगातार आगे बढ़ें।
+          </div>
+
           <section style={styles.grid}>
-            {modules.map((module) => (
+            {modules.map((module, index) => (
               <div
                 key={module.title}
                 style={styles.card}
@@ -2251,7 +2303,7 @@ export default function Home() {
                 }}
               >
                 <div style={styles.iconBox}>
-                  {module.icon}
+                  {String(index + 1).padStart(2, "0")}
                 </div>
 
                 <div style={styles.cardContent}>
