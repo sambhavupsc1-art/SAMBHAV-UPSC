@@ -1,12 +1,22 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-const CASHFREE_ENV = process.env.CASHFREE_ENV || "sandbox";
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_KEY;
+
+const CASHFREE_APP_ID =
+  process.env.CASHFREE_APP_ID;
+
+const CASHFREE_SECRET_KEY =
+  process.env.CASHFREE_SECRET_KEY;
+
+const CASHFREE_ENV =
+  process.env.CASHFREE_ENV || "sandbox";
 
 const PLANS = {
   monthly: {
@@ -25,74 +35,199 @@ const PLANS = {
   },
 };
 
-async function getAuthenticatedUser(request) {
-  /*
-   * PRIMARY AUTHENTICATION
-   *
-   * /api/auth/me handles:
-   * - sambhav_session
-   * - Telegram tma
-   */
+/*
+ * ------------------------------------------------
+ * VERIFY EMAIL SESSION
+ * ------------------------------------------------
+ */
 
+function verifyEmailSession(token) {
   try {
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "https://sambhavupsc.vercel.app";
+    const secret =
+      process.env.AUTH_SESSION_SECRET;
 
-    const headers = {};
-
-    const cookie = request.headers.get("cookie");
-    const authorization =
-      request.headers.get("authorization");
-
-    if (cookie) {
-      headers.cookie = cookie;
+    if (!secret || !token) {
+      return null;
     }
 
-    if (authorization) {
-      headers.authorization = authorization;
+    const parts = token.split(".");
+
+    if (parts.length !== 2) {
+      return null;
     }
 
-    const response = await fetch(
-      `${origin}/api/auth/me`,
+    const [payload, signature] =
+      parts;
+
+    const expectedSignature =
+      crypto
+        .createHmac(
+          "sha256",
+          secret
+        )
+        .update(payload)
+        .digest("base64url");
+
+    if (
+      signature.length !==
+        expectedSignature.length
+    ) {
+      return null;
+    }
+
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(
+          expectedSignature
+        )
+      )
+    ) {
+      return null;
+    }
+
+    const data =
+      JSON.parse(
+        Buffer.from(
+          payload,
+          "base64url"
+        ).toString("utf8")
+      );
+
+    if (
+      !data.exp ||
+      Date.now() > data.exp
+    ) {
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(
+      "Payment session verification error:",
+      error
+    );
+
+    return null;
+  }
+}
+
+/*
+ * ------------------------------------------------
+ * GET USER BY ID
+ * ------------------------------------------------
+ */
+
+async function getUserById(
+  userId
+) {
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+        userId
+      )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
       {
-        method: "GET",
-        headers,
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+
         cache: "no-store",
       }
     );
 
-    if (response.ok) {
-      const data =
-        await response.json();
+  if (!response.ok) {
+    console.error(
+      "Payment user lookup failed:",
+      await response.text()
+    );
 
-      if (data?.user?.id) {
-        return {
-          user: data.user,
-          authMethod:
-            data.authMethod || null,
-        };
+    return null;
+  }
+
+  const users =
+    await response.json();
+
+  return users?.length
+    ? users[0]
+    : null;
+}
+
+/*
+ * ------------------------------------------------
+ * AUTHENTICATED USER
+ * ------------------------------------------------
+ *
+ * Website:
+ * sambhav_session
+ *
+ * Telegram:
+ * Authorization: tma <initData>
+ * ------------------------------------------------
+ */
+
+async function getAuthenticatedUser(
+  request
+) {
+  /*
+   * ==============================================
+   * 1. WEBSITE SESSION
+   * ==============================================
+   */
+
+  try {
+    const sessionToken =
+      request.cookies.get(
+        "sambhav_session"
+      )?.value;
+
+    if (sessionToken) {
+      const session =
+        verifyEmailSession(
+          sessionToken
+        );
+
+      if (session?.userId) {
+        const user =
+          await getUserById(
+            session.userId
+          );
+
+        if (user) {
+          return {
+            user,
+            authMethod:
+              "email",
+          };
+        }
       }
     }
   } catch (error) {
     console.error(
-      "Central auth lookup failed:",
+      "Website payment authentication failed:",
       error
     );
   }
 
   /*
-   * TELEGRAM FALLBACK
+   * ==============================================
+   * 2. TELEGRAM FALLBACK
+   * ==============================================
    */
 
   try {
     const authorization =
-      request.headers.get("authorization");
+      request.headers.get(
+        "authorization"
+      );
 
     if (
-      authorization &&
-      authorization.startsWith("tma ")
+      authorization?.startsWith(
+        "tma "
+      )
     ) {
       const initData =
         authorization.slice(4);
@@ -107,7 +242,7 @@ async function getAuthenticatedUser(request) {
           await fetch(
             `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
               telegramUser.id
-            )}&select=id,telegram_id,email,first_name,last_name,username,status,plan`,
+            )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
             {
               headers: {
                 apikey:
@@ -137,13 +272,19 @@ async function getAuthenticatedUser(request) {
     }
   } catch (error) {
     console.error(
-      "Telegram auth fallback failed:",
+      "Telegram payment authentication failed:",
       error
     );
   }
 
   return null;
 }
+
+/*
+ * ------------------------------------------------
+ * ACTIVE SUBSCRIPTION
+ * ------------------------------------------------
+ */
 
 async function getActiveSubscription(
   userId
@@ -172,6 +313,11 @@ async function getActiveSubscription(
     );
 
   if (!response.ok) {
+    console.error(
+      "Active subscription lookup failed:",
+      await response.text()
+    );
+
     return null;
   }
 
@@ -183,12 +329,20 @@ async function getActiveSubscription(
     : null;
 }
 
+/*
+ * ========================================================
+ * POST
+ * ========================================================
+ */
+
 export async function POST(
   request
 ) {
   try {
     /*
-     * CONFIGURATION
+     * ----------------------------------------
+     * CONFIG
+     * ----------------------------------------
      */
 
     if (
@@ -218,7 +372,9 @@ export async function POST(
     }
 
     /*
-     * AUTHENTICATION
+     * ----------------------------------------
+     * AUTH
+     * ----------------------------------------
      */
 
     const auth =
@@ -236,10 +392,13 @@ export async function POST(
       );
     }
 
-    const user = auth.user;
+    const user =
+      auth.user;
 
     /*
+     * ----------------------------------------
      * PLAN
+     * ----------------------------------------
      */
 
     const body =
@@ -247,7 +406,8 @@ export async function POST(
         .json()
         .catch(() => ({}));
 
-    const plan = body?.plan;
+    const plan =
+      body?.plan;
 
     if (
       !plan ||
@@ -266,7 +426,9 @@ export async function POST(
       PLANS[plan];
 
     /*
+     * ----------------------------------------
      * APPROVAL
+     * ----------------------------------------
      */
 
     if (
@@ -283,7 +445,9 @@ export async function POST(
     }
 
     /*
+     * ----------------------------------------
      * ACTIVE SUBSCRIPTION
+     * ----------------------------------------
      */
 
     const activeSubscription =
@@ -291,22 +455,17 @@ export async function POST(
         user.id
       );
 
-    /*
-     * DEMO → PAID UPGRADE
-     *
-     * Demo users ARE allowed to
-     * purchase a paid Premium plan.
-     *
-     * Paid Premium users cannot
-     * purchase another paid plan
-     * while their current plan is active.
-     */
-
     const activePlan =
       String(
         activeSubscription?.plan ||
           ""
       ).toLowerCase();
+
+    /*
+     * Demo → Paid allowed.
+     *
+     * Paid → Paid duplicate blocked.
+     */
 
     if (
       activeSubscription &&
@@ -325,7 +484,9 @@ export async function POST(
     }
 
     /*
+     * ----------------------------------------
      * ORDER ID
+     * ----------------------------------------
      */
 
     const orderId =
@@ -334,22 +495,33 @@ export async function POST(
       ).slice(0, 8)}_${Date.now()}`;
 
     /*
-     * RETURN URL
+     * ----------------------------------------
+     * BASE URL
+     * ----------------------------------------
      */
 
     const baseUrl =
       process.env
         .NEXT_PUBLIC_APP_URL ||
-      request.headers.get(
-        "origin"
-      ) ||
       "https://sambhavupsc.vercel.app";
 
+    /*
+     * Remove trailing slash.
+     */
+
+    const cleanBaseUrl =
+      baseUrl.replace(
+        /\/$/,
+        ""
+      );
+
     const returnUrl =
-      `${baseUrl}/premium/payment/success?order_id={order_id}`;
+      `${cleanBaseUrl}/premium/payment/success?order_id={order_id}`;
 
     /*
-     * CASHFREE ENDPOINT
+     * ----------------------------------------
+     * CASHFREE ENVIRONMENT
+     * ----------------------------------------
      */
 
     const cashfreeUrl =
@@ -359,7 +531,9 @@ export async function POST(
         : "https://sandbox.cashfree.com/pg/orders";
 
     /*
+     * ----------------------------------------
      * CUSTOMER
+     * ----------------------------------------
      */
 
     const customerId =
@@ -369,15 +543,9 @@ export async function POST(
 
     const customerName =
       user.first_name ||
-      user.name ||
       user.username ||
       user.email ||
       "SAMBHAV User";
-
-    /*
-     * CURRENT SIGNUP DOES NOT
-     * COLLECT PHONE NUMBER
-     */
 
     const customerPhone =
       String(
@@ -386,7 +554,9 @@ export async function POST(
       "9999999999";
 
     /*
+     * ----------------------------------------
      * CREATE CASHFREE ORDER
+     * ----------------------------------------
      */
 
     const cashfreeResponse =
@@ -442,7 +612,7 @@ export async function POST(
                 returnUrl,
 
               notify_url:
-                `${baseUrl}/api/payment/webhook`,
+                `${cleanBaseUrl}/api/payment/webhook`,
             },
 
             order_note:
@@ -457,7 +627,9 @@ export async function POST(
         .catch(() => ({}));
 
     /*
+     * ----------------------------------------
      * CASHFREE ERROR
+     * ----------------------------------------
      */
 
     if (
@@ -480,14 +652,16 @@ export async function POST(
     }
 
     /*
-     * PAYMENT SESSION CHECK
+     * ----------------------------------------
+     * PAYMENT SESSION
+     * ----------------------------------------
      */
 
     if (
       !cashfreeData?.payment_session_id
     ) {
       console.error(
-        "Missing Cashfree payment session:",
+        "Cashfree payment session missing:",
         cashfreeData
       );
 
@@ -501,10 +675,9 @@ export async function POST(
     }
 
     /*
+     * ----------------------------------------
      * PENDING SUBSCRIPTION
-     *
-     * The subscription stays pending
-     * until payment/webhook verification.
+     * ----------------------------------------
      */
 
     const now =
@@ -588,7 +761,9 @@ export async function POST(
     }
 
     /*
-     * SUCCESS
+     * ----------------------------------------
+     * FINAL RESPONSE
+     * ----------------------------------------
      */
 
     return NextResponse.json({
