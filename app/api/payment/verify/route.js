@@ -29,10 +29,12 @@ const PLANS = {
     amount: 99,
     durationDays: 30,
   },
+
   quarterly: {
     amount: 399,
     durationDays: 90,
   },
+
   annual: {
     amount: 999,
     durationDays: 365,
@@ -54,17 +56,22 @@ function verifyEmailSession(token) {
       return null;
     }
 
-    const parts = token.split(".");
+    const parts =
+      token.split(".");
 
     if (parts.length !== 2) {
       return null;
     }
 
-    const [payload, signature] = parts;
+    const [payload, signature] =
+      parts;
 
     const expectedSignature =
       crypto
-        .createHmac("sha256", secret)
+        .createHmac(
+          "sha256",
+          secret
+        )
         .update(payload)
         .digest("base64url");
 
@@ -78,18 +85,21 @@ function verifyEmailSession(token) {
     if (
       !crypto.timingSafeEqual(
         Buffer.from(signature),
-        Buffer.from(expectedSignature)
+        Buffer.from(
+          expectedSignature
+        )
       )
     ) {
       return null;
     }
 
-    const data = JSON.parse(
-      Buffer.from(
-        payload,
-        "base64url"
-      ).toString("utf8")
-    );
+    const data =
+      JSON.parse(
+        Buffer.from(
+          payload,
+          "base64url"
+        ).toString("utf8")
+      );
 
     if (
       !data.exp ||
@@ -116,19 +126,23 @@ function verifyEmailSession(token) {
  */
 
 async function getUserById(userId) {
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
-      userId
-    )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
-    {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_SECRET_KEY}`,
-      },
-      cache: "no-store",
-    }
-  );
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+        userId
+      )}&select=id,email,telegram_id,first_name,username,status,plan`,
+      {
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+
+        cache: "no-store",
+      }
+    );
 
   if (!response.ok) {
     console.error(
@@ -153,7 +167,9 @@ async function getUserById(userId) {
  * ------------------------------------------------
  */
 
-async function getAuthenticatedUser(request) {
+async function getAuthenticatedUser(
+  request
+) {
   /*
    * ==============================================
    * 1. WEBSITE SESSION
@@ -169,33 +185,11 @@ async function getAuthenticatedUser(request) {
         "sambhav_session"
       )?.value;
 
-    console.log(
-      "VERIFY AUTH DEBUG:",
-      {
-        nextCookiePresent:
-          Boolean(sessionToken),
-        cookieNames:
-          cookieStore
-            .getAll()
-            .map((cookie) => cookie.name),
-      }
-    );
-
     if (sessionToken) {
       const session =
         verifyEmailSession(
           sessionToken
         );
-
-      console.log(
-        "VERIFY SESSION DEBUG:",
-        {
-          valid:
-            Boolean(session),
-          userId:
-            session?.userId || null,
-        }
-      );
 
       if (session?.userId) {
         const user =
@@ -249,14 +243,16 @@ async function getAuthenticatedUser(request) {
           await fetch(
             `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
               telegramUser.id
-            )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
+            )}&select=id,email,telegram_id,first_name,username,status,plan&limit=1`,
             {
               headers: {
                 apikey:
                   SUPABASE_SECRET_KEY,
+
                 Authorization:
                   `Bearer ${SUPABASE_SECRET_KEY}`,
               },
+
               cache: "no-store",
             }
           );
@@ -294,11 +290,11 @@ async function getAuthenticatedUser(request) {
  *
  * Open:
  * /api/payment/verify
- *
- * while logged in.
  */
 
-export async function GET(request) {
+export async function GET(
+  request
+) {
   try {
     const cookieStore =
       await cookies();
@@ -396,7 +392,9 @@ export async function GET(request) {
  * ========================================================
  */
 
-export async function POST(request) {
+export async function POST(
+  request
+) {
   try {
     /*
      * ----------------------------------------
@@ -498,7 +496,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * FIND EXACT USER SUBSCRIPTION
+     * FIND EXACT USER'S SUBSCRIPTION
      * ----------------------------------------
      */
 
@@ -582,7 +580,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * ONLY PENDING
+     * ONLY PENDING CAN BE VERIFIED
      * ----------------------------------------
      */
 
@@ -635,6 +633,19 @@ export async function POST(request) {
         selectedPlan.amount
       )
     ) {
+      console.error(
+        "Subscription amount mismatch:",
+        {
+          orderId,
+
+          databaseAmount:
+            subscription.amount,
+
+          expectedAmount:
+            selectedPlan.amount,
+        }
+      );
+
       return NextResponse.json(
         {
           error:
@@ -713,7 +724,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * SUCCESS PAYMENT
+     * FIND SUCCESS PAYMENT
      * ----------------------------------------
      */
 
@@ -726,7 +737,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * NOT SUCCESS
+     * PAYMENT NOT SUCCESSFUL
      * ----------------------------------------
      */
 
@@ -763,7 +774,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * AMOUNT VALIDATION
+     * CASHFREE AMOUNT VALIDATION
      * ----------------------------------------
      */
 
@@ -781,6 +792,18 @@ export async function POST(request) {
           selectedPlan.amount
         )
     ) {
+      console.error(
+        "Cashfree payment amount mismatch:",
+        {
+          orderId,
+
+          paidAmount,
+
+          expectedAmount:
+            selectedPlan.amount,
+        }
+      );
+
       return NextResponse.json(
         {
           error:
@@ -834,7 +857,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * ACTIVATE SUBSCRIPTION
+     * ACTIVATE EXACT PAYMENT
      * ----------------------------------------
      */
 
@@ -902,7 +925,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * DEACTIVATE DEMO
+     * DEACTIVATE ACTIVE DEMO
      * ----------------------------------------
      */
 
@@ -993,7 +1016,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * SUCCESS
+     * FINAL SUCCESS
      * ----------------------------------------
      */
 
