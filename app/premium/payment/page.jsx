@@ -273,6 +273,10 @@ function PaymentContent() {
         data
       );
 
+      /* ---------------------------------------------
+         AUTH ERROR
+      --------------------------------------------- */
+
       if (
         response.status ===
         401
@@ -285,6 +289,10 @@ function PaymentContent() {
         );
       }
 
+      /* ---------------------------------------------
+         FORBIDDEN
+      --------------------------------------------- */
+
       if (
         response.status ===
         403
@@ -295,6 +303,10 @@ function PaymentContent() {
         );
       }
 
+      /* ---------------------------------------------
+         CONFLICT
+      --------------------------------------------- */
+
       if (
         response.status ===
         409
@@ -304,6 +316,10 @@ function PaymentContent() {
             "You already have an active premium subscription."
         );
       }
+
+      /* ---------------------------------------------
+         SERVER / CASHFREE ERROR
+      --------------------------------------------- */
 
       if (!response.ok) {
         let errorMessage =
@@ -322,6 +338,10 @@ function PaymentContent() {
           errorMessage
         );
       }
+
+      /* ---------------------------------------------
+         PAYMENT SESSION
+      --------------------------------------------- */
 
       const paymentSessionId =
         data?.payment_session_id ||
@@ -342,8 +362,16 @@ function PaymentContent() {
         );
       }
 
+      /* ---------------------------------------------
+         LOAD CASHFREE
+      --------------------------------------------- */
+
       const Cashfree =
         await loadCashfree();
+
+      /*
+       * SAMBHAV uses Cashfree PRODUCTION.
+       */
 
       const cashfree =
         Cashfree({
@@ -354,6 +382,10 @@ function PaymentContent() {
       console.log(
         "Opening Cashfree production checkout"
       );
+
+      /* ---------------------------------------------
+         OPEN CASHFREE CHECKOUT
+      --------------------------------------------- */
 
       await cashfree.checkout({
         paymentSessionId:
@@ -414,6 +446,8 @@ function PaymentContent() {
 
         <div className="mx-auto flex h-[68px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
 
+          {/* BACK */}
+
           <button
             type="button"
             onClick={() =>
@@ -428,6 +462,8 @@ function PaymentContent() {
             Back
           </button>
 
+          {/* BRAND */}
+
           <div className="flex items-center gap-2">
 
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111] text-xs font-black text-[#e2c773]">
@@ -440,9 +476,14 @@ function PaymentContent() {
 
           </div>
 
+          {/* STATUS */}
+
           <div className="hidden items-center gap-2 text-xs font-semibold text-black/45 sm:flex">
+
             <span className="h-2 w-2 rounded-full bg-green-500" />
+
             Secure Checkout
+
           </div>
 
         </div>
@@ -516,6 +557,8 @@ function PaymentContent() {
 
               </div>
 
+              {/* PRICE */}
+
               <div className="mt-8 flex items-end gap-2">
 
                 <span className="text-5xl font-black tracking-[-0.05em] text-[#e2c773] sm:text-6xl">
@@ -523,9 +566,12 @@ function PaymentContent() {
                 </span>
 
                 <span className="mb-2 text-sm text-white/45">
-                  / {plan.key === "monthly"
+                  /{" "}
+                  {plan.key ===
+                  "monthly"
                     ? "month"
-                    : plan.key === "quarterly"
+                    : plan.key ===
+                      "quarterly"
                     ? "3 months"
                     : "year"}
                 </span>
@@ -533,6 +579,8 @@ function PaymentContent() {
               </div>
 
               <div className="my-8 h-px bg-white/10" />
+
+              {/* BENEFITS */}
 
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-white/45">
                 Included with Premium
@@ -566,6 +614,8 @@ function PaymentContent() {
                 )}
 
               </div>
+
+              {/* SECURITY BOX */}
 
               <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
 
@@ -606,7 +656,7 @@ function PaymentContent() {
               <div>
 
                 <p className="text-[10px] font-black tracking-[0.18em] text-black/40">
-                  ORDER SUMMARY
+                  PAYMENT SUMMARY
                 </p>
 
                 <h2 className="mt-1 text-xl font-black tracking-[-0.025em]">
@@ -625,6 +675,8 @@ function PaymentContent() {
 
             <div className="mt-7 space-y-4">
 
+              {/* PLAN */}
+
               <div className="flex items-center justify-between gap-4">
 
                 <span className="text-sm text-black/50">
@@ -637,6 +689,8 @@ function PaymentContent() {
 
               </div>
 
+              {/* DURATION */}
+
               <div className="flex items-center justify-between gap-4">
 
                 <span className="text-sm text-black/50">
@@ -648,6 +702,8 @@ function PaymentContent() {
                 </span>
 
               </div>
+
+              {/* ACCESS */}
 
               <div className="flex items-center justify-between gap-4">
 
@@ -692,12 +748,12 @@ function PaymentContent() {
             {/* ERROR */}
 
             {error && (
-              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-medium leading-5 text-red-700">
+              <div className="mb-5 break-words rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-medium leading-5 text-red-700">
                 {error}
               </div>
             )}
 
-            {/* PAY */}
+            {/* PAY BUTTON */}
 
             <button
               type="button"
@@ -767,7 +823,7 @@ function PaymentContent() {
         </div>
 
         {/* ==============================================
-            FOOTER NOTE
+            FOOTER
         ============================================== */}
 
         <p className="mx-auto mt-7 max-w-xl text-center text-[11px] leading-5 text-black/35">
