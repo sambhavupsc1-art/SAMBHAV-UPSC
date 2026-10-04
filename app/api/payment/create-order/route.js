@@ -46,14 +46,27 @@ function verifyEmailSession(token) {
     const secret =
       process.env.AUTH_SESSION_SECRET;
 
-    if (!secret || !token) {
-      return null;
+    if (!secret) {
+      return {
+        valid: false,
+        reason: "AUTH_SESSION_SECRET missing",
+      };
+    }
+
+    if (!token) {
+      return {
+        valid: false,
+        reason: "Session token missing",
+      };
     }
 
     const parts = token.split(".");
 
     if (parts.length !== 2) {
-      return null;
+      return {
+        valid: false,
+        reason: "Invalid session token format",
+      };
     }
 
     const [payload, signature] = parts;
@@ -68,7 +81,10 @@ function verifyEmailSession(token) {
       signature.length !==
       expectedSignature.length
     ) {
-      return null;
+      return {
+        valid: false,
+        reason: "Signature length mismatch",
+      };
     }
 
     if (
@@ -77,36 +93,65 @@ function verifyEmailSession(token) {
         Buffer.from(expectedSignature)
       )
     ) {
-      return null;
+      return {
+        valid: false,
+        reason: "Signature mismatch",
+      };
     }
 
-    const data =
-      JSON.parse(
+    let data;
+
+    try {
+      data = JSON.parse(
         Buffer.from(
           payload,
           "base64url"
         ).toString("utf8")
       );
-
-    if (
-      !data?.exp ||
-      Date.now() > data.exp
-    ) {
-      return null;
+    } catch {
+      return {
+        valid: false,
+        reason: "Invalid session payload",
+      };
     }
 
     if (!data?.userId) {
-      return null;
+      return {
+        valid: false,
+        reason: "userId missing from session",
+      };
     }
 
-    return data;
+    if (!data?.exp) {
+      return {
+        valid: false,
+        reason: "Session expiry missing",
+      };
+    }
+
+    if (Date.now() > data.exp) {
+      return {
+        valid: false,
+        reason: "Session expired",
+      };
+    }
+
+    return {
+      valid: true,
+      userId: data.userId,
+    };
   } catch (error) {
     console.error(
       "Session verification error:",
       error
     );
 
-    return null;
+    return {
+      valid: false,
+      reason:
+        error?.message ||
+        "Session verification failed",
+    };
   }
 }
 
@@ -122,7 +167,11 @@ async function getUserById(userId) {
     !SUPABASE_SECRET_KEY ||
     !userId
   ) {
-    return null;
+    return {
+      user: null,
+      reason:
+        "Supabase configuration or userId missing",
+    };
   }
 
   try {
@@ -130,7 +179,7 @@ async function getUserById(userId) {
       await fetch(
         `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
           userId
-        )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
+        )}&select=id,email,telegram_id,first_name,last_name,username,status,plan,created_at`,
         {
           method: "GET",
 
@@ -147,27 +196,209 @@ async function getUserById(userId) {
       );
 
     if (!response.ok) {
+      const errorText =
+        await response.text();
+
       console.error(
         "Payment user lookup failed:",
-        await response.text()
+        errorText
       );
 
-      return null;
+      return {
+        user: null,
+        reason:
+          "Supabase user lookup failed",
+      };
     }
 
     const users =
       await response.json();
 
-    return users?.length
-      ? users[0]
-      : null;
+    if (!Array.isArray(users)) {
+      return {
+        user: null,
+        reason:
+          "Invalid Supabase user response",
+      };
+    }
+
+    if (users.length === 0) {
+      return {
+        user: null,
+        reason:
+          "User not found in Supabase",
+      };
+    }
+
+    return {
+      user: users[0],
+      reason: "User found",
+    };
   } catch (error) {
     console.error(
       "Payment user lookup exception:",
       error
     );
 
-    return null;
+    return {
+      user: null,
+      reason:
+        error?.message ||
+        "User lookup exception",
+    };
+  }
+}
+
+/*
+ * ========================================================
+ * EMAIL SESSION AUTHENTICATION ONLY
+ * ========================================================
+ */
+
+async function getAuthenticatedUser() {
+  const diagnostic = {
+    cookiePresent: false,
+    sessionValid: false,
+    userFound: false,
+    authMethod: null,
+    reason: null,
+  };
+
+  try {
+    /*
+     * ----------------------------------------------------
+     * READ SESSION COOKIE
+     * ----------------------------------------------------
+     */
+
+    let sessionToken = null;
+
+    try {
+      const cookieStore =
+        await cookies();
+
+      sessionToken =
+        cookieStore.get(
+          "sambhav_session"
+        )?.value || null;
+    } catch (error) {
+      console.error(
+        "Payment cookies() error:",
+        error
+      );
+
+      diagnostic.reason =
+        "Unable to read cookies";
+
+      return {
+        user: null,
+        diagnostic,
+      };
+    }
+
+    /*
+     * ----------------------------------------------------
+     * COOKIE CHECK
+     * ----------------------------------------------------
+     */
+
+    if (!sessionToken) {
+      diagnostic.reason =
+        "sambhav_session cookie not received";
+
+      console.error(
+        "Payment authentication:",
+        diagnostic
+      );
+
+      return {
+        user: null,
+        diagnostic,
+      };
+    }
+
+    diagnostic.cookiePresent = true;
+
+    /*
+     * ----------------------------------------------------
+     * VERIFY SESSION
+     * ----------------------------------------------------
+     */
+
+    const session =
+      verifyEmailSession(
+        sessionToken
+      );
+
+    if (!session.valid) {
+      diagnostic.reason =
+        session.reason;
+
+      console.error(
+        "Payment authentication:",
+        diagnostic
+      );
+
+      return {
+        user: null,
+        diagnostic,
+      };
+    }
+
+    diagnostic.sessionValid = true;
+
+    /*
+     * ----------------------------------------------------
+     * GET USER
+     * ----------------------------------------------------
+     */
+
+    const userResult =
+      await getUserById(
+        session.userId
+      );
+
+    if (!userResult.user) {
+      diagnostic.reason =
+        userResult.reason;
+
+      console.error(
+        "Payment authentication:",
+        diagnostic
+      );
+
+      return {
+        user: null,
+        diagnostic,
+      };
+    }
+
+    diagnostic.userFound = true;
+    diagnostic.authMethod =
+      "email";
+    diagnostic.reason =
+      "Authentication successful";
+
+    return {
+      user:
+        userResult.user,
+
+      diagnostic,
+    };
+  } catch (error) {
+    console.error(
+      "Payment authentication exception:",
+      error
+    );
+
+    diagnostic.reason =
+      error?.message ||
+      "Authentication exception";
+
+    return {
+      user: null,
+      diagnostic,
+    };
   }
 }
 
@@ -177,7 +408,9 @@ async function getUserById(userId) {
  * ========================================================
  */
 
-async function getActiveSubscription(userId) {
+async function getActiveSubscription(
+  userId
+) {
   try {
     const now =
       new Date().toISOString();
@@ -222,99 +455,6 @@ async function getActiveSubscription(userId) {
   } catch (error) {
     console.error(
       "Active subscription lookup exception:",
-      error
-    );
-
-    return null;
-  }
-}
-
-/*
- * ========================================================
- * EMAIL SESSION ONLY
- * ========================================================
- */
-
-async function getAuthenticatedUser() {
-  try {
-    /*
-     * First read request-scoped cookies.
-     */
-
-    let sessionToken = null;
-
-    try {
-      const cookieStore =
-        await cookies();
-
-      sessionToken =
-        cookieStore.get(
-          "sambhav_session"
-        )?.value || null;
-    } catch (error) {
-      console.error(
-        "Cookie read failed:",
-        error
-      );
-    }
-
-    /*
-     * No session = no payment authentication.
-     */
-
-    if (!sessionToken) {
-      console.error(
-        "Payment authentication failed: sambhav_session not found."
-      );
-
-      return null;
-    }
-
-    /*
-     * Verify signed session.
-     */
-
-    const session =
-      verifyEmailSession(
-        sessionToken
-      );
-
-    if (!session?.userId) {
-      console.error(
-        "Payment authentication failed: invalid session."
-      );
-
-      return null;
-    }
-
-    /*
-     * Get user from Supabase.
-     */
-
-    const user =
-      await getUserById(
-        session.userId
-      );
-
-    if (!user) {
-      console.error(
-        "Payment authentication failed: user not found.",
-        {
-          userId:
-            session.userId,
-        }
-      );
-
-      return null;
-    }
-
-    return {
-      user,
-      authMethod: "email",
-    };
-  } catch (error) {
-    console.error(
-      "Payment authentication error:",
       error
     );
 
@@ -393,7 +533,17 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error:
-            "Authentication required. Please login to SAMBHAV and try again.",
+            "Authentication required.",
+
+          debug:
+            auth?.diagnostic || {
+              cookiePresent: false,
+              sessionValid: false,
+              userFound: false,
+              authMethod: null,
+              reason:
+                "Authentication function returned no result",
+            },
         },
         {
           status: 401,
@@ -474,7 +624,7 @@ export async function POST(request) {
     const activePlan =
       String(
         activeSubscription?.plan ||
-        ""
+          ""
       ).toLowerCase();
 
     if (
