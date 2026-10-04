@@ -2450,7 +2450,7 @@ export default function Home() {
           <section style={{ marginTop: "2px" }}>
             <div
               style={{
-                marginBottom: "13px",
+                marginBottom: "11px",
                 padding: "0 2px",
               }}
             >
@@ -2480,8 +2480,8 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "6px",
-                  fontSize: "11px",
-                  lineHeight: "1.5",
+                  fontSize: "10.5px",
+                  lineHeight: "1.45",
                   color: "#77736c",
                   maxWidth: "620px",
                 }}
@@ -2581,9 +2581,9 @@ export default function Home() {
                       "1px solid rgba(255,255,255,0.08)",
                     color: "#ffffff",
                     borderRadius: "21px",
-                    padding: "17px",
+                    padding: "16px",
                     minWidth: 0,
-                    minHeight: "218px",
+                    minHeight: 0,
                     position: "relative",
                     boxShadow:
                       "0 12px 28px rgba(0,0,0,0.12)",
@@ -2623,8 +2623,8 @@ export default function Home() {
                   <div
                     style={{
                       marginTop: "12px",
-                      fontSize: "17px",
-                      lineHeight: "1.2",
+                      fontSize: "16px",
+                      lineHeight: "1.25",
                       fontWeight: "900",
                     }}
                   >
@@ -2633,7 +2633,7 @@ export default function Home() {
 
                   <div
                     style={{
-                      marginTop: "12px",
+                      marginTop: "10px",
                       display: "grid",
                       gap: "6px",
                     }}
@@ -2645,10 +2645,10 @@ export default function Home() {
                           display: "flex",
                           alignItems: "flex-start",
                           gap: "7px",
-                          fontSize: "10px",
-                          lineHeight: "1.35",
+                          fontSize: "11px",
+                          lineHeight: "1.42",
                           color:
-                            "rgba(255,255,255,0.60)",
+                            "rgba(255,255,255,0.72)",
                         }}
                       >
                         <span
