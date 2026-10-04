@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { cookies } from "next/headers";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+/* =====================================================
+   ENV
+===================================================== */
+
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+const CASHFREE_APP_ID =
+  process.env.CASHFREE_APP_ID;
+
+const CASHFREE_SECRET_KEY =
+  process.env.CASHFREE_SECRET_KEY;
 
 const CASHFREE_ENV =
   process.env.CASHFREE_ENV === "production"
@@ -23,17 +31,23 @@ const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "http://localhost:3000";
 
+/* =====================================================
+   PLANS
+===================================================== */
+
 const PLANS = {
   monthly: {
     name: "Monthly",
     amount: 99,
     days: 30,
   },
+
   quarterly: {
     name: "Quarterly",
     amount: 399,
     days: 90,
   },
+
   annual: {
     name: "Annual",
     amount: 999,
@@ -41,25 +55,26 @@ const PLANS = {
   },
 };
 
-/* -------------------------------------------------------
-   EMAIL SESSION
-------------------------------------------------------- */
+/* =====================================================
+   SESSION VERIFICATION
+===================================================== */
 
 function base64urlDecode(value) {
   try {
-    return Buffer.from(value, "base64url").toString("utf8");
+    return Buffer.from(
+      value,
+      "base64url"
+    ).toString("utf8");
   } catch {
     return null;
   }
 }
 
-function base64urlEncode(buffer) {
-  return Buffer.from(buffer).toString("base64url");
-}
-
 function verifyEmailSession(token) {
   try {
-    if (!token) return null;
+    if (!token) {
+      return null;
+    }
 
     const parts = token.split(".");
 
@@ -67,25 +82,45 @@ function verifyEmailSession(token) {
       return null;
     }
 
-    const [encodedPayload, encodedSignature] = parts;
+    const [
+      encodedPayload,
+      encodedSignature,
+    ] = parts;
 
-    const secret = process.env.AUTH_SESSION_SECRET;
+    const secret =
+      process.env.AUTH_SESSION_SECRET;
 
     if (!secret) {
-      console.error("AUTH_SESSION_SECRET is missing");
+      console.error(
+        "AUTH_SESSION_SECRET is missing"
+      );
+
       return null;
     }
 
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(encodedPayload)
-      .digest();
+    const expectedSignature =
+      crypto
+        .createHmac(
+          "sha256",
+          secret
+        )
+        .update(encodedPayload)
+        .digest();
 
     const actualSignature =
-      Buffer.from(encodedSignature, "base64url");
+      Buffer.from(
+        encodedSignature,
+        "base64url"
+      );
 
     if (
-      actualSignature.length !== expectedSignature.length ||
+      actualSignature.length !==
+      expectedSignature.length
+    ) {
+      return null;
+    }
+
+    if (
       !crypto.timingSafeEqual(
         actualSignature,
         expectedSignature
@@ -95,56 +130,77 @@ function verifyEmailSession(token) {
     }
 
     const payloadText =
-      base64urlDecode(encodedPayload);
+      base64urlDecode(
+        encodedPayload
+      );
 
     if (!payloadText) {
       return null;
     }
 
-    const payload = JSON.parse(payloadText);
+    const payload =
+      JSON.parse(payloadText);
 
     if (!payload?.userId) {
       return null;
     }
 
     if (payload.exp) {
-      const now = Math.floor(Date.now() / 1000);
+      const now =
+        Math.floor(
+          Date.now() / 1000
+        );
 
-      if (now >= Number(payload.exp)) {
+      if (
+        now >=
+        Number(payload.exp)
+      ) {
         return null;
       }
     }
 
     return payload;
   } catch (error) {
-    console.error("Session verification error:", error);
+    console.error(
+      "Session verification error:",
+      error
+    );
+
     return null;
   }
 }
 
-/* -------------------------------------------------------
-   COOKIE PARSER
-------------------------------------------------------- */
+/* =====================================================
+   COOKIE
+===================================================== */
 
-function getSessionTokenFromCookieHeader(cookieHeader) {
+function getSessionTokenFromCookieHeader(
+  cookieHeader
+) {
   if (!cookieHeader) {
     return null;
   }
 
-  const cookieParts = cookieHeader.split(";");
+  const cookies =
+    cookieHeader.split(";");
 
-  for (const item of cookieParts) {
-    const separator = item.indexOf("=");
+  for (const item of cookies) {
+    const separator =
+      item.indexOf("=");
 
     if (separator === -1) {
       continue;
     }
 
-    const name = item
-      .slice(0, separator)
-      .trim();
+    const name =
+      item
+        .slice(0, separator)
+        .trim();
 
-    if (name !== "sambhav_session") {
+    if (
+      name !==
+      "sambhav_session"
+    ) {
       continue;
     }
 
@@ -156,94 +212,130 @@ function getSessionTokenFromCookieHeader(cookieHeader) {
   return null;
 }
 
-/* -------------------------------------------------------
-   SUPABASE
-------------------------------------------------------- */
+/* =====================================================
+   GET USER
+===================================================== */
 
 async function getUserById(userId) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error("Supabase environment variables missing");
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    console.error(
+      "Supabase environment variables missing"
+    );
+
     return null;
   }
 
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
-        userId
-      )}&select=*`,
-      {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+          userId
+        )}&select=*`,
+        {
+          method: "GET",
+
+          headers: {
+            apikey:
+              SUPABASE_SERVICE_ROLE_KEY,
+
+            Authorization:
+              `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+            "Content-Type":
+              "application/json",
+          },
+
+          cache: "no-store",
+        }
+      );
 
     if (!response.ok) {
+      const errorText =
+        await response.text();
+
       console.error(
         "Supabase user lookup failed:",
         response.status,
-        await response.text()
+        errorText
       );
 
       return null;
     }
 
-    const users = await response.json();
+    const users =
+      await response.json();
 
     return users?.[0] || null;
   } catch (error) {
-    console.error("getUserById error:", error);
+    console.error(
+      "getUserById error:",
+      error
+    );
+
     return null;
   }
 }
 
-/* -------------------------------------------------------
-   AUTHENTICATION
-------------------------------------------------------- */
+/* =====================================================
+   AUTH
+===================================================== */
 
-async function getAuthenticatedUser(request) {
+async function getAuthenticatedUser(
+  request
+) {
   try {
     const cookieHeader =
-      request.headers.get("cookie");
+      request.headers.get(
+        "cookie"
+      );
 
     if (!cookieHeader) {
       return {
         user: null,
-        reason: "Cookie header missing",
+        reason:
+          "Cookie header missing",
       };
     }
 
     const sessionToken =
-      getSessionTokenFromCookieHeader(cookieHeader);
+      getSessionTokenFromCookieHeader(
+        cookieHeader
+      );
 
     if (!sessionToken) {
       return {
         user: null,
-        reason: "sambhav_session cookie missing",
+        reason:
+          "sambhav_session cookie missing",
       };
     }
 
     const session =
-      verifyEmailSession(sessionToken);
+      verifyEmailSession(
+        sessionToken
+      );
 
     if (!session?.userId) {
       return {
         user: null,
-        reason: "Invalid or expired session",
+        reason:
+          "Invalid or expired session",
       };
     }
 
     const user =
-      await getUserById(session.userId);
+      await getUserById(
+        session.userId
+      );
 
     if (!user) {
       return {
         user: null,
-        reason: "User not found",
+        reason:
+          "User not found",
       };
     }
 
@@ -259,38 +351,48 @@ async function getAuthenticatedUser(request) {
 
     return {
       user: null,
-      reason: "Authentication exception",
+      reason:
+        "Authentication exception",
     };
   }
 }
 
-/* -------------------------------------------------------
-   CASHFREE ORDER ID
-------------------------------------------------------- */
+/* =====================================================
+   ORDER ID
+===================================================== */
 
 function createOrderId() {
-  return `SAMBHAV_${Date.now()}_${crypto
-    .randomBytes(5)
-    .toString("hex")}`;
+  return (
+    "SAMBHAV_" +
+    Date.now() +
+    "_" +
+    crypto
+      .randomBytes(5)
+      .toString("hex")
+  );
 }
 
-/* -------------------------------------------------------
-   CREATE ORDER
-------------------------------------------------------- */
+/* =====================================================
+   POST - CREATE CASHFREE ORDER
+===================================================== */
 
 export async function POST(request) {
   try {
-    /* -------------------------------
-       AUTH
-    -------------------------------- */
+    /* ---------------------------------------------
+       AUTHENTICATION
+    --------------------------------------------- */
 
     const auth =
-      await getAuthenticatedUser(request);
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!auth?.user?.id) {
       return NextResponse.json(
         {
-          error: "Authentication required.",
+          error:
+            "Authentication required.",
+
           reason:
             auth?.reason ||
             "Unknown authentication error",
@@ -303,18 +405,20 @@ export async function POST(request) {
 
     const user = auth.user;
 
-    /* -------------------------------
-       REQUEST BODY
-    -------------------------------- */
+    /* ---------------------------------------------
+       BODY
+    --------------------------------------------- */
 
     let body;
 
     try {
-      body = await request.json();
+      body =
+        await request.json();
     } catch {
       return NextResponse.json(
         {
-          error: "Invalid request body.",
+          error:
+            "Invalid request body.",
         },
         {
           status: 400,
@@ -322,7 +426,8 @@ export async function POST(request) {
       );
     }
 
-    const planKey = body?.plan;
+    const planKey =
+      body?.plan;
 
     const selectedPlan =
       PLANS[planKey];
@@ -330,7 +435,8 @@ export async function POST(request) {
     if (!selectedPlan) {
       return NextResponse.json(
         {
-          error: "Invalid plan.",
+          error:
+            "Invalid plan.",
         },
         {
           status: 400,
@@ -338,22 +444,31 @@ export async function POST(request) {
       );
     }
 
-    /* -------------------------------
-       CASHFREE ENV CHECK
-    -------------------------------- */
+    /* ---------------------------------------------
+       CASHFREE CONFIG CHECK
+    --------------------------------------------- */
 
     if (
       !CASHFREE_APP_ID ||
       !CASHFREE_SECRET_KEY
     ) {
       console.error(
-        "Cashfree environment variables missing"
+        "Cashfree credentials missing"
       );
 
       return NextResponse.json(
         {
           error:
-            "Payment gateway configuration missing.",
+            "Cashfree configuration missing.",
+
+          cashfreeEnvironment:
+            CASHFREE_ENV,
+
+          appIdPresent:
+            !!CASHFREE_APP_ID,
+
+          secretPresent:
+            !!CASHFREE_SECRET_KEY,
         },
         {
           status: 500,
@@ -361,15 +476,17 @@ export async function POST(request) {
       );
     }
 
-    /* -------------------------------
+    /* ---------------------------------------------
        ORDER
-    -------------------------------- */
+    --------------------------------------------- */
 
     const orderId =
       createOrderId();
 
     const customerId =
-      `user_${String(user.id).replace(
+      `user_${String(
+        user.id
+      ).replace(
         /[^a-zA-Z0-9_-]/g,
         ""
       )}`;
@@ -382,26 +499,44 @@ export async function POST(request) {
     const customerEmail =
       user.email;
 
-    /* -------------------------------
+    /*
+      Cashfree requires a customer phone.
+      If users table has no phone field,
+      this fallback keeps the request valid.
+    */
+
+    const customerPhone =
+      user.phone ||
+      "9999999999";
+
+    /* ---------------------------------------------
        CASHFREE PAYLOAD
-    -------------------------------- */
+    --------------------------------------------- */
 
     const cashfreePayload = {
-      order_id: orderId,
+      order_id:
+        orderId,
 
       order_amount:
-        selectedPlan.amount,
+        Number(
+          selectedPlan.amount
+        ),
 
-      order_currency: "INR",
+      order_currency:
+        "INR",
 
       customer_details: {
-        customer_id: customerId,
-        customer_name: customerName,
+        customer_id:
+          customerId,
+
+        customer_name:
+          customerName,
+
         customer_email:
           customerEmail,
+
         customer_phone:
-          user.phone ||
-          "9999999999",
+          customerPhone,
       },
 
       order_meta: {
@@ -418,9 +553,28 @@ export async function POST(request) {
         `SAMBHAV UPSC ${selectedPlan.name} Premium`,
     };
 
-    /* -------------------------------
-       CASHFREE CREATE ORDER
-    -------------------------------- */
+    console.log(
+      "CASHFREE ORDER REQUEST:",
+      {
+        environment:
+          CASHFREE_ENV,
+
+        orderId,
+
+        amount:
+          selectedPlan.amount,
+
+        plan:
+          planKey,
+
+        appUrl:
+          APP_URL,
+      }
+    );
+
+    /* ---------------------------------------------
+       CASHFREE API
+    --------------------------------------------- */
 
     const cashfreeResponse =
       await fetch(
@@ -458,16 +612,25 @@ export async function POST(request) {
 
     try {
       cashfreeData =
-        JSON.parse(cashfreeText);
+        JSON.parse(
+          cashfreeText
+        );
     } catch {
       cashfreeData = {
-        raw: cashfreeText,
+        raw:
+          cashfreeText,
       };
     }
 
-    if (!cashfreeResponse.ok) {
+    /* ---------------------------------------------
+       CASHFREE ERROR
+    --------------------------------------------- */
+
+    if (
+      !cashfreeResponse.ok
+    ) {
       console.error(
-        "Cashfree order creation failed:",
+        "CASHFREE ERROR:",
         cashfreeResponse.status,
         cashfreeData
       );
@@ -475,19 +638,26 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error:
-            "Unable to create payment order.",
-          details:
+            "Unable to create order.",
+
+          cashfreeStatus:
+            cashfreeResponse.status,
+
+          cashfreeResponse:
             cashfreeData,
+
+          environment:
+            CASHFREE_ENV,
         },
         {
-          status: 500,
+          status: 502,
         }
       );
     }
 
-    /* -------------------------------
+    /* ---------------------------------------------
        SAVE PENDING SUBSCRIPTION
-    -------------------------------- */
+    --------------------------------------------- */
 
     if (
       SUPABASE_URL &&
@@ -508,17 +678,27 @@ export async function POST(request) {
           );
 
         const subscriptionPayload = {
-          user_id: user.id,
-          plan: planKey,
-          status: "pending",
+          user_id:
+            user.id,
+
+          plan:
+            planKey,
+
+          status:
+            "pending",
+
           amount:
             selectedPlan.amount,
+
           started_at:
             now.toISOString(),
+
           expires_at:
             expiresAt.toISOString(),
+
           order_id:
             orderId,
+
           payment_id:
             null,
         };
@@ -569,26 +749,32 @@ export async function POST(request) {
       }
     }
 
-    /* -------------------------------
-       RESPONSE
-    -------------------------------- */
+    /* ---------------------------------------------
+       SUCCESS
+    --------------------------------------------- */
 
     return NextResponse.json(
       {
-        success: true,
+        success:
+          true,
 
-        orderId,
+        orderId:
+          orderId,
 
         paymentSessionId:
           cashfreeData?.payment_session_id ||
           null,
 
         plan: {
-          key: planKey,
+          key:
+            planKey,
+
           name:
             selectedPlan.name,
+
           amount:
             selectedPlan.amount,
+
           days:
             selectedPlan.days,
         },
@@ -607,6 +793,10 @@ export async function POST(request) {
       {
         error:
           "Something went wrong while creating the payment order.",
+
+        message:
+          error?.message ||
+          null,
       },
       {
         status: 500,
@@ -615,17 +805,19 @@ export async function POST(request) {
   }
 }
 
-/* -------------------------------------------------------
-   TEMPORARY AUTH DIAGNOSTIC
-   REMOVE AFTER TESTING
-------------------------------------------------------- */
+/* =====================================================
+   TEMPORARY GET DIAGNOSTIC
+===================================================== */
 
 export async function GET(request) {
   const auth =
-    await getAuthenticatedUser(request);
+    await getAuthenticatedUser(
+      request
+    );
 
   return NextResponse.json({
-    route: "payment/create-order",
+    route:
+      "payment/create-order",
 
     cookiePresent:
       !!request.headers
