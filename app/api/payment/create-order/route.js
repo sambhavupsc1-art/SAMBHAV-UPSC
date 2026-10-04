@@ -626,33 +626,32 @@ export async function POST(request) {
        CASHFREE ERROR
     --------------------------------------------- */
 
-    if (
-      !cashfreeResponse.ok
-    ) {
-      console.error(
-        "CASHFREE ERROR:",
+    if (!cashfreeResponse.ok) {
+  console.error(
+    "CASHFREE ERROR:",
+    cashfreeResponse.status,
+    cashfreeData
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        `Cashfree Error (${cashfreeResponse.status}): ` +
+        JSON.stringify(cashfreeData),
+
+      cashfreeStatus:
         cashfreeResponse.status,
-        cashfreeData
-      );
 
-      return NextResponse.json(
-        {
-          error:
-            "Unable to create order.",
+      cashfreeResponse:
+        cashfreeData,
 
-          cashfreeStatus:
-            cashfreeResponse.status,
-
-          cashfreeResponse:
-            cashfreeData,
-
-          environment:
-            CASHFREE_ENV,
-        },
-        {
-          status: 502,
-        }
-      );
+      environment:
+        CASHFREE_ENV,
+    },
+    {
+      status: 502,
+    }
+  );
     }
 
     /* ---------------------------------------------
