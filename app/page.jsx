@@ -364,8 +364,8 @@ const styles = {
   },
 
   featureIcon: {
-    width: "43px",
-    height: "43px",
+    width: "40px",
+    height: "40px",
     borderRadius: "14px",
     background:
       "linear-gradient(145deg, #181818, #080808)",
@@ -1364,11 +1364,12 @@ const styles = {
   ecoButton: {
     width: "100%",
     display: "grid",
-    gridTemplateColumns: "30px 46px minmax(0,1fr) 32px",
+    gridTemplateColumns: "24px 42px minmax(0,1fr) 30px",
     alignItems: "center",
-    gap: "8px",
-    padding: "9px 12px",
+    gap: "7px",
+    padding: "10px 10px",
     textAlign: "left",
+    justifyContent: "stretch",
     border: "none",
     background: "transparent",
     color: "#ffffff",
@@ -1383,8 +1384,8 @@ const styles = {
   },
 
   ecoIcon: {
-    width: "43px",
-    height: "43px",
+    width: "40px",
+    height: "40px",
     borderRadius: "14px",
     background: "linear-gradient(145deg,#252525,#151515)",
     border: "1px solid #343434",
@@ -1394,10 +1395,20 @@ const styles = {
     fontSize: "18px",
   },
 
+  ecoContent: {
+    minWidth: 0,
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    textAlign: "left",
+  },
+
   ecoLabel: {
     color: "#d6bd79",
-    fontSize: "8px",
-    letterSpacing: "1.1px",
+    fontSize: "9px",
+    letterSpacing: "1.25px",
     fontWeight: "950",
     lineHeight: "1.2",
     textAlign: "left",
@@ -1405,10 +1416,12 @@ const styles = {
 
   ecoTitle: {
     marginTop: "3px",
-    fontSize: "15px",
+    fontSize: "17px",
     fontWeight: "950",
     lineHeight: "1.15",
+    letterSpacing: "-.25px",
     textAlign: "left",
+    justifySelf: "start",
   },
 
   ecoArrow: {
@@ -1425,7 +1438,7 @@ const styles = {
   },
 
   ecoDetails: {
-    padding: "0 14px 11px 84px",
+    padding: "0 12px 12px 73px",
     animation: "ecoReveal .18s ease-out",
   },
 
@@ -1434,8 +1447,8 @@ const styles = {
     gap: "8px",
     alignItems: "flex-start",
     color: "#eeeeee",
-    fontSize: "10px",
-    lineHeight: "1.45",
+    fontSize: "11px",
+    lineHeight: "1.5",
     fontWeight: "900",
     marginTop: "6px",
     textAlign: "left",
@@ -1887,7 +1900,7 @@ function LearningEcosystem() {
               >
                 <div style={styles.ecoNumber}>{item.number}</div>
                 <div style={styles.ecoIcon}>{item.icon}</div>
-                <div>
+                <div style={styles.ecoContent}>
                   <div style={styles.ecoLabel}>{item.label}</div>
                   <div style={styles.ecoTitle}>{item.title}</div>
                 </div>
