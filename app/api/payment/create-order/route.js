@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import crypto from "crypto";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
 const SUPABASE_URL =
@@ -36,6 +38,86 @@ const PLANS = {
 
 /*
  * ========================================================
+ * VERIFY EMAIL SESSION
+ * ========================================================
+ */
+
+function verifyEmailSession(token) {
+  try {
+    const secret =
+      process.env.AUTH_SESSION_SECRET;
+
+    if (!secret || !token) {
+      return null;
+    }
+
+    const parts = token.split(".");
+
+    if (parts.length !== 2) {
+      return null;
+    }
+
+    const [payload, signature] = parts;
+
+    const expectedSignature =
+      crypto
+        .createHmac(
+          "sha256",
+          secret
+        )
+        .update(payload)
+        .digest("base64url");
+
+    if (
+      signature.length !==
+        expectedSignature.length
+    ) {
+      return null;
+    }
+
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(
+          expectedSignature
+        )
+      )
+    ) {
+      return null;
+    }
+
+    const data =
+      JSON.parse(
+        Buffer.from(
+          payload,
+          "base64url"
+        ).toString("utf8")
+      );
+
+    if (
+      !data?.exp ||
+      Date.now() > data.exp
+    ) {
+      return null;
+    }
+
+    if (!data?.userId) {
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(
+      "Payment session verification error:",
+      error
+    );
+
+    return null;
+  }
+}
+
+/*
+ * ========================================================
  * GET USER BY ID
  * ========================================================
  */
@@ -57,7 +139,6 @@ async function getUserById(userId) {
         )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
         {
           method: "GET",
-
           headers: {
             apikey:
               SUPABASE_SECRET_KEY,
@@ -65,7 +146,6 @@ async function getUserById(userId) {
             Authorization:
               `Bearer ${SUPABASE_SECRET_KEY}`,
           },
-
           cache: "no-store",
         }
       );
@@ -93,186 +173,6 @@ async function getUserById(userId) {
 
     return null;
   }
-}
-
-/*
- * ========================================================
- * AUTHENTICATED USER
- *
- * IMPORTANT:
- *
- * Website authentication is delegated to the already
- * working /api/auth/me endpoint.
- *
- * This avoids having two different authentication
- * implementations for the same session.
- * ========================================================
- */
-
-async function getAuthenticatedUser(request) {
-  /*
-   * ======================================================
-   * 1. WEBSITE / EMAIL SESSION
-   * ======================================================
-   */
-
-  try {
-    const cookieHeader =
-      request.headers.get(
-        "cookie"
-      );
-
-    if (cookieHeader) {
-      const protocol =
-        request.headers.get(
-          "x-forwarded-proto"
-        ) || "https";
-
-      const host =
-        request.headers.get(
-          "x-forwarded-host"
-        ) ||
-        request.headers.get(
-          "host"
-        );
-
-      if (host) {
-        const authUrl =
-          `${protocol}://${host}/api/auth/me`;
-
-        const authResponse =
-          await fetch(
-            authUrl,
-            {
-              method: "GET",
-
-              headers: {
-                cookie:
-                  cookieHeader,
-              },
-
-              cache:
-                "no-store",
-            }
-          );
-
-        const authData =
-          await authResponse
-            .json()
-            .catch(() => ({}));
-
-        if (
-          authResponse.ok &&
-          authData?.user?.id
-        ) {
-          return {
-            user:
-              authData.user,
-
-            subscription:
-              authData.subscription ||
-              null,
-
-            authMethod:
-              authData.authMethod ||
-              "email",
-          };
-        }
-
-        console.error(
-          "Payment -> auth/me failed:",
-          {
-            status:
-              authResponse.status,
-
-            error:
-              authData?.error ||
-              "Authentication failed",
-          }
-        );
-      }
-    }
-  } catch (error) {
-    console.error(
-      "Payment website authentication error:",
-      error
-    );
-  }
-
-  /*
-   * ======================================================
-   * 2. TELEGRAM FALLBACK
-   * ======================================================
-   */
-
-  try {
-    const authorization =
-      request.headers.get(
-        "authorization"
-      );
-
-    if (
-      authorization?.startsWith(
-        "tma "
-      )
-    ) {
-      const initData =
-        authorization.slice(4);
-
-      const telegramUser =
-        validateTelegramInitData(
-          initData
-        );
-
-      if (telegramUser?.id) {
-        const response =
-          await fetch(
-            `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
-              telegramUser.id
-            )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
-            {
-              method: "GET",
-
-              headers: {
-                apikey:
-                  SUPABASE_SECRET_KEY,
-
-                Authorization:
-                  `Bearer ${SUPABASE_SECRET_KEY}`,
-              },
-
-              cache:
-                "no-store",
-            }
-          );
-
-        if (response.ok) {
-          const users =
-            await response.json();
-
-          if (users?.length) {
-            return {
-              user:
-                users[0],
-
-              subscription:
-                null,
-
-              authMethod:
-                "telegram",
-            };
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error(
-      "Telegram authentication error:",
-      error
-    );
-  }
-
-  return null;
 }
 
 /*
@@ -306,8 +206,7 @@ async function getActiveSubscription(
               `Bearer ${SUPABASE_SECRET_KEY}`,
           },
 
-          cache:
-            "no-store",
+          cache: "no-store",
         }
       );
 
@@ -334,6 +233,146 @@ async function getActiveSubscription(
 
     return null;
   }
+}
+
+/*
+ * ========================================================
+ * AUTHENTICATED USER
+ *
+ * EMAIL SESSION = PRIMARY
+ * TELEGRAM = FALLBACK
+ * ========================================================
+ */
+
+async function getAuthenticatedUser(
+  request
+) {
+  /*
+   * ======================================================
+   * 1. EMAIL / WEBSITE SESSION
+   * ======================================================
+   */
+
+  try {
+    const cookieStore =
+      await cookies();
+
+    const sessionCookie =
+      cookieStore.get(
+        "sambhav_session"
+      );
+
+    if (sessionCookie?.value) {
+      const session =
+        verifyEmailSession(
+          sessionCookie.value
+        );
+
+      if (session?.userId) {
+        const user =
+          await getUserById(
+            session.userId
+          );
+
+        if (user) {
+          return {
+            user,
+            authMethod: "email",
+          };
+        }
+
+        console.error(
+          "Payment authentication: user not found for session."
+        );
+      } else {
+        console.error(
+          "Payment authentication: invalid email session."
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Payment email authentication error:",
+      error
+    );
+  }
+
+  /*
+   * ======================================================
+   * 2. TELEGRAM FALLBACK
+   * ======================================================
+   *
+   * This is kept for legacy Telegram users.
+   * The current payment page does NOT send
+   * Telegram Authorization.
+   * ======================================================
+   */
+
+  try {
+    const authorization =
+      request.headers.get(
+        "authorization"
+      );
+
+    if (
+      authorization?.startsWith(
+        "tma "
+      )
+    ) {
+      const initData =
+        authorization.slice(4);
+
+      const telegramUser =
+        validateTelegramInitData(
+          initData
+        );
+
+      if (!telegramUser?.id) {
+        return null;
+      }
+
+      const response =
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
+            telegramUser.id
+          )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
+          {
+            method: "GET",
+
+            headers: {
+              apikey:
+                SUPABASE_SECRET_KEY,
+
+              Authorization:
+                `Bearer ${SUPABASE_SECRET_KEY}`,
+            },
+
+            cache: "no-store",
+          }
+        );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const users =
+        await response.json();
+
+      if (users?.length) {
+        return {
+          user: users[0],
+          authMethod: "telegram",
+        };
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Telegram authentication error:",
+      error
+    );
+  }
+
+  return null;
 }
 
 /*
@@ -373,6 +412,20 @@ export async function POST(request) {
         {
           error:
             "Cashfree payment configuration missing.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    if (
+      !process.env.AUTH_SESSION_SECRET
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Authentication configuration missing.",
         },
         {
           status: 500,
@@ -463,8 +516,8 @@ export async function POST(request) {
      * ====================================================
      * ACTIVE SUBSCRIPTION
      *
-     * DEMO IS ALLOWED TO UPGRADE.
-     * PAID ACTIVE SUBSCRIPTION IS BLOCKED.
+     * DEMO CAN UPGRADE.
+     * PAID ACTIVE SUBSCRIPTION CANNOT BUY AGAIN.
      * ====================================================
      */
 
@@ -518,7 +571,7 @@ export async function POST(request) {
       (
         process.env
           .NEXT_PUBLIC_APP_URL ||
-        "https://sambhavupsc.vercel.app"
+        "https://sambhav-upsc.vercel.app"
       ).replace(
         /\/$/,
         ""
