@@ -567,7 +567,7 @@ const styles = {
 
   greetingTitle: {
     margin: 0,
-    fontSize: "29px",
+    fontSize: "clamp(25px, 5vw, 29px)",
     lineHeight: "1.15",
     fontWeight: "850",
     letterSpacing: "-1.1px",
@@ -802,7 +802,7 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(2, minmax(0, 1fr))",
+      "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "12px",
   },
 
@@ -1949,9 +1949,9 @@ export default function Home() {
   const premiumSubText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Your 2-day Premium Demo is currently active. Open your Premium workspace and explore SAMBHAV."
-        : "Your Premium subscription is currently active. Open your Premium workspace and continue your preparation."
-      : "Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation & premium study resources — all in one place.";
+        ? "Your 2-day Premium Demo is active. Explore the complete SAMBHAV workspace and experience a more structured way to prepare."
+        : "Your Premium workspace is active. Keep your preparation focused, structured and consistent."
+      : "UPSC preparation needs more than information — it needs the right system. Unlock Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation and premium study resources in one focused workspace.";
 
   const premiumActionText =
     isPremium
@@ -1997,8 +1997,43 @@ export default function Home() {
             </h1>
 
             <p style={styles.greetingSub}>
-              Continue your preparation.
+              Your preparation deserves a system. Stay focused, stay consistent.
             </p>
+          </section>
+
+          {/* PREPARATION MINDSET */}
+          <section
+            style={{
+              marginBottom: "18px",
+              padding: "15px 16px",
+              borderRadius: "18px",
+              background: "#ffffff",
+              border: "1px solid #e5e3de",
+              boxShadow: "0 6px 18px rgba(0,0,0,.035)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "9px",
+                color: "#9b7b2f",
+                fontWeight: "900",
+                letterSpacing: "1.2px",
+                textTransform: "uppercase",
+              }}
+            >
+              PREPARATION MINDSET
+            </div>
+
+            <div
+              style={{
+                marginTop: "6px",
+                fontSize: "13px",
+                lineHeight: "1.55",
+                fontWeight: "800",
+              }}
+            >
+              “UPSC sirf padhne se nahi, sahi direction mein consistently prepare karne se crack hota hai.”
+            </div>
           </section>
 
           {/* ACCESS CARD */}
@@ -2051,6 +2086,41 @@ export default function Home() {
             <div style={styles.premiumSub}>
               {premiumSubText}
             </div>
+
+            {!isPremium && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "7px",
+                  marginTop: "13px",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              >
+                {[
+                  "Daily Intelligence",
+                  "PYQ Practice",
+                  "Mains Practice",
+                  "AI Evaluation",
+                ].map((benefit) => (
+                  <span
+                    key={benefit}
+                    style={{
+                      padding: "6px 9px",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.09)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      color: "#e4e4e4",
+                      fontSize: "9px",
+                      fontWeight: "750",
+                    }}
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* DEMO USER */}
             {isPremium &&
