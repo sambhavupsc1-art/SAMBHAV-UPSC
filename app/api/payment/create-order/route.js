@@ -70,7 +70,7 @@ function verifyEmailSession(token) {
 
     if (
       signature.length !==
-        expectedSignature.length
+      expectedSignature.length
     ) {
       return null;
     }
@@ -78,9 +78,7 @@ function verifyEmailSession(token) {
     if (
       !crypto.timingSafeEqual(
         Buffer.from(signature),
-        Buffer.from(
-          expectedSignature
-        )
+        Buffer.from(expectedSignature)
       )
     ) {
       return null;
@@ -108,7 +106,7 @@ function verifyEmailSession(token) {
     return data;
   } catch (error) {
     console.error(
-      "Payment session verification error:",
+      "Session verification error:",
       error
     );
 
@@ -139,6 +137,7 @@ async function getUserById(userId) {
         )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
         {
           method: "GET",
+
           headers: {
             apikey:
               SUPABASE_SECRET_KEY,
@@ -146,6 +145,7 @@ async function getUserById(userId) {
             Authorization:
               `Bearer ${SUPABASE_SECRET_KEY}`,
           },
+
           cache: "no-store",
         }
       );
@@ -177,13 +177,11 @@ async function getUserById(userId) {
 
 /*
  * ========================================================
- * ACTIVE SUBSCRIPTION
+ * GET ACTIVE SUBSCRIPTION
  * ========================================================
  */
 
-async function getActiveSubscription(
-  userId
-) {
+async function getActiveSubscription(userId) {
   try {
     const now =
       new Date().toISOString();
@@ -244,28 +242,58 @@ async function getActiveSubscription(
  * ========================================================
  */
 
-async function getAuthenticatedUser(
-  request
-) {
+async function getAuthenticatedUser(request) {
   /*
    * ======================================================
-   * 1. EMAIL / WEBSITE SESSION
+   * 1. WEBSITE / EMAIL SESSION
    * ======================================================
    */
 
   try {
-    const cookieStore =
-      await cookies();
+    /*
+     * First try request.cookies.
+     */
+    let sessionToken = null;
 
-    const sessionCookie =
-      cookieStore.get(
-        "sambhav_session"
+    try {
+      sessionToken =
+        request.cookies.get(
+          "sambhav_session"
+        )?.value || null;
+    } catch (error) {
+      console.error(
+        "request.cookies read failed:",
+        error
       );
+    }
 
-    if (sessionCookie?.value) {
+    /*
+     * Fallback to next/headers cookies().
+     */
+    if (!sessionToken) {
+      try {
+        const cookieStore =
+          await cookies();
+
+        sessionToken =
+          cookieStore.get(
+            "sambhav_session"
+          )?.value || null;
+      } catch (error) {
+        console.error(
+          "cookies() read failed:",
+          error
+        );
+      }
+    }
+
+    /*
+     * Verify session.
+     */
+    if (sessionToken) {
       const session =
         verifyEmailSession(
-          sessionCookie.value
+          sessionToken
         );
 
       if (session?.userId) {
@@ -282,13 +310,21 @@ async function getAuthenticatedUser(
         }
 
         console.error(
-          "Payment authentication: user not found for session."
+          "Payment authentication: user not found for session.",
+          {
+            userId:
+              session.userId,
+          }
         );
       } else {
         console.error(
-          "Payment authentication: invalid email session."
+          "Payment authentication: invalid session."
         );
       }
+    } else {
+      console.error(
+        "Payment authentication: sambhav_session cookie not received."
+      );
     }
   } catch (error) {
     console.error(
@@ -302,10 +338,10 @@ async function getAuthenticatedUser(
    * 2. TELEGRAM FALLBACK
    * ======================================================
    *
-   * This is kept for legacy Telegram users.
-   * The current payment page does NOT send
-   * Telegram Authorization.
-   * ======================================================
+   * Kept for legacy Telegram users.
+   *
+   * Current website payment page does NOT
+   * send Telegram Authorization.
    */
 
   try {
@@ -352,6 +388,11 @@ async function getAuthenticatedUser(
         );
 
       if (!response.ok) {
+        console.error(
+          "Telegram payment user lookup failed:",
+          await response.text()
+        );
+
         return null;
       }
 
@@ -724,7 +765,7 @@ export async function POST(request) {
      * ====================================================
      * PAYMENT SESSION
      * ====================================================
-     */
+ */
 
     if (
       !cashfreeData?.payment_session_id
