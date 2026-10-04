@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 /* =====================================================
-   ENV
+   ENVIRONMENT
 ===================================================== */
 
 const SUPABASE_URL =
@@ -56,7 +56,7 @@ const PLANS = {
 };
 
 /* =====================================================
-   SESSION VERIFICATION
+   SESSION HELPERS
 ===================================================== */
 
 function base64urlDecode(value) {
@@ -181,10 +181,10 @@ function getSessionTokenFromCookieHeader(
     return null;
   }
 
-  const cookies =
+  const cookieParts =
     cookieHeader.split(";");
 
-  for (const item of cookies) {
+  for (const item of cookieParts) {
     const separator =
       item.indexOf("=");
 
@@ -213,7 +213,7 @@ function getSessionTokenFromCookieHeader(
 }
 
 /* =====================================================
-   GET USER
+   SUPABASE USER
 ===================================================== */
 
 async function getUserById(userId) {
@@ -280,7 +280,7 @@ async function getUserById(userId) {
 }
 
 /* =====================================================
-   AUTH
+   AUTHENTICATION
 ===================================================== */
 
 async function getAuthenticatedUser(
@@ -373,13 +373,14 @@ function createOrderId() {
 }
 
 /* =====================================================
-   POST - CREATE CASHFREE ORDER
+   POST
+   CREATE CASHFREE ORDER
 ===================================================== */
 
 export async function POST(request) {
   try {
     /* ---------------------------------------------
-       AUTHENTICATION
+       AUTH
     --------------------------------------------- */
 
     const auth =
@@ -445,30 +446,30 @@ export async function POST(request) {
     }
 
     /* ---------------------------------------------
-       CASHFREE CONFIG CHECK
+       CASHFREE CREDENTIAL CHECK
     --------------------------------------------- */
 
     if (
       !CASHFREE_APP_ID ||
       !CASHFREE_SECRET_KEY
     ) {
-      console.error(
-        "Cashfree credentials missing"
-      );
-
       return NextResponse.json(
         {
           error:
             "Cashfree configuration missing.",
 
-          cashfreeEnvironment:
+          environment:
             CASHFREE_ENV,
 
           appIdPresent:
-            !!CASHFREE_APP_ID,
+            Boolean(
+              CASHFREE_APP_ID
+            ),
 
           secretPresent:
-            !!CASHFREE_SECRET_KEY,
+            Boolean(
+              CASHFREE_SECRET_KEY
+            ),
         },
         {
           status: 500,
@@ -477,7 +478,7 @@ export async function POST(request) {
     }
 
     /* ---------------------------------------------
-       ORDER
+       CREATE ORDER ID
     --------------------------------------------- */
 
     const orderId =
@@ -499,18 +500,12 @@ export async function POST(request) {
     const customerEmail =
       user.email;
 
-    /*
-      Cashfree requires a customer phone.
-      If users table has no phone field,
-      this fallback keeps the request valid.
-    */
-
     const customerPhone =
       user.phone ||
       "9999999999";
 
     /* ---------------------------------------------
-       CASHFREE PAYLOAD
+       CASHFREE REQUEST
     --------------------------------------------- */
 
     const cashfreePayload = {
@@ -554,18 +549,18 @@ export async function POST(request) {
     };
 
     console.log(
-      "CASHFREE ORDER REQUEST:",
+      "CASHFREE ORDER REQUEST",
       {
         environment:
           CASHFREE_ENV,
 
         orderId,
 
-        amount:
-          selectedPlan.amount,
-
         plan:
           planKey,
+
+        amount:
+          selectedPlan.amount,
 
         appUrl:
           APP_URL,
@@ -573,7 +568,7 @@ export async function POST(request) {
     );
 
     /* ---------------------------------------------
-       CASHFREE API
+       CASHFREE API CALL
     --------------------------------------------- */
 
     const cashfreeResponse =
@@ -622,36 +617,76 @@ export async function POST(request) {
       };
     }
 
+    console.log(
+      "CASHFREE RESPONSE",
+      {
+        status:
+          cashfreeResponse.status,
+
+        data:
+          cashfreeData,
+      }
+    );
+
     /* ---------------------------------------------
        CASHFREE ERROR
     --------------------------------------------- */
 
-    if (!cashfreeResponse.ok) {
-  console.error(
-    "CASHFREE ERROR:",
-    cashfreeResponse.status,
-    cashfreeData
-  );
+    if (
+      !cashfreeResponse.ok
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            `Cashfree Error (${cashfreeResponse.status}): ` +
+            JSON.stringify(
+              cashfreeData
+            ),
 
-  return NextResponse.json(
-    {
-      error:
-        `Cashfree Error (${cashfreeResponse.status}): ` +
-        JSON.stringify(cashfreeData),
+          cashfreeStatus:
+            cashfreeResponse.status,
 
-      cashfreeStatus:
-        cashfreeResponse.status,
+          cashfreeResponse:
+            cashfreeData,
 
-      cashfreeResponse:
-        cashfreeData,
-
-      environment:
-        CASHFREE_ENV,
-    },
-    {
-      status: 502,
+          environment:
+            CASHFREE_ENV,
+        },
+        {
+          status: 502,
+        }
+      );
     }
-  );
+
+    /* ---------------------------------------------
+       PAYMENT SESSION
+    --------------------------------------------- */
+
+    const paymentSessionId =
+      cashfreeData?.payment_session_id ||
+      null;
+
+    if (!paymentSessionId) {
+      console.error(
+        "Cashfree order created but payment_session_id is missing:",
+        cashfreeData
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Payment session was not created.",
+
+          cashfreeResponse:
+            cashfreeData,
+
+          orderId:
+            orderId,
+        },
+        {
+          status: 502,
+        }
+      );
     }
 
     /* ---------------------------------------------
@@ -749,7 +784,11 @@ export async function POST(request) {
     }
 
     /* ---------------------------------------------
-       SUCCESS
+       SUCCESS RESPONSE
+       
+       Both names are returned for compatibility:
+       payment_session_id
+       paymentSessionId
     --------------------------------------------- */
 
     return NextResponse.json(
@@ -760,9 +799,11 @@ export async function POST(request) {
         orderId:
           orderId,
 
+        payment_session_id:
+          paymentSessionId,
+
         paymentSessionId:
-          cashfreeData?.payment_session_id ||
-          null,
+          paymentSessionId,
 
         plan: {
           key:
