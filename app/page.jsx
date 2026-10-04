@@ -1380,199 +1380,6 @@ function PublicLanding() {
   );
 }
 
-
-function ThemeToggle({ theme, setTheme }) {
-  const nextTheme = theme === "dark" ? "light" : "dark";
-
-  return (
-    <button
-      type="button"
-      aria-label={`Switch to ${nextTheme} theme`}
-      title={`Switch to ${nextTheme} theme`}
-      onClick={() => setTheme(nextTheme)}
-      className="sambhav-theme-toggle"
-    >
-      <span className="sambhav-theme-icon">
-        {theme === "dark" ? "☀" : "☾"}
-      </span>
-      <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
-    </button>
-  );
-}
-
-function AppThemeStyles() {
-  return (
-    <style>{`
-      .sambhav-app {
-        --app-bg: #080808;
-        --app-surface: #111111;
-        --app-surface-2: #171717;
-        --app-card: #121212;
-        --app-text: #f7f5ef;
-        --app-muted: #a7a39a;
-        --app-border: rgba(255,255,255,0.09);
-        --app-soft: #1b1b1b;
-        --app-on-dark: #ffffff;
-        --app-badge-bg: #ffffff;
-        --app-dark-text: #111111;
-        --app-gold: #d6bd79;
-        --app-gold-deep: #a07d32;
-        --app-dark-gradient: linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%);
-        --app-premium-gradient: linear-gradient(145deg, #171717, #242424);
-        --app-admin-gradient: linear-gradient(135deg, #1a1a18, #242018);
-        --app-shadow: 0 16px 38px rgba(0,0,0,0.22);
-        min-height: 100vh;
-        background: var(--app-bg) !important;
-        color: var(--app-text) !important;
-      }
-
-      .sambhav-app[data-theme="light"] {
-        --app-bg: linear-gradient(180deg, #f8f7f3 0%, #efede7 100%);
-        --app-surface: #ffffff;
-        --app-surface-2: #f5f2eb;
-        --app-card: #ffffff;
-        --app-text: #111111;
-        --app-muted: #6f6a61;
-        --app-border: #e4e0d6;
-        --app-soft: #f3f0e8;
-        --app-on-dark: #111111;
-        --app-badge-bg: #ffffff;
-        --app-dark-text: #111111;
-        --app-shadow: 0 10px 28px rgba(0,0,0,0.055);
-        --app-dark-gradient: linear-gradient(145deg, #ffffff 0%, #f4f1e9 58%, #ebe7dc 100%);
-        --app-premium-gradient: linear-gradient(145deg, #ffffff, #f0ede5);
-        --app-admin-gradient: linear-gradient(135deg, #f4ead0, #fffaf0);
-      }
-
-      .sambhav-app .sambhav-theme-toggle {
-        border: 1px solid var(--app-border);
-        background: var(--app-surface);
-        color: var(--app-text);
-        min-height: 38px;
-        padding: 0 11px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        font-size: 9px;
-        font-weight: 900;
-        letter-spacing: .7px;
-        cursor: pointer;
-        box-shadow: var(--app-shadow);
-        flex-shrink: 0;
-      }
-
-      .sambhav-theme-icon {
-        color: var(--app-gold);
-        font-size: 15px;
-        line-height: 1;
-      }
-
-      .sambhav-app .app-theme-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .sambhav-app .app-hero,
-      .sambhav-app .app-access,
-      .sambhav-app .app-premium,
-      .sambhav-app .app-ecosystem-card {
-        background: var(--app-dark-gradient) !important;
-        color: var(--app-on-dark) !important;
-        border-color: var(--app-border) !important;
-        box-shadow: var(--app-shadow) !important;
-      }
-
-      .sambhav-app .app-admin {
-        background: var(--app-admin-gradient) !important;
-        color: var(--app-text) !important;
-        border-color: var(--app-border) !important;
-      }
-
-      .sambhav-app .app-today,
-      .sambhav-app .app-status-card {
-        background: var(--app-surface) !important;
-        color: var(--app-text) !important;
-        border-color: var(--app-border) !important;
-        box-shadow: var(--app-shadow) !important;
-      }
-
-      .sambhav-app .app-welcome {
-        background: var(--app-dark-gradient) !important;
-        color: var(--app-on-dark) !important;
-        border: 1px solid var(--app-border) !important;
-        box-shadow: var(--app-shadow) !important;
-      }
-
-      .sambhav-app .app-hero .app-gold,
-      .sambhav-app .app-access .app-gold,
-      .sambhav-app .app-premium .app-gold,
-      .sambhav-app .app-ecosystem-card .app-gold,
-      .sambhav-app .app-welcome .app-gold {
-        color: var(--app-gold) !important;
-      }
-
-      .sambhav-app .app-muted,
-      .sambhav-app .app-ecosystem-point {
-        color: var(--app-muted) !important;
-      }
-
-      .sambhav-app[data-theme="light"] .app-ecosystem-point {
-        color: #5f5b54 !important;
-      }
-
-      .sambhav-app .app-theme-toggle-in-card {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-      }
-
-      .sambhav-app .app-ecosystem-card {
-        transition: transform .18s ease, box-shadow .22s ease, background .22s ease;
-      }
-
-      .sambhav-app .app-ecosystem-card:hover {
-        transform: translateY(-2px);
-      }
-
-      .sambhav-app .app-brand {
-        color: var(--app-text) !important;
-      }
-
-      .sambhav-app .app-brand-sub {
-        color: var(--app-muted) !important;
-      }
-
-      .sambhav-app .app-gold {
-        color: var(--app-gold) !important;
-      }
-
-      .sambhav-app .app-status-title,
-      .sambhav-app .app-status-text {
-        color: var(--app-text) !important;
-      }
-
-      .sambhav-app .app-status-pill {
-        background: var(--app-soft) !important;
-        color: var(--app-text) !important;
-      }
-
-      @media (max-width: 560px) {
-        .sambhav-app .sambhav-theme-toggle {
-          min-height: 34px;
-          padding: 0 9px;
-          font-size: 8px;
-        }
-        .sambhav-app .sambhav-theme-icon {
-          font-size: 14px;
-        }
-      }
-    `}</style>
-  );
-}
-
 /* =========================================================
 MAIN HOME
 ========================================================= */
@@ -1585,12 +1392,12 @@ export default function Home() {
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
     try {
       const savedTheme = window.localStorage.getItem("sambhav-theme");
-      if (savedTheme === "light" || savedTheme === "dark") {
+      if (savedTheme === "dark" || savedTheme === "light") {
         setTheme(savedTheme);
       }
     } catch {}
@@ -1601,6 +1408,12 @@ export default function Home() {
       window.localStorage.setItem("sambhav-theme", theme);
     } catch {}
   }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((current) =>
+      current === "dark" ? "light" : "dark"
+    );
+  };
 
   /* =====================================================
   AUTHENTICATION
@@ -1829,39 +1642,27 @@ export default function Home() {
   if (loading) {
     return (
       <>
-        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main className="sambhav-app" data-theme={theme} style={styles.page}>
+        <main style={styles.page}>
           <div style={styles.container}>
             <div
-              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "70px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                }}
-              >
-                <div className="app-brand" style={styles.brand}>
-                  SAMBHAV
-                  <span className="app-gold" style={styles.brandGold}>
-                    {" "}UPSC
-                  </span>
-                </div>
-                <ThemeToggle theme={theme} setTheme={setTheme} />
+              <div style={styles.brand}>
+                SAMBHAV
+                <span style={styles.brandGold}>
+                  {" "}UPSC
+                </span>
               </div>
 
-              <p className="app-muted" style={styles.greetingSub}>
+              <p style={styles.greetingSub}>
                 Checking access...
               </p>
             </div>
@@ -1882,38 +1683,33 @@ export default function Home() {
   ) {
     return (
       <>
-        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main className="sambhav-app" data-theme={theme} style={styles.page}>
+        <main style={styles.page}>
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div className="app-brand" style={styles.brand}>
+                <div style={styles.brand}>
                   SAMBHAV
-                  <span className="app-gold" style={styles.brandGold}>
+                  <span style={styles.brandGold}>
                     {" "}UPSC
                   </span>
                 </div>
 
-                <div className="app-brand-sub" style={styles.brandSub}>
+                <div style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
 
-              <div className="app-theme-header">
-                <ThemeToggle theme={theme} setTheme={setTheme} />
-                <div style={styles.avatar}>
-                  🔒
-                </div>
+              <div style={styles.avatar}>
+                🔒
               </div>
             </header>
 
             <div
-              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "45px",
@@ -1923,17 +1719,17 @@ export default function Home() {
                 🔐
               </div>
 
-              <h1 className="app-status-title" style={styles.lockedTitle}>
+              <h1 style={styles.lockedTitle}>
                 Access Required
               </h1>
 
-              <p className="app-status-text" style={styles.lockedText}>
+              <p style={styles.lockedText}>
                 SAMBHAV UPSC application access
                 ke liye Telegram se authorized
                 login required hai.
               </p>
 
-              <div className="app-status-pill" style={styles.statusPill}>
+              <div style={styles.statusPill}>
                 Authentication Required
               </div>
             </div>
@@ -2003,38 +1799,33 @@ export default function Home() {
 
     return (
       <>
-        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main className="sambhav-app" data-theme={theme} style={styles.page}>
+        <main style={styles.page}>
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div className="app-brand" style={styles.brand}>
+                <div style={styles.brand}>
                   SAMBHAV
-                  <span className="app-gold" style={styles.brandGold}>
+                  <span style={styles.brandGold}>
                     {" "}UPSC
                   </span>
                 </div>
 
-                <div className="app-brand-sub" style={styles.brandSub}>
+                <div style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
 
-              <div className="app-theme-header">
-                <ThemeToggle theme={theme} setTheme={setTheme} />
-                <div style={styles.avatar}>
-                  🔒
-                </div>
+              <div style={styles.avatar}>
+                🔒
               </div>
             </header>
 
             <div
-              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "45px",
@@ -2044,15 +1835,15 @@ export default function Home() {
                 {icon}
               </div>
 
-              <h1 className="app-status-title" style={styles.lockedTitle}>
+              <h1 style={styles.lockedTitle}>
                 {title}
               </h1>
 
-              <p className="app-status-text" style={styles.lockedText}>
+              <p style={styles.lockedText}>
                 {text}
               </p>
 
-              <div className="app-status-pill" style={styles.statusPill}>
+              <div style={styles.statusPill}>
                 {pill}
               </div>
 
@@ -2108,48 +1899,166 @@ export default function Home() {
       user.name ||
       "Aspirant";
 
+    const darkWelcome =
+      theme === "dark";
+
+    const welcomeBg = darkWelcome
+      ? "linear-gradient(145deg,#0b0b0b,#181818)"
+      : "linear-gradient(145deg,#fffdf8,#f0eadb)";
+
+    const welcomeText =
+      darkWelcome ? "#ffffff" : "#111111";
+
+    const welcomeMuted =
+      darkWelcome ? "#a9a49a" : "#6d685f";
+
+    const welcomeGold = "#a07d32";
+
     return (
       <>
-        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main className="sambhav-app" data-theme={theme} style={styles.page}>
-          <div style={styles.container}>
+        <main
+          style={{
+            minHeight: "100vh",
+            background: darkWelcome
+              ? "#090909"
+              : "linear-gradient(180deg,#f8f7f3,#efeee9)",
+            color: welcomeText,
+            fontFamily:
+              "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px 16px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "560px",
+              position: "relative",
+            }}
+          >
             <div
-              className="app-welcome"
               style={{
-                ...styles.welcomeCard,
-                position: "relative",
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: "10px",
               }}
             >
-              <div className="app-theme-toggle-in-card">
-                <ThemeToggle theme={theme} setTheme={setTheme} />
-              </div>
-              <div style={styles.welcomeLabel}>
-                WELCOME
+              <button
+                type="button"
+                onClick={toggleTheme}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  height: "38px",
+                  padding: "0 12px",
+                  borderRadius: "999px",
+                  border: `1px solid ${
+                    darkWelcome
+                      ? "rgba(255,255,255,0.12)"
+                      : "#dedbd2"
+                  }`,
+                  background: darkWelcome
+                    ? "#151515"
+                    : "#ffffff",
+                  color: welcomeText,
+                  fontSize: "9px",
+                  fontWeight: "900",
+                  letterSpacing: "0.8px",
+                  cursor: "pointer",
+                }}
+              >
+                {darkWelcome ? "☀ LIGHT" : "☾ DARK"}
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: welcomeBg,
+                borderRadius: "28px",
+                padding: "36px 26px",
+                textAlign: "left",
+                border: `1px solid ${
+                  darkWelcome
+                    ? "rgba(255,255,255,0.08)"
+                    : "#e3dfd5"
+                }`,
+                boxShadow: darkWelcome
+                  ? "0 24px 60px rgba(0,0,0,0.32)"
+                  : "0 20px 50px rgba(40,35,20,0.08)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "9px",
+                  color: welcomeGold,
+                  letterSpacing: "1.8px",
+                  fontWeight: "950",
+                }}
+              >
+                WELCOME TO SAMBHAV
               </div>
 
-              <div style={styles.welcomeTitle}>
-                SAMBHAV UPSC
+              <div
+                style={{
+                  marginTop: "12px",
+                  fontSize: "30px",
+                  lineHeight: "1.05",
+                  fontWeight: "950",
+                  letterSpacing: "-1px",
+                }}
+              >
+                Your UPSC preparation
+                <br />
+                workspace is ready.
               </div>
 
-              <div style={styles.welcomeUser}>
-                {firstName}
+              <div
+                style={{
+                  marginTop: "12px",
+                  fontSize: "15px",
+                  fontWeight: "850",
+                }}
+              >
+                Welcome, {firstName}.
               </div>
 
-              <div style={styles.welcomeStatus}>
-                ✓ APPROVED
+              <div
+                style={{
+                  marginTop: "7px",
+                  color: welcomeMuted,
+                  fontSize: "11px",
+                  fontWeight: "700",
+                }}
+              >
+                Focused preparation. Structured practice. Consistent progress.
               </div>
 
-              <div style={styles.welcomePremium}>
-                {isPremium
-                  ? premiumPlan === "demo"
-                    ? "✦ PREMIUM DEMO ACTIVE"
-                    : "✦ PREMIUM ACTIVE"
-                  : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
+              <div
+                style={{
+                  display: "inline-flex",
+                  marginTop: "20px",
+                  padding: "8px 12px",
+                  borderRadius: "999px",
+                  background: darkWelcome
+                    ? "#f5f1e7"
+                    : "#111111",
+                  color: darkWelcome
+                    ? "#111111"
+                    : "#ffffff",
+                  fontSize: "9px",
+                  fontWeight: "950",
+                  letterSpacing: "0.8px",
+                }}
+              >
+                ✓ ACCESS VERIFIED
               </div>
             </div>
           </div>
@@ -2199,44 +2108,240 @@ export default function Home() {
       ? "Open Premium →"
       : "Explore Premium →";
 
+  const dark = theme === "dark";
+
+  const ui = dark
+    ? {
+        pageBg: "linear-gradient(180deg, #090909 0%, #111111 100%)",
+        text: "#f7f4ec",
+        muted: "#a9a49a",
+        soft: "#77736b",
+        line: "rgba(255,255,255,0.09)",
+        surface: "#151515",
+        surfaceAlt: "#1a1a1a",
+        surfaceSoft: "#202020",
+        gold: "#d6bd79",
+        goldSoft: "rgba(214,189,121,0.12)",
+        buttonBg: "#f5f1e7",
+        buttonText: "#111111",
+        shadow: "0 14px 38px rgba(0,0,0,0.28)",
+      }
+    : {
+        pageBg: "linear-gradient(180deg, #f8f7f3 0%, #efeee9 100%)",
+        text: "#111111",
+        muted: "#625f58",
+        soft: "#77736c",
+        line: "#e4e1da",
+        surface: "#ffffff",
+        surfaceAlt: "#f8f6f0",
+        surfaceSoft: "#f1eee6",
+        gold: "#a07d32",
+        goldSoft: "#f4ead0",
+        buttonBg: "#111111",
+        buttonText: "#ffffff",
+        shadow: "0 12px 30px rgba(30,25,15,0.07)",
+      };
+
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={
+        dark ? "Switch to light theme" : "Switch to dark theme"
+      }
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "7px",
+        height: "38px",
+        padding: "0 12px",
+        borderRadius: "999px",
+        border: `1px solid ${ui.line}`,
+        background: ui.surface,
+        color: ui.text,
+        fontSize: "9px",
+        fontWeight: "900",
+        letterSpacing: "0.8px",
+        cursor: "pointer",
+        boxShadow: dark
+          ? "none"
+          : "0 5px 14px rgba(0,0,0,0.04)",
+      }}
+    >
+      <span style={{ color: ui.gold, fontSize: "14px" }}>
+        {dark ? "☀" : "☾"}
+      </span>
+      {dark ? "LIGHT" : "DARK"}
+    </button>
+  );
+
+  const ecosystem = [
+    {
+      no: "01",
+      title: "Current Affairs",
+      label: "DAILY & MONTHLY INTELLIGENCE",
+      points: [
+        "Daily & Monthly Current Affairs",
+        "UPSC-oriented Analysis",
+        "The Hindu • PIB • Government Sources",
+        "Prelims & Mains Relevance",
+        "Revision-oriented Content",
+      ],
+    },
+    {
+      no: "02",
+      title: "PYQ Intelligence",
+      label: "PREVIOUS YEAR QUESTIONS",
+      points: [
+        "Prelims & Mains PYQs",
+        "Subject & Topic-wise Classification",
+        "Question-wise Practice",
+        "Detailed Explanations",
+        "Performance & Trend Analysis",
+      ],
+    },
+    {
+      no: "03",
+      title: "Prelims Test",
+      label: "PYQ-ORIENTED PRACTICE",
+      points: [
+        "PYQ-oriented MCQs",
+        "Subject & Topic-wise Practice",
+        "PYQ-based Tests",
+        "Question Analysis",
+        "Score & Performance Analysis",
+      ],
+    },
+    {
+      no: "04",
+      title: "Mains",
+      label: "ANSWER WRITING",
+      points: [
+        "GS I • II • III • IV",
+        "PYQ-based Answer Writing",
+        "Structured Answer Practice",
+        "Answer Evaluation",
+        "Improvement Guidance",
+      ],
+    },
+    {
+      no: "05",
+      title: "AI Answer Evaluation",
+      label: "AI-POWERED ANALYSIS",
+      points: [
+        "AI-powered Answer Evaluation",
+        "Score & Assessment",
+        "Strengths & Weaknesses",
+        "Content & Structure Analysis",
+        "Actionable Improvement Suggestions",
+      ],
+    },
+    {
+      no: "06",
+      title: "Study Material",
+      label: "NOTES & RESOURCES",
+      points: [
+        "GS Resources",
+        "Conceptual Notes",
+        "Revision Material",
+        "UPSC-oriented Reference Resources",
+        "CSAT Focus • Questions • Explanations",
+      ],
+    },
+  ];
+
   return (
     <>
-      <AppThemeStyles />
       <Script
         src="https://telegram.org/js/telegram-web-app.js"
         strategy="beforeInteractive"
       />
 
-      <main className="sambhav-app" data-theme={theme} style={styles.page}>
-        <div style={styles.container}>
-
+      <main
+        style={{
+          minHeight: "100vh",
+          background: ui.pageBg,
+          color: ui.text,
+          fontFamily:
+            "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+          paddingBottom: "48px",
+          transition: "background 180ms ease, color 180ms ease",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "760px",
+            margin: "0 auto",
+            padding: "18px 16px 42px",
+            boxSizing: "border-box",
+          }}
+        >
           {/* HEADER */}
           <header
             style={{
-              ...styles.header,
-              marginBottom: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              marginBottom: "18px",
             }}
           >
-            <div>
-              <div className="app-brand" style={styles.brand}>
-                SAMBHAV
-                <span className="app-gold" style={styles.brandGold}>
-                  {" "}UPSC
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "950",
+                  letterSpacing: "-0.8px",
+                }}
+              >
+                SAMBHAV{" "}
+                <span style={{ color: ui.gold }}>
+                  UPSC
                 </span>
               </div>
-              <div className="app-brand-sub" style={styles.brandSub}>
-                INTELLIGENCE • PREPARATION • PERFORMANCE
+
+              <div
+                style={{
+                  marginTop: "4px",
+                  color: ui.soft,
+                  fontSize: "8px",
+                  letterSpacing: "1.35px",
+                  textTransform: "uppercase",
+                  fontWeight: "900",
+                }}
+              >
+                Intelligence • Preparation • Performance
               </div>
             </div>
 
-            <div className="app-theme-header">
-              <ThemeToggle theme={theme} setTheme={setTheme} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                flexShrink: 0,
+              }}
+            >
+              {themeToggle}
+
               <div
                 style={{
-                  ...styles.avatar,
-                  width: "46px",
-                  height: "46px",
-                  fontSize: "18px",
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  background: dark
+                    ? "linear-gradient(145deg,#222,#090909)"
+                    : "#111111",
+                  color: "#d6bd79",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "16px",
+                  fontWeight: "950",
+                  boxShadow: dark
+                    ? "none"
+                    : "0 7px 18px rgba(0,0,0,0.10)",
                 }}
               >
                 {initial}
@@ -2245,15 +2350,17 @@ export default function Home() {
           </header>
 
           {/* HERO */}
-          <section className="app-hero"
+          <section
             style={{
-              background:
-                "var(--app-dark-gradient)",
-              color: "var(--app-on-dark)",
+              background: dark
+                ? "linear-gradient(145deg,#0b0b0b,#171717 58%,#252525)"
+                : "linear-gradient(145deg,#fffdf8,#f0eadb)",
+              color: ui.text,
               borderRadius: "28px",
-              padding: "24px 21px 21px",
-              marginBottom: "16px",
-              boxShadow: "0 20px 42px rgba(0,0,0,0.14)",
+              padding: "26px 22px 21px",
+              marginBottom: "14px",
+              border: `1px solid ${ui.line}`,
+              boxShadow: ui.shadow,
               position: "relative",
               overflow: "hidden",
             }}
@@ -2264,7 +2371,9 @@ export default function Home() {
                 width: "190px",
                 height: "190px",
                 borderRadius: "50%",
-                background: "rgba(190,157,76,0.10)",
+                background: dark
+                  ? "rgba(214,189,121,0.10)"
+                  : "rgba(214,189,121,0.16)",
                 right: "-85px",
                 top: "-95px",
               }}
@@ -2274,9 +2383,9 @@ export default function Home() {
               <div
                 style={{
                   fontSize: "9px",
-                  fontWeight: "900",
+                  fontWeight: "950",
                   letterSpacing: "1.7px",
-                  color: "var(--app-gold)",
+                  color: ui.gold,
                   marginBottom: "10px",
                 }}
               >
@@ -2285,10 +2394,10 @@ export default function Home() {
 
               <div
                 style={{
-                  fontSize: "28px",
-                  lineHeight: "1.08",
-                  fontWeight: "900",
-                  letterSpacing: "-1px",
+                  fontSize: "29px",
+                  lineHeight: "1.05",
+                  fontWeight: "950",
+                  letterSpacing: "-1.2px",
                 }}
               >
                 Hello, {firstName}.
@@ -2297,12 +2406,11 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "9px",
-                  fontSize: "28px",
+                  fontSize: "26px",
                   lineHeight: "1.08",
-                  fontWeight: "900",
-                  letterSpacing: "-1px",
-                  color: "var(--app-gold)",
-                  maxWidth: "620px",
+                  fontWeight: "950",
+                  letterSpacing: "-0.9px",
+                  color: ui.gold,
                 }}
               >
                 संभव है, तो UPSC संभव है।
@@ -2312,9 +2420,9 @@ export default function Home() {
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    "repeat(3, minmax(0, 1fr))",
-                  gap: "8px",
-                  marginTop: "20px",
+                    "repeat(3, minmax(0,1fr))",
+                  gap: "9px",
+                  marginTop: "21px",
                 }}
               >
                 {[
@@ -2326,14 +2434,13 @@ export default function Home() {
                     key={num}
                     style={{
                       paddingTop: "11px",
-                      borderTop:
-                        "1px solid rgba(255,255,255,0.14)",
+                      borderTop: `1px solid ${ui.line}`,
                     }}
                   >
                     <div
                       style={{
                         fontSize: "16px",
-                        fontWeight: "900",
+                        fontWeight: "950",
                       }}
                     >
                       {num}
@@ -2342,10 +2449,9 @@ export default function Home() {
                       style={{
                         marginTop: "3px",
                         fontSize: "8px",
-                        fontWeight: "800",
+                        fontWeight: "900",
                         letterSpacing: "1.1px",
-                        color:
-                          "var(--app-muted)",
+                        color: ui.soft,
                       }}
                     >
                       {label}
@@ -2357,91 +2463,77 @@ export default function Home() {
           </section>
 
           {/* OFFICER ACCESS */}
-          <section className="app-access"
+          <section
             style={{
-              background:
-                "var(--app-dark-gradient)",
-              color: "var(--app-on-dark)",
-              borderRadius: "22px",
-              padding: "17px 18px",
-              marginBottom: "16px",
-              position: "relative",
-              overflow: "hidden",
-              boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
+              background: dark
+                ? "linear-gradient(145deg,#151515,#1d1d1d)"
+                : "linear-gradient(145deg,#ffffff,#f8f5ed)",
+              border: `1px solid ${ui.line}`,
+              borderRadius: "20px",
+              padding: "16px 18px",
+              marginBottom: "14px",
+              boxShadow: ui.shadow,
             }}
           >
             <div
               style={{
-                position: "absolute",
-                width: "150px",
-                height: "150px",
-                borderRadius: "50%",
-                background: "rgba(214,189,121,0.08)",
-                right: "-65px",
-                top: "-75px",
+                fontSize: "8px",
+                fontWeight: "950",
+                letterSpacing: "1.3px",
+                color: ui.gold,
               }}
-            />
+            >
+              OFFICER ACCESS
+            </div>
 
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1.3px",
-                  color: "var(--app-gold)",
-                }}
-              >
-                OFFICER ACCESS
-              </div>
+            <div
+              style={{
+                marginTop: "6px",
+                fontSize: "18px",
+                fontWeight: "950",
+              }}
+            >
+              {firstName}
+            </div>
 
-              <div
-                style={{
-                  marginTop: "7px",
-                  fontSize: "17px",
-                  fontWeight: "900",
-                }}
-              >
-                {firstName}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "5px",
-                  fontSize: "10px",
-                  color: "var(--app-muted)",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                ● ACTIVE CLEARANCE
-              </div>
+            <div
+              style={{
+                marginTop: "4px",
+                fontSize: "10px",
+                color: ui.muted,
+                fontWeight: "800",
+              }}
+            >
+              ● ACTIVE CLEARANCE
             </div>
           </section>
 
           {/* PREMIUM */}
-          <section className="app-premium"
+          <section
             style={{
-              background:
-                "var(--app-premium-gradient)",
-              color: "var(--app-on-dark)",
-              borderRadius: "25px",
+              background: dark
+                ? "linear-gradient(145deg,#171717,#242424)"
+                : "linear-gradient(145deg,#fffdf8,#f1ead9)",
+              border: `1px solid ${ui.line}`,
+              borderRadius: "24px",
               padding: "20px",
-              marginBottom: "23px",
+              marginBottom: "15px",
+              boxShadow: ui.shadow,
               position: "relative",
               overflow: "hidden",
-              boxShadow:
-                "0 18px 36px rgba(0,0,0,0.13)",
             }}
           >
             <div
               style={{
                 position: "absolute",
-                width: "170px",
-                height: "170px",
+                width: "190px",
+                height: "190px",
                 borderRadius: "50%",
-                background:
-                  "rgba(214,189,121,0.08)",
-                right: "-75px",
-                top: "-85px",
+                background: dark
+                  ? "rgba(214,189,121,0.07)"
+                  : "rgba(214,189,121,0.12)",
+                right: "-85px",
+                top: "-95px",
               }}
             />
 
@@ -2451,10 +2543,10 @@ export default function Home() {
                   display: "inline-flex",
                   padding: "7px 10px",
                   borderRadius: "999px",
-                  background: "var(--app-badge-bg)",
-                  color: "var(--app-dark-text)",
+                  background: dark ? "#f5f1e7" : "#111111",
+                  color: dark ? "#111111" : "#ffffff",
                   fontSize: "8px",
-                  fontWeight: "900",
+                  fontWeight: "950",
                   letterSpacing: "1px",
                 }}
               >
@@ -2463,10 +2555,10 @@ export default function Home() {
 
               <div
                 style={{
-                  marginTop: "13px",
+                  marginTop: "12px",
                   fontSize: "21px",
                   lineHeight: "1.2",
-                  fontWeight: "900",
+                  fontWeight: "950",
                 }}
               >
                 {premiumTitleText}
@@ -2475,11 +2567,11 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "7px",
-                  maxWidth: "610px",
                   fontSize: "12px",
                   lineHeight: "1.55",
-                  color:
-                    "var(--app-muted)",
+                  color: ui.muted,
+                  fontWeight: "700",
+                  maxWidth: "620px",
                 }}
               >
                 {premiumSubText}
@@ -2490,7 +2582,7 @@ export default function Home() {
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "repeat(2, minmax(0, 1fr))",
+                      "repeat(2,minmax(0,1fr))",
                     gap: "7px",
                     marginTop: "14px",
                   }}
@@ -2505,12 +2597,10 @@ export default function Home() {
                       key={item}
                       style={{
                         fontSize: "9px",
-                        fontWeight: "800",
-                        color:
-                          "var(--app-muted)",
+                        fontWeight: "850",
+                        color: ui.muted,
                         padding: "8px 9px",
-                        border:
-                          "1px solid rgba(255,255,255,0.10)",
+                        border: `1px solid ${ui.line}`,
                         borderRadius: "9px",
                       }}
                     >
@@ -2550,7 +2640,7 @@ export default function Home() {
                     style={{
                       ...styles.premiumAction,
                       marginTop: 0,
-                      background: "var(--app-gold)",
+                      background: ui.gold,
                       color: "#111111",
                       border: "none",
                     }}
@@ -2585,28 +2675,31 @@ export default function Home() {
           {/* ADMIN */}
           {isAdmin && (
             <section
-              className="app-admin"
               style={{
-                background:
-                  "var(--app-admin-gradient)",
-                border:
-                  "1px solid rgba(160,125,50,0.24)",
+                background: dark
+                  ? "linear-gradient(145deg,#1b1915,#242018)"
+                  : "linear-gradient(145deg,#fffaf0,#f4ead0)",
+                border: `1px solid ${
+                  dark
+                    ? "rgba(214,189,121,0.20)"
+                    : "rgba(160,125,50,0.22)"
+                }`,
                 borderRadius: "20px",
-                padding: "17px",
-                marginBottom: "23px",
+                padding: "16px 18px",
+                marginBottom: "15px",
                 cursor: "pointer",
+                boxShadow: ui.shadow,
               }}
               onClick={() => {
-                window.location.href =
-                  "/admin";
+                window.location.href = "/admin";
               }}
             >
               <div
                 style={{
                   fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1.2px",
-                  color: "var(--app-gold-deep)",
+                  fontWeight: "950",
+                  letterSpacing: "1.3px",
+                  color: ui.gold,
                 }}
               >
                 ADMIN ACCESS
@@ -2615,8 +2708,8 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "6px",
-                  fontSize: "17px",
-                  fontWeight: "900",
+                  fontSize: "18px",
+                  fontWeight: "950",
                 }}
               >
                 Control Center →
@@ -2626,7 +2719,8 @@ export default function Home() {
                 style={{
                   marginTop: "4px",
                   fontSize: "11px",
-                  color: "var(--app-muted)",
+                  color: ui.muted,
+                  fontWeight: "750",
                 }}
               >
                 Users • Approvals • Premium • Accounts
@@ -2635,14 +2729,14 @@ export default function Home() {
           )}
 
           {/* TODAY'S PREPARATION */}
-          <section className="app-today"
+          <section
             style={{
-              background: "var(--app-on-dark)",
-              border: "1px solid #e7e4dd",
-              borderRadius: "20px",
-              padding: "15px 16px",
-              marginBottom: "23px",
-              boxShadow: "0 7px 20px rgba(0,0,0,0.035)",
+              background: ui.surface,
+              border: `1px solid ${ui.line}`,
+              borderRadius: "18px",
+              padding: "14px 16px",
+              marginBottom: "26px",
+              boxShadow: ui.shadow,
             }}
           >
             <div
@@ -2657,18 +2751,19 @@ export default function Home() {
                 <div
                   style={{
                     fontSize: "8px",
-                    fontWeight: "900",
+                    fontWeight: "950",
                     letterSpacing: "1.4px",
-                    color: "var(--app-gold-deep)",
+                    color: ui.gold,
                   }}
                 >
                   TODAY'S PREPARATION
                 </div>
+
                 <div
                   style={{
                     marginTop: "5px",
                     fontSize: "15px",
-                    fontWeight: "900",
+                    fontWeight: "950",
                   }}
                 >
                   Stay focused. Keep moving.
@@ -2680,10 +2775,10 @@ export default function Home() {
                   flexShrink: 0,
                   padding: "8px 10px",
                   borderRadius: "10px",
-                  background: "var(--app-soft)",
-                  color: "var(--app-muted)",
+                  background: ui.surfaceSoft,
+                  color: ui.muted,
                   fontSize: "8px",
-                  fontWeight: "900",
+                  fontWeight: "950",
                   letterSpacing: "0.8px",
                 }}
               >
@@ -2692,20 +2787,20 @@ export default function Home() {
             </div>
           </section>
 
-          {/* SAMBHAV LEARNING ECOSYSTEM */}
-          <section style={{ marginTop: "2px" }}>
+          {/* LEARNING ECOSYSTEM */}
+          <section>
             <div
               style={{
-                marginBottom: "11px",
+                marginBottom: "15px",
                 padding: "0 2px",
               }}
             >
               <div
                 style={{
                   fontSize: "9px",
-                  fontWeight: "900",
+                  fontWeight: "950",
                   letterSpacing: "1.5px",
-                  color: "var(--app-gold-deep)",
+                  color: ui.gold,
                 }}
               >
                 SAMBHAV LEARNING ECOSYSTEM
@@ -2714,10 +2809,10 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "5px",
-                  fontSize: "23px",
-                  lineHeight: "1.15",
-                  fontWeight: "900",
-                  letterSpacing: "-0.6px",
+                  fontSize: "25px",
+                  lineHeight: "1.08",
+                  fontWeight: "950",
+                  letterSpacing: "-0.8px",
                 }}
               >
                 Complete UPSC Preparation
@@ -2725,131 +2820,67 @@ export default function Home() {
 
               <div
                 style={{
-                  marginTop: "6px",
-                  fontSize: "10.5px",
-                  lineHeight: "1.45",
-                  color: "var(--app-muted)",
-                  maxWidth: "620px",
+                  marginTop: "7px",
+                  fontSize: "11px",
+                  lineHeight: "1.55",
+                  color: ui.muted,
+                  fontWeight: "650",
+                  maxWidth: "650px",
                 }}
               >
                 An integrated learning ecosystem built around the complete UPSC preparation cycle.
               </div>
             </div>
 
+            {/* One refined surface instead of six heavy cards */}
             <section
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(230px, 1fr))",
-                gap: "11px",
+                background: ui.surface,
+                border: `1px solid ${ui.line}`,
+                borderRadius: "24px",
+                overflow: "hidden",
+                boxShadow: ui.shadow,
               }}
             >
-              {[
-                {
-                  no: "01",
-                  title: "Current Affairs",
-                  label: "DAILY & MONTHLY INTELLIGENCE",
-                  points: [
-                    "Daily & Monthly Current Affairs",
-                    "UPSC-oriented Analysis",
-                    "The Hindu • PIB • Government Sources",
-                    "Prelims & Mains Relevance",
-                    "Revision-oriented Content",
-                  ],
-                },
-                {
-                  no: "02",
-                  title: "PYQ Intelligence",
-                  label: "PREVIOUS YEAR QUESTIONS",
-                  points: [
-                    "Prelims & Mains PYQs",
-                    "Subject & Topic-wise Classification",
-                    "Question-wise Practice",
-                    "Detailed Explanations",
-                    "Performance & Trend Analysis",
-                  ],
-                },
-                {
-                  no: "03",
-                  title: "Prelims Test",
-                  label: "PYQ-ORIENTED PRACTICE",
-                  points: [
-                    "PYQ-oriented MCQs",
-                    "Subject & Topic-wise Practice",
-                    "PYQ-based Tests",
-                    "Question Analysis",
-                    "Score & Performance Analysis",
-                  ],
-                },
-                {
-                  no: "04",
-                  title: "Mains",
-                  label: "ANSWER WRITING",
-                  points: [
-                    "GS I • II • III • IV",
-                    "PYQ-based Answer Writing",
-                    "Structured Answer Practice",
-                    "Answer Evaluation",
-                    "Improvement Guidance",
-                  ],
-                },
-                {
-                  no: "05",
-                  title: "AI Answer Evaluation",
-                  label: "AI-POWERED ANALYSIS",
-                  points: [
-                    "AI-powered Answer Evaluation",
-                    "Score & Assessment",
-                    "Strengths & Weaknesses",
-                    "Content & Structure Analysis",
-                    "Actionable Improvement Suggestions",
-                  ],
-                },
-                {
-                  no: "06",
-                  title: "Study Material",
-                  label: "NOTES & RESOURCES",
-                  points: [
-                    "GS Resources",
-                    "Conceptual Notes",
-                    "Revision Material",
-                    "UPSC-oriented Reference Resources",
-                    "CSAT Focus • Questions • Explanations",
-                  ],
-                },
-              ].map((item) => (
+              {ecosystem.map((item, index) => (
                 <div
                   key={item.no}
-                  className="app-ecosystem-card"
                   style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "38px minmax(0,1fr)",
+                    gap: "13px",
+                    padding: "18px 17px",
+                    borderBottom:
+                      index === ecosystem.length - 1
+                        ? "none"
+                        : `1px solid ${ui.line}`,
                     background:
-                      "var(--app-dark-gradient)",
-                    border:
-                      "1px solid rgba(255,255,255,0.08)",
-                    color: "var(--app-on-dark)",
-                    borderRadius: "21px",
-                    padding: "16px",
-                    minWidth: 0,
-                    minHeight: 0,
-                    position: "relative",
-                    boxShadow:
-                      "0 12px 28px rgba(0,0,0,0.12)",
+                      dark && index % 2 === 1
+                        ? "rgba(255,255,255,0.015)"
+                        : "transparent",
                   }}
                 >
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
+                      paddingTop: "2px",
+                      fontSize: "9px",
+                      fontWeight: "950",
+                      color: ui.soft,
+                      letterSpacing: "0.5px",
                     }}
                   >
+                    {item.no}
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
                     <div
                       style={{
                         fontSize: "8px",
-                        fontWeight: "900",
-                        letterSpacing: "1.2px",
-                        color: "var(--app-gold)",
+                        fontWeight: "950",
+                        letterSpacing: "1.35px",
+                        color: ui.gold,
+                        lineHeight: "1.3",
                       }}
                     >
                       {item.label}
@@ -2857,68 +2888,60 @@ export default function Home() {
 
                     <div
                       style={{
-                        fontSize: "9px",
-                        fontWeight: "900",
-                        color:
-                          "rgba(255,255,255,0.34)",
+                        marginTop: "5px",
+                        fontSize: "18px",
+                        lineHeight: "1.18",
+                        fontWeight: "950",
+                        letterSpacing: "-0.35px",
                       }}
                     >
-                      {item.no}
+                      {item.title}
                     </div>
-                  </div>
 
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      fontSize: "16px",
-                      lineHeight: "1.25",
-                      fontWeight: "900",
-                    }}
-                  >
-                    {item.title}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      display: "grid",
-                      gap: "6px",
-                    }}
-                  >
-                    {item.points.map((point) => (
-                      <div
-                        key={point}
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "7px",
-                          fontSize: "11px",
-                          lineHeight: "1.42",
-                          color:
-                            "var(--app-muted)",
-                        }}
-                      >
-                        <span
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(2,minmax(0,1fr))",
+                        columnGap: "22px",
+                        rowGap: "7px",
+                        marginTop: "10px",
+                      }}
+                    >
+                      {item.points.map((point) => (
+                        <div
+                          key={point}
                           style={{
-                            color: "var(--app-gold)",
-                            fontWeight: "900",
-                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "7px",
+                            fontSize: "10.5px",
+                            lineHeight: "1.42",
+                            color: ui.muted,
+                            fontWeight: "800",
                           }}
                         >
-                          •
-                        </span>
-                        <span className="app-ecosystem-point">{point}</span>
-                      </div>
-                    ))}
+                          <span
+                            style={{
+                              color: ui.gold,
+                              fontWeight: "950",
+                              flexShrink: 0,
+                            }}
+                          >
+                            •
+                          </span>
+                          <span>{point}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
             </section>
           </section>
-
         </div>
-
       </main>
     </>
   );
 }
+
