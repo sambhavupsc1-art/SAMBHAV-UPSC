@@ -273,9 +273,7 @@ function PaymentContent() {
         data
       );
 
-      /* ---------------------------------------------
-         AUTH ERROR
-      --------------------------------------------- */
+      /* AUTH ERROR */
 
       if (
         response.status ===
@@ -289,9 +287,7 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         FORBIDDEN
-      --------------------------------------------- */
+      /* FORBIDDEN */
 
       if (
         response.status ===
@@ -303,9 +299,7 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         CONFLICT
-      --------------------------------------------- */
+      /* CONFLICT */
 
       if (
         response.status ===
@@ -317,9 +311,7 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         SERVER / CASHFREE ERROR
-      --------------------------------------------- */
+      /* SERVER / CASHFREE ERROR */
 
       if (!response.ok) {
         let errorMessage =
@@ -339,9 +331,7 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         PAYMENT SESSION
-      --------------------------------------------- */
+      /* PAYMENT SESSION */
 
       const paymentSessionId =
         data?.payment_session_id ||
@@ -362,16 +352,10 @@ function PaymentContent() {
         );
       }
 
-      /* ---------------------------------------------
-         LOAD CASHFREE
-      --------------------------------------------- */
+      /* CASHFREE */
 
       const Cashfree =
         await loadCashfree();
-
-      /*
-       * SAMBHAV uses Cashfree PRODUCTION.
-       */
 
       const cashfree =
         Cashfree({
@@ -383,9 +367,7 @@ function PaymentContent() {
         "Opening Cashfree production checkout"
       );
 
-      /* ---------------------------------------------
-         OPEN CASHFREE CHECKOUT
-      --------------------------------------------- */
+      /* OPEN CHECKOUT */
 
       await cashfree.checkout({
         paymentSessionId:
@@ -410,24 +392,58 @@ function PaymentContent() {
   }
 
   /* ===================================================
-     PAGE LOADING
+     LOADING
   =================================================== */
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen bg-[#f7f7f5] flex items-center justify-center px-6">
+      <>
+        <style jsx>{`
+          .loading-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f1e8;
+            padding: 24px;
+            font-family:
+              Arial,
+              Helvetica,
+              sans-serif;
+          }
 
-        <div className="text-center">
+          .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 0, 0, 0.12);
+            border-top-color: #111;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+          }
 
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/10 border-t-black" />
+          .loading-text {
+            margin: 0;
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 14px;
+          }
 
-          <p className="text-sm font-medium text-black/50">
-            Loading secure checkout...
-          </p>
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
 
-        </div>
-
-      </main>
+        <main className="loading-page">
+          <div>
+            <div className="loading-spinner" />
+            <p className="loading-text">
+              Loading secure checkout...
+            </p>
+          </div>
+        </main>
+      </>
     );
   }
 
@@ -436,15 +452,550 @@ function PaymentContent() {
   =================================================== */
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] text-[#111]">
+    <>
+      <style jsx>{`
+        * {
+          box-sizing: border-box;
+        }
 
-      {/* ================================================
-          TOP BAR
-      ================================================ */}
+        .payment-page {
+          min-height: 100vh;
+          background: #f5f1e8;
+          color: #111111;
+          font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+        }
 
-      <header className="border-b border-black/[0.06] bg-white/80 backdrop-blur-xl">
+        .payment-container {
+          width: 100%;
+          max-width: 1050px;
+          min-height: 100vh;
+          margin: 0 auto;
+          padding: 42px 28px 50px;
+        }
 
-        <div className="mx-auto flex h-[68px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
+        /* BACK */
+
+        .back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          margin: 0 0 54px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: rgba(0, 0, 0, 0.62);
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: color 0.2s ease;
+        }
+
+        .back-button:hover {
+          color: #111;
+        }
+
+        /* HEADER */
+
+        .heading-section {
+          margin-bottom: 42px;
+        }
+
+        .eyebrow {
+          margin: 0 0 14px;
+          color: #a18a46;
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.22em;
+        }
+
+        .main-heading {
+          max-width: 650px;
+          margin: 0;
+          font-size: 66px;
+          line-height: 0.94;
+          letter-spacing: -0.045em;
+          font-weight: 900;
+        }
+
+        .heading-description {
+          max-width: 620px;
+          margin: 18px 0 0;
+          color: rgba(0, 0, 0, 0.52);
+          font-size: 16px;
+          line-height: 1.6;
+        }
+
+        /* MAIN */
+
+        .payment-content {
+          width: 100%;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+
+        /* PLAN CARD */
+
+        .plan-card {
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 22px;
+          padding: 34px 38px;
+          border-radius: 32px;
+          background: #111111;
+          color: #ffffff;
+          box-shadow:
+            0 20px 50px rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-card::after {
+          content: "";
+          position: absolute;
+          width: 260px;
+          height: 260px;
+          right: -120px;
+          top: -150px;
+          border-radius: 50%;
+          background: rgba(223, 197, 111, 0.08);
+          filter: blur(35px);
+          pointer-events: none;
+        }
+
+        .plan-content {
+          position: relative;
+          z-index: 1;
+        }
+
+        .plan-label {
+          margin: 0 0 14px;
+          color: #dfc56f;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.22em;
+        }
+
+        .plan-title-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 20px;
+        }
+
+        .plan-title {
+          margin: 0;
+          font-size: 34px;
+          line-height: 1.1;
+          letter-spacing: -0.025em;
+          font-weight: 800;
+        }
+
+        .duration-badge {
+          flex-shrink: 0;
+          padding: 8px 13px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .plan-duration {
+          margin: 9px 0 0;
+          color: rgba(255, 255, 255, 0.55);
+          font-size: 16px;
+        }
+
+        .plan-price {
+          margin-top: 30px;
+          color: #dfc56f;
+          font-size: 58px;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          font-weight: 900;
+        }
+
+        /* BENEFITS */
+
+        .benefits-divider {
+          height: 1px;
+          margin: 28px 0;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .benefits-heading {
+          margin: 0 0 16px;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
+        .benefits {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px 28px;
+        }
+
+        .benefit {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: rgba(255, 255, 255, 0.76);
+          font-size: 14px;
+          line-height: 1.4;
+        }
+
+        .check {
+          display: flex;
+          flex-shrink: 0;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #e2c773;
+          color: #111111;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        /* SECURITY BOX */
+
+        .security-box {
+          margin-top: 28px;
+          padding: 13px 16px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .security-content {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+        }
+
+        .security-icon {
+          font-size: 18px;
+        }
+
+        .security-title {
+          margin: 0;
+          color: rgba(255, 255, 255, 0.82);
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .security-description {
+          margin: 3px 0 0;
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        /* SUMMARY */
+
+        .summary-card {
+          padding: 32px 38px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          border-radius: 32px;
+          background: #fffdfa;
+          box-shadow:
+            0 15px 40px rgba(0, 0, 0, 0.04);
+        }
+
+        .summary-label {
+          margin: 0 0 7px;
+          color: rgba(0, 0, 0, 0.43);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.18em;
+        }
+
+        .summary-title {
+          margin: 0;
+          color: #111;
+          font-size: 22px;
+          letter-spacing: -0.025em;
+          font-weight: 800;
+        }
+
+        .summary-details {
+          margin-top: 27px;
+        }
+
+        .summary-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 8px 0;
+        }
+
+        .summary-name {
+          color: rgba(0, 0, 0, 0.52);
+          font-size: 15px;
+        }
+
+        .summary-value {
+          color: #111;
+          font-size: 15px;
+          font-weight: 700;
+          text-align: right;
+        }
+
+        .summary-divider {
+          height: 1px;
+          margin: 22px 0;
+          background: rgba(0, 0, 0, 0.08);
+        }
+
+        .total-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+        }
+
+        .total-label {
+          color: #111;
+          font-size: 20px;
+          font-weight: 800;
+        }
+
+        .total-value {
+          color: #111;
+          font-size: 22px;
+          font-weight: 800;
+        }
+
+        /* ERROR */
+
+        .error-box {
+          margin-top: 20px;
+          padding: 14px 16px;
+          border: 1px solid #f0caca;
+          border-radius: 16px;
+          background: #fff1f1;
+          color: #a33d3d;
+          font-size: 14px;
+          line-height: 1.5;
+          font-weight: 600;
+          overflow-wrap: anywhere;
+        }
+
+        /* PAY BUTTON */
+
+        .pay-button {
+          width: 100%;
+          min-height: 60px;
+          margin-top: 22px;
+          padding: 15px 24px;
+          border: 0;
+          border-radius: 16px;
+          background: #e2c773;
+          color: #111111;
+          font-size: 17px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow:
+            0 10px 25px rgba(226, 199, 115, 0.2);
+          transition:
+            transform 0.2s ease,
+            background 0.2s ease,
+            box-shadow 0.2s ease;
+        }
+
+        .pay-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          background: #d9bb5f;
+          box-shadow:
+            0 14px 30px rgba(226, 199, 115, 0.27);
+        }
+
+        .pay-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .pay-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .processing {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .button-spinner {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid rgba(0, 0, 0, 0.18);
+          border-top-color: #111;
+          animation: spin 0.8s linear infinite;
+        }
+
+        /* CASHFREE */
+
+        .cashfree-note {
+          margin: 15px 0 0;
+          color: rgba(0, 0, 0, 0.43);
+          font-size: 13px;
+          line-height: 1.5;
+          text-align: center;
+        }
+
+        .payment-methods {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 20px;
+          padding-top: 18px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .payment-method {
+          padding: 6px 10px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          border-radius: 8px;
+          background: #fafafa;
+          color: rgba(0, 0, 0, 0.43);
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        /* FOOTER */
+
+        .footer-note {
+          max-width: 620px;
+          margin: 26px auto 0;
+          color: rgba(0, 0, 0, 0.35);
+          font-size: 11px;
+          line-height: 1.5;
+          text-align: center;
+        }
+
+        /* =============================================
+           MOBILE
+        ============================================= */
+
+        @media (max-width: 700px) {
+          .payment-container {
+            padding: 28px 16px 40px;
+          }
+
+          .back-button {
+            margin-bottom: 38px;
+            font-size: 15px;
+          }
+
+          .heading-section {
+            margin-bottom: 28px;
+          }
+
+          .eyebrow {
+            font-size: 11px;
+            margin-bottom: 11px;
+          }
+
+          .main-heading {
+            font-size: 46px;
+            line-height: 0.96;
+          }
+
+          .heading-description {
+            margin-top: 14px;
+            font-size: 14px;
+            line-height: 1.55;
+          }
+
+          .plan-card {
+            padding: 26px 22px;
+            border-radius: 26px;
+          }
+
+          .plan-title-row {
+            display: block;
+          }
+
+          .plan-title {
+            font-size: 28px;
+          }
+
+          .duration-badge {
+            display: inline-block;
+            margin-top: 10px;
+          }
+
+          .plan-duration {
+            font-size: 14px;
+          }
+
+          .plan-price {
+            margin-top: 24px;
+            font-size: 50px;
+          }
+
+          .benefits {
+            grid-template-columns: 1fr;
+            gap: 11px;
+          }
+
+          .benefit {
+            font-size: 13px;
+          }
+
+          .summary-card {
+            padding: 25px 22px;
+            border-radius: 26px;
+          }
+
+          .summary-title {
+            font-size: 20px;
+          }
+
+          .summary-name,
+          .summary-value {
+            font-size: 14px;
+          }
+
+          .total-label {
+            font-size: 18px;
+          }
+
+          .total-value {
+            font-size: 20px;
+          }
+
+          .pay-button {
+            min-height: 57px;
+            font-size: 16px;
+          }
+
+          .payment-method {
+            font-size: 9px;
+            padding: 6px 8px;
+          }
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+
+      <main className="payment-page">
+
+        <div className="payment-container">
 
           {/* BACK */}
 
@@ -453,187 +1004,123 @@ function PaymentContent() {
             onClick={() =>
               router.back()
             }
-            className="group flex items-center gap-2 text-sm font-semibold text-black/65 transition hover:text-black"
+            className="back-button"
           >
-            <span className="text-lg transition-transform group-hover:-translate-x-0.5">
-              ←
-            </span>
-
-            Back
+            <span>←</span>
+            <span>Back</span>
           </button>
 
-          {/* BRAND */}
+          {/* HEADER */}
 
-          <div className="flex items-center gap-2">
+          <section className="heading-section">
 
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111] text-xs font-black text-[#e2c773]">
-              S
-            </div>
+            <p className="eyebrow">
+              SECURE CHECKOUT
+            </p>
 
-            <span className="text-sm font-black tracking-tight">
-              SAMBHAV
-            </span>
+            <h1 className="main-heading">
+              Complete
+              <br />
+              Payment
+            </h1>
 
-          </div>
+            <p className="heading-description">
+              Unlock Premium access to the complete
+              SAMBHAV UPSC learning experience.
+            </p>
 
-          {/* STATUS */}
+          </section>
 
-          <div className="hidden items-center gap-2 text-xs font-semibold text-black/45 sm:flex">
+          <div className="payment-content">
 
-            <span className="h-2 w-2 rounded-full bg-green-500" />
+            {/* ==========================================
+                PREMIUM PLAN
+            ========================================== */}
 
-            Secure Checkout
+            <section className="plan-card">
 
-          </div>
+              <div className="plan-content">
 
-        </div>
+                <p className="plan-label">
+                  SAMBHAV PREMIUM
+                </p>
 
-      </header>
-
-      {/* ================================================
-          CONTENT
-      ================================================ */}
-
-      <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10">
-
-        {/* ==============================================
-            HEADER
-        ============================================== */}
-
-        <section className="mx-auto mb-8 max-w-3xl text-center">
-
-          <div className="mb-3 inline-flex items-center rounded-full border border-[#d8bd61]/30 bg-[#fff9e7] px-3 py-1.5 text-[10px] font-black tracking-[0.18em] text-[#94782b]">
-            SAMBHAV PREMIUM
-          </div>
-
-          <h1 className="text-3xl font-black tracking-[-0.04em] sm:text-5xl">
-            Complete your payment
-          </h1>
-
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-black/50 sm:text-base">
-            Unlock Premium access to the complete
-            SAMBHAV UPSC learning experience.
-          </p>
-
-        </section>
-
-        {/* ==============================================
-            MAIN GRID
-        ============================================== */}
-
-        <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-
-          {/* ============================================
-              PLAN CARD
-          ============================================ */}
-
-          <section className="relative overflow-hidden rounded-[28px] bg-[#111] p-7 text-white shadow-[0_24px_70px_rgba(0,0,0,0.12)] sm:p-9">
-
-            {/* decorative glow */}
-
-            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#dfc56f]/10 blur-3xl" />
-
-            <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full bg-white/[0.03] blur-3xl" />
-
-            <div className="relative">
-
-              <div className="flex items-start justify-between gap-4">
-
-                <div>
-
-                  <p className="text-[10px] font-black tracking-[0.2em] text-[#dfc56f]">
-                    SELECTED PLAN
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">
-                    {plan.title}
-                  </h2>
-
-                </div>
-
-                <div className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/70">
-                  {plan.duration}
-                </div>
-
-              </div>
-
-              {/* PRICE */}
-
-              <div className="mt-8 flex items-end gap-2">
-
-                <span className="text-5xl font-black tracking-[-0.05em] text-[#e2c773] sm:text-6xl">
-                  ₹{plan.price}
-                </span>
-
-                <span className="mb-2 text-sm text-white/45">
-                  /{" "}
-                  {plan.key ===
-                  "monthly"
-                    ? "month"
-                    : plan.key ===
-                      "quarterly"
-                    ? "3 months"
-                    : "year"}
-                </span>
-
-              </div>
-
-              <div className="my-8 h-px bg-white/10" />
-
-              {/* BENEFITS */}
-
-              <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-white/45">
-                Included with Premium
-              </p>
-
-              <div className="space-y-3">
-
-                {[
-                  "Complete Premium Modules",
-                  "UPSC-focused learning resources",
-                  "Premium Current Affairs",
-                  "PYQ & Mock Test access",
-                  "Mains & Prelims preparation",
-                ].map(
-                  (item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-3"
-                    >
-
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e2c773] text-[11px] font-black text-black">
-                        ✓
-                      </span>
-
-                      <span className="text-sm text-white/75">
-                        {item}
-                      </span>
-
-                    </div>
-                  )
-                )}
-
-              </div>
-
-              {/* SECURITY BOX */}
-
-              <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-
-                <div className="flex items-center gap-3">
-
-                  <span className="text-lg">
-                    🔒
-                  </span>
+                <div className="plan-title-row">
 
                   <div>
 
-                    <p className="text-xs font-bold text-white/80">
-                      Secure payment
+                    <h2 className="plan-title">
+                      {plan.title}
+                    </h2>
+
+                    <p className="plan-duration">
+                      {plan.duration} · Full Premium Access
                     </p>
 
-                    <p className="mt-0.5 text-[11px] text-white/40">
-                      Payments are securely processed by Cashfree.
-                    </p>
+                  </div>
+
+                  <div className="duration-badge">
+                    {plan.duration}
+                  </div>
+
+                </div>
+
+                <div className="plan-price">
+                  ₹{plan.price}
+                </div>
+
+                <div className="benefits-divider" />
+
+                <p className="benefits-heading">
+                  Included with Premium
+                </p>
+
+                <div className="benefits">
+
+                  {[
+                    "Complete Premium Modules",
+                    "UPSC-focused learning resources",
+                    "Premium Current Affairs",
+                    "PYQ & Mock Test access",
+                    "Mains & Prelims preparation",
+                  ].map(
+                    (item) => (
+                      <div
+                        key={item}
+                        className="benefit"
+                      >
+                        <span className="check">
+                          ✓
+                        </span>
+
+                        <span>
+                          {item}
+                        </span>
+                      </div>
+                    )
+                  )}
+
+                </div>
+
+                <div className="security-box">
+
+                  <div className="security-content">
+
+                    <span className="security-icon">
+                      🔒
+                    </span>
+
+                    <div>
+
+                      <p className="security-title">
+                        Secure payment
+                      </p>
+
+                      <p className="security-description">
+                        Payments are securely processed by Cashfree.
+                      </p>
+
+                    </div>
 
                   </div>
 
@@ -641,200 +1128,151 @@ function PaymentContent() {
 
               </div>
 
-            </div>
+            </section>
 
-          </section>
+            {/* ==========================================
+                PAYMENT SUMMARY
+            ========================================== */}
 
-          {/* ============================================
-              PAYMENT SUMMARY
-          ============================================ */}
+            <section className="summary-card">
 
-          <section className="rounded-[28px] border border-black/[0.07] bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.05)] sm:p-8">
+              <p className="summary-label">
+                PAYMENT SUMMARY
+              </p>
 
-            <div className="flex items-center justify-between">
+              <h2 className="summary-title">
+                Payment details
+              </h2>
 
-              <div>
+              <div className="summary-details">
 
-                <p className="text-[10px] font-black tracking-[0.18em] text-black/40">
-                  PAYMENT SUMMARY
-                </p>
+                <div className="summary-row">
 
-                <h2 className="mt-1 text-xl font-black tracking-[-0.025em]">
-                  Payment details
-                </h2>
+                  <span className="summary-name">
+                    Plan
+                  </span>
 
-              </div>
-
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f6f1df] text-lg">
-                ₹
-              </div>
-
-            </div>
-
-            {/* DETAILS */}
-
-            <div className="mt-7 space-y-4">
-
-              {/* PLAN */}
-
-              <div className="flex items-center justify-between gap-4">
-
-                <span className="text-sm text-black/50">
-                  Plan
-                </span>
-
-                <span className="text-right text-sm font-bold">
-                  {plan.title}
-                </span>
-
-              </div>
-
-              {/* DURATION */}
-
-              <div className="flex items-center justify-between gap-4">
-
-                <span className="text-sm text-black/50">
-                  Duration
-                </span>
-
-                <span className="text-sm font-semibold">
-                  {plan.duration}
-                </span>
-
-              </div>
-
-              {/* ACCESS */}
-
-              <div className="flex items-center justify-between gap-4">
-
-                <span className="text-sm text-black/50">
-                  Premium access
-                </span>
-
-                <span className="text-sm font-semibold">
-                  Included
-                </span>
-
-              </div>
-
-            </div>
-
-            {/* TOTAL */}
-
-            <div className="my-7 border-t border-black/[0.08] pt-6">
-
-              <div className="flex items-end justify-between gap-4">
-
-                <div>
-
-                  <p className="text-xs font-semibold text-black/40">
-                    Total payable
-                  </p>
-
-                  <p className="mt-1 text-3xl font-black tracking-[-0.04em]">
-                    ₹{plan.amount}
-                  </p>
+                  <span className="summary-value">
+                    {plan.title}
+                  </span>
 
                 </div>
 
-                <span className="mb-1 rounded-full bg-[#f5f0dd] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#806923]">
-                  Secure
+                <div className="summary-row">
+
+                  <span className="summary-name">
+                    Duration
+                  </span>
+
+                  <span className="summary-value">
+                    {plan.duration}
+                  </span>
+
+                </div>
+
+                <div className="summary-row">
+
+                  <span className="summary-name">
+                    Premium access
+                  </span>
+
+                  <span className="summary-value">
+                    Included
+                  </span>
+
+                </div>
+
+              </div>
+
+              <div className="summary-divider" />
+
+              <div className="total-row">
+
+                <span className="total-label">
+                  Total payable
+                </span>
+
+                <span className="total-value">
+                  ₹{plan.amount}
                 </span>
 
               </div>
 
-            </div>
+              {/* ERROR */}
 
-            {/* ERROR */}
-
-            {error && (
-              <div className="mb-5 break-words rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-medium leading-5 text-red-700">
-                {error}
-              </div>
-            )}
-
-            {/* PAY BUTTON */}
-
-            <button
-              type="button"
-              onClick={
-                handlePayment
-              }
-              disabled={
-                loading ||
-                !user
-              }
-              className="group flex min-h-[58px] w-full items-center justify-center gap-2 rounded-2xl bg-[#e2c773] px-6 text-base font-black text-black shadow-[0_10px_25px_rgba(226,199,115,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#d9bb5f] hover:shadow-[0_14px_30px_rgba(226,199,115,0.28)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
-            >
-
-              {loading ? (
-                <>
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-
-                  <span>
-                    Processing payment...
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span>
-                    Pay ₹{plan.amount}
-                  </span>
-
-                  <span className="text-lg transition-transform group-hover:translate-x-1">
-                    →
-                  </span>
-                </>
+              {error && (
+                <div className="error-box">
+                  {error}
+                </div>
               )}
 
-            </button>
+              {/* PAY */}
 
-            {/* SECURITY */}
+              <button
+                type="button"
+                onClick={
+                  handlePayment
+                }
+                disabled={
+                  loading ||
+                  !user
+                }
+                className="pay-button"
+              >
 
-            <div className="mt-5 text-center">
+                {loading ? (
+                  <span className="processing">
 
-              <p className="text-[11px] leading-5 text-black/40">
-                You will be securely redirected to
-                Cashfree to complete your payment.
+                    <span className="button-spinner" />
+
+                    <span>
+                      Processing payment...
+                    </span>
+
+                  </span>
+                ) : (
+                  <>
+                    Pay ₹{plan.amount} →
+                  </>
+                )}
+
+              </button>
+
+              {/* CASHFREE */}
+
+              <p className="cashfree-note">
+                🔒 Secure payment powered by Cashfree
               </p>
 
-            </div>
+              <div className="payment-methods">
 
-            {/* PAYMENT METHODS */}
+                <span className="payment-method">
+                  UPI
+                </span>
 
-            <div className="mt-6 flex items-center justify-center gap-2 border-t border-black/[0.06] pt-5">
+                <span className="payment-method">
+                  Cards
+                </span>
 
-              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
-                UPI
-              </span>
+                <span className="payment-method">
+                  Net Banking
+                </span>
 
-              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
-                Cards
-              </span>
+              </div>
 
-              <span className="rounded-lg border border-black/[0.06] bg-[#fafafa] px-2.5 py-1.5 text-[10px] font-bold text-black/45">
-                Net Banking
-              </span>
+            </section>
 
-            </div>
+          </div>
 
-          </section>
+          <p className="footer-note">
+            You will be securely redirected to Cashfree
+            to complete your payment.
+          </p>
 
         </div>
 
-        {/* ==============================================
-            FOOTER
-        ============================================== */}
-
-        <p className="mx-auto mt-7 max-w-xl text-center text-[11px] leading-5 text-black/35">
-          By continuing, you agree to complete the
-          selected SAMBHAV Premium purchase through
-          our secure payment partner.
-        </p>
-
-      </div>
-
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -844,19 +1282,52 @@ function PaymentContent() {
 
 function PaymentLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7f7f5] px-6">
+    <>
+      <style jsx>{`
+        .fallback {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f5f1e8;
+          font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+        }
 
-      <div className="text-center">
+        .spinner {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 2px solid rgba(0, 0, 0, 0.12);
+          border-top-color: #111;
+          animation: spin 0.8s linear infinite;
+          margin: 0 auto 16px;
+        }
 
-        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/10 border-t-black" />
+        p {
+          margin: 0;
+          color: rgba(0, 0, 0, 0.5);
+          font-size: 14px;
+        }
 
-        <p className="text-sm font-medium text-black/50">
-          Loading secure checkout...
-        </p>
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
 
-      </div>
-
-    </main>
+      <main className="fallback">
+        <div>
+          <div className="spinner" />
+          <p>
+            Loading secure checkout...
+          </p>
+        </div>
+      </main>
+    </>
   );
 }
 
