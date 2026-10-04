@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "SAMBHAV UPSC",
   description: "UPSC Preparation Platform",
