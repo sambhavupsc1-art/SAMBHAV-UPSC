@@ -114,9 +114,6 @@ async function getUserById(userId) {
  * ------------------------------------------------
  * GET ACTIVE SUBSCRIPTION
  * ------------------------------------------------
- *
- * Only an active subscription whose expiry
- * is still in the future is returned.
  */
 async function getActiveSubscription(userId) {
   const now =
@@ -159,23 +156,13 @@ async function getActiveSubscription(userId) {
  * ------------------------------------------------
  * GET ADMIN STATUS
  * ------------------------------------------------
- *
- * Website / Email:
- * admin_users.user_id
- *
- * Telegram:
- * admin_users.telegram_id
- *
- * This supports both systems.
  */
 async function getAdminStatus({
   userId = null,
   telegramId = null,
 }) {
   /*
-   * ==============================================
-   * 1. WEBSITE / EMAIL ADMIN CHECK
-   * ==============================================
+   * WEBSITE / EMAIL ADMIN
    */
   if (userId) {
     const response = await fetch(
@@ -210,9 +197,7 @@ async function getAdminStatus({
   }
 
   /*
-   * ==============================================
-   * 2. LEGACY TELEGRAM ADMIN CHECK
-   * ==============================================
+   * LEGACY TELEGRAM ADMIN
    */
   if (telegramId) {
     const response = await fetch(
@@ -274,9 +259,97 @@ export async function GET(request) {
 
     /*
      * ========================================================
-     * 1. TELEGRAM LOGIN
+     * 1. EMAIL SESSION — PRIMARY AUTHENTICATION
+     * ========================================================
+     *
+     * IMPORTANT:
+     *
+     * Website login/payment always uses
+     * sambhav_session.
+     *
+     * We intentionally check this BEFORE
+     * Telegram authentication.
+     *
+     * Therefore, even if a Telegram tma header
+     * is present or invalid, a valid email
+     * session will still authenticate correctly.
      * ========================================================
      */
+
+    const cookieStore =
+      await cookies();
+
+    const sessionCookie =
+      cookieStore.get(
+        "sambhav_session"
+      );
+
+    if (sessionCookie?.value) {
+      /*
+       * Verify session cookie.
+       */
+      const session =
+        verifyEmailSession(
+          sessionCookie.value
+        );
+
+      if (session?.userId) {
+        /*
+         * Get authenticated user.
+         */
+        const user =
+          await getUserById(
+            session.userId
+          );
+
+        if (user) {
+          /*
+           * Get active Premium subscription.
+           */
+          const subscription =
+            await getActiveSubscription(
+              user.id
+            );
+
+          /*
+           * Check admin.
+           */
+          const isAdmin =
+            await getAdminStatus({
+              userId: user.id,
+              telegramId:
+                user.telegram_id,
+            });
+
+          return NextResponse.json({
+            user,
+            subscription,
+            isAdmin,
+            authMethod: "email",
+          });
+        }
+
+        return NextResponse.json(
+          {
+            error:
+              "User not found",
+          },
+          { status: 404 }
+        );
+      }
+
+      /*
+       * If cookie exists but is invalid,
+       * continue to Telegram fallback.
+       */
+    }
+
+    /*
+     * ========================================================
+     * 2. TELEGRAM LOGIN — FALLBACK ONLY
+     * ========================================================
+     */
+
     const authorization =
       request.headers.get(
         "authorization"
@@ -314,9 +387,11 @@ export async function GET(request) {
             headers: {
               apikey:
                 SUPABASE_SECRET_KEY,
+
               Authorization:
                 `Bearer ${SUPABASE_SECRET_KEY}`,
             },
+
             cache: "no-store",
           }
         );
@@ -360,13 +435,13 @@ export async function GET(request) {
         );
 
       /*
-       * Check admin by both user_id
-       * and Telegram ID.
+       * Check admin.
        */
       const isAdmin =
         await getAdminStatus({
           userId: user.id,
-          telegramId: telegramUser.id,
+          telegramId:
+            telegramUser.id,
         });
 
       return NextResponse.json({
@@ -379,92 +454,17 @@ export async function GET(request) {
 
     /*
      * ========================================================
-     * 2. EMAIL SESSION LOGIN
+     * 3. NO AUTHENTICATION
      * ========================================================
      */
 
-    const cookieStore =
-      await cookies();
-
-    const sessionCookie =
-      cookieStore.get(
-        "sambhav_session"
-      );
-
-    if (!sessionCookie?.value) {
-      return NextResponse.json(
-        {
-          error:
-            "Authentication required",
-        },
-        { status: 401 }
-      );
-    }
-
-    /*
-     * Verify session cookie.
-     */
-    const session =
-      verifyEmailSession(
-        sessionCookie.value
-      );
-
-    if (!session?.userId) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid or expired session",
-        },
-        { status: 401 }
-      );
-    }
-
-    /*
-     * Get authenticated user.
-     */
-    const user =
-      await getUserById(
-        session.userId
-      );
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error:
-            "User not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    /*
-     * Get active Premium subscription.
-     */
-    const subscription =
-      await getActiveSubscription(
-        user.id
-      );
-
-    /*
-     * IMPORTANT:
-     *
-     * Email users are checked using
-     * admin_users.user_id.
-     *
-     * Telegram ID is optional.
-     */
-    const isAdmin =
-      await getAdminStatus({
-        userId: user.id,
-        telegramId: user.telegram_id,
-      });
-
-    return NextResponse.json({
-      user,
-      subscription,
-      isAdmin,
-      authMethod: "email",
-    });
+    return NextResponse.json(
+      {
+        error:
+          "Authentication required",
+      },
+      { status: 401 }
+    );
   } catch (error) {
     console.error(
       "Auth error:",
