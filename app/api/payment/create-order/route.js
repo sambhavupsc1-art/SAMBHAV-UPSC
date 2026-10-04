@@ -13,10 +13,12 @@ const PLANS = {
     amount: 99,
     durationDays: 30,
   },
+
   quarterly: {
     amount: 399,
     durationDays: 90,
   },
+
   annual: {
     amount: 999,
     durationDays: 365,
@@ -25,7 +27,8 @@ const PLANS = {
 
 async function getAuthenticatedUser(request) {
   /*
-   * Primary authentication:
+   * PRIMARY AUTHENTICATION
+   *
    * /api/auth/me handles:
    * - sambhav_session
    * - Telegram tma
@@ -40,7 +43,8 @@ async function getAuthenticatedUser(request) {
     const headers = {};
 
     const cookie = request.headers.get("cookie");
-    const authorization = request.headers.get("authorization");
+    const authorization =
+      request.headers.get("authorization");
 
     if (cookie) {
       headers.cookie = cookie;
@@ -60,12 +64,14 @@ async function getAuthenticatedUser(request) {
     );
 
     if (response.ok) {
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (data?.user?.id) {
         return {
           user: data.user,
-          authMethod: data.authMethod || null,
+          authMethod:
+            data.authMethod || null,
         };
       }
     }
@@ -77,7 +83,7 @@ async function getAuthenticatedUser(request) {
   }
 
   /*
-   * Telegram fallback
+   * TELEGRAM FALLBACK
    */
 
   try {
@@ -92,30 +98,38 @@ async function getAuthenticatedUser(request) {
         authorization.slice(4);
 
       const telegramUser =
-        validateTelegramInitData(initData);
-
-      if (telegramUser?.id) {
-        const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
-            telegramUser.id
-          )}&select=id,telegram_id,email,first_name,last_name,username,status,plan`,
-          {
-            headers: {
-              apikey: SUPABASE_SECRET_KEY,
-              Authorization:
-                `Bearer ${SUPABASE_SECRET_KEY}`,
-            },
-            cache: "no-store",
-          }
+        validateTelegramInitData(
+          initData
         );
 
+      if (telegramUser?.id) {
+        const response =
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
+              telegramUser.id
+            )}&select=id,telegram_id,email,first_name,last_name,username,status,plan`,
+            {
+              headers: {
+                apikey:
+                  SUPABASE_SECRET_KEY,
+
+                Authorization:
+                  `Bearer ${SUPABASE_SECRET_KEY}`,
+              },
+
+              cache: "no-store",
+            }
+          );
+
         if (response.ok) {
-          const users = await response.json();
+          const users =
+            await response.json();
 
           if (users?.length) {
             return {
               user: users[0],
-              authMethod: "telegram",
+              authMethod:
+                "telegram",
             };
           }
         }
@@ -131,25 +145,31 @@ async function getAuthenticatedUser(request) {
   return null;
 }
 
-async function getActiveSubscription(userId) {
+async function getActiveSubscription(
+  userId
+) {
   const now =
     new Date().toISOString();
 
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
-      userId
-    )}&status=eq.active&expires_at=gt.${encodeURIComponent(
-      now
-    )}&select=id,plan,status,expires_at,amount&order=expires_at.desc&limit=1`,
-    {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization:
-          `Bearer ${SUPABASE_SECRET_KEY}`,
-      },
-      cache: "no-store",
-    }
-  );
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
+        userId
+      )}&status=eq.active&expires_at=gt.${encodeURIComponent(
+        now
+      )}&select=id,plan,status,expires_at,amount&order=expires_at.desc&limit=1`,
+      {
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+
+        cache: "no-store",
+      }
+    );
 
   if (!response.ok) {
     return null;
@@ -163,10 +183,12 @@ async function getActiveSubscription(userId) {
     : null;
 }
 
-export async function POST(request) {
+export async function POST(
+  request
+) {
   try {
     /*
-     * CONFIG
+     * CONFIGURATION
      */
 
     if (
@@ -196,11 +218,13 @@ export async function POST(request) {
     }
 
     /*
-     * AUTH
+     * AUTHENTICATION
      */
 
     const auth =
-      await getAuthenticatedUser(request);
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!auth?.user?.id) {
       return NextResponse.json(
@@ -219,9 +243,9 @@ export async function POST(request) {
      */
 
     const body =
-      await request.json().catch(
-        () => ({})
-      );
+      await request
+        .json()
+        .catch(() => ({}));
 
     const plan = body?.plan;
 
@@ -268,19 +292,31 @@ export async function POST(request) {
       );
 
     /*
-     * Demo → paid upgrade allowed.
-     * Paid → duplicate purchase blocked.
+     * DEMO → PAID UPGRADE
+     *
+     * Demo users ARE allowed to
+     * purchase a paid Premium plan.
+     *
+     * Paid Premium users cannot
+     * purchase another paid plan
+     * while their current plan is active.
      */
+
+    const activePlan =
+      String(
+        activeSubscription?.plan ||
+          ""
+      ).toLowerCase();
 
     if (
       activeSubscription &&
-      activeSubscription.plan !==
-        "demo"
+      activePlan !== "demo"
     ) {
       return NextResponse.json(
         {
           error:
             "You already have an active Premium subscription.",
+
           subscription:
             activeSubscription,
         },
@@ -302,15 +338,18 @@ export async function POST(request) {
      */
 
     const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      request.headers.get("origin") ||
+      process.env
+        .NEXT_PUBLIC_APP_URL ||
+      request.headers.get(
+        "origin"
+      ) ||
       "https://sambhavupsc.vercel.app";
 
     const returnUrl =
       `${baseUrl}/premium/payment/success?order_id={order_id}`;
 
     /*
-     * CASHFREE
+     * CASHFREE ENDPOINT
      */
 
     const cashfreeUrl =
@@ -318,6 +357,10 @@ export async function POST(request) {
       "production"
         ? "https://api.cashfree.com/pg/orders"
         : "https://sandbox.cashfree.com/pg/orders";
+
+    /*
+     * CUSTOMER
+     */
 
     const customerId =
       user.telegram_id
@@ -332,8 +375,8 @@ export async function POST(request) {
       "SAMBHAV User";
 
     /*
-     * Current signup does not collect phone,
-     * so retain sandbox-compatible number.
+     * CURRENT SIGNUP DOES NOT
+     * COLLECT PHONE NUMBER
      */
 
     const customerPhone =
@@ -436,6 +479,10 @@ export async function POST(request) {
       );
     }
 
+    /*
+     * PAYMENT SESSION CHECK
+     */
+
     if (
       !cashfreeData?.payment_session_id
     ) {
@@ -455,6 +502,9 @@ export async function POST(request) {
 
     /*
      * PENDING SUBSCRIPTION
+     *
+     * The subscription stays pending
+     * until payment/webhook verification.
      */
 
     const now =
@@ -529,6 +579,7 @@ export async function POST(request) {
         {
           error:
             "Payment order created but subscription record could not be created.",
+
           order_id:
             orderId,
         },
