@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
 const SUPABASE_URL =
@@ -38,6 +39,7 @@ const PLANS = {
 /*
  * ------------------------------------------------
  * VERIFY EMAIL SESSION
+ * Same logic as /api/auth/me
  * ------------------------------------------------
  */
 
@@ -50,7 +52,8 @@ function verifyEmailSession(token) {
       return null;
     }
 
-    const parts = token.split(".");
+    const parts =
+      token.split(".");
 
     if (parts.length !== 2) {
       return null;
@@ -70,7 +73,7 @@ function verifyEmailSession(token) {
 
     if (
       signature.length !==
-        expectedSignature.length
+      expectedSignature.length
     ) {
       return null;
     }
@@ -114,13 +117,11 @@ function verifyEmailSession(token) {
 
 /*
  * ------------------------------------------------
- * GET USER BY ID
+ * GET USER
  * ------------------------------------------------
  */
 
-async function getUserById(
-  userId
-) {
+async function getUserById(userId) {
   const response =
     await fetch(
       `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
@@ -160,34 +161,31 @@ async function getUserById(
  * ------------------------------------------------
  * AUTHENTICATED USER
  * ------------------------------------------------
- *
- * Website:
- * sambhav_session
- *
- * Telegram:
- * Authorization: tma <initData>
- * ------------------------------------------------
  */
 
-async function getAuthenticatedUser(
-  request
-) {
+async function getAuthenticatedUser(request) {
   /*
    * ==============================================
-   * 1. WEBSITE SESSION
+   * WEBSITE / EMAIL SESSION
    * ==============================================
+   *
+   * EXACT SAME COOKIE READING METHOD
+   * AS /api/auth/me
    */
 
   try {
-    const sessionToken =
-      request.cookies.get(
-        "sambhav_session"
-      )?.value;
+    const cookieStore =
+      await cookies();
 
-    if (sessionToken) {
+    const sessionCookie =
+      cookieStore.get(
+        "sambhav_session"
+      );
+
+    if (sessionCookie?.value) {
       const session =
         verifyEmailSession(
-          sessionToken
+          sessionCookie.value
         );
 
       if (session?.userId) {
@@ -207,14 +205,14 @@ async function getAuthenticatedUser(
     }
   } catch (error) {
     console.error(
-      "Website payment authentication failed:",
+      "Website authentication error:",
       error
     );
   }
 
   /*
    * ==============================================
-   * 2. TELEGRAM FALLBACK
+   * TELEGRAM FALLBACK
    * ==============================================
    */
 
@@ -272,7 +270,7 @@ async function getAuthenticatedUser(
     }
   } catch (error) {
     console.error(
-      "Telegram payment authentication failed:",
+      "Telegram authentication error:",
       error
     );
   }
@@ -286,9 +284,7 @@ async function getAuthenticatedUser(
  * ------------------------------------------------
  */
 
-async function getActiveSubscription(
-  userId
-) {
+async function getActiveSubscription(userId) {
   const now =
     new Date().toISOString();
 
@@ -335,14 +331,10 @@ async function getActiveSubscription(
  * ========================================================
  */
 
-export async function POST(
-  request
-) {
+export async function POST(request) {
   try {
     /*
-     * ----------------------------------------
      * CONFIG
-     * ----------------------------------------
      */
 
     if (
@@ -372,9 +364,7 @@ export async function POST(
     }
 
     /*
-     * ----------------------------------------
      * AUTH
-     * ----------------------------------------
      */
 
     const auth =
@@ -396,9 +386,7 @@ export async function POST(
       auth.user;
 
     /*
-     * ----------------------------------------
      * PLAN
-     * ----------------------------------------
      */
 
     const body =
@@ -426,9 +414,7 @@ export async function POST(
       PLANS[plan];
 
     /*
-     * ----------------------------------------
      * APPROVAL
-     * ----------------------------------------
      */
 
     if (
@@ -445,9 +431,7 @@ export async function POST(
     }
 
     /*
-     * ----------------------------------------
-     * ACTIVE SUBSCRIPTION
-     * ----------------------------------------
+     * ACTIVE PREMIUM
      */
 
     const activeSubscription =
@@ -460,12 +444,6 @@ export async function POST(
         activeSubscription?.plan ||
           ""
       ).toLowerCase();
-
-    /*
-     * Demo → Paid allowed.
-     *
-     * Paid → Paid duplicate blocked.
-     */
 
     if (
       activeSubscription &&
@@ -484,9 +462,7 @@ export async function POST(
     }
 
     /*
-     * ----------------------------------------
-     * ORDER ID
-     * ----------------------------------------
+     * ORDER
      */
 
     const orderId =
@@ -495,33 +471,24 @@ export async function POST(
       ).slice(0, 8)}_${Date.now()}`;
 
     /*
-     * ----------------------------------------
      * BASE URL
-     * ----------------------------------------
      */
 
     const baseUrl =
-      process.env
-        .NEXT_PUBLIC_APP_URL ||
-      "https://sambhavupsc.vercel.app";
-
-    /*
-     * Remove trailing slash.
-     */
-
-    const cleanBaseUrl =
-      baseUrl.replace(
+      (
+        process.env
+          .NEXT_PUBLIC_APP_URL ||
+        "https://sambhavupsc.vercel.app"
+      ).replace(
         /\/$/,
         ""
       );
 
     const returnUrl =
-      `${cleanBaseUrl}/premium/payment/success?order_id={order_id}`;
+      `${baseUrl}/premium/payment/success?order_id={order_id}`;
 
     /*
-     * ----------------------------------------
-     * CASHFREE ENVIRONMENT
-     * ----------------------------------------
+     * CASHFREE
      */
 
     const cashfreeUrl =
@@ -529,12 +496,6 @@ export async function POST(
       "production"
         ? "https://api.cashfree.com/pg/orders"
         : "https://sandbox.cashfree.com/pg/orders";
-
-    /*
-     * ----------------------------------------
-     * CUSTOMER
-     * ----------------------------------------
-     */
 
     const customerId =
       user.telegram_id
@@ -554,9 +515,7 @@ export async function POST(
       "9999999999";
 
     /*
-     * ----------------------------------------
      * CREATE CASHFREE ORDER
-     * ----------------------------------------
      */
 
     const cashfreeResponse =
@@ -612,7 +571,7 @@ export async function POST(
                 returnUrl,
 
               notify_url:
-                `${cleanBaseUrl}/api/payment/webhook`,
+                `${baseUrl}/api/payment/webhook`,
             },
 
             order_note:
@@ -625,12 +584,6 @@ export async function POST(
       await cashfreeResponse
         .json()
         .catch(() => ({}));
-
-    /*
-     * ----------------------------------------
-     * CASHFREE ERROR
-     * ----------------------------------------
-     */
 
     if (
       !cashfreeResponse.ok
@@ -651,20 +604,9 @@ export async function POST(
       );
     }
 
-    /*
-     * ----------------------------------------
-     * PAYMENT SESSION
-     * ----------------------------------------
-     */
-
     if (
       !cashfreeData?.payment_session_id
     ) {
-      console.error(
-        "Cashfree payment session missing:",
-        cashfreeData
-      );
-
       return NextResponse.json(
         {
           error:
@@ -675,9 +617,7 @@ export async function POST(
     }
 
     /*
-     * ----------------------------------------
      * PENDING SUBSCRIPTION
-     * ----------------------------------------
      */
 
     const now =
@@ -761,9 +701,7 @@ export async function POST(
     }
 
     /*
-     * ----------------------------------------
-     * FINAL RESPONSE
-     * ----------------------------------------
+     * SUCCESS
      */
 
     return NextResponse.json({
