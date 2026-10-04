@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
@@ -5,6 +6,7 @@ const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SECRET_KEY;
 
 const CASHFREE_APP_ID =
@@ -39,100 +41,199 @@ const PLANS = {
 };
 
 /*
- * ----------------------------------------
- * AUTHENTICATION
- * ----------------------------------------
- *
- * Priority:
- *
- * 1. Website:
- *    sambhav_session cookie
- *
- * 2. Telegram:
- *    Authorization: tma <initData>
- *
- * ----------------------------------------
+ * ------------------------------------------------
+ * VERIFY EMAIL SESSION
+ * ------------------------------------------------
  */
 
-async function getAuthenticatedUser(request) {
+function verifyEmailSession(token) {
+  try {
+    const secret =
+      process.env.AUTH_SESSION_SECRET;
+
+    if (!secret || !token) {
+      return null;
+    }
+
+    const parts =
+      token.split(".");
+
+    if (parts.length !== 2) {
+      return null;
+    }
+
+    const [payload, signature] =
+      parts;
+
+    const expectedSignature =
+      crypto
+        .createHmac(
+          "sha256",
+          secret
+        )
+        .update(payload)
+        .digest("base64url");
+
+    if (
+      signature.length !==
+      expectedSignature.length
+    ) {
+      return null;
+    }
+
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(
+          expectedSignature
+        )
+      )
+    ) {
+      return null;
+    }
+
+    const data =
+      JSON.parse(
+        Buffer.from(
+          payload,
+          "base64url"
+        ).toString("utf8")
+      );
+
+    if (
+      !data.exp ||
+      Date.now() > data.exp
+    ) {
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(
+      "Payment verification session error:",
+      error
+    );
+
+    return null;
+  }
+}
+
+/*
+ * ------------------------------------------------
+ * GET USER BY ID
+ * ------------------------------------------------
+ */
+
+async function getUserById(
+  userId
+) {
+  const response =
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+        userId
+      )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
+      {
+        headers: {
+          apikey:
+            SUPABASE_SECRET_KEY,
+
+          Authorization:
+            `Bearer ${SUPABASE_SECRET_KEY}`,
+        },
+
+        cache: "no-store",
+      }
+    );
+
+  if (!response.ok) {
+    console.error(
+      "Payment verification user lookup failed:",
+      await response.text()
+    );
+
+    return null;
+  }
+
+  const users =
+    await response.json();
+
+  return users?.length
+    ? users[0]
+    : null;
+}
+
+/*
+ * ------------------------------------------------
+ * AUTHENTICATED USER
+ * ------------------------------------------------
+ *
+ * Website:
+ * sambhav_session
+ *
+ * Telegram:
+ * Authorization: tma <initData>
+ * ------------------------------------------------
+ */
+
+async function getAuthenticatedUser(
+  request
+) {
   /*
-   * First try central SAMBHAV auth.
-   *
-   * This supports:
-   * - sambhav_session
-   * - Telegram fallback
+   * ==============================================
+   * 1. WEBSITE SESSION
+   * ==============================================
    */
 
   try {
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "https://sambhavupsc.vercel.app";
+    const sessionToken =
+      request.cookies.get(
+        "sambhav_session"
+      )?.value;
 
-    const forwardedHeaders = {};
+    if (sessionToken) {
+      const session =
+        verifyEmailSession(
+          sessionToken
+        );
 
-    const cookie =
-      request.headers.get("cookie");
+      if (session?.userId) {
+        const user =
+          await getUserById(
+            session.userId
+          );
 
-    const authorization =
-      request.headers.get("authorization");
-
-    if (cookie) {
-      forwardedHeaders.cookie = cookie;
-    }
-
-    if (authorization) {
-      forwardedHeaders.authorization =
-        authorization;
-    }
-
-    const authResponse =
-      await fetch(
-        `${origin}/api/auth/me`,
-        {
-          method: "GET",
-
-          headers:
-            forwardedHeaders,
-
-          cache: "no-store",
+        if (user) {
+          return {
+            user,
+            authMethod:
+              "email",
+          };
         }
-      );
-
-    if (authResponse.ok) {
-      const authData =
-        await authResponse.json();
-
-      if (authData?.user?.id) {
-        return {
-          user: authData.user,
-
-          authMethod:
-            authData.authMethod ||
-            null,
-        };
       }
     }
   } catch (error) {
     console.error(
-      "Central authentication lookup failed:",
+      "Website payment verification authentication failed:",
       error
     );
   }
 
   /*
-   * ----------------------------------------
-   * Direct Telegram fallback
-   * ----------------------------------------
+   * ==============================================
+   * 2. TELEGRAM FALLBACK
+   * ==============================================
    */
 
   try {
     const authorization =
-      request.headers.get("authorization");
+      request.headers.get(
+        "authorization"
+      );
 
     if (
-      authorization &&
-      authorization.startsWith("tma ")
+      authorization?.startsWith(
+        "tma "
+      )
     ) {
       const initData =
         authorization.slice(4);
@@ -143,11 +244,11 @@ async function getAuthenticatedUser(request) {
         );
 
       if (telegramUser?.id) {
-        const userResponse =
+        const response =
           await fetch(
             `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${encodeURIComponent(
               telegramUser.id
-            )}&select=id,telegram_id,email,first_name,last_name,username,status,plan&limit=1`,
+            )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
             {
               headers: {
                 apikey:
@@ -161,14 +262,13 @@ async function getAuthenticatedUser(request) {
             }
           );
 
-        if (userResponse.ok) {
+        if (response.ok) {
           const users =
-            await userResponse.json();
+            await response.json();
 
           if (users?.length) {
             return {
               user: users[0],
-
               authMethod:
                 "telegram",
             };
@@ -178,7 +278,7 @@ async function getAuthenticatedUser(request) {
     }
   } catch (error) {
     console.error(
-      "Telegram authentication fallback failed:",
+      "Telegram payment verification authentication failed:",
       error
     );
   }
@@ -187,16 +287,18 @@ async function getAuthenticatedUser(request) {
 }
 
 /*
- * ----------------------------------------
+ * ========================================================
  * POST
- * ----------------------------------------
+ * ========================================================
  */
 
-export async function POST(request) {
+export async function POST(
+  request
+) {
   try {
     /*
      * ----------------------------------------
-     * CONFIG CHECK
+     * CONFIG
      * ----------------------------------------
      */
 
@@ -296,11 +398,6 @@ export async function POST(request) {
      * ----------------------------------------
      * FIND EXACT USER'S SUBSCRIPTION
      * ----------------------------------------
-     *
-     * Important:
-     * Frontend cannot verify someone else's
-     * order because order is matched with
-     * authenticated user ID.
      */
 
     const subscriptionResponse =
@@ -362,6 +459,9 @@ export async function POST(request) {
      * ----------------------------------------
      * ALREADY ACTIVE
      * ----------------------------------------
+     *
+     * Webhook may have activated it
+     * before this verification request.
      */
 
     if (
@@ -382,7 +482,9 @@ export async function POST(request) {
     }
 
     /*
-     * Only pending payment can be activated.
+     * ----------------------------------------
+     * ONLY PENDING CAN BE VERIFIED
+     * ----------------------------------------
      */
 
     if (
@@ -424,20 +526,24 @@ export async function POST(request) {
      * ----------------------------------------
      * DATABASE AMOUNT VALIDATION
      * ----------------------------------------
-     *
-     * Never trust frontend amount.
      */
 
     if (
-      Number(subscription.amount) !==
-      Number(selectedPlan.amount)
+      Number(
+        subscription.amount
+      ) !==
+      Number(
+        selectedPlan.amount
+      )
     ) {
       console.error(
         "Subscription amount mismatch:",
         {
           orderId,
+
           databaseAmount:
             subscription.amount,
+
           expectedAmount:
             selectedPlan.amount,
         }
@@ -454,11 +560,8 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * CASHFREE VERIFICATION
+     * CASHFREE PAYMENT VERIFICATION
      * ----------------------------------------
-     *
-     * Directly ask Cashfree for all payments
-     * belonging to this exact order.
      */
 
     const paymentsResponse =
@@ -524,7 +627,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * SUCCESS PAYMENT
+     * FIND SUCCESS PAYMENT
      * ----------------------------------------
      */
 
@@ -588,7 +691,9 @@ export async function POST(request) {
         paidAmount
       ) ||
       paidAmount !==
-        Number(selectedPlan.amount)
+        Number(
+          selectedPlan.amount
+        )
     ) {
       console.error(
         "Cashfree payment amount mismatch:",
@@ -655,11 +760,8 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * ACTIVATE PAID SUBSCRIPTION
+     * ACTIVATE EXACT PAYMENT
      * ----------------------------------------
-     *
-     * First activate the exact verified
-     * payment order.
      */
 
     const activateResponse =
@@ -726,7 +828,7 @@ export async function POST(request) {
 
     /*
      * ----------------------------------------
-     * DEACTIVATE DEMO
+     * DEACTIVATE ACTIVE DEMO
      * ----------------------------------------
      */
 
@@ -765,13 +867,6 @@ export async function POST(request) {
     if (
       !demoDeactivateResponse.ok
     ) {
-      /*
-       * Paid subscription is already active,
-       * so don't tell the user payment failed.
-       *
-       * Just log the cleanup issue.
-       */
-
       console.error(
         "Previous demo deactivation failed:",
         await demoDeactivateResponse.text()
@@ -816,12 +911,6 @@ export async function POST(request) {
     if (
       !userPlanResponse.ok
     ) {
-      /*
-       * Subscription is already active.
-       * Log this separately rather than
-       * pretending payment verification failed.
-       */
-
       console.error(
         "User Premium plan update failed:",
         await userPlanResponse.text()
