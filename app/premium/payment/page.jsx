@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const PLANS = {
@@ -27,7 +27,7 @@ const PLANS = {
   },
 };
 
-export default function PaymentPage() {
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -98,12 +98,18 @@ export default function PaymentPage() {
       );
 
       if (existingScript) {
-        existingScript.addEventListener("load", resolve, { once: true });
-        existingScript.addEventListener("error", reject, { once: true });
-
         if (window.Cashfree) {
           resolve();
+          return;
         }
+
+        existingScript.addEventListener("load", resolve, {
+          once: true,
+        });
+
+        existingScript.addEventListener("error", reject, {
+          once: true,
+        });
 
         return;
       }
@@ -115,7 +121,9 @@ export default function PaymentPage() {
 
       script.onload = resolve;
       script.onerror = () =>
-        reject(new Error("Unable to load Cashfree payment SDK."));
+        reject(
+          new Error("Unable to load Cashfree payment SDK.")
+        );
 
       document.head.appendChild(script);
     });
@@ -136,10 +144,10 @@ export default function PaymentPage() {
     try {
       /*
        * IMPORTANT:
-       * Payment request uses the normal website session cookie.
-       *
-       * Telegram Authorization header has intentionally been removed.
+       * No Telegram Authorization header is sent here.
+       * Website authentication uses the sambhav_session cookie.
        */
+
       const response = await fetch("/api/payment/create-order", {
         method: "POST",
         credentials: "include",
@@ -190,7 +198,9 @@ export default function PaymentPage() {
       const Cashfree = await loadCashfree();
 
       const environment =
-        data?.environment === "production" ? "production" : "sandbox";
+        data?.environment === "production"
+          ? "production"
+          : "sandbox";
 
       const cashfree = Cashfree({
         mode: environment,
@@ -217,6 +227,7 @@ export default function PaymentPage() {
       <main className="min-h-screen bg-[#f5f1e8] flex items-center justify-center px-6">
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" />
+
           <p className="text-sm text-black/55">
             Loading secure checkout...
           </p>
@@ -228,7 +239,7 @@ export default function PaymentPage() {
   return (
     <main className="min-h-screen bg-[#f5f1e8] text-black">
       <div className="mx-auto min-h-screen w-full max-w-5xl px-5 py-8 sm:px-8 lg:px-10">
-        {/* Back */}
+
         <button
           type="button"
           onClick={() => router.back()}
@@ -237,7 +248,6 @@ export default function PaymentPage() {
           ← Back
         </button>
 
-        {/* Heading */}
         <section className="mb-10">
           <p className="mb-3 text-xs font-semibold tracking-[0.22em] text-[#a18a46]">
             SECURE CHECKOUT
@@ -250,10 +260,10 @@ export default function PaymentPage() {
           </h1>
         </section>
 
-        {/* Main content */}
         <div className="mx-auto max-w-4xl">
-          {/* Plan card */}
+
           <section className="mb-6 overflow-hidden rounded-[32px] bg-[#111111] px-8 py-9 text-white shadow-[0_20px_50px_rgba(0,0,0,0.10)] sm:px-10 sm:py-10">
+
             <p className="mb-4 text-xs font-semibold tracking-[0.22em] text-[#dfc56f]">
               SAMBHAV PREMIUM
             </p>
@@ -271,13 +281,14 @@ export default function PaymentPage() {
             </div>
           </section>
 
-          {/* Summary */}
           <section className="rounded-[32px] border border-black/[0.06] bg-[#fffdfa] p-7 shadow-[0_15px_40px_rgba(0,0,0,0.04)] sm:p-9">
+
             <p className="mb-6 text-xs font-bold tracking-[0.18em] text-black/45">
               PAYMENT SUMMARY
             </p>
 
             <div className="space-y-5">
+
               <div className="flex items-center justify-between gap-5">
                 <span className="text-lg text-black/80">
                   Membership
@@ -299,6 +310,7 @@ export default function PaymentPage() {
               </div>
 
               <div className="border-t border-black/10 pt-6">
+
                 <div className="flex items-center justify-between gap-5">
                   <span className="text-xl font-bold">
                     Total payable
@@ -308,16 +320,15 @@ export default function PaymentPage() {
                     ₹{plan.amount}
                   </span>
                 </div>
+
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
                   {error}
                 </div>
               )}
 
-              {/* Pay button */}
               <button
                 type="button"
                 onClick={handlePayment}
@@ -337,10 +348,34 @@ export default function PaymentPage() {
               <p className="pt-1 text-center text-sm text-black/45">
                 🔒 Secure payment powered by Cashfree
               </p>
+
             </div>
           </section>
+
         </div>
       </div>
     </main>
+  );
+}
+
+function PaymentLoading() {
+  return (
+    <main className="min-h-screen bg-[#f5f1e8] flex items-center justify-center px-6">
+      <div className="text-center">
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" />
+
+        <p className="text-sm text-black/55">
+          Loading secure checkout...
+        </p>
+      </div>
+    </main>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<PaymentLoading />}>
+      <PaymentContent />
+    </Suspense>
   );
 }
