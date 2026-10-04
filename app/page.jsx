@@ -190,7 +190,7 @@ const styles = {
     color: "#ffffff",
     borderRadius: "31px",
     padding: "30px 23px 25px",
-    marginBottom: "20px",
+    marginBottom: "16px",
     boxShadow: "0 22px 48px rgba(0,0,0,0.17)",
     position: "relative",
     overflow: "hidden",
@@ -649,7 +649,7 @@ const styles = {
   },
 
   greeting: {
-    marginBottom: "20px",
+    marginBottom: "16px",
   },
 
   greetingTitle: {
@@ -710,7 +710,7 @@ const styles = {
     padding: "15px",
     fontSize: "14px",
     fontWeight: "750",
-    marginBottom: "17px",
+    marginBottom: "14px",
     cursor: "pointer",
   },
 
@@ -718,7 +718,7 @@ const styles = {
     background:
       "linear-gradient(135deg, #111111 0%, #191919 55%, #252525 100%)",
     color: "#ffffff",
-    borderRadius: "25px",
+    borderRadius: "22px",
     padding: "21px",
     marginBottom: "18px",
     boxShadow:
@@ -801,7 +801,7 @@ const styles = {
     background:
       "linear-gradient(145deg,#211e17,#171510)",
     color: "#ffffff",
-    borderRadius: "25px",
+    borderRadius: "22px",
     padding: "21px",
     marginBottom: "27px",
     boxShadow:
@@ -1032,7 +1032,7 @@ const styles = {
     height: "68px",
     background: "rgba(19,19,19,.98)",
     border: "1px solid #303030",
-    borderRadius: "25px",
+    borderRadius: "22px",
     boxShadow:
       "0 10px 35px rgba(0,0,0,0.12)",
     display: "grid",
@@ -1114,14 +1114,14 @@ const styles = {
     background: "#0b0b0b",
     color: "#ffffff",
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    paddingBottom: "118px",
+    paddingBottom: "92px",
   },
 
   dashboardContainer: {
     width: "100%",
     maxWidth: "760px",
     margin: "0 auto",
-    padding: "16px 16px 26px",
+    padding: "12px 12px 20px",
     boxSizing: "border-box",
   },
 
@@ -1129,7 +1129,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "20px",
+    marginBottom: "16px",
   },
 
   dashboardBrand: {
@@ -1146,7 +1146,7 @@ const styles = {
     marginTop: "4px",
     color: "#858585",
     fontSize: "8px",
-    fontWeight: "850",
+    fontWeight: "950",
     letterSpacing: "1.2px",
     textTransform: "uppercase",
   },
@@ -1166,7 +1166,7 @@ const styles = {
   },
 
   dashboardGreeting: {
-    marginBottom: "17px",
+    marginBottom: "14px",
   },
 
   dashboardGreetingTitle: {
@@ -1181,16 +1181,16 @@ const styles = {
     margin: "7px 0 0",
     color: "#a4a4a4",
     fontSize: "12px",
-    lineHeight: "1.5",
-    fontWeight: "750",
+    lineHeight: "1.45",
+    fontWeight: "900",
   },
 
   dashboardAccessCard: {
     background: "linear-gradient(145deg,#191919,#101010)",
     border: "1px solid #292929",
     borderRadius: "19px",
-    padding: "15px 16px",
-    marginBottom: "11px",
+    padding: "13px 14px",
+    marginBottom: "9px",
   },
 
   dashboardAccessLabel: {
@@ -1211,7 +1211,7 @@ const styles = {
     marginTop: "3px",
     color: "#8d8d8d",
     fontSize: "10px",
-    fontWeight: "750",
+    fontWeight: "900",
   },
 
   dashboardSecretary: {
@@ -1220,10 +1220,10 @@ const styles = {
     borderRadius: "15px",
     background: "#151515",
     color: "#ffffff",
-    padding: "12px 14px",
+    padding: "11px 13px",
     fontSize: "11px",
     fontWeight: "900",
-    marginBottom: "11px",
+    marginBottom: "9px",
     cursor: "pointer",
   },
 
@@ -1232,8 +1232,8 @@ const styles = {
     border: "1px solid #302d25",
     color: "#ffffff",
     borderRadius: "19px",
-    padding: "16px",
-    marginBottom: "12px",
+    padding: "14px",
+    marginBottom: "10px",
     position: "relative",
     overflow: "hidden",
   },
@@ -1261,10 +1261,10 @@ const styles = {
 
   dashboardPremiumSub: {
     marginTop: "5px",
-    color: "#a4a4a4",
+    color: "#b0b0b0",
     fontSize: "10px",
     lineHeight: "1.5",
-    fontWeight: "750",
+    fontWeight: "900",
     position: "relative",
     zIndex: 2,
   },
@@ -1288,8 +1288,8 @@ const styles = {
     border: "1px solid #4a402a",
     color: "#ffffff",
     borderRadius: "19px",
-    padding: "16px",
-    marginBottom: "12px",
+    padding: "14px",
+    marginBottom: "10px",
     cursor: "pointer",
   },
 
@@ -1298,7 +1298,7 @@ const styles = {
     alignItems: "flex-end",
     justifyContent: "space-between",
     gap: "12px",
-    margin: "18px 2px 9px",
+    margin: "15px 2px 8px",
   },
 
   ecosystemTitle: {
@@ -1309,28 +1309,28 @@ const styles = {
 
   ecosystemSub: {
     marginTop: "3px",
-    color: "#8c8c8c",
+    color: "#9a9a9a",
     fontSize: "9px",
-    fontWeight: "800",
+    fontWeight: "950",
   },
 
   ecosystemCount: {
     color: "#777777",
     fontSize: "9px",
-    fontWeight: "900",
+    fontWeight: "950",
     whiteSpace: "nowrap",
   },
 
   ecosystemCard: {
     background: "linear-gradient(145deg,#171717,#0d0d0d)",
     border: "1px solid #282828",
-    borderRadius: "25px",
+    borderRadius: "22px",
     overflow: "hidden",
     boxShadow: "0 18px 45px rgba(0,0,0,.28)",
   },
 
   ecosystemIntro: {
-    padding: "18px 18px 15px",
+    padding: "16px 16px 13px",
     borderBottom: "1px solid #2a2a2a",
   },
 
@@ -1353,8 +1353,8 @@ const styles = {
     marginTop: "9px",
     color: "#a3a3a3",
     fontSize: "11px",
-    lineHeight: "1.55",
-    fontWeight: "750",
+    lineHeight: "1.5",
+    fontWeight: "900",
   },
 
   ecoItem: {
@@ -1364,10 +1364,11 @@ const styles = {
   ecoButton: {
     width: "100%",
     display: "grid",
-    gridTemplateColumns: "38px 46px minmax(0,1fr) 34px",
+    gridTemplateColumns: "30px 46px minmax(0,1fr) 32px",
     alignItems: "center",
-    gap: "9px",
-    padding: "11px 14px",
+    gap: "8px",
+    padding: "9px 12px",
+    textAlign: "left",
     border: "none",
     background: "transparent",
     color: "#ffffff",
@@ -1395,17 +1396,19 @@ const styles = {
 
   ecoLabel: {
     color: "#d6bd79",
-    fontSize: "7px",
+    fontSize: "8px",
     letterSpacing: "1.1px",
     fontWeight: "950",
     lineHeight: "1.2",
+    textAlign: "left",
   },
 
   ecoTitle: {
-    marginTop: "4px",
+    marginTop: "3px",
     fontSize: "15px",
     fontWeight: "950",
     lineHeight: "1.15",
+    textAlign: "left",
   },
 
   ecoArrow: {
@@ -1422,7 +1425,7 @@ const styles = {
   },
 
   ecoDetails: {
-    padding: "0 18px 13px 93px",
+    padding: "0 14px 11px 84px",
     animation: "ecoReveal .18s ease-out",
   },
 
@@ -1433,8 +1436,9 @@ const styles = {
     color: "#eeeeee",
     fontSize: "10px",
     lineHeight: "1.45",
-    fontWeight: "850",
-    marginTop: "7px",
+    fontWeight: "900",
+    marginTop: "6px",
+    textAlign: "left",
   },
 
   ecoDot: {
@@ -1470,8 +1474,8 @@ const styles = {
     justifyContent: "center",
     gap: "2px",
     fontSize: "9px",
-    color: "#777777",
-    fontWeight: "850",
+    color: "#8b8b8b",
+    fontWeight: "950",
     cursor: "pointer",
   },
 
@@ -1891,7 +1895,7 @@ function LearningEcosystem() {
               </button>
 
               {isOpen && (
-                <div style={styles.ecoDetails}>
+                <div style={{...styles.ecoDetails, textAlign: "left"}}>
                   {item.points.map((point) => (
                     <div key={point} style={styles.ecoPoint}>
                       <span style={styles.ecoDot}>•</span>
