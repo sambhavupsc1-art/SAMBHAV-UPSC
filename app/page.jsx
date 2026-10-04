@@ -637,7 +637,6 @@ const styles = {
       "0 15px 38px rgba(0,0,0,0.15)",
     position: "relative",
     overflow: "hidden",
-    cursor: "pointer",
     border:
       "1px solid rgba(255,255,255,0.06)",
   },
@@ -707,6 +706,7 @@ const styles = {
     fontWeight: "850",
     position: "relative",
     zIndex: 2,
+    cursor: "pointer",
   },
 
   adminCard: {
@@ -1463,19 +1463,14 @@ export default function Home() {
           );
 
           /*
-           * First use backend's normal auth result.
+           * Existing backend admin result.
            */
           setIsAdmin(
             emailData.isAdmin === true
           );
 
           /*
-           * Then independently verify through
-           * the protected admin endpoint.
-           *
-           * This fixes cases where the dashboard
-           * auth response is stale but the admin
-           * mapping already exists.
+           * Independent admin verification.
            */
           await verifyAdmin();
 
@@ -2037,15 +2032,7 @@ export default function Home() {
 
           {/* PREMIUM */}
 
-          <section
-            style={styles.premiumCard}
-            onClick={() => {
-              window.location.href =
-                isPremium
-                  ? "/premium/home"
-                  : "/premium";
-            }}
-          >
+          <section style={styles.premiumCard}>
             <div style={styles.premiumGlow} />
             <div style={styles.premiumGlowSmall} />
 
@@ -2065,9 +2052,69 @@ export default function Home() {
               {premiumSubText}
             </div>
 
-            <div style={styles.premiumAction}>
-              {premiumActionText}
-            </div>
+            {/* DEMO USER */}
+            {isPremium &&
+            premiumPlan === "demo" ? (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "9px",
+                  flexWrap: "wrap",
+                  marginTop: "16px",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              >
+                <button
+                  type="button"
+                  style={{
+                    ...styles.premiumAction,
+                    marginTop: 0,
+                    border: "none",
+                  }}
+                  onClick={() => {
+                    window.location.href =
+                      "/premium/home";
+                  }}
+                >
+                  Open Premium →
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    ...styles.premiumAction,
+                    marginTop: 0,
+                    background: "#d6bd79",
+                    color: "#111111",
+                    border: "none",
+                  }}
+                  onClick={() => {
+                    window.location.href =
+                      "/premium";
+                  }}
+                >
+                  View Paid Plans →
+                </button>
+              </div>
+            ) : (
+              /* FREE / PAID USER */
+              <button
+                type="button"
+                style={{
+                  ...styles.premiumAction,
+                  border: "none",
+                }}
+                onClick={() => {
+                  window.location.href =
+                    isPremium
+                      ? "/premium/home"
+                      : "/premium";
+                }}
+              >
+                {premiumActionText}
+              </button>
+            )}
           </section>
 
           {/* =================================================
