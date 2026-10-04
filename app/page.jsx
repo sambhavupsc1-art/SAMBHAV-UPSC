@@ -42,6 +42,88 @@ const modules = [
   },
 ];
 
+const learningEcosystem = [
+  {
+    number: "01",
+    title: "Current Affairs",
+    label: "DAILY & MONTHLY INTELLIGENCE",
+    icon: "📰",
+    points: [
+      "Daily & Monthly Current Affairs",
+      "UPSC-oriented analysis",
+      "The Hindu & PIB / Government Sources",
+      "Prelims & Mains relevance",
+      "Revision-oriented content",
+    ],
+  },
+  {
+    number: "02",
+    title: "PYQ Intelligence",
+    label: "PREVIOUS YEAR QUESTIONS",
+    icon: "🎯",
+    points: [
+      "Prelims & Mains Previous Year Questions",
+      "Subject & Topic-wise classification",
+      "Question-wise practice",
+      "Detailed explanations",
+      "Performance & trend analysis",
+    ],
+  },
+  {
+    number: "03",
+    title: "Prelims Test",
+    label: "PYQ-ORIENTED PRACTICE",
+    icon: "📝",
+    points: [
+      "PYQ-oriented MCQs & Practice",
+      "Subject & Topic-wise PYQ Practice",
+      "PYQ-based Tests",
+      "Question Analysis",
+      "Score & Performance Analysis",
+    ],
+  },
+  {
+    number: "04",
+    title: "Mains",
+    label: "ANSWER WRITING",
+    icon: "✍️",
+    points: [
+      "GS I, II, III & IV Questions",
+      "PYQ-based Answer Writing",
+      "Structured Answer Practice",
+      "Answer Evaluation",
+      "Improvement Guidance",
+    ],
+  },
+  {
+    number: "05",
+    title: "AI Answer Evaluation",
+    label: "AI-POWERED ANALYSIS",
+    icon: "🤖",
+    points: [
+      "AI-powered Answer Evaluation",
+      "Score & Assessment",
+      "Strengths & Weaknesses",
+      "Content & Structure Analysis",
+      "Actionable Improvement Suggestions",
+    ],
+  },
+  {
+    number: "06",
+    title: "Study Material",
+    label: "NOTES & RESOURCES",
+    icon: "📚",
+    points: [
+      "GS Resources",
+      "Conceptual Notes",
+      "Revision Material",
+      "UPSC-oriented Reference Resources",
+      "CSAT Focus: Comprehension-based & Factual / Knowledge-based Questions",
+      "Detailed Explanations & Analysis",
+    ],
+  },
+];
+
 const styles = {
   page: {
     minHeight: "100vh",
@@ -865,6 +947,142 @@ const styles = {
     fontSize: "17px",
   },
 
+  ecosystemWrap: {
+    marginTop: "8px",
+    marginBottom: "26px",
+    background: "linear-gradient(145deg, #171717 0%, #0b0b0b 100%)",
+    border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: "26px",
+    padding: "9px",
+    boxShadow: "0 18px 42px rgba(0,0,0,0.15)",
+    overflow: "hidden",
+  },
+
+  ecosystemIntro: {
+    padding: "17px 15px 14px",
+  },
+
+  ecosystemIntroLabel: {
+    color: "#d6bd79",
+    fontSize: "9px",
+    fontWeight: "950",
+    letterSpacing: "1.6px",
+    textTransform: "uppercase",
+  },
+
+  ecosystemIntroTitle: {
+    marginTop: "7px",
+    color: "#ffffff",
+    fontSize: "23px",
+    lineHeight: "1.12",
+    fontWeight: "950",
+    letterSpacing: "-0.7px",
+  },
+
+  ecosystemIntroText: {
+    marginTop: "7px",
+    color: "#bcbcbc",
+    fontSize: "12px",
+    lineHeight: "1.55",
+    fontWeight: "750",
+  },
+
+  ecosystemItem: {
+    borderTop: "1px solid rgba(255,255,255,0.07)",
+  },
+
+  ecosystemButton: {
+    width: "100%",
+    border: "none",
+    background: "transparent",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    padding: "15px 10px",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+
+  ecosystemNumber: {
+    width: "32px",
+    minWidth: "32px",
+    color: "#8f8f8f",
+    fontSize: "10px",
+    fontWeight: "950",
+    letterSpacing: "0.8px",
+  },
+
+  ecosystemIcon: {
+    width: "39px",
+    height: "39px",
+    minWidth: "39px",
+    borderRadius: "13px",
+    background: "rgba(255,255,255,0.055)",
+    border: "1px solid rgba(255,255,255,0.07)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "18px",
+  },
+
+  ecosystemContent: {
+    minWidth: 0,
+    flex: 1,
+  },
+
+  ecosystemLabel: {
+    color: "#d6bd79",
+    fontSize: "8px",
+    letterSpacing: "1.1px",
+    fontWeight: "950",
+    textTransform: "uppercase",
+  },
+
+  ecosystemTitle: {
+    marginTop: "4px",
+    color: "#ffffff",
+    fontSize: "15px",
+    lineHeight: "1.2",
+    fontWeight: "950",
+  },
+
+  ecosystemChevron: {
+    width: "29px",
+    height: "29px",
+    minWidth: "29px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.07)",
+    color: "#d6bd79",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "17px",
+    fontWeight: "950",
+  },
+
+  ecosystemDetails: {
+    padding: "0 15px 17px 62px",
+    animation: "ecosystemReveal 180ms ease-out",
+  },
+
+  ecosystemPoint: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    color: "#eeeeee",
+    fontSize: "11px",
+    lineHeight: "1.5",
+    fontWeight: "800",
+    padding: "4px 0",
+  },
+
+  ecosystemDot: {
+    color: "#d6bd79",
+    fontWeight: "950",
+    marginTop: "1px",
+  },
+
   pendingCard: {
     marginTop: "70px",
     background: "#ffffff",
@@ -1061,6 +1279,7 @@ function PublicLanding() {
   return (
     <>
       <main style={styles.page}>
+        
         <div style={styles.container}>
           <header style={styles.header}>
             <div>
@@ -1392,6 +1611,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [openEcosystem, setOpenEcosystem] = useState(0);
 
   /* =====================================================
   AUTHENTICATION
@@ -1626,7 +1846,8 @@ export default function Home() {
         />
 
         <main style={styles.page}>
-          <div style={styles.container}>
+          
+        <div style={styles.container}>
             <div
               style={{
                 ...styles.pendingCard,
@@ -1942,16 +2163,16 @@ export default function Home() {
   const premiumTitleText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Premium Demo is Active"
-        : "Premium Access is Active"
-      : "Upgrade Your Preparation";
+        ? "Your Premium Demo is Active"
+        : "Your Premium Access is Active"
+      : "Unlock the Full SAMBHAV Experience";
 
   const premiumSubText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Explore the complete SAMBHAV workspace."
-        : "Your premium workspace is ready for focused preparation."
-      : "Current Affairs, PYQs, Tests, Mains practice and AI evaluation in one focused workspace.";
+        ? "Your 2-day Premium Demo is currently active. Open your Premium workspace and explore SAMBHAV."
+        : "Your Premium subscription is currently active. Open your Premium workspace and continue your preparation."
+      : "Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation & premium study resources — all in one place.";
 
   const premiumActionText =
     isPremium
@@ -1966,15 +2187,17 @@ export default function Home() {
       />
 
       <main style={styles.page}>
+        <style>{`
+          @keyframes ecosystemReveal {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
         <div style={styles.container}>
 
           {/* HEADER */}
-          <header
-            style={{
-              ...styles.header,
-              marginBottom: "24px",
-            }}
-          >
+
+          <header style={styles.header}>
             <div>
               <div style={styles.brand}>
                 SAMBHAV
@@ -1982,646 +2205,338 @@ export default function Home() {
                   {" "}UPSC
                 </span>
               </div>
+
               <div style={styles.brandSub}>
-                INTELLIGENCE • PREPARATION • PERFORMANCE
+                UPSC Preparation Platform
               </div>
             </div>
 
-            <div
-              style={{
-                ...styles.avatar,
-                width: "46px",
-                height: "46px",
-                fontSize: "18px",
-              }}
-            >
+            <div style={styles.avatar}>
               {initial}
             </div>
           </header>
 
-          {/* HERO */}
-          <section
-            style={{
-              background:
-                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-              color: "#ffffff",
-              borderRadius: "28px",
-              padding: "24px 21px 21px",
-              marginBottom: "16px",
-              boxShadow: "0 20px 42px rgba(0,0,0,0.14)",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                width: "190px",
-                height: "190px",
-                borderRadius: "50%",
-                background: "rgba(190,157,76,0.10)",
-                right: "-85px",
-                top: "-95px",
-              }}
-            />
+          {/* GREETING */}
 
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  letterSpacing: "1.7px",
-                  color: "#d6bd79",
-                  marginBottom: "10px",
-                }}
-              >
-                PERSONAL PREPARATION WORKSPACE
-              </div>
+          <section style={styles.greeting}>
+            <h1 style={styles.greetingTitle}>
+              Hello, {firstName}
+            </h1>
 
-              <div
-                style={{
-                  fontSize: "28px",
-                  lineHeight: "1.08",
-                  fontWeight: "900",
-                  letterSpacing: "-1px",
-                }}
-              >
-                Hello, {firstName}.
-              </div>
+            <p style={styles.greetingSub}>
+              Continue your preparation.
+            </p>
+          </section>
 
-              <div
-                style={{
-                  marginTop: "9px",
-                  fontSize: "28px",
-                  lineHeight: "1.08",
-                  fontWeight: "900",
-                  letterSpacing: "-1px",
-                  color: "#d6bd79",
-                  maxWidth: "620px",
-                }}
-              >
-                संभव है, तो UPSC संभव है।
-              </div>
+          {/* ACCESS CARD */}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(3, minmax(0, 1fr))",
-                  gap: "8px",
-                  marginTop: "20px",
-                }}
-              >
-                {[
-                  ["01", "FOCUS"],
-                  ["02", "PRACTICE"],
-                  ["03", "PERFORM"],
-                ].map(([num, label]) => (
-                  <div
-                    key={num}
-                    style={{
-                      paddingTop: "11px",
-                      borderTop:
-                        "1px solid rgba(255,255,255,0.14)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: "900",
-                      }}
-                    >
-                      {num}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "3px",
-                        fontSize: "8px",
-                        fontWeight: "800",
-                        letterSpacing: "1.1px",
-                        color:
-                          "rgba(255,255,255,0.48)",
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <section style={styles.accessCard}>
+            <div style={styles.accessLabel}>
+              Officer Access Card
+            </div>
+
+            <div style={styles.accessTitle}>
+              {firstName}
+            </div>
+
+            <div style={styles.accessSub}>
+              Clearance: ACTIVE
             </div>
           </section>
 
-          {/* OFFICER ACCESS */}
-          <section
-            style={{
-              background:
-                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-              color: "#ffffff",
-              borderRadius: "22px",
-              padding: "17px 18px",
-              marginBottom: "16px",
-              position: "relative",
-              overflow: "hidden",
-              boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
-            }}
+          {/* AI SECRETARY */}
+
+          <button
+            style={styles.secretaryButton}
+            onClick={() =>
+              console.log(
+                "AI Secretary coming soon"
+              )
+            }
           >
-            <div
-              style={{
-                position: "absolute",
-                width: "150px",
-                height: "150px",
-                borderRadius: "50%",
-                background: "rgba(214,189,121,0.08)",
-                right: "-65px",
-                top: "-75px",
-              }}
-            />
-
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1.3px",
-                  color: "#d6bd79",
-                }}
-              >
-                OFFICER ACCESS
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  fontSize: "17px",
-                  fontWeight: "900",
-                }}
-              >
-                {firstName}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "5px",
-                  fontSize: "10px",
-                  color: "rgba(255,255,255,0.55)",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                ● ACTIVE CLEARANCE
-              </div>
-            </div>
-          </section>
+            ✦ Open AI Secretary →
+          </button>
 
           {/* PREMIUM */}
-          <section
-            style={{
-              background:
-                "linear-gradient(145deg, #171717, #242424)",
-              color: "#ffffff",
-              borderRadius: "25px",
-              padding: "20px",
-              marginBottom: "23px",
-              position: "relative",
-              overflow: "hidden",
-              boxShadow:
-                "0 18px 36px rgba(0,0,0,0.13)",
-            }}
-          >
+
+          <section style={styles.premiumCard}>
+            <div style={styles.premiumGlow} />
+            <div style={styles.premiumGlowSmall} />
+
+            <div style={styles.premiumBadge}>
+              {premiumBadgeText}
+            </div>
+
             <div
-              style={{
-                position: "absolute",
-                width: "170px",
-                height: "170px",
-                borderRadius: "50%",
-                background:
-                  "rgba(214,189,121,0.08)",
-                right: "-75px",
-                top: "-85px",
-              }}
-            />
+              style={
+                styles.premiumTitleDashboard
+              }
+            >
+              {premiumTitleText}
+            </div>
 
-            <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={styles.premiumSub}>
+              {premiumSubText}
+            </div>
+
+            {/* DEMO USER */}
+            {isPremium &&
+            premiumPlan === "demo" ? (
               <div
                 style={{
-                  display: "inline-flex",
-                  padding: "7px 10px",
-                  borderRadius: "999px",
-                  background: "#ffffff",
-                  color: "#171717",
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1px",
+                  display: "flex",
+                  gap: "9px",
+                  flexWrap: "wrap",
+                  marginTop: "16px",
+                  position: "relative",
+                  zIndex: 2,
                 }}
               >
-                {premiumBadgeText}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "13px",
-                  fontSize: "21px",
-                  lineHeight: "1.2",
-                  fontWeight: "900",
-                }}
-              >
-                {premiumTitleText}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  maxWidth: "610px",
-                  fontSize: "12px",
-                  lineHeight: "1.55",
-                  color:
-                    "rgba(255,255,255,0.63)",
-                }}
-              >
-                {premiumSubText}
-              </div>
-
-              {!isPremium && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(2, minmax(0, 1fr))",
-                    gap: "7px",
-                    marginTop: "14px",
-                  }}
-                >
-                  {[
-                    "Current Affairs",
-                    "PYQ Intelligence",
-                    "Mains Practice",
-                    "AI Evaluation",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      style={{
-                        fontSize: "9px",
-                        fontWeight: "800",
-                        color:
-                          "rgba(255,255,255,0.68)",
-                        padding: "8px 9px",
-                        border:
-                          "1px solid rgba(255,255,255,0.10)",
-                        borderRadius: "9px",
-                      }}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isPremium &&
-              premiumPlan === "demo" ? (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                    marginTop: "15px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.premiumAction,
-                      marginTop: 0,
-                      border: "none",
-                    }}
-                    onClick={() => {
-                      window.location.href =
-                        "/premium/home";
-                    }}
-                  >
-                    Open Premium →
-                  </button>
-
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.premiumAction,
-                      marginTop: 0,
-                      background: "#d6bd79",
-                      color: "#111111",
-                      border: "none",
-                    }}
-                    onClick={() => {
-                      window.location.href =
-                        "/premium";
-                    }}
-                  >
-                    View Paid Plans →
-                  </button>
-                </div>
-              ) : (
                 <button
                   type="button"
                   style={{
                     ...styles.premiumAction,
+                    marginTop: 0,
                     border: "none",
                   }}
                   onClick={() => {
                     window.location.href =
-                      isPremium
-                        ? "/premium/home"
-                        : "/premium";
+                      "/premium/home";
                   }}
                 >
-                  {premiumActionText}
+                  Open Premium →
                 </button>
-              )}
-            </div>
+
+                <button
+                  type="button"
+                  style={{
+                    ...styles.premiumAction,
+                    marginTop: 0,
+                    background: "#d6bd79",
+                    color: "#111111",
+                    border: "none",
+                  }}
+                  onClick={() => {
+                    window.location.href =
+                      "/premium";
+                  }}
+                >
+                  View Paid Plans →
+                </button>
+              </div>
+            ) : (
+              /* FREE / PAID USER */
+              <button
+                type="button"
+                style={{
+                  ...styles.premiumAction,
+                  border: "none",
+                }}
+                onClick={() => {
+                  window.location.href =
+                    isPremium
+                      ? "/premium/home"
+                      : "/premium";
+                }}
+              >
+                {premiumActionText}
+              </button>
+            )}
           </section>
 
-          {/* ADMIN */}
+          {/* =================================================
+          ADMIN CONTROL CENTER
+          ONLY ADMIN CAN SEE THIS
+          ================================================= */}
+
           {isAdmin && (
             <section
-              style={{
-                background:
-                  "linear-gradient(135deg, #f4ead0, #fffaf0)",
-                border:
-                  "1px solid rgba(160,125,50,0.24)",
-                borderRadius: "20px",
-                padding: "17px",
-                marginBottom: "23px",
-                cursor: "pointer",
-              }}
+              style={styles.adminCard}
               onClick={() => {
                 window.location.href =
                   "/admin";
               }}
             >
-              <div
-                style={{
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1.2px",
-                  color: "#8c6b27",
-                }}
-              >
-                ADMIN ACCESS
+              <div style={styles.adminGlow} />
+
+              <div style={styles.adminBadge}>
+                🔐 ADMIN ACCESS
               </div>
 
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "17px",
-                  fontWeight: "900",
-                }}
-              >
-                Control Center →
+              <div style={styles.adminTitle}>
+                Admin Control Center
               </div>
 
-              <div
-                style={{
-                  marginTop: "4px",
-                  fontSize: "11px",
-                  color: "#77736c",
-                }}
-              >
-                Users • Approvals • Premium • Accounts
+              <div style={styles.adminSub}>
+                Manage users, access requests,
+                approvals, Premium accounts,
+                subscriptions and account status.
+              </div>
+
+              <div style={styles.adminAction}>
+                Open Admin Panel →
               </div>
             </section>
           )}
 
-          {/* TODAY'S PREPARATION */}
-          <section
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e7e4dd",
-              borderRadius: "20px",
-              padding: "15px 16px",
-              marginBottom: "23px",
-              boxShadow: "0 7px 20px rgba(0,0,0,0.035)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: "8px",
-                    fontWeight: "900",
-                    letterSpacing: "1.4px",
-                    color: "#a07d32",
-                  }}
-                >
-                  TODAY'S PREPARATION
-                </div>
-                <div
-                  style={{
-                    marginTop: "5px",
-                    fontSize: "15px",
-                    fontWeight: "900",
-                  }}
-                >
-                  Stay focused. Keep moving.
-                </div>
-              </div>
+          {/* LEARNING ECOSYSTEM */}
 
+          <div style={styles.sectionHeader}>
+            <div>
+              <div style={styles.sectionTitle}>Learning Ecosystem</div>
               <div
                 style={{
-                  flexShrink: 0,
-                  padding: "8px 10px",
-                  borderRadius: "10px",
-                  background: "#f5f2eb",
-                  color: "#6f6a61",
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "0.8px",
+                  ...styles.sectionSmall,
+                  marginTop: "4px",
+                  color: "#777777",
+                  fontWeight: "800",
                 }}
               >
-                DAILY FOCUS
+                Complete UPSC preparation cycle
               </div>
             </div>
-          </section>
 
-          {/* SAMBHAV LEARNING ECOSYSTEM */}
-          <section style={{ marginTop: "2px" }}>
-            <div
-              style={{
-                marginBottom: "11px",
-                padding: "0 2px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  letterSpacing: "1.5px",
-                  color: "#a07d32",
-                }}
-              >
+            <div style={styles.sectionSmall}>
+              06 MODULES
+            </div>
+          </div>
+
+          <section style={styles.ecosystemWrap}>
+            <div style={styles.ecosystemIntro}>
+              <div style={styles.ecosystemIntroLabel}>
                 SAMBHAV LEARNING ECOSYSTEM
               </div>
-
-              <div
-                style={{
-                  marginTop: "5px",
-                  fontSize: "23px",
-                  lineHeight: "1.15",
-                  fontWeight: "900",
-                  letterSpacing: "-0.6px",
-                }}
-              >
-                Complete UPSC Preparation
+              <div style={styles.ecosystemIntroTitle}>
+                One integrated preparation cycle.
               </div>
-
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "10.5px",
-                  lineHeight: "1.45",
-                  color: "#77736c",
-                  maxWidth: "620px",
-                }}
-              >
-                An integrated learning ecosystem built around the complete UPSC preparation cycle.
+              <div style={styles.ecosystemIntroText}>
+                SAMBHAV का core learning ecosystem UPSC preparation के प्रमुख stages को एक integrated platform पर cover करता है।
               </div>
             </div>
 
-            <section
-              style={{
-                background:
-                  "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-                border:
-                  "1px solid rgba(255,255,255,0.08)",
-                color: "#ffffff",
-                borderRadius: "25px",
-                padding: "7px 18px",
-                boxShadow:
-                  "0 16px 34px rgba(0,0,0,0.13)",
-                overflow: "hidden",
-              }}
-            >
-              {[
-                {
-                  no: "01",
-                  title: "Current Affairs",
-                  label: "DAILY & MONTHLY INTELLIGENCE",
-                  points:
-                    "Daily & Monthly Current Affairs • UPSC-oriented Analysis • The Hindu • PIB • Government Sources • Prelims & Mains Relevance • Revision-oriented Content",
-                },
-                {
-                  no: "02",
-                  title: "PYQ Intelligence",
-                  label: "PREVIOUS YEAR QUESTIONS",
-                  points:
-                    "Prelims & Mains PYQs • Subject & Topic-wise Classification • Question-wise Practice • Detailed Explanations • Performance & Trend Analysis",
-                },
-                {
-                  no: "03",
-                  title: "Prelims Test",
-                  label: "PYQ-ORIENTED PRACTICE",
-                  points:
-                    "PYQ-oriented MCQs • Subject & Topic-wise Practice • PYQ-based Tests • Question Analysis • Score & Performance Analysis",
-                },
-                {
-                  no: "04",
-                  title: "Mains",
-                  label: "ANSWER WRITING",
-                  points:
-                    "GS I • II • III • IV • PYQ-based Answer Writing • Structured Answer Practice • Answer Evaluation • Improvement Guidance",
-                },
-                {
-                  no: "05",
-                  title: "AI Answer Evaluation",
-                  label: "AI-POWERED ANALYSIS",
-                  points:
-                    "AI-powered Answer Evaluation • Score & Assessment • Strengths & Weaknesses • Content & Structure Analysis • Actionable Improvement Suggestions",
-                },
-                {
-                  no: "06",
-                  title: "Study Material",
-                  label: "NOTES & RESOURCES",
-                  points:
-                    "GS Resources • Conceptual Notes • Revision Material • UPSC-oriented Reference Resources • CSAT Focus • Questions • Explanations",
-                },
-              ].map((item, index) => (
-                <div
-                  key={item.no}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "34px minmax(145px, 0.7fr) minmax(0, 1.7fr)",
-                    alignItems: "center",
-                    gap: "13px",
-                    padding: "15px 0",
-                    borderBottom:
-                      index === 5
-                        ? "none"
-                        : "1px solid rgba(255,255,255,0.09)",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "9px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        "rgba(255,255,255,0.07)",
-                      color: "#d6bd79",
-                      fontSize: "9px",
-                      fontWeight: "900",
-                    }}
-                  >
-                    {item.no}
-                  </div>
+            {learningEcosystem.map((item, index) => {
+              const isOpen = openEcosystem === index;
 
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "7.5px",
-                        fontWeight: "900",
-                        letterSpacing: "1px",
-                        color: "#d6bd79",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      {item.label}
+              return (
+                <div key={item.number} style={styles.ecosystemItem}>
+                  <button
+                    type="button"
+                    style={styles.ecosystemButton}
+                    onClick={() =>
+                      setOpenEcosystem(
+                        isOpen ? -1 : index
+                      )
+                    }
+                    aria-expanded={isOpen}
+                  >
+                    <div style={styles.ecosystemNumber}>
+                      {item.number}
+                    </div>
+
+                    <div style={styles.ecosystemIcon}>
+                      {item.icon}
+                    </div>
+
+                    <div style={styles.ecosystemContent}>
+                      <div style={styles.ecosystemLabel}>
+                        {item.label}
+                      </div>
+                      <div style={styles.ecosystemTitle}>
+                        {item.title}
+                      </div>
                     </div>
 
                     <div
                       style={{
-                        fontSize: "15px",
-                        lineHeight: "1.25",
-                        fontWeight: "900",
+                        ...styles.ecosystemChevron,
+                        transform: isOpen
+                          ? "rotate(90deg)"
+                          : "rotate(0deg)",
+                        transition: "transform 180ms ease",
                       }}
                     >
-                      {item.title}
+                      ›
                     </div>
-                  </div>
+                  </button>
 
-                  <div
-                    style={{
-                      fontSize: "10.5px",
-                      lineHeight: "1.5",
-                      color:
-                        "rgba(255,255,255,0.68)",
-                    }}
-                  >
-                    {item.points}
-                  </div>
+                  {isOpen && (
+                    <div style={styles.ecosystemDetails}>
+                      {item.points.map((point) => (
+                        <div
+                          key={point}
+                          style={styles.ecosystemPoint}
+                        >
+                          <span style={styles.ecosystemDot}>
+                            •
+                          </span>
+                          <span>{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </section>
+              );
+            })}
           </section>
-
         </div>
 
+        {/* BOTTOM NAV */}
+
+        <nav style={styles.bottomNav}>
+          <div
+            style={{
+              ...styles.navItem,
+              ...styles.navActive,
+            }}
+          >
+            <span style={styles.navIcon}>
+              ⌂
+            </span>
+
+            Home
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log(
+                "Current Affairs"
+              )
+            }
+          >
+            <span style={styles.navIcon}>
+              ▤
+            </span>
+
+            CA
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("GS")
+            }
+          >
+            <span style={styles.navIcon}>
+              ▣
+            </span>
+
+            GS
+          </div>
+
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              console.log("AI")
+            }
+          >
+            <span style={styles.navIcon}>
+              ▦
+            </span>
+
+            AI
+          </div>
+        </nav>
       </main>
     </>
   );
