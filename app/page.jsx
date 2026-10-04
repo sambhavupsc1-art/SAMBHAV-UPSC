@@ -2492,10 +2492,16 @@ export default function Home() {
 
             <section
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(230px, 1fr))",
-                gap: "11px",
+                background:
+                  "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+                border:
+                  "1px solid rgba(255,255,255,0.08)",
+                color: "#ffffff",
+                borderRadius: "25px",
+                padding: "7px 18px",
+                boxShadow:
+                  "0 16px 34px rgba(0,0,0,0.13)",
+                overflow: "hidden",
               }}
             >
               {[
@@ -2503,106 +2509,86 @@ export default function Home() {
                   no: "01",
                   title: "Current Affairs",
                   label: "DAILY & MONTHLY INTELLIGENCE",
-                  points: [
-                    "Daily & Monthly Current Affairs",
-                    "UPSC-oriented Analysis",
-                    "The Hindu • PIB • Government Sources",
-                    "Prelims & Mains Relevance",
-                    "Revision-oriented Content",
-                  ],
+                  points:
+                    "Daily & Monthly Current Affairs • UPSC-oriented Analysis • The Hindu • PIB • Government Sources • Prelims & Mains Relevance • Revision-oriented Content",
                 },
                 {
                   no: "02",
                   title: "PYQ Intelligence",
                   label: "PREVIOUS YEAR QUESTIONS",
-                  points: [
-                    "Prelims & Mains PYQs",
-                    "Subject & Topic-wise Classification",
-                    "Question-wise Practice",
-                    "Detailed Explanations",
-                    "Performance & Trend Analysis",
-                  ],
+                  points:
+                    "Prelims & Mains PYQs • Subject & Topic-wise Classification • Question-wise Practice • Detailed Explanations • Performance & Trend Analysis",
                 },
                 {
                   no: "03",
                   title: "Prelims Test",
                   label: "PYQ-ORIENTED PRACTICE",
-                  points: [
-                    "PYQ-oriented MCQs",
-                    "Subject & Topic-wise Practice",
-                    "PYQ-based Tests",
-                    "Question Analysis",
-                    "Score & Performance Analysis",
-                  ],
+                  points:
+                    "PYQ-oriented MCQs • Subject & Topic-wise Practice • PYQ-based Tests • Question Analysis • Score & Performance Analysis",
                 },
                 {
                   no: "04",
                   title: "Mains",
                   label: "ANSWER WRITING",
-                  points: [
-                    "GS I • II • III • IV",
-                    "PYQ-based Answer Writing",
-                    "Structured Answer Practice",
-                    "Answer Evaluation",
-                    "Improvement Guidance",
-                  ],
+                  points:
+                    "GS I • II • III • IV • PYQ-based Answer Writing • Structured Answer Practice • Answer Evaluation • Improvement Guidance",
                 },
                 {
                   no: "05",
                   title: "AI Answer Evaluation",
                   label: "AI-POWERED ANALYSIS",
-                  points: [
-                    "AI-powered Answer Evaluation",
-                    "Score & Assessment",
-                    "Strengths & Weaknesses",
-                    "Content & Structure Analysis",
-                    "Actionable Improvement Suggestions",
-                  ],
+                  points:
+                    "AI-powered Answer Evaluation • Score & Assessment • Strengths & Weaknesses • Content & Structure Analysis • Actionable Improvement Suggestions",
                 },
                 {
                   no: "06",
                   title: "Study Material",
                   label: "NOTES & RESOURCES",
-                  points: [
-                    "GS Resources",
-                    "Conceptual Notes",
-                    "Revision Material",
-                    "UPSC-oriented Reference Resources",
-                    "CSAT Focus • Questions • Explanations",
-                  ],
+                  points:
+                    "GS Resources • Conceptual Notes • Revision Material • UPSC-oriented Reference Resources • CSAT Focus • Questions • Explanations",
                 },
-              ].map((item) => (
+              ].map((item, index) => (
                 <div
                   key={item.no}
                   style={{
-                    background:
-                      "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-                    border:
-                      "1px solid rgba(255,255,255,0.08)",
-                    color: "#ffffff",
-                    borderRadius: "21px",
-                    padding: "16px",
-                    minWidth: 0,
-                    minHeight: 0,
-                    position: "relative",
-                    boxShadow:
-                      "0 12px 28px rgba(0,0,0,0.12)",
+                    display: "grid",
+                    gridTemplateColumns:
+                      "34px minmax(145px, 0.7fr) minmax(0, 1.7fr)",
+                    alignItems: "center",
+                    gap: "13px",
+                    padding: "15px 0",
+                    borderBottom:
+                      index === 5
+                        ? "none"
+                        : "1px solid rgba(255,255,255,0.09)",
                   }}
                 >
                   <div
                     style={{
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "9px",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
+                      justifyContent: "center",
+                      background:
+                        "rgba(255,255,255,0.07)",
+                      color: "#d6bd79",
+                      fontSize: "9px",
+                      fontWeight: "900",
                     }}
                   >
+                    {item.no}
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: "8px",
+                        fontSize: "7.5px",
                         fontWeight: "900",
-                        letterSpacing: "1.2px",
+                        letterSpacing: "1px",
                         color: "#d6bd79",
+                        marginBottom: "5px",
                       }}
                     >
                       {item.label}
@@ -2610,59 +2596,24 @@ export default function Home() {
 
                     <div
                       style={{
-                        fontSize: "9px",
+                        fontSize: "15px",
+                        lineHeight: "1.25",
                         fontWeight: "900",
-                        color:
-                          "rgba(255,255,255,0.34)",
                       }}
                     >
-                      {item.no}
+                      {item.title}
                     </div>
                   </div>
 
                   <div
                     style={{
-                      marginTop: "12px",
-                      fontSize: "16px",
-                      lineHeight: "1.25",
-                      fontWeight: "900",
+                      fontSize: "10.5px",
+                      lineHeight: "1.5",
+                      color:
+                        "rgba(255,255,255,0.68)",
                     }}
                   >
-                    {item.title}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      display: "grid",
-                      gap: "6px",
-                    }}
-                  >
-                    {item.points.map((point) => (
-                      <div
-                        key={point}
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "7px",
-                          fontSize: "11px",
-                          lineHeight: "1.42",
-                          color:
-                            "rgba(255,255,255,0.72)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#d6bd79",
-                            fontWeight: "900",
-                            flexShrink: 0,
-                          }}
-                        >
-                          •
-                        </span>
-                        <span>{point}</span>
-                      </div>
-                    ))}
+                    {item.points}
                   </div>
                 </div>
               ))}
