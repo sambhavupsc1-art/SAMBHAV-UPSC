@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import crypto from "crypto";
 
 const SUPABASE_URL =
@@ -46,27 +45,14 @@ function verifyEmailSession(token) {
     const secret =
       process.env.AUTH_SESSION_SECRET;
 
-    if (!secret) {
-      return {
-        valid: false,
-        reason: "AUTH_SESSION_SECRET missing",
-      };
-    }
-
-    if (!token) {
-      return {
-        valid: false,
-        reason: "Session token missing",
-      };
+    if (!secret || !token) {
+      return null;
     }
 
     const parts = token.split(".");
 
     if (parts.length !== 2) {
-      return {
-        valid: false,
-        reason: "Invalid session token format",
-      };
+      return null;
     }
 
     const [payload, signature] = parts;
@@ -81,10 +67,7 @@ function verifyEmailSession(token) {
       signature.length !==
       expectedSignature.length
     ) {
-      return {
-        valid: false,
-        reason: "Signature length mismatch",
-      };
+      return null;
     }
 
     if (
@@ -93,66 +76,80 @@ function verifyEmailSession(token) {
         Buffer.from(expectedSignature)
       )
     ) {
-      return {
-        valid: false,
-        reason: "Signature mismatch",
-      };
+      return null;
     }
 
-    let data;
+    const data = JSON.parse(
+      Buffer.from(
+        payload,
+        "base64url"
+      ).toString("utf8")
+    );
 
-    try {
-      data = JSON.parse(
-        Buffer.from(
-          payload,
-          "base64url"
-        ).toString("utf8")
-      );
-    } catch {
-      return {
-        valid: false,
-        reason: "Invalid session payload",
-      };
-    }
-
-    if (!data?.userId) {
-      return {
-        valid: false,
-        reason: "userId missing from session",
-      };
-    }
-
-    if (!data?.exp) {
-      return {
-        valid: false,
-        reason: "Session expiry missing",
-      };
+    if (
+      !data?.userId ||
+      !data?.exp
+    ) {
+      return null;
     }
 
     if (Date.now() > data.exp) {
-      return {
-        valid: false,
-        reason: "Session expired",
-      };
+      return null;
     }
 
-    return {
-      valid: true,
-      userId: data.userId,
-    };
+    return data;
   } catch (error) {
     console.error(
       "Session verification error:",
       error
     );
 
-    return {
-      valid: false,
-      reason:
-        error?.message ||
-        "Session verification failed",
-    };
+    return null;
   }
+}
+
+/*
+ * ========================================================
+ * READ SESSION DIRECTLY FROM RAW COOKIE HEADER
+ * ========================================================
+ */
+
+function getSessionTokenFromCookieHeader(
+  cookieHeader
+) {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies =
+    cookieHeader.split(";");
+
+  for (const item of cookies) {
+    const separator =
+      item.indexOf("=");
+
+    if (separator === -1) {
+      continue;
+    }
+
+    const name =
+      item
+        .slice(0, separator)
+        .trim();
+
+    if (
+      name !==
+      "sambhav_session"
+    ) {
+      continue;
+    }
+
+    return item
+      .slice(separator + 1)
+      .trim();
+  }
+
+  return null;
 }
 
 /*
@@ -167,11 +164,7 @@ async function getUserById(userId) {
     !SUPABASE_SECRET_KEY ||
     !userId
   ) {
-    return {
-      user: null,
-      reason:
-        "Supabase configuration or userId missing",
-    };
+    return null;
   }
 
   try {
@@ -196,215 +189,94 @@ async function getUserById(userId) {
       );
 
     if (!response.ok) {
-      const errorText =
-        await response.text();
-
       console.error(
         "Payment user lookup failed:",
-        errorText
+        await response.text()
       );
 
-      return {
-        user: null,
-        reason:
-          "Supabase user lookup failed",
-      };
+      return null;
     }
 
     const users =
       await response.json();
 
-    if (!Array.isArray(users)) {
-      return {
-        user: null,
-        reason:
-          "Invalid Supabase user response",
-      };
-    }
-
-    if (users.length === 0) {
-      return {
-        user: null,
-        reason:
-          "User not found in Supabase",
-      };
-    }
-
-    return {
-      user: users[0],
-      reason: "User found",
-    };
+    return users?.length
+      ? users[0]
+      : null;
   } catch (error) {
     console.error(
       "Payment user lookup exception:",
       error
     );
 
-    return {
-      user: null,
-      reason:
-        error?.message ||
-        "User lookup exception",
-    };
+    return null;
   }
 }
 
 /*
  * ========================================================
- * EMAIL SESSION AUTHENTICATION ONLY
+ * EMAIL AUTHENTICATION ONLY
  * ========================================================
  */
 
-async function getAuthenticatedUser() {
-  const diagnostic = {
-    cookiePresent: false,
-    sessionValid: false,
-    userFound: false,
-    authMethod: null,
-    reason: null,
-  };
-
-  try {
-    /*
-     * ----------------------------------------------------
-     * READ SESSION COOKIE
-     * ----------------------------------------------------
-     */
-
-    let sessionToken = null;
-
-    try {
-      const cookieStore =
-        await cookies();
-
-      sessionToken =
-        cookieStore.get(
-          "sambhav_session"
-        )?.value || null;
-    } catch (error) {
-      console.error(
-        "Payment cookies() error:",
-        error
-      );
-
-      diagnostic.reason =
-        "Unable to read cookies";
-
-      return {
-        user: null,
-        diagnostic,
-      };
-    }
-
-    /*
-     * ----------------------------------------------------
-     * COOKIE CHECK
-     * ----------------------------------------------------
-     */
-
-    if (!sessionToken) {
-      diagnostic.reason =
-        "sambhav_session cookie not received";
-
-      console.error(
-        "Payment authentication:",
-        diagnostic
-      );
-
-      return {
-        user: null,
-        diagnostic,
-      };
-    }
-
-    diagnostic.cookiePresent = true;
-
-    /*
-     * ----------------------------------------------------
-     * VERIFY SESSION
-     * ----------------------------------------------------
-     */
-
-    const session =
-      verifyEmailSession(
-        sessionToken
-      );
-
-    if (!session.valid) {
-      diagnostic.reason =
-        session.reason;
-
-      console.error(
-        "Payment authentication:",
-        diagnostic
-      );
-
-      return {
-        user: null,
-        diagnostic,
-      };
-    }
-
-    diagnostic.sessionValid = true;
-
-    /*
-     * ----------------------------------------------------
-     * GET USER
-     * ----------------------------------------------------
-     */
-
-    const userResult =
-      await getUserById(
-        session.userId
-      );
-
-    if (!userResult.user) {
-      diagnostic.reason =
-        userResult.reason;
-
-      console.error(
-        "Payment authentication:",
-        diagnostic
-      );
-
-      return {
-        user: null,
-        diagnostic,
-      };
-    }
-
-    diagnostic.userFound = true;
-    diagnostic.authMethod =
-      "email";
-    diagnostic.reason =
-      "Authentication successful";
-
-    return {
-      user:
-        userResult.user,
-
-      diagnostic,
-    };
-  } catch (error) {
-    console.error(
-      "Payment authentication exception:",
-      error
+async function getAuthenticatedUser(
+  request
+) {
+  const cookieHeader =
+    request.headers.get(
+      "cookie"
     );
 
-    diagnostic.reason =
-      error?.message ||
-      "Authentication exception";
+  const sessionToken =
+    getSessionTokenFromCookieHeader(
+      cookieHeader
+    );
 
+  if (!sessionToken) {
     return {
       user: null,
-      diagnostic,
+      reason:
+        "sambhav_session not found in request Cookie header",
     };
   }
+
+  const session =
+    verifyEmailSession(
+      sessionToken
+    );
+
+  if (!session?.userId) {
+    return {
+      user: null,
+      reason:
+        "sambhav_session exists but session verification failed",
+    };
+  }
+
+  const user =
+    await getUserById(
+      session.userId
+    );
+
+  if (!user) {
+    return {
+      user: null,
+      reason:
+        "Session is valid but Supabase user was not found",
+    };
+  }
+
+  return {
+    user,
+    authMethod: "email",
+    reason:
+      "Authentication successful",
+  };
 }
 
 /*
  * ========================================================
- * GET ACTIVE SUBSCRIPTION
+ * ACTIVE SUBSCRIPTION
  * ========================================================
  */
 
@@ -485,9 +357,7 @@ export async function POST(request) {
           error:
             "Supabase payment configuration missing.",
         },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
@@ -500,9 +370,7 @@ export async function POST(request) {
           error:
             "Cashfree payment configuration missing.",
         },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
@@ -514,9 +382,7 @@ export async function POST(request) {
           error:
             "Authentication configuration missing.",
         },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
@@ -527,27 +393,25 @@ export async function POST(request) {
      */
 
     const auth =
-      await getAuthenticatedUser();
+      await getAuthenticatedUser(
+        request
+      );
 
     if (!auth?.user?.id) {
+      console.error(
+        "CREATE ORDER AUTH FAILED:",
+        auth?.reason
+      );
+
       return NextResponse.json(
         {
           error:
             "Authentication required.",
-
-          debug:
-            auth?.diagnostic || {
-              cookiePresent: false,
-              sessionValid: false,
-              userFound: false,
-              authMethod: null,
-              reason:
-                "Authentication function returned no result",
-            },
+          reason:
+            auth?.reason ||
+            "Unknown authentication error",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
@@ -577,9 +441,7 @@ export async function POST(request) {
           error:
             "Invalid Premium plan.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
@@ -601,18 +463,13 @@ export async function POST(request) {
           error:
             "Your SAMBHAV UPSC account is not approved yet.",
         },
-        {
-          status: 403,
-        }
+        { status: 403 }
       );
     }
 
     /*
      * ====================================================
      * ACTIVE SUBSCRIPTION
-     *
-     * DEMO CAN UPGRADE.
-     * PAID ACTIVE SUBSCRIPTION CANNOT BUY AGAIN.
      * ====================================================
      */
 
@@ -627,6 +484,10 @@ export async function POST(request) {
           ""
       ).toLowerCase();
 
+    /*
+     * Demo can upgrade.
+     */
+
     if (
       activeSubscription &&
       activePlan !== "demo"
@@ -639,9 +500,7 @@ export async function POST(request) {
           subscription:
             activeSubscription,
         },
-        {
-          status: 409,
-        }
+        { status: 409 }
       );
     }
 
@@ -807,9 +666,7 @@ export async function POST(request) {
             cashfreeData?.type ||
             "Cashfree order creation failed.",
         },
-        {
-          status: 502,
-        }
+        { status: 502 }
       );
     }
 
@@ -832,9 +689,7 @@ export async function POST(request) {
           error:
             "Cashfree payment session was not returned.",
         },
-        {
-          status: 502,
-        }
+        { status: 502 }
       );
     }
 
@@ -920,9 +775,7 @@ export async function POST(request) {
           order_id:
             orderId,
         },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
@@ -961,9 +814,7 @@ export async function POST(request) {
           error?.message ||
           "Internal payment order creation error.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
