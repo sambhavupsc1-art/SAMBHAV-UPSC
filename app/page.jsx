@@ -42,11 +42,11 @@ const modules = [
   },
 ];
 
-const learningEcosystem = [
+const ecosystemModules = [
   {
     number: "01",
-    title: "Current Affairs",
     label: "DAILY & MONTHLY INTELLIGENCE",
+    title: "Current Affairs",
     icon: "📰",
     points: [
       "Daily & Monthly Current Affairs",
@@ -58,8 +58,8 @@ const learningEcosystem = [
   },
   {
     number: "02",
-    title: "PYQ Intelligence",
     label: "PREVIOUS YEAR QUESTIONS",
+    title: "PYQ Intelligence",
     icon: "🎯",
     points: [
       "Prelims & Mains Previous Year Questions",
@@ -71,8 +71,8 @@ const learningEcosystem = [
   },
   {
     number: "03",
-    title: "Prelims Test",
     label: "PYQ-ORIENTED PRACTICE",
+    title: "Prelims Test",
     icon: "📝",
     points: [
       "PYQ-oriented MCQs & Practice",
@@ -84,8 +84,8 @@ const learningEcosystem = [
   },
   {
     number: "04",
-    title: "Mains",
     label: "ANSWER WRITING",
+    title: "Mains",
     icon: "✍️",
     points: [
       "GS I, II, III & IV Questions",
@@ -97,8 +97,8 @@ const learningEcosystem = [
   },
   {
     number: "05",
-    title: "AI Answer Evaluation",
     label: "AI-POWERED ANALYSIS",
+    title: "AI Answer Evaluation",
     icon: "🤖",
     points: [
       "AI-powered Answer Evaluation",
@@ -110,16 +110,15 @@ const learningEcosystem = [
   },
   {
     number: "06",
-    title: "Study Material",
     label: "NOTES & RESOURCES",
+    title: "Study Material",
     icon: "📚",
     points: [
       "GS Resources",
       "Conceptual Notes",
       "Revision Material",
       "UPSC-oriented Reference Resources",
-      "CSAT Focus: Comprehension-based & Factual / Knowledge-based Questions",
-      "Detailed Explanations & Analysis",
+      "CSAT: Comprehension, factual questions & detailed analysis",
     ],
   },
 ];
@@ -132,7 +131,7 @@ const styles = {
     color: "#111111",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    paddingBottom: "145px",
+    paddingBottom: "105px",
   },
 
   container: {
@@ -871,16 +870,14 @@ const styles = {
   },
 
   sectionTitle: {
-    fontSize: "23px",
-    fontWeight: "950",
-    letterSpacing: "-0.5px",
+    fontSize: "21px",
+    fontWeight: "850",
   },
 
   sectionSmall: {
-    fontSize: "10px",
-    color: "#8b8b8b",
-    fontWeight: "850",
-    letterSpacing: "0.5px",
+    fontSize: "11px",
+    color: "#999999",
+    fontWeight: "600",
   },
 
   grid: {
@@ -947,149 +944,6 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "17px",
-  },
-
-  ecosystemWrap: {
-    marginTop: "14px",
-    marginBottom: "42px",
-    background: "linear-gradient(145deg, #171717 0%, #0a0a0a 100%)",
-    border: "1px solid rgba(214,189,121,0.14)",
-    borderRadius: "30px",
-    padding: "10px",
-    boxShadow: "0 24px 55px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.035)",
-    overflow: "hidden",
-  },
-
-  ecosystemIntro: {
-    padding: "20px 18px 18px",
-  },
-
-  ecosystemIntroLabel: {
-    color: "#d6bd79",
-    fontSize: "9px",
-    fontWeight: "950",
-    letterSpacing: "1.8px",
-    textTransform: "uppercase",
-  },
-
-  ecosystemIntroTitle: {
-    marginTop: "9px",
-    color: "#ffffff",
-    fontSize: "25px",
-    lineHeight: "1.08",
-    fontWeight: "950",
-    letterSpacing: "-0.9px",
-  },
-
-  ecosystemIntroText: {
-    marginTop: "10px",
-    color: "#c4c4c4",
-    fontSize: "12.5px",
-    lineHeight: "1.65",
-    fontWeight: "800",
-    maxWidth: "650px",
-  },
-
-  ecosystemItem: {
-    borderTop: "1px solid rgba(255,255,255,0.075)",
-  },
-
-  ecosystemButton: {
-    width: "100%",
-    border: "none",
-    background: "transparent",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    gap: "13px",
-    padding: "17px 11px",
-    textAlign: "left",
-    cursor: "pointer",
-  },
-
-  ecosystemNumber: {
-    width: "30px",
-    minWidth: "30px",
-    color: "#929292",
-    fontSize: "10px",
-    fontWeight: "950",
-    letterSpacing: "0.9px",
-  },
-
-  ecosystemIcon: {
-    width: "43px",
-    height: "43px",
-    minWidth: "43px",
-    borderRadius: "14px",
-    background: "linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035))",
-    border: "1px solid rgba(255,255,255,0.09)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
-  },
-
-  ecosystemContent: {
-    minWidth: 0,
-    flex: 1,
-  },
-
-  ecosystemLabel: {
-    color: "#d6bd79",
-    fontSize: "8.5px",
-    letterSpacing: "1.2px",
-    fontWeight: "950",
-    textTransform: "uppercase",
-  },
-
-  ecosystemTitle: {
-    marginTop: "5px",
-    color: "#ffffff",
-    fontSize: "17px",
-    lineHeight: "1.15",
-    fontWeight: "950",
-    letterSpacing: "-0.25px",
-  },
-
-  ecosystemChevron: {
-    width: "34px",
-    height: "34px",
-    minWidth: "34px",
-    borderRadius: "50%",
-    background: "rgba(255,255,255,0.075)",
-    color: "#d6bd79",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "19px",
-    fontWeight: "950",
-  },
-
-  ecosystemDetails: {
-    margin: "0 10px 10px 43px",
-    padding: "13px 16px 15px 17px",
-    borderRadius: "16px",
-    background: "rgba(255,255,255,0.035)",
-    border: "1px solid rgba(255,255,255,0.055)",
-    animation: "ecosystemReveal 180ms ease-out",
-  },
-
-  ecosystemPoint: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "9px",
-    color: "#f1f1f1",
-    fontSize: "12px",
-    lineHeight: "1.55",
-    fontWeight: "850",
-    padding: "5px 0",
-  },
-
-  ecosystemDot: {
-    color: "#d6bd79",
-    fontWeight: "950",
-    marginTop: "1px",
   },
 
   pendingCard: {
@@ -1166,11 +1020,11 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(16,16,16,0.97)",
-    border: "1px solid rgba(214,189,121,0.16)",
+    background: "rgba(255,255,255,0.97)",
+    border: "1px solid #e5e5e3",
     borderRadius: "25px",
     boxShadow:
-      "0 16px 40px rgba(0,0,0,0.24)",
+      "0 10px 35px rgba(0,0,0,0.12)",
     display: "grid",
     gridTemplateColumns:
       "repeat(4, 1fr)",
@@ -1188,15 +1042,14 @@ const styles = {
     justifyContent: "center",
     gap: "3px",
     fontSize: "10px",
-    color: "#929292",
-    fontWeight: "800",
+    color: "#777777",
+    fontWeight: "600",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "linear-gradient(145deg, #e6d6a8, #cdb36d)",
+    background: "#eeeeec",
     color: "#111111",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35)",
   },
 
   navIcon: {
@@ -1242,6 +1095,382 @@ const styles = {
     fontSize: "10px",
     fontWeight: "800",
     textTransform: "uppercase",
+  },
+
+  dashboardPage: {
+    minHeight: "100vh",
+    background: "#0b0b0b",
+    color: "#ffffff",
+    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    paddingBottom: "118px",
+  },
+
+  dashboardContainer: {
+    width: "100%",
+    maxWidth: "760px",
+    margin: "0 auto",
+    padding: "16px 16px 26px",
+    boxSizing: "border-box",
+  },
+
+  dashboardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "20px",
+  },
+
+  dashboardBrand: {
+    fontSize: "20px",
+    fontWeight: "950",
+    letterSpacing: "-0.7px",
+  },
+
+  dashboardBrandGold: {
+    color: "#d6bd79",
+  },
+
+  dashboardBrandSub: {
+    marginTop: "4px",
+    color: "#858585",
+    fontSize: "8px",
+    fontWeight: "850",
+    letterSpacing: "1.2px",
+    textTransform: "uppercase",
+  },
+
+  dashboardAvatar: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    background: "linear-gradient(145deg,#292929,#141414)",
+    border: "1px solid rgba(214,189,121,0.28)",
+    color: "#d6bd79",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "15px",
+    fontWeight: "950",
+  },
+
+  dashboardGreeting: {
+    marginBottom: "17px",
+  },
+
+  dashboardGreetingTitle: {
+    margin: 0,
+    fontSize: "28px",
+    lineHeight: "1.1",
+    fontWeight: "950",
+    letterSpacing: "-1px",
+  },
+
+  dashboardGreetingSub: {
+    margin: "7px 0 0",
+    color: "#a4a4a4",
+    fontSize: "12px",
+    lineHeight: "1.5",
+    fontWeight: "750",
+  },
+
+  dashboardAccessCard: {
+    background: "linear-gradient(145deg,#191919,#101010)",
+    border: "1px solid #292929",
+    borderRadius: "19px",
+    padding: "15px 16px",
+    marginBottom: "11px",
+  },
+
+  dashboardAccessLabel: {
+    color: "#d6bd79",
+    fontSize: "8px",
+    letterSpacing: "1.4px",
+    fontWeight: "950",
+    textTransform: "uppercase",
+  },
+
+  dashboardAccessTitle: {
+    marginTop: "6px",
+    fontSize: "16px",
+    fontWeight: "950",
+  },
+
+  dashboardAccessSub: {
+    marginTop: "3px",
+    color: "#8d8d8d",
+    fontSize: "10px",
+    fontWeight: "750",
+  },
+
+  dashboardSecretary: {
+    width: "100%",
+    border: "1px solid #2c2c2c",
+    borderRadius: "15px",
+    background: "#151515",
+    color: "#ffffff",
+    padding: "12px 14px",
+    fontSize: "11px",
+    fontWeight: "900",
+    marginBottom: "11px",
+    cursor: "pointer",
+  },
+
+  dashboardPremium: {
+    background: "linear-gradient(145deg,#1b1b1b,#111111)",
+    border: "1px solid #302d25",
+    color: "#ffffff",
+    borderRadius: "19px",
+    padding: "16px",
+    marginBottom: "12px",
+    position: "relative",
+    overflow: "hidden",
+  },
+
+  dashboardPremiumBadge: {
+    display: "inline-flex",
+    padding: "5px 8px",
+    borderRadius: "999px",
+    background: "#d6bd79",
+    color: "#111111",
+    fontSize: "8px",
+    fontWeight: "950",
+    letterSpacing: ".8px",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  dashboardPremiumTitle: {
+    marginTop: "9px",
+    fontSize: "17px",
+    fontWeight: "950",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  dashboardPremiumSub: {
+    marginTop: "5px",
+    color: "#a4a4a4",
+    fontSize: "10px",
+    lineHeight: "1.5",
+    fontWeight: "750",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  dashboardPremiumAction: {
+    marginTop: "12px",
+    padding: "9px 12px",
+    borderRadius: "11px",
+    background: "#ffffff",
+    color: "#111111",
+    fontSize: "10px",
+    fontWeight: "950",
+    border: "none",
+    cursor: "pointer",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  dashboardAdmin: {
+    background: "linear-gradient(145deg,#211e17,#171510)",
+    border: "1px solid #4a402a",
+    color: "#ffffff",
+    borderRadius: "19px",
+    padding: "16px",
+    marginBottom: "12px",
+    cursor: "pointer",
+  },
+
+  ecosystemHeader: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: "12px",
+    margin: "18px 2px 9px",
+  },
+
+  ecosystemTitle: {
+    fontSize: "20px",
+    fontWeight: "950",
+    letterSpacing: "-.5px",
+  },
+
+  ecosystemSub: {
+    marginTop: "3px",
+    color: "#8c8c8c",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  ecosystemCount: {
+    color: "#777777",
+    fontSize: "9px",
+    fontWeight: "900",
+    whiteSpace: "nowrap",
+  },
+
+  ecosystemCard: {
+    background: "linear-gradient(145deg,#171717,#0d0d0d)",
+    border: "1px solid #282828",
+    borderRadius: "25px",
+    overflow: "hidden",
+    boxShadow: "0 18px 45px rgba(0,0,0,.28)",
+  },
+
+  ecosystemIntro: {
+    padding: "22px 20px 18px",
+    borderBottom: "1px solid #2a2a2a",
+  },
+
+  ecosystemEyebrow: {
+    color: "#d6bd79",
+    fontSize: "8px",
+    letterSpacing: "1.5px",
+    fontWeight: "950",
+  },
+
+  ecosystemHero: {
+    marginTop: "9px",
+    fontSize: "25px",
+    lineHeight: "1.05",
+    fontWeight: "950",
+    letterSpacing: "-1px",
+  },
+
+  ecosystemIntroText: {
+    marginTop: "9px",
+    color: "#a3a3a3",
+    fontSize: "11px",
+    lineHeight: "1.55",
+    fontWeight: "750",
+  },
+
+  ecoItem: {
+    borderBottom: "1px solid #292929",
+  },
+
+  ecoButton: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "38px 46px minmax(0,1fr) 34px",
+    alignItems: "center",
+    gap: "9px",
+    padding: "13px 14px",
+    border: "none",
+    background: "transparent",
+    color: "#ffffff",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+
+  ecoNumber: {
+    color: "#777777",
+    fontSize: "9px",
+    fontWeight: "950",
+  },
+
+  ecoIcon: {
+    width: "43px",
+    height: "43px",
+    borderRadius: "14px",
+    background: "linear-gradient(145deg,#252525,#151515)",
+    border: "1px solid #343434",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "18px",
+  },
+
+  ecoLabel: {
+    color: "#d6bd79",
+    fontSize: "7px",
+    letterSpacing: "1.1px",
+    fontWeight: "950",
+    lineHeight: "1.2",
+  },
+
+  ecoTitle: {
+    marginTop: "4px",
+    fontSize: "15px",
+    fontWeight: "950",
+    lineHeight: "1.15",
+  },
+
+  ecoArrow: {
+    width: "30px",
+    height: "30px",
+    borderRadius: "50%",
+    background: "#232323",
+    color: "#d6bd79",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "17px",
+    fontWeight: "950",
+  },
+
+  ecoDetails: {
+    padding: "0 20px 16px 93px",
+    animation: "ecoReveal .18s ease-out",
+  },
+
+  ecoPoint: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "flex-start",
+    color: "#eeeeee",
+    fontSize: "10px",
+    lineHeight: "1.45",
+    fontWeight: "850",
+    marginTop: "7px",
+  },
+
+  ecoDot: {
+    color: "#d6bd79",
+    fontWeight: "950",
+  },
+
+  dashboardBottomNav: {
+    position: "fixed",
+    left: "50%",
+    bottom: "10px",
+    transform: "translateX(-50%)",
+    width: "calc(100% - 24px)",
+    maxWidth: "730px",
+    height: "64px",
+    background: "rgba(19,19,19,.98)",
+    border: "1px solid #303030",
+    borderRadius: "23px",
+    boxShadow: "0 12px 35px rgba(0,0,0,.42)",
+    display: "grid",
+    gridTemplateColumns: "repeat(4,1fr)",
+    alignItems: "center",
+    zIndex: 50,
+  },
+
+  dashboardNavItem: {
+    height: "50px",
+    margin: "5px",
+    borderRadius: "18px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "2px",
+    fontSize: "9px",
+    color: "#777777",
+    fontWeight: "850",
+    cursor: "pointer",
+  },
+
+  dashboardNavActive: {
+    background: "#242424",
+    color: "#ffffff",
+  },
+
+  dashboardNavIcon: {
+    fontSize: "17px",
+    lineHeight: "17px",
   },
 };
 
@@ -1289,7 +1518,6 @@ function PublicLanding() {
   return (
     <>
       <main style={styles.page}>
-        
         <div style={styles.container}>
           <header style={styles.header}>
             <div>
@@ -1609,6 +1837,65 @@ function PublicLanding() {
   );
 }
 
+function LearningEcosystem() {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  return (
+    <>
+      <div style={styles.ecosystemHeader}>
+        <div>
+          <div style={styles.ecosystemTitle}>Learning Ecosystem</div>
+          <div style={styles.ecosystemSub}>Complete UPSC preparation cycle</div>
+        </div>
+        <div style={styles.ecosystemCount}>06 MODULES</div>
+      </div>
+
+      <section style={styles.ecosystemCard}>
+        <div style={styles.ecosystemIntro}>
+          <div style={styles.ecosystemEyebrow}>SAMBHAV LEARNING ECOSYSTEM</div>
+          <div style={styles.ecosystemHero}>One integrated preparation cycle.</div>
+          <div style={styles.ecosystemIntroText}>
+            SAMBHAV का core learning ecosystem UPSC preparation के प्रमुख stages को एक integrated platform पर cover करता है।
+          </div>
+        </div>
+
+        {ecosystemModules.map((item, index) => {
+          const isOpen = openIndex === index;
+          return (
+            <div key={item.number} style={{...styles.ecoItem, borderBottom: index === ecosystemModules.length - 1 ? "none" : styles.ecoItem.borderBottom}}>
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                style={styles.ecoButton}
+                onClick={() => setOpenIndex(isOpen ? -1 : index)}
+              >
+                <div style={styles.ecoNumber}>{item.number}</div>
+                <div style={styles.ecoIcon}>{item.icon}</div>
+                <div>
+                  <div style={styles.ecoLabel}>{item.label}</div>
+                  <div style={styles.ecoTitle}>{item.title}</div>
+                </div>
+                <div style={{...styles.ecoArrow, transform: isOpen ? "rotate(90deg)" : "none"}}>›</div>
+              </button>
+
+              {isOpen && (
+                <div style={styles.ecoDetails}>
+                  {item.points.map((point) => (
+                    <div key={point} style={styles.ecoPoint}>
+                      <span style={styles.ecoDot}>•</span>
+                      <span>{point}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </section>
+    </>
+  );
+}
+
 /* =========================================================
 MAIN HOME
 ========================================================= */
@@ -1621,7 +1908,6 @@ export default function Home() {
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [openEcosystem, setOpenEcosystem] = useState(0);
 
   /* =====================================================
   AUTHENTICATION
@@ -1856,8 +2142,7 @@ export default function Home() {
         />
 
         <main style={styles.page}>
-          
-        <div style={styles.container}>
+          <div style={styles.container}>
             <div
               style={{
                 ...styles.pendingCard,
@@ -2123,11 +2408,11 @@ export default function Home() {
               </div>
 
               <div style={styles.welcomeTitle}>
-                SAMBHAV UPSC
+                Welcome to SAMBHAV UPSC
               </div>
 
               <div style={styles.welcomeUser}>
-                {firstName}
+                {firstName}, your preparation workspace is ready.
               </div>
 
               <div style={styles.welcomeStatus}>
@@ -2139,7 +2424,7 @@ export default function Home() {
                   ? premiumPlan === "demo"
                     ? "✦ PREMIUM DEMO ACTIVE"
                     : "✦ PREMIUM ACTIVE"
-                  : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
+                  : "✦ YOUR UPSC PREPARATION WORKSPACE"}
               </div>
             </div>
           </div>
@@ -2196,60 +2481,54 @@ export default function Home() {
         strategy="beforeInteractive"
       />
 
-      <main style={styles.page}>
-        <style>{`
-          @keyframes ecosystemReveal {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-        <div style={styles.container}>
+      <main style={styles.dashboardPage}>
+        <div style={styles.dashboardContainer}>
 
           {/* HEADER */}
 
-          <header style={styles.header}>
+          <header style={styles.dashboardHeader}>
             <div>
-              <div style={styles.brand}>
+              <div style={styles.dashboardBrand}>
                 SAMBHAV
-                <span style={styles.brandGold}>
+                <span style={styles.dashboardBrandGold}>
                   {" "}UPSC
                 </span>
               </div>
 
-              <div style={styles.brandSub}>
+              <div style={styles.dashboardBrandSub}>
                 UPSC Preparation Platform
               </div>
             </div>
 
-            <div style={styles.avatar}>
+            <div style={styles.dashboardAvatar}>
               {initial}
             </div>
           </header>
 
           {/* GREETING */}
 
-          <section style={styles.greeting}>
-            <h1 style={styles.greetingTitle}>
+          <section style={styles.dashboardGreeting}>
+            <h1 style={styles.dashboardGreetingTitle}>
               Hello, {firstName}
             </h1>
 
-            <p style={styles.greetingSub}>
+            <p style={styles.dashboardGreetingSub}>
               Continue your preparation.
             </p>
           </section>
 
           {/* ACCESS CARD */}
 
-          <section style={styles.accessCard}>
-            <div style={styles.accessLabel}>
+          <section style={styles.dashboardAccessCard}>
+            <div style={styles.dashboardAccessLabel}>
               Officer Access Card
             </div>
 
-            <div style={styles.accessTitle}>
+            <div style={styles.dashboardAccessTitle}>
               {firstName}
             </div>
 
-            <div style={styles.accessSub}>
+            <div style={styles.dashboardAccessSub}>
               Clearance: ACTIVE
             </div>
           </section>
@@ -2257,7 +2536,7 @@ export default function Home() {
           {/* AI SECRETARY */}
 
           <button
-            style={styles.secretaryButton}
+            style={styles.dashboardSecretary}
             onClick={() =>
               console.log(
                 "AI Secretary coming soon"
@@ -2269,11 +2548,8 @@ export default function Home() {
 
           {/* PREMIUM */}
 
-          <section style={styles.premiumCard}>
-            <div style={styles.premiumGlow} />
-            <div style={styles.premiumGlowSmall} />
-
-            <div style={styles.premiumBadge}>
+          <section style={styles.dashboardPremium}>
+            <div style={styles.dashboardPremiumBadge}>
               {premiumBadgeText}
             </div>
 
@@ -2285,7 +2561,7 @@ export default function Home() {
               {premiumTitleText}
             </div>
 
-            <div style={styles.premiumSub}>
+            <div style={styles.dashboardPremiumSub}>
               {premiumSubText}
             </div>
 
@@ -2361,14 +2637,12 @@ export default function Home() {
 
           {isAdmin && (
             <section
-              style={styles.adminCard}
+              style={styles.dashboardAdmin}
               onClick={() => {
                 window.location.href =
                   "/admin";
               }}
             >
-              <div style={styles.adminGlow} />
-
               <div style={styles.adminBadge}>
                 🔐 ADMIN ACCESS
               </div>
@@ -2389,117 +2663,20 @@ export default function Home() {
             </section>
           )}
 
-          {/* LEARNING ECOSYSTEM */}
+          <LearningEcosystem />
 
-          <div style={styles.sectionHeader}>
-            <div>
-              <div style={styles.sectionTitle}>Learning Ecosystem</div>
-              <div
-                style={{
-                  ...styles.sectionSmall,
-                  marginTop: "4px",
-                  color: "#777777",
-                  fontWeight: "800",
-                }}
-              >
-                Complete UPSC preparation cycle
-              </div>
-            </div>
-
-            <div style={styles.sectionSmall}>
-              06 MODULES
-            </div>
-          </div>
-
-          <section style={styles.ecosystemWrap}>
-            <div style={styles.ecosystemIntro}>
-              <div style={styles.ecosystemIntroLabel}>
-                SAMBHAV LEARNING ECOSYSTEM
-              </div>
-              <div style={styles.ecosystemIntroTitle}>
-                One integrated preparation cycle.
-              </div>
-              <div style={styles.ecosystemIntroText}>
-                SAMBHAV का core learning ecosystem UPSC preparation के प्रमुख stages को एक integrated platform पर cover करता है।
-              </div>
-            </div>
-
-            {learningEcosystem.map((item, index) => {
-              const isOpen = openEcosystem === index;
-
-              return (
-                <div key={item.number} style={styles.ecosystemItem}>
-                  <button
-                    type="button"
-                    style={styles.ecosystemButton}
-                    onClick={() =>
-                      setOpenEcosystem(
-                        isOpen ? -1 : index
-                      )
-                    }
-                    aria-expanded={isOpen}
-                  >
-                    <div style={styles.ecosystemNumber}>
-                      {item.number}
-                    </div>
-
-                    <div style={styles.ecosystemIcon}>
-                      {item.icon}
-                    </div>
-
-                    <div style={styles.ecosystemContent}>
-                      <div style={styles.ecosystemLabel}>
-                        {item.label}
-                      </div>
-                      <div style={styles.ecosystemTitle}>
-                        {item.title}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        ...styles.ecosystemChevron,
-                        transform: isOpen
-                          ? "rotate(90deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 180ms ease",
-                      }}
-                    >
-                      ›
-                    </div>
-                  </button>
-
-                  {isOpen && (
-                    <div style={styles.ecosystemDetails}>
-                      {item.points.map((point) => (
-                        <div
-                          key={point}
-                          style={styles.ecosystemPoint}
-                        >
-                          <span style={styles.ecosystemDot}>
-                            •
-                          </span>
-                          <span>{point}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </section>
         </div>
 
         {/* BOTTOM NAV */}
 
-        <nav style={styles.bottomNav}>
+        <nav style={styles.dashboardBottomNav}>
           <div
             style={{
               ...styles.navItem,
               ...styles.navActive,
             }}
           >
-            <span style={styles.navIcon}>
+            <span style={styles.dashboardNavIcon}>
               ⌂
             </span>
 
@@ -2507,14 +2684,14 @@ export default function Home() {
           </div>
 
           <div
-            style={styles.navItem}
+            style={styles.dashboardNavItem}
             onClick={() =>
               console.log(
                 "Current Affairs"
               )
             }
           >
-            <span style={styles.navIcon}>
+            <span style={styles.dashboardNavIcon}>
               ▤
             </span>
 
@@ -2522,12 +2699,12 @@ export default function Home() {
           </div>
 
           <div
-            style={styles.navItem}
+            style={styles.dashboardNavItem}
             onClick={() =>
               console.log("GS")
             }
           >
-            <span style={styles.navIcon}>
+            <span style={styles.dashboardNavIcon}>
               ▣
             </span>
 
@@ -2535,12 +2712,12 @@ export default function Home() {
           </div>
 
           <div
-            style={styles.navItem}
+            style={styles.dashboardNavItem}
             onClick={() =>
               console.log("AI")
             }
           >
-            <span style={styles.navIcon}>
+            <span style={styles.dashboardNavIcon}>
               ▦
             </span>
 
