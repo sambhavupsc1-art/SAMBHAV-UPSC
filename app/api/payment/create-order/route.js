@@ -37,10 +37,10 @@ const PLANS = {
 };
 
 /*
- * ------------------------------------------------
+ * ========================================================
  * VERIFY EMAIL SESSION
- * Same logic as /api/auth/me
- * ------------------------------------------------
+ * Same session format as /api/auth/me
+ * ========================================================
  */
 
 function verifyEmailSession(token) {
@@ -104,6 +104,10 @@ function verifyEmailSession(token) {
       return null;
     }
 
+    if (!data.userId) {
+      return null;
+    }
+
     return data;
   } catch (error) {
     console.error(
@@ -116,61 +120,106 @@ function verifyEmailSession(token) {
 }
 
 /*
- * ------------------------------------------------
- * GET USER
- * ------------------------------------------------
+ * ========================================================
+ * GET USER BY ID
+ * ========================================================
  */
 
 async function getUserById(userId) {
-  const response =
-    await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
-        userId
-      )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
-      {
-        headers: {
-          apikey:
-            SUPABASE_SECRET_KEY,
+  try {
+    if (
+      !SUPABASE_URL ||
+      !SUPABASE_SECRET_KEY ||
+      !userId
+    ) {
+      return null;
+    }
 
-          Authorization:
-            `Bearer ${SUPABASE_SECRET_KEY}`,
-        },
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+          userId
+        )}&select=id,email,telegram_id,first_name,last_name,username,status,plan`,
+        {
+          method: "GET",
 
-        cache: "no-store",
-      }
-    );
+          headers: {
+            apikey:
+              SUPABASE_SECRET_KEY,
 
-  if (!response.ok) {
+            Authorization:
+              `Bearer ${SUPABASE_SECRET_KEY}`,
+          },
+
+          cache: "no-store",
+        }
+      );
+
+    if (!response.ok) {
+      console.error(
+        "Payment user lookup failed:",
+        await response.text()
+      );
+
+      return null;
+    }
+
+    const users =
+      await response.json();
+
+    return users?.length
+      ? users[0]
+      : null;
+  } catch (error) {
     console.error(
-      "Payment user lookup failed:",
-      await response.text()
+      "Payment user lookup exception:",
+      error
     );
 
     return null;
   }
-
-  const users =
-    await response.json();
-
-  return users?.length
-    ? users[0]
-    : null;
 }
 
 /*
- * ------------------------------------------------
- * AUTHENTICATED USER
- * ------------------------------------------------
+ * ========================================================
+ * GET SESSION COOKIE
+ *
+ * Priority:
+ * 1. request.cookies
+ * 2. next/headers cookies()
+ *
+ * This makes the payment route robust across
+ * Next.js Route Handler environments.
+ * ========================================================
  */
 
-async function getAuthenticatedUser(request) {
+async function getSessionToken(request) {
   /*
-   * ==============================================
-   * WEBSITE / EMAIL SESSION
-   * ==============================================
-   *
-   * EXACT SAME COOKIE READING METHOD
-   * AS /api/auth/me
+   * ----------------------------------------------
+   * 1. DIRECT REQUEST COOKIE
+   * ----------------------------------------------
+   */
+
+  try {
+    const directCookie =
+      request?.cookies?.get(
+        "sambhav_session"
+      );
+
+    if (directCookie?.value) {
+      return directCookie.value;
+    }
+  } catch (error) {
+    console.error(
+      "Direct request cookie read failed:",
+      error
+    );
+  }
+
+  /*
+   * ----------------------------------------------
+   * 2. NEXT.JS COOKIE STORE FALLBACK
+   * ----------------------------------------------
    */
 
   try {
@@ -183,9 +232,41 @@ async function getAuthenticatedUser(request) {
       );
 
     if (sessionCookie?.value) {
+      return sessionCookie.value;
+    }
+  } catch (error) {
+    console.error(
+      "Next cookies() read failed:",
+      error
+    );
+  }
+
+  return null;
+}
+
+/*
+ * ========================================================
+ * AUTHENTICATED USER
+ * ========================================================
+ */
+
+async function getAuthenticatedUser(request) {
+  /*
+   * ======================================================
+   * WEBSITE / EMAIL SESSION
+   * ======================================================
+   */
+
+  try {
+    const sessionToken =
+      await getSessionToken(
+        request
+      );
+
+    if (sessionToken) {
       const session =
         verifyEmailSession(
-          sessionCookie.value
+          sessionToken
         );
 
       if (session?.userId) {
@@ -197,8 +278,7 @@ async function getAuthenticatedUser(request) {
         if (user) {
           return {
             user,
-            authMethod:
-              "email",
+            authMethod: "email",
           };
         }
       }
@@ -211,9 +291,9 @@ async function getAuthenticatedUser(request) {
   }
 
   /*
-   * ==============================================
+   * ======================================================
    * TELEGRAM FALLBACK
-   * ==============================================
+   * ======================================================
    */
 
   try {
@@ -242,6 +322,8 @@ async function getAuthenticatedUser(request) {
               telegramUser.id
             )}&select=id,email,telegram_id,first_name,last_name,username,status,plan&limit=1`,
             {
+              method: "GET",
+
               headers: {
                 apikey:
                   SUPABASE_SECRET_KEY,
@@ -279,50 +361,63 @@ async function getAuthenticatedUser(request) {
 }
 
 /*
- * ------------------------------------------------
+ * ========================================================
  * ACTIVE SUBSCRIPTION
- * ------------------------------------------------
+ * ========================================================
  */
 
-async function getActiveSubscription(userId) {
-  const now =
-    new Date().toISOString();
+async function getActiveSubscription(
+  userId
+) {
+  try {
+    const now =
+      new Date().toISOString();
 
-  const response =
-    await fetch(
-      `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
-        userId
-      )}&status=eq.active&expires_at=gt.${encodeURIComponent(
-        now
-      )}&select=id,plan,status,expires_at,amount&order=expires_at.desc&limit=1`,
-      {
-        headers: {
-          apikey:
-            SUPABASE_SECRET_KEY,
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
+          userId
+        )}&status=eq.active&expires_at=gt.${encodeURIComponent(
+          now
+        )}&select=id,plan,status,expires_at,amount&order=expires_at.desc&limit=1`,
+        {
+          method: "GET",
 
-          Authorization:
-            `Bearer ${SUPABASE_SECRET_KEY}`,
-        },
+          headers: {
+            apikey:
+              SUPABASE_SECRET_KEY,
 
-        cache: "no-store",
-      }
-    );
+            Authorization:
+              `Bearer ${SUPABASE_SECRET_KEY}`,
+          },
 
-  if (!response.ok) {
+          cache: "no-store",
+        }
+      );
+
+    if (!response.ok) {
+      console.error(
+        "Active subscription lookup failed:",
+        await response.text()
+      );
+
+      return null;
+    }
+
+    const subscriptions =
+      await response.json();
+
+    return subscriptions?.length
+      ? subscriptions[0]
+      : null;
+  } catch (error) {
     console.error(
-      "Active subscription lookup failed:",
-      await response.text()
+      "Active subscription lookup exception:",
+      error
     );
 
     return null;
   }
-
-  const subscriptions =
-    await response.json();
-
-  return subscriptions?.length
-    ? subscriptions[0]
-    : null;
 }
 
 /*
@@ -334,7 +429,9 @@ async function getActiveSubscription(userId) {
 export async function POST(request) {
   try {
     /*
-     * CONFIG
+     * ====================================================
+     * CONFIGURATION
+     * ====================================================
      */
 
     if (
@@ -364,7 +461,9 @@ export async function POST(request) {
     }
 
     /*
-     * AUTH
+     * ====================================================
+     * AUTHENTICATION
+     * ====================================================
      */
 
     const auth =
@@ -373,6 +472,30 @@ export async function POST(request) {
       );
 
     if (!auth?.user?.id) {
+      console.error(
+        "CREATE ORDER AUTH FAILED",
+        {
+          hasRequestCookies:
+            Boolean(
+              request?.cookies
+            ),
+
+          hasSessionCookie:
+            Boolean(
+              request?.cookies?.get(
+                "sambhav_session"
+              )?.value
+            ),
+
+          authHeader:
+            request.headers.get(
+              "authorization"
+            )
+              ? "present"
+              : "missing",
+        }
+      );
+
       return NextResponse.json(
         {
           error:
@@ -386,7 +509,9 @@ export async function POST(request) {
       auth.user;
 
     /*
+     * ====================================================
      * PLAN
+     * ====================================================
      */
 
     const body =
@@ -414,7 +539,9 @@ export async function POST(request) {
       PLANS[plan];
 
     /*
+     * ====================================================
      * APPROVAL
+     * ====================================================
      */
 
     if (
@@ -431,7 +558,16 @@ export async function POST(request) {
     }
 
     /*
-     * ACTIVE PREMIUM
+     * ====================================================
+     * ACTIVE SUBSCRIPTION
+     * ====================================================
+     *
+     * IMPORTANT:
+     *
+     * Active DEMO is allowed to upgrade.
+     *
+     * Active PAID subscription is blocked.
+     * ====================================================
      */
 
     const activeSubscription =
@@ -462,7 +598,9 @@ export async function POST(request) {
     }
 
     /*
-     * ORDER
+     * ====================================================
+     * CASHFREE ORDER ID
+     * ====================================================
      */
 
     const orderId =
@@ -471,7 +609,9 @@ export async function POST(request) {
       ).slice(0, 8)}_${Date.now()}`;
 
     /*
+     * ====================================================
      * BASE URL
+     * ====================================================
      */
 
     const baseUrl =
@@ -488,14 +628,24 @@ export async function POST(request) {
       `${baseUrl}/premium/payment/success?order_id={order_id}`;
 
     /*
-     * CASHFREE
+     * ====================================================
+     * CASHFREE ENVIRONMENT
+     * ====================================================
      */
 
     const cashfreeUrl =
-      CASHFREE_ENV ===
+      String(
+        CASHFREE_ENV
+      ).toLowerCase() ===
       "production"
         ? "https://api.cashfree.com/pg/orders"
         : "https://sandbox.cashfree.com/pg/orders";
+
+    /*
+     * ====================================================
+     * CUSTOMER
+     * ====================================================
+     */
 
     const customerId =
       user.telegram_id
@@ -515,7 +665,9 @@ export async function POST(request) {
       "9999999999";
 
     /*
+     * ====================================================
      * CREATE CASHFREE ORDER
+     * ====================================================
      */
 
     const cashfreeResponse =
@@ -585,6 +737,12 @@ export async function POST(request) {
         .json()
         .catch(() => ({}));
 
+    /*
+     * ====================================================
+     * CASHFREE ERROR
+     * ====================================================
+     */
+
     if (
       !cashfreeResponse.ok
     ) {
@@ -604,9 +762,20 @@ export async function POST(request) {
       );
     }
 
+    /*
+     * ====================================================
+     * PAYMENT SESSION CHECK
+     * ====================================================
+     */
+
     if (
       !cashfreeData?.payment_session_id
     ) {
+      console.error(
+        "Cashfree payment session missing:",
+        cashfreeData
+      );
+
       return NextResponse.json(
         {
           error:
@@ -617,7 +786,9 @@ export async function POST(request) {
     }
 
     /*
+     * ====================================================
      * PENDING SUBSCRIPTION
+     * ====================================================
      */
 
     const now =
@@ -680,6 +851,12 @@ export async function POST(request) {
         }
       );
 
+    /*
+     * ====================================================
+     * SUBSCRIPTION INSERT ERROR
+     * ====================================================
+     */
+
     if (
       !subscriptionResponse.ok
     ) {
@@ -701,7 +878,9 @@ export async function POST(request) {
     }
 
     /*
+     * ====================================================
      * SUCCESS
+     * ====================================================
      */
 
     return NextResponse.json({
