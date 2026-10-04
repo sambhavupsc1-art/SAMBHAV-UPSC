@@ -1662,6 +1662,74 @@ export default function Home() {
       />
 
       <main className="sambhav-dashboard" style={styles.page}>
+<style>{`
+  .sambhav-dashboard .dashboard-container {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sambhav-dashboard .dashboard-hero-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .55fr);
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .sambhav-dashboard .dashboard-premium-benefits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 13px;
+  }
+
+  .sambhav-dashboard .dashboard-premium-benefit {
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.09);
+    color: #d8d8d8;
+    font-size: 8px;
+    font-weight: 800;
+  }
+
+  .sambhav-dashboard .dashboard-premium-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sambhav-dashboard .dashboard-premium-actions > * {
+    min-width: 150px;
+  }
+
+  @media (max-width: 760px) {
+    .sambhav-dashboard .dashboard-hero-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .sambhav-dashboard .dashboard-container {
+      padding-left: 12px;
+      padding-right: 12px;
+      padding-bottom: 92px;
+    }
+
+    .sambhav-dashboard .dashboard-quote-text {
+      font-size: 14px;
+    }
+
+    .sambhav-dashboard .dashboard-premium-actions {
+      flex-direction: column;
+    }
+
+    .sambhav-dashboard .dashboard-premium-actions > * {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+  }
+`}</style>
         <style>{`
           .sambhav-dashboard .dashboard-container {
             width: 100%;
@@ -1763,32 +1831,48 @@ export default function Home() {
           </header>
 
 
-          {/* GREETING */}
+          {/* GREETING + PREPARATION MINDSET */}
 
-          <section style={styles.greeting}>
-            <div style={styles.eyebrow}>
-              {greeting}
-            </div>
+          <div className="dashboard-hero-row">
 
-            <h1 style={styles.greetingTitle}>
-              {firstName}
-            </h1>
+            <section style={styles.greeting}>
+              <div style={styles.eyebrow}>
+                {greeting}
+              </div>
 
-            <div style={styles.greetingSub}>
-              Your preparation. Your SAMBHAV.
-            </div>
-          </section>
+              <h1
+                style={{
+                  ...styles.greetingTitle,
+                  fontSize: "clamp(26px, 5vw, 34px)",
+                  lineHeight: "1.08",
+                }}
+              >
+                Welcome, {firstName}
+              </h1>
 
+              <div style={styles.greetingSub}>
+                Your preparation has a direction. Now make it consistent.
+              </div>
+            </section>
 
-          <section className="dashboard-quote">
-            <div className="dashboard-quote-title">SAMBHAV MINDSET</div>
-            <div className="dashboard-quote-text">
-              “UPSC sirf padhne se nahi, sahi direction mein consistently prepare karne se crack hota hai.”
-            </div>
-            <div className="dashboard-quote-sub">
-              Har din thoda better. Har revision thoda smarter.
-            </div>
-          </section>
+            <section
+              className="dashboard-quote"
+              style={{ marginBottom: 0 }}
+            >
+              <div className="dashboard-quote-title">
+                SAMBHAV MINDSET
+              </div>
+
+              <div className="dashboard-quote-text">
+                “UPSC sirf padhne se nahi, sahi direction mein consistently prepare karne se crack hota hai.”
+              </div>
+
+              <div className="dashboard-quote-sub">
+                Har din thoda better. Har revision thoda smarter.
+              </div>
+            </section>
+
+          </div>
 
 
           {/* ACCESS CARD */}
@@ -1824,21 +1908,31 @@ export default function Home() {
           </section>
 
 
-          {/* PREPARATION MOTIVATION */}
+          {/* PREPARATION SYSTEM */}
 
-          <section style={styles.motivationCard}>
+          <section
+            style={{
+              ...styles.motivationCard,
+              padding: "18px 20px",
+            }}
+          >
             <div style={styles.motivationGlow} />
 
             <div style={styles.motivationLabel}>
-              SAMBHAV MINDSET
+              THE SAMBHAV METHOD
             </div>
 
-            <div style={styles.motivationTitle}>
-              “UPSC sirf padhne se nahi, sahi direction mein consistently prepare karne se crack hota hai.”
+            <div
+              style={{
+                ...styles.motivationTitle,
+                fontSize: "15px",
+              }}
+            >
+              Study. Practise. Analyse. Improve.
             </div>
 
             <div style={styles.motivationText}>
-              Aaj ki preparation ko kal par mat chhodiye. Chhote, focused steps hi long-term UPSC preparation ko strong banate hain.
+              Preparation ko scattered resources nahi, ek focused system ki tarah follow kijiye.
             </div>
           </section>
 
@@ -1852,14 +1946,30 @@ export default function Home() {
               </div>
 
               <div style={styles.lockedBannerText}>
-                Current Affairs, PYQ Intelligence, Prelims Practice,
-                Mains Answer Writing, AI Evaluation and premium resources —
-                sab ek focused UPSC workspace mein.
+                Serious UPSC preparation needs more than scattered resources.
+                Bring Current Affairs, PYQ Intelligence, Tests, Mains practice,
+                AI evaluation and study resources into one focused workspace.
+              </div>
+
+              <div className="dashboard-premium-benefits">
+                {[
+                  "Current Affairs",
+                  "PYQ Intelligence",
+                  "Mains Practice",
+                  "AI Evaluation",
+                ].map((item) => (
+                  <span
+                    className="dashboard-premium-benefit"
+                    key={item}
+                  >
+                    ✓ {item}
+                  </span>
+                ))}
               </div>
 
               <div
                 style={{
-                  marginTop: "8px",
+                  marginTop: "9px",
                   color: "#5f594d",
                   fontSize: "10px",
                   lineHeight: "1.5",
@@ -2022,7 +2132,7 @@ export default function Home() {
           </div>
 
 
-          <section className="dashboard-module-grid" style={styles.modulesGrid}>
+          <section className="dashboard-module-grid" style={{ ...styles.modulesGrid, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
             {modules.map((module) => {
 
               const locked =
@@ -2128,6 +2238,20 @@ export default function Home() {
                 for planning, revision, analysis and
                 learning.
               </div>
+
+              {!isPremium && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    color: "#aaa",
+                    fontSize: "9px",
+                    lineHeight: "1.5",
+                    fontWeight: "700",
+                  }}
+                >
+                  Premium members get access to the complete AI workspace.
+                </div>
+              )}
 
               <button
                 style={{
