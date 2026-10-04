@@ -1380,6 +1380,199 @@ function PublicLanding() {
   );
 }
 
+
+function ThemeToggle({ theme, setTheme }) {
+  const nextTheme = theme === "dark" ? "light" : "dark";
+
+  return (
+    <button
+      type="button"
+      aria-label={`Switch to ${nextTheme} theme`}
+      title={`Switch to ${nextTheme} theme`}
+      onClick={() => setTheme(nextTheme)}
+      className="sambhav-theme-toggle"
+    >
+      <span className="sambhav-theme-icon">
+        {theme === "dark" ? "☀" : "☾"}
+      </span>
+      <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+    </button>
+  );
+}
+
+function AppThemeStyles() {
+  return (
+    <style>{`
+      .sambhav-app {
+        --app-bg: #080808;
+        --app-surface: #111111;
+        --app-surface-2: #171717;
+        --app-card: #121212;
+        --app-text: #f7f5ef;
+        --app-muted: #a7a39a;
+        --app-border: rgba(255,255,255,0.09);
+        --app-soft: #1b1b1b;
+        --app-on-dark: #ffffff;
+        --app-badge-bg: #ffffff;
+        --app-dark-text: #111111;
+        --app-gold: #d6bd79;
+        --app-gold-deep: #a07d32;
+        --app-dark-gradient: linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%);
+        --app-premium-gradient: linear-gradient(145deg, #171717, #242424);
+        --app-admin-gradient: linear-gradient(135deg, #1a1a18, #242018);
+        --app-shadow: 0 16px 38px rgba(0,0,0,0.22);
+        min-height: 100vh;
+        background: var(--app-bg) !important;
+        color: var(--app-text) !important;
+      }
+
+      .sambhav-app[data-theme="light"] {
+        --app-bg: linear-gradient(180deg, #f8f7f3 0%, #efede7 100%);
+        --app-surface: #ffffff;
+        --app-surface-2: #f5f2eb;
+        --app-card: #ffffff;
+        --app-text: #111111;
+        --app-muted: #6f6a61;
+        --app-border: #e4e0d6;
+        --app-soft: #f3f0e8;
+        --app-on-dark: #111111;
+        --app-badge-bg: #ffffff;
+        --app-dark-text: #111111;
+        --app-shadow: 0 10px 28px rgba(0,0,0,0.055);
+        --app-dark-gradient: linear-gradient(145deg, #ffffff 0%, #f4f1e9 58%, #ebe7dc 100%);
+        --app-premium-gradient: linear-gradient(145deg, #ffffff, #f0ede5);
+        --app-admin-gradient: linear-gradient(135deg, #f4ead0, #fffaf0);
+      }
+
+      .sambhav-app .sambhav-theme-toggle {
+        border: 1px solid var(--app-border);
+        background: var(--app-surface);
+        color: var(--app-text);
+        min-height: 38px;
+        padding: 0 11px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: .7px;
+        cursor: pointer;
+        box-shadow: var(--app-shadow);
+        flex-shrink: 0;
+      }
+
+      .sambhav-theme-icon {
+        color: var(--app-gold);
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      .sambhav-app .app-theme-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sambhav-app .app-hero,
+      .sambhav-app .app-access,
+      .sambhav-app .app-premium,
+      .sambhav-app .app-ecosystem-card {
+        background: var(--app-dark-gradient) !important;
+        color: var(--app-on-dark) !important;
+        border-color: var(--app-border) !important;
+        box-shadow: var(--app-shadow) !important;
+      }
+
+      .sambhav-app .app-admin {
+        background: var(--app-admin-gradient) !important;
+        color: var(--app-text) !important;
+        border-color: var(--app-border) !important;
+      }
+
+      .sambhav-app .app-today,
+      .sambhav-app .app-status-card {
+        background: var(--app-surface) !important;
+        color: var(--app-text) !important;
+        border-color: var(--app-border) !important;
+        box-shadow: var(--app-shadow) !important;
+      }
+
+      .sambhav-app .app-welcome {
+        background: var(--app-dark-gradient) !important;
+        color: var(--app-on-dark) !important;
+        border: 1px solid var(--app-border) !important;
+        box-shadow: var(--app-shadow) !important;
+      }
+
+      .sambhav-app .app-hero .app-gold,
+      .sambhav-app .app-access .app-gold,
+      .sambhav-app .app-premium .app-gold,
+      .sambhav-app .app-ecosystem-card .app-gold,
+      .sambhav-app .app-welcome .app-gold {
+        color: var(--app-gold) !important;
+      }
+
+      .sambhav-app .app-muted,
+      .sambhav-app .app-ecosystem-point {
+        color: var(--app-muted) !important;
+      }
+
+      .sambhav-app[data-theme="light"] .app-ecosystem-point {
+        color: #5f5b54 !important;
+      }
+
+      .sambhav-app .app-theme-toggle-in-card {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+      }
+
+      .sambhav-app .app-ecosystem-card {
+        transition: transform .18s ease, box-shadow .22s ease, background .22s ease;
+      }
+
+      .sambhav-app .app-ecosystem-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .sambhav-app .app-brand {
+        color: var(--app-text) !important;
+      }
+
+      .sambhav-app .app-brand-sub {
+        color: var(--app-muted) !important;
+      }
+
+      .sambhav-app .app-gold {
+        color: var(--app-gold) !important;
+      }
+
+      .sambhav-app .app-status-title,
+      .sambhav-app .app-status-text {
+        color: var(--app-text) !important;
+      }
+
+      .sambhav-app .app-status-pill {
+        background: var(--app-soft) !important;
+        color: var(--app-text) !important;
+      }
+
+      @media (max-width: 560px) {
+        .sambhav-app .sambhav-theme-toggle {
+          min-height: 34px;
+          padding: 0 9px;
+          font-size: 8px;
+        }
+        .sambhav-app .sambhav-theme-icon {
+          font-size: 14px;
+        }
+      }
+    `}</style>
+  );
+}
+
 /* =========================================================
 MAIN HOME
 ========================================================= */
@@ -1392,6 +1585,22 @@ export default function Home() {
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    try {
+      const savedTheme = window.localStorage.getItem("sambhav-theme");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        setTheme(savedTheme);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("sambhav-theme", theme);
+    } catch {}
+  }, [theme]);
 
   /* =====================================================
   AUTHENTICATION
@@ -1620,27 +1829,39 @@ export default function Home() {
   if (loading) {
     return (
       <>
+        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
+        <main className="sambhav-app" data-theme={theme} style={styles.page}>
           <div style={styles.container}>
             <div
+              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "70px",
               }}
             >
-              <div style={styles.brand}>
-                SAMBHAV
-                <span style={styles.brandGold}>
-                  {" "}UPSC
-                </span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                }}
+              >
+                <div className="app-brand" style={styles.brand}>
+                  SAMBHAV
+                  <span className="app-gold" style={styles.brandGold}>
+                    {" "}UPSC
+                  </span>
+                </div>
+                <ThemeToggle theme={theme} setTheme={setTheme} />
               </div>
 
-              <p style={styles.greetingSub}>
+              <p className="app-muted" style={styles.greetingSub}>
                 Checking access...
               </p>
             </div>
@@ -1661,33 +1882,38 @@ export default function Home() {
   ) {
     return (
       <>
+        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
+        <main className="sambhav-app" data-theme={theme} style={styles.page}>
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div style={styles.brand}>
+                <div className="app-brand" style={styles.brand}>
                   SAMBHAV
-                  <span style={styles.brandGold}>
+                  <span className="app-gold" style={styles.brandGold}>
                     {" "}UPSC
                   </span>
                 </div>
 
-                <div style={styles.brandSub}>
+                <div className="app-brand-sub" style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
 
-              <div style={styles.avatar}>
-                🔒
+              <div className="app-theme-header">
+                <ThemeToggle theme={theme} setTheme={setTheme} />
+                <div style={styles.avatar}>
+                  🔒
+                </div>
               </div>
             </header>
 
             <div
+              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "45px",
@@ -1697,17 +1923,17 @@ export default function Home() {
                 🔐
               </div>
 
-              <h1 style={styles.lockedTitle}>
+              <h1 className="app-status-title" style={styles.lockedTitle}>
                 Access Required
               </h1>
 
-              <p style={styles.lockedText}>
+              <p className="app-status-text" style={styles.lockedText}>
                 SAMBHAV UPSC application access
                 ke liye Telegram se authorized
                 login required hai.
               </p>
 
-              <div style={styles.statusPill}>
+              <div className="app-status-pill" style={styles.statusPill}>
                 Authentication Required
               </div>
             </div>
@@ -1777,33 +2003,38 @@ export default function Home() {
 
     return (
       <>
+        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
+        <main className="sambhav-app" data-theme={theme} style={styles.page}>
           <div style={styles.container}>
             <header style={styles.header}>
               <div>
-                <div style={styles.brand}>
+                <div className="app-brand" style={styles.brand}>
                   SAMBHAV
-                  <span style={styles.brandGold}>
+                  <span className="app-gold" style={styles.brandGold}>
                     {" "}UPSC
                   </span>
                 </div>
 
-                <div style={styles.brandSub}>
+                <div className="app-brand-sub" style={styles.brandSub}>
                   UPSC Preparation Platform
                 </div>
               </div>
 
-              <div style={styles.avatar}>
-                🔒
+              <div className="app-theme-header">
+                <ThemeToggle theme={theme} setTheme={setTheme} />
+                <div style={styles.avatar}>
+                  🔒
+                </div>
               </div>
             </header>
 
             <div
+              className="app-status-card"
               style={{
                 ...styles.pendingCard,
                 marginTop: "45px",
@@ -1813,15 +2044,15 @@ export default function Home() {
                 {icon}
               </div>
 
-              <h1 style={styles.lockedTitle}>
+              <h1 className="app-status-title" style={styles.lockedTitle}>
                 {title}
               </h1>
 
-              <p style={styles.lockedText}>
+              <p className="app-status-text" style={styles.lockedText}>
                 {text}
               </p>
 
-              <div style={styles.statusPill}>
+              <div className="app-status-pill" style={styles.statusPill}>
                 {pill}
               </div>
 
@@ -1879,14 +2110,24 @@ export default function Home() {
 
     return (
       <>
+        <AppThemeStyles />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
+        <main className="sambhav-app" data-theme={theme} style={styles.page}>
           <div style={styles.container}>
-            <div style={styles.welcomeCard}>
+            <div
+              className="app-welcome"
+              style={{
+                ...styles.welcomeCard,
+                position: "relative",
+              }}
+            >
+              <div className="app-theme-toggle-in-card">
+                <ThemeToggle theme={theme} setTheme={setTheme} />
+              </div>
               <div style={styles.welcomeLabel}>
                 WELCOME
               </div>
@@ -1960,12 +2201,13 @@ export default function Home() {
 
   return (
     <>
+      <AppThemeStyles />
       <Script
         src="https://telegram.org/js/telegram-web-app.js"
         strategy="beforeInteractive"
       />
 
-      <main style={styles.page}>
+      <main className="sambhav-app" data-theme={theme} style={styles.page}>
         <div style={styles.container}>
 
           {/* HEADER */}
@@ -1976,35 +2218,38 @@ export default function Home() {
             }}
           >
             <div>
-              <div style={styles.brand}>
+              <div className="app-brand" style={styles.brand}>
                 SAMBHAV
-                <span style={styles.brandGold}>
+                <span className="app-gold" style={styles.brandGold}>
                   {" "}UPSC
                 </span>
               </div>
-              <div style={styles.brandSub}>
+              <div className="app-brand-sub" style={styles.brandSub}>
                 INTELLIGENCE • PREPARATION • PERFORMANCE
               </div>
             </div>
 
-            <div
-              style={{
-                ...styles.avatar,
-                width: "46px",
-                height: "46px",
-                fontSize: "18px",
-              }}
-            >
-              {initial}
+            <div className="app-theme-header">
+              <ThemeToggle theme={theme} setTheme={setTheme} />
+              <div
+                style={{
+                  ...styles.avatar,
+                  width: "46px",
+                  height: "46px",
+                  fontSize: "18px",
+                }}
+              >
+                {initial}
+              </div>
             </div>
           </header>
 
           {/* HERO */}
-          <section
+          <section className="app-hero"
             style={{
               background:
-                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-              color: "#ffffff",
+                "var(--app-dark-gradient)",
+              color: "var(--app-on-dark)",
               borderRadius: "28px",
               padding: "24px 21px 21px",
               marginBottom: "16px",
@@ -2031,7 +2276,7 @@ export default function Home() {
                   fontSize: "9px",
                   fontWeight: "900",
                   letterSpacing: "1.7px",
-                  color: "#d6bd79",
+                  color: "var(--app-gold)",
                   marginBottom: "10px",
                 }}
               >
@@ -2056,7 +2301,7 @@ export default function Home() {
                   lineHeight: "1.08",
                   fontWeight: "900",
                   letterSpacing: "-1px",
-                  color: "#d6bd79",
+                  color: "var(--app-gold)",
                   maxWidth: "620px",
                 }}
               >
@@ -2100,7 +2345,7 @@ export default function Home() {
                         fontWeight: "800",
                         letterSpacing: "1.1px",
                         color:
-                          "rgba(255,255,255,0.48)",
+                          "var(--app-muted)",
                       }}
                     >
                       {label}
@@ -2112,11 +2357,11 @@ export default function Home() {
           </section>
 
           {/* OFFICER ACCESS */}
-          <section
+          <section className="app-access"
             style={{
               background:
-                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
-              color: "#ffffff",
+                "var(--app-dark-gradient)",
+              color: "var(--app-on-dark)",
               borderRadius: "22px",
               padding: "17px 18px",
               marginBottom: "16px",
@@ -2143,7 +2388,7 @@ export default function Home() {
                   fontSize: "8px",
                   fontWeight: "900",
                   letterSpacing: "1.3px",
-                  color: "#d6bd79",
+                  color: "var(--app-gold)",
                 }}
               >
                 OFFICER ACCESS
@@ -2163,7 +2408,7 @@ export default function Home() {
                 style={{
                   marginTop: "5px",
                   fontSize: "10px",
-                  color: "rgba(255,255,255,0.55)",
+                  color: "var(--app-muted)",
                   letterSpacing: "0.5px",
                 }}
               >
@@ -2173,11 +2418,11 @@ export default function Home() {
           </section>
 
           {/* PREMIUM */}
-          <section
+          <section className="app-premium"
             style={{
               background:
-                "linear-gradient(145deg, #171717, #242424)",
-              color: "#ffffff",
+                "var(--app-premium-gradient)",
+              color: "var(--app-on-dark)",
               borderRadius: "25px",
               padding: "20px",
               marginBottom: "23px",
@@ -2206,8 +2451,8 @@ export default function Home() {
                   display: "inline-flex",
                   padding: "7px 10px",
                   borderRadius: "999px",
-                  background: "#ffffff",
-                  color: "#171717",
+                  background: "var(--app-badge-bg)",
+                  color: "var(--app-dark-text)",
                   fontSize: "8px",
                   fontWeight: "900",
                   letterSpacing: "1px",
@@ -2234,7 +2479,7 @@ export default function Home() {
                   fontSize: "12px",
                   lineHeight: "1.55",
                   color:
-                    "rgba(255,255,255,0.63)",
+                    "var(--app-muted)",
                 }}
               >
                 {premiumSubText}
@@ -2262,7 +2507,7 @@ export default function Home() {
                         fontSize: "9px",
                         fontWeight: "800",
                         color:
-                          "rgba(255,255,255,0.68)",
+                          "var(--app-muted)",
                         padding: "8px 9px",
                         border:
                           "1px solid rgba(255,255,255,0.10)",
@@ -2305,7 +2550,7 @@ export default function Home() {
                     style={{
                       ...styles.premiumAction,
                       marginTop: 0,
-                      background: "#d6bd79",
+                      background: "var(--app-gold)",
                       color: "#111111",
                       border: "none",
                     }}
@@ -2340,9 +2585,10 @@ export default function Home() {
           {/* ADMIN */}
           {isAdmin && (
             <section
+              className="app-admin"
               style={{
                 background:
-                  "linear-gradient(135deg, #f4ead0, #fffaf0)",
+                  "var(--app-admin-gradient)",
                 border:
                   "1px solid rgba(160,125,50,0.24)",
                 borderRadius: "20px",
@@ -2360,7 +2606,7 @@ export default function Home() {
                   fontSize: "8px",
                   fontWeight: "900",
                   letterSpacing: "1.2px",
-                  color: "#8c6b27",
+                  color: "var(--app-gold-deep)",
                 }}
               >
                 ADMIN ACCESS
@@ -2380,7 +2626,7 @@ export default function Home() {
                 style={{
                   marginTop: "4px",
                   fontSize: "11px",
-                  color: "#77736c",
+                  color: "var(--app-muted)",
                 }}
               >
                 Users • Approvals • Premium • Accounts
@@ -2389,9 +2635,9 @@ export default function Home() {
           )}
 
           {/* TODAY'S PREPARATION */}
-          <section
+          <section className="app-today"
             style={{
-              background: "#ffffff",
+              background: "var(--app-on-dark)",
               border: "1px solid #e7e4dd",
               borderRadius: "20px",
               padding: "15px 16px",
@@ -2413,7 +2659,7 @@ export default function Home() {
                     fontSize: "8px",
                     fontWeight: "900",
                     letterSpacing: "1.4px",
-                    color: "#a07d32",
+                    color: "var(--app-gold-deep)",
                   }}
                 >
                   TODAY'S PREPARATION
@@ -2434,8 +2680,8 @@ export default function Home() {
                   flexShrink: 0,
                   padding: "8px 10px",
                   borderRadius: "10px",
-                  background: "#f5f2eb",
-                  color: "#6f6a61",
+                  background: "var(--app-soft)",
+                  color: "var(--app-muted)",
                   fontSize: "8px",
                   fontWeight: "900",
                   letterSpacing: "0.8px",
@@ -2459,7 +2705,7 @@ export default function Home() {
                   fontSize: "9px",
                   fontWeight: "900",
                   letterSpacing: "1.5px",
-                  color: "#a07d32",
+                  color: "var(--app-gold-deep)",
                 }}
               >
                 SAMBHAV LEARNING ECOSYSTEM
@@ -2482,7 +2728,7 @@ export default function Home() {
                   marginTop: "6px",
                   fontSize: "10.5px",
                   lineHeight: "1.45",
-                  color: "#77736c",
+                  color: "var(--app-muted)",
                   maxWidth: "620px",
                 }}
               >
@@ -2574,12 +2820,13 @@ export default function Home() {
               ].map((item) => (
                 <div
                   key={item.no}
+                  className="app-ecosystem-card"
                   style={{
                     background:
-                      "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+                      "var(--app-dark-gradient)",
                     border:
                       "1px solid rgba(255,255,255,0.08)",
-                    color: "#ffffff",
+                    color: "var(--app-on-dark)",
                     borderRadius: "21px",
                     padding: "16px",
                     minWidth: 0,
@@ -2602,7 +2849,7 @@ export default function Home() {
                         fontSize: "8px",
                         fontWeight: "900",
                         letterSpacing: "1.2px",
-                        color: "#d6bd79",
+                        color: "var(--app-gold)",
                       }}
                     >
                       {item.label}
@@ -2648,19 +2895,19 @@ export default function Home() {
                           fontSize: "11px",
                           lineHeight: "1.42",
                           color:
-                            "rgba(255,255,255,0.72)",
+                            "var(--app-muted)",
                         }}
                       >
                         <span
                           style={{
-                            color: "#d6bd79",
+                            color: "var(--app-gold)",
                             fontWeight: "900",
                             flexShrink: 0,
                           }}
                         >
                           •
                         </span>
-                        <span>{point}</span>
+                        <span className="app-ecosystem-point">{point}</span>
                       </div>
                     ))}
                   </div>
