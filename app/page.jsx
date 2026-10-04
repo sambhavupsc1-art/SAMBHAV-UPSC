@@ -2064,7 +2064,7 @@ export default function Home() {
                   maxWidth: "560px",
                 }}
               >
-                सही दिशा। निरंतर तैयारी। बेहतर प्रदर्शन।
+                संभव है, तो UPSC संभव है।
               </div>
 
               <div
@@ -2433,6 +2433,26 @@ export default function Home() {
               </div>
             </section>
           )}
+
+          {/* TODAY'S PREPARATION */}
+          <section
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e7e4dd",
+              borderRadius: "20px",
+              padding: "15px 16px",
+              marginBottom: "23px",
+              boxShadow: "0 7px 20px rgba(0,0,0,0.035)",
+            }}
+          >
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
+              <div>
+                <div style={{fontSize:"8px",fontWeight:"900",letterSpacing:"1.4px",color:"#a07d32"}}>TODAY'S PREPARATION</div>
+                <div style={{marginTop:"5px",fontSize:"15px",fontWeight:"900"}}>Stay focused. Keep moving.</div>
+              </div>
+              <div style={{flexShrink:0,padding:"8px 10px",borderRadius:"10px",background:"#f5f2eb",color:"#6f6a61",fontSize:"8px",fontWeight:"900",letterSpacing:"0.8px"}}>DAILY FOCUS</div>
+            </div>
+          </section>
 
           {/* PREPARATION WORKSPACE */}
           <div
