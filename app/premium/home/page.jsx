@@ -44,8 +44,8 @@ const modules = [
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f5f2eb",
-    color: "#101010",
+    background: "var(--bg),
+    color: "var(--text),
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
     paddingBottom: "95px",
@@ -53,9 +53,9 @@ const styles = {
 
   container: {
     width: "100%",
-    maxWidth: "760px",
+    maxWidth: "1120px",
     margin: "0 auto",
-    padding: "18px 16px 35px",
+    padding: "20px 22px 42px",
     boxSizing: "border-box",
   },
 
@@ -75,7 +75,7 @@ const styles = {
   brandSub: {
     marginTop: "4px",
     fontSize: "9px",
-    color: "#77736b",
+    color: "var(--muted),
     letterSpacing: "1.2px",
     fontWeight: "700",
     textTransform: "uppercase",
@@ -85,7 +85,7 @@ const styles = {
     width: "43px",
     height: "43px",
     borderRadius: "50%",
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#dfc477",
     display: "flex",
     alignItems: "center",
@@ -99,7 +99,7 @@ const styles = {
   },
 
   greetingSmall: {
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "11px",
     fontWeight: "700",
   },
@@ -114,13 +114,13 @@ const styles = {
 
   greetingSub: {
     marginTop: "7px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "12px",
   },
 
   tagline: {
     marginTop: "9px",
-    color: "#101010",
+    color: "var(--text),
     fontSize: "11px",
     fontWeight: "800",
     letterSpacing: "-.1px",
@@ -129,7 +129,7 @@ const styles = {
   premiumCard: {
     position: "relative",
     overflow: "hidden",
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#fff",
     borderRadius: "25px",
     padding: "21px",
@@ -168,7 +168,7 @@ const styles = {
     position: "relative",
     zIndex: 2,
     marginTop: "6px",
-    color: "#c4c4c4",
+    color: "var(--dark-muted),
     fontSize: "10px",
   },
 
@@ -194,8 +194,8 @@ const styles = {
   },
 
   stat: {
-    background: "#fffdf9",
-    border: "1px solid rgba(16,16,16,.08)",
+    background: "var(--surface),
+    border: "1px solid var(--border),
     borderRadius: "17px",
     padding: "14px 10px",
     textAlign: "center",
@@ -208,14 +208,14 @@ const styles = {
 
   statLabel: {
     marginTop: "4px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "8px",
     fontWeight: "700",
     lineHeight: "1.3",
   },
 
   countdown: {
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#fff",
     borderRadius: "20px",
     padding: "17px",
@@ -269,7 +269,7 @@ const styles = {
 
   sectionSub: {
     fontSize: "9px",
-    color: "#77736b",
+    color: "var(--muted),
     fontWeight: "700",
   },
 
@@ -281,8 +281,8 @@ const styles = {
   },
 
   module: {
-    background: "#fffdf9",
-    border: "1px solid rgba(16,16,16,.08)",
+    background: "var(--surface),
+    border: "1px solid var(--border),
     borderRadius: "20px",
     padding: "15px",
     minHeight: "125px",
@@ -295,7 +295,7 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "14px",
-    background: "#101010",
+    background: "var(--dark-surface),
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -310,14 +310,14 @@ const styles = {
 
   moduleSub: {
     marginTop: "5px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "9px",
     lineHeight: "1.4",
   },
 
   mission: {
-    background: "#fffdf9",
-    border: "1px solid rgba(16,16,16,.08)",
+    background: "var(--surface),
+    border: "1px solid var(--border),
     borderRadius: "22px",
     padding: "17px",
     marginBottom: "22px",
@@ -335,12 +335,12 @@ const styles = {
   },
 
   missionMuted: {
-    color: "#77736b",
+    color: "var(--muted),
   },
 
   missionTrack: {
     height: "5px",
-    background: "#e7e2d9",
+    background: "var(--track),
     borderRadius: "99px",
     marginTop: "7px",
     overflow: "hidden",
@@ -348,12 +348,12 @@ const styles = {
 
   missionFill: {
     height: "100%",
-    background: "#101010",
+    background: "var(--dark-surface),
     borderRadius: "99px",
   },
 
   intelligence: {
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#fff",
     borderRadius: "22px",
     padding: "18px",
@@ -386,7 +386,7 @@ const styles = {
 
   intelligenceSub: {
     marginTop: "2px",
-    color: "#9e9e9e",
+    color: "var(--dark-muted),
     fontSize: "8px",
   },
 
@@ -396,7 +396,7 @@ const styles = {
   },
 
   aiInsight: {
-    background: "#fffdf9",
+    background: "var(--surface),
     border: "1px solid rgba(184,148,69,.25)",
     borderRadius: "22px",
     padding: "18px",
@@ -407,7 +407,7 @@ const styles = {
     display: "inline-block",
     padding: "6px 9px",
     borderRadius: "999px",
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#dfc477",
     fontSize: "8px",
     fontWeight: "900",
@@ -422,14 +422,14 @@ const styles = {
 
   aiText: {
     marginTop: "5px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "10px",
     lineHeight: "1.5",
   },
 
   profileCard: {
-    background: "#fffdf9",
-    border: "1px solid rgba(16,16,16,.08)",
+    background: "var(--surface),
+    border: "1px solid var(--border),
     borderRadius: "25px",
     padding: "20px",
     marginBottom: "15px",
@@ -446,7 +446,7 @@ const styles = {
     width: "64px",
     height: "64px",
     borderRadius: "20px",
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#dfc477",
     display: "flex",
     alignItems: "center",
@@ -464,7 +464,7 @@ const styles = {
 
   profileEmail: {
     marginTop: "5px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "10px",
     wordBreak: "break-word",
   },
@@ -475,11 +475,11 @@ const styles = {
     alignItems: "center",
     gap: "15px",
     padding: "13px 0",
-    borderTop: "1px solid rgba(16,16,16,.07)",
+    borderTop: "1px solid var(--border),
   },
 
   profileLabel: {
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "10px",
     fontWeight: "700",
   },
@@ -495,7 +495,7 @@ const styles = {
     display: "inline-flex",
     padding: "6px 9px",
     borderRadius: "999px",
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#dfc477",
     fontSize: "8px",
     fontWeight: "900",
@@ -506,7 +506,7 @@ const styles = {
     padding: "15px",
     border: "1px solid rgba(181,43,34,.18)",
     borderRadius: "16px",
-    background: "#fffdf9",
+    background: "var(--surface),
     color: "#b52b22",
     fontSize: "11px",
     fontWeight: "900",
@@ -527,7 +527,7 @@ const styles = {
     maxWidth: "730px",
     height: "65px",
     background: "rgba(255,253,249,.97)",
-    border: "1px solid rgba(16,16,16,.09)",
+    border: "1px solid var(--border),
     borderRadius: "23px",
     boxShadow: "0 10px 30px rgba(16,16,16,.13)",
     display: "grid",
@@ -547,14 +547,14 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "3px",
-    color: "#77736b",
+    color: "var(--muted),
     fontSize: "8px",
     fontWeight: "700",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "#101010",
+    background: "var(--dark-surface),
     color: "#dfc477",
   },
 
@@ -571,6 +571,67 @@ export default function PremiumHome() {
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState("home");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    try {
+      const savedTheme = window.localStorage.getItem("sambhav-theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        setTheme(savedTheme);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("sambhav-theme", theme);
+    } catch {}
+  }, [theme]);
+
+  const dark = theme === "dark";
+
+  const themeVars = {
+    "--bg": dark ? "#0b0c0e" : "#f5f2eb",
+    "--text": dark ? "#f4f4f2" : "#101010",
+    "--muted": dark ? "#a6a6a1" : "#77736b",
+    "--surface": dark ? "#17181b" : "#fffdf9",
+    "--dark-surface": "#101010",
+    "--dark-muted": "#b9b9b9",
+    "--gold": "#dfc477",
+    "--border": dark
+      ? "rgba(255,255,255,.09)"
+      : "rgba(16,16,16,.08)",
+    "--track": dark ? "#292b30" : "#e7e2d9",
+    colorScheme: dark ? "dark" : "light",
+  };
+
+  const pageStyle = {
+    ...pageStyle,
+    ...themeVars,
+  };
+
+  const themeButtonStyle = {
+    border: `1px solid ${dark ? "rgba(223,196,119,.28)" : "rgba(16,16,16,.12)"}`,
+    background: dark ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.72)",
+    color: "var(--text)",
+    minWidth: "78px",
+    height: "36px",
+    padding: "0 11px",
+    borderRadius: "12px",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: ".55px",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    boxShadow: dark
+      ? "0 6px 18px rgba(0,0,0,.18)"
+      : "0 6px 18px rgba(16,16,16,.06)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+  };
 
   useEffect(() => {
     let stopped = false;
@@ -732,7 +793,7 @@ export default function PremiumHome() {
     return (
       <main
         style={{
-          ...styles.page,
+          ...pageStyle,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -746,7 +807,7 @@ export default function PremiumHome() {
           <div
             style={{
               marginTop: "8px",
-              color: "#77736b",
+              color: "var(--muted),
               fontSize: "11px",
             }}
           >
@@ -759,11 +820,11 @@ export default function PremiumHome() {
 
   if (error || !user) {
     return (
-      <main style={styles.page}>
-        <div style={styles.container}>
+      <main style={pageStyle}>
+        <div className="sambhav-container" style={styles.container}>
           <div
             style={{
-              background: "#fffdf9",
+              background: "var(--surface),
               borderRadius: "23px",
               padding: "25px",
               marginTop: "80px",
@@ -795,7 +856,7 @@ export default function PremiumHome() {
                 padding: "14px",
                 border: "none",
                 borderRadius: "14px",
-                background: "#101010",
+                background: "var(--dark-surface),
                 color: "#fff",
                 fontWeight: "800",
                 cursor: "pointer",
@@ -846,8 +907,8 @@ export default function PremiumHome() {
       null;
 
     return (
-      <main style={styles.page}>
-        <div style={styles.container}>
+      <main style={pageStyle}>
+        <div className="sambhav-container" style={styles.container}>
           <header style={styles.header}>
             <div>
               <div style={styles.brand}>
@@ -859,8 +920,18 @@ export default function PremiumHome() {
               </div>
             </div>
 
-            <div style={styles.avatar}>
-              {initial}
+            <div className="sambhav-header-actions">
+              <button
+                type="button"
+                onClick={() => setTheme(dark ? "light" : "dark")}
+                style={themeButtonStyle}
+                aria-label="Toggle theme"
+              >
+                {dark ? "☀ LIGHT" : "◐ DARK"}
+              </button>
+              <div style={styles.avatar}>
+                {initial}
+              </div>
             </div>
           </header>
 
@@ -875,7 +946,7 @@ export default function PremiumHome() {
               marginBottom: "18px",
               fontSize: "11px",
               fontWeight: "800",
-              color: "#77736b",
+              color: "var(--muted),
               cursor: "pointer",
             }}
           >
@@ -993,7 +1064,7 @@ export default function PremiumHome() {
 
             <div
               style={{
-                color: "#77736b",
+                color: "var(--muted),
                 fontSize: "9px",
                 lineHeight: "1.5",
                 marginBottom: "15px",
@@ -1094,8 +1165,81 @@ export default function PremiumHome() {
    */
 
   return (
-    <main style={styles.page}>
-      <div style={styles.container}>
+    <main style={pageSty
+
+      <style>{`
+        .sambhav-container {
+          width: 100%;
+        }
+
+        .sambhav-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          flex-shrink: 0;
+        }
+
+        .sambhav-module-card {
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .sambhav-module-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(16,16,16,.08) !important;
+        }
+
+        @media (min-width: 900px) {
+          .sambhav-container {
+            padding-left: 34px !important;
+            padding-right: 34px !important;
+          }
+
+          .sambhav-module-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 14px !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .sambhav-container {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+          }
+
+          .sambhav-header-actions {
+            gap: 7px;
+          }
+
+          .sambhav-header-actions button {
+            min-width: 70px !important;
+            height: 34px !important;
+            padding: 0 8px !important;
+            font-size: 8px !important;
+          }
+
+          .sambhav-module-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (min-width: 641px) and (max-width: 899px) {
+          .sambhav-module-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .sambhav-header-actions {
+            gap: 5px;
+          }
+
+          .sambhav-header-actions button {
+            min-width: 62px !important;
+            letter-spacing: .25px !important;
+          }
+        }
+      `}</style>le}>
+      <div className="sambhav-container" style={styles.container}>
         <header style={styles.header}>
           <div>
             <div style={styles.brand}>
@@ -1107,8 +1251,18 @@ export default function PremiumHome() {
             </div>
           </div>
 
-          <div style={styles.avatar}>
-            {initial}
+          <div className="sambhav-header-actions">
+            <button
+              type="button"
+              onClick={() => setTheme(dark ? "light" : "dark")}
+              style={themeButtonStyle}
+              aria-label="Toggle theme"
+            >
+              {dark ? "☀ LIGHT" : "◐ DARK"}
+            </button>
+            <div style={styles.avatar}>
+              {initial}
+            </div>
           </div>
         </header>
 
@@ -1209,9 +1363,10 @@ export default function PremiumHome() {
           </div>
         </div>
 
-        <section style={styles.grid}>
+        <section className="sambhav-module-grid" style={styles.grid}>
           {modules.map((module) => (
             <div
+              className="sambhav-module-card"
               key={module.title}
               style={{
                 ...styles.module,
