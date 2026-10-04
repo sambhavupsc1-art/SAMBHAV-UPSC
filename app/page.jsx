@@ -132,7 +132,7 @@ const styles = {
     color: "#111111",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    paddingBottom: "105px",
+    paddingBottom: "145px",
   },
 
   container: {
@@ -871,14 +871,16 @@ const styles = {
   },
 
   sectionTitle: {
-    fontSize: "21px",
-    fontWeight: "850",
+    fontSize: "23px",
+    fontWeight: "950",
+    letterSpacing: "-0.5px",
   },
 
   sectionSmall: {
-    fontSize: "11px",
-    color: "#999999",
-    fontWeight: "600",
+    fontSize: "10px",
+    color: "#8b8b8b",
+    fontWeight: "850",
+    letterSpacing: "0.5px",
   },
 
   grid: {
@@ -948,47 +950,48 @@ const styles = {
   },
 
   ecosystemWrap: {
-    marginTop: "8px",
-    marginBottom: "26px",
-    background: "linear-gradient(145deg, #171717 0%, #0b0b0b 100%)",
-    border: "1px solid rgba(255,255,255,0.07)",
-    borderRadius: "26px",
-    padding: "9px",
-    boxShadow: "0 18px 42px rgba(0,0,0,0.15)",
+    marginTop: "14px",
+    marginBottom: "42px",
+    background: "linear-gradient(145deg, #171717 0%, #0a0a0a 100%)",
+    border: "1px solid rgba(214,189,121,0.14)",
+    borderRadius: "30px",
+    padding: "10px",
+    boxShadow: "0 24px 55px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.035)",
     overflow: "hidden",
   },
 
   ecosystemIntro: {
-    padding: "17px 15px 14px",
+    padding: "20px 18px 18px",
   },
 
   ecosystemIntroLabel: {
     color: "#d6bd79",
     fontSize: "9px",
     fontWeight: "950",
-    letterSpacing: "1.6px",
+    letterSpacing: "1.8px",
     textTransform: "uppercase",
   },
 
   ecosystemIntroTitle: {
-    marginTop: "7px",
+    marginTop: "9px",
     color: "#ffffff",
-    fontSize: "23px",
-    lineHeight: "1.12",
+    fontSize: "25px",
+    lineHeight: "1.08",
     fontWeight: "950",
-    letterSpacing: "-0.7px",
+    letterSpacing: "-0.9px",
   },
 
   ecosystemIntroText: {
-    marginTop: "7px",
-    color: "#bcbcbc",
-    fontSize: "12px",
-    lineHeight: "1.55",
-    fontWeight: "750",
+    marginTop: "10px",
+    color: "#c4c4c4",
+    fontSize: "12.5px",
+    lineHeight: "1.65",
+    fontWeight: "800",
+    maxWidth: "650px",
   },
 
   ecosystemItem: {
-    borderTop: "1px solid rgba(255,255,255,0.07)",
+    borderTop: "1px solid rgba(255,255,255,0.075)",
   },
 
   ecosystemButton: {
@@ -998,32 +1001,33 @@ const styles = {
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
-    gap: "11px",
-    padding: "15px 10px",
+    gap: "13px",
+    padding: "17px 11px",
     textAlign: "left",
     cursor: "pointer",
   },
 
   ecosystemNumber: {
-    width: "32px",
-    minWidth: "32px",
-    color: "#8f8f8f",
+    width: "30px",
+    minWidth: "30px",
+    color: "#929292",
     fontSize: "10px",
     fontWeight: "950",
-    letterSpacing: "0.8px",
+    letterSpacing: "0.9px",
   },
 
   ecosystemIcon: {
-    width: "39px",
-    height: "39px",
-    minWidth: "39px",
-    borderRadius: "13px",
-    background: "rgba(255,255,255,0.055)",
-    border: "1px solid rgba(255,255,255,0.07)",
+    width: "43px",
+    height: "43px",
+    minWidth: "43px",
+    borderRadius: "14px",
+    background: "linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035))",
+    border: "1px solid rgba(255,255,255,0.09)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "18px",
+    fontSize: "20px",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
   },
 
   ecosystemContent: {
@@ -1033,48 +1037,53 @@ const styles = {
 
   ecosystemLabel: {
     color: "#d6bd79",
-    fontSize: "8px",
-    letterSpacing: "1.1px",
+    fontSize: "8.5px",
+    letterSpacing: "1.2px",
     fontWeight: "950",
     textTransform: "uppercase",
   },
 
   ecosystemTitle: {
-    marginTop: "4px",
+    marginTop: "5px",
     color: "#ffffff",
-    fontSize: "15px",
-    lineHeight: "1.2",
+    fontSize: "17px",
+    lineHeight: "1.15",
     fontWeight: "950",
+    letterSpacing: "-0.25px",
   },
 
   ecosystemChevron: {
-    width: "29px",
-    height: "29px",
-    minWidth: "29px",
+    width: "34px",
+    height: "34px",
+    minWidth: "34px",
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.07)",
+    background: "rgba(255,255,255,0.075)",
     color: "#d6bd79",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "17px",
+    fontSize: "19px",
     fontWeight: "950",
   },
 
   ecosystemDetails: {
-    padding: "0 15px 17px 62px",
+    margin: "0 10px 10px 43px",
+    padding: "13px 16px 15px 17px",
+    borderRadius: "16px",
+    background: "rgba(255,255,255,0.035)",
+    border: "1px solid rgba(255,255,255,0.055)",
     animation: "ecosystemReveal 180ms ease-out",
   },
 
   ecosystemPoint: {
     display: "flex",
     alignItems: "flex-start",
-    gap: "8px",
-    color: "#eeeeee",
-    fontSize: "11px",
-    lineHeight: "1.5",
-    fontWeight: "800",
-    padding: "4px 0",
+    gap: "9px",
+    color: "#f1f1f1",
+    fontSize: "12px",
+    lineHeight: "1.55",
+    fontWeight: "850",
+    padding: "5px 0",
   },
 
   ecosystemDot: {
@@ -1157,11 +1166,11 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(255,255,255,0.97)",
-    border: "1px solid #e5e5e3",
+    background: "rgba(16,16,16,0.97)",
+    border: "1px solid rgba(214,189,121,0.16)",
     borderRadius: "25px",
     boxShadow:
-      "0 10px 35px rgba(0,0,0,0.12)",
+      "0 16px 40px rgba(0,0,0,0.24)",
     display: "grid",
     gridTemplateColumns:
       "repeat(4, 1fr)",
@@ -1179,14 +1188,15 @@ const styles = {
     justifyContent: "center",
     gap: "3px",
     fontSize: "10px",
-    color: "#777777",
-    fontWeight: "600",
+    color: "#929292",
+    fontWeight: "800",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "#eeeeec",
+    background: "linear-gradient(145deg, #e6d6a8, #cdb36d)",
     color: "#111111",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35)",
   },
 
   navIcon: {
