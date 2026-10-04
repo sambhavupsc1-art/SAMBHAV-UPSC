@@ -42,95 +42,14 @@ const modules = [
   },
 ];
 
-const ecosystemModules = [
-  {
-    number: "01",
-    label: "DAILY & MONTHLY INTELLIGENCE",
-    title: "Current Affairs",
-    icon: "📰",
-    points: [
-      "Daily & Monthly Current Affairs",
-      "UPSC-oriented analysis",
-      "The Hindu & PIB / Government Sources",
-      "Prelims & Mains relevance",
-      "Revision-oriented content",
-    ],
-  },
-  {
-    number: "02",
-    label: "PREVIOUS YEAR QUESTIONS",
-    title: "PYQ Intelligence",
-    icon: "🎯",
-    points: [
-      "Prelims & Mains Previous Year Questions",
-      "Subject & Topic-wise classification",
-      "Question-wise practice",
-      "Detailed explanations",
-      "Performance & trend analysis",
-    ],
-  },
-  {
-    number: "03",
-    label: "PYQ-ORIENTED PRACTICE",
-    title: "Prelims Test",
-    icon: "📝",
-    points: [
-      "PYQ-oriented MCQs & Practice",
-      "Subject & Topic-wise PYQ Practice",
-      "PYQ-based Tests",
-      "Question Analysis",
-      "Score & Performance Analysis",
-    ],
-  },
-  {
-    number: "04",
-    label: "ANSWER WRITING",
-    title: "Mains",
-    icon: "✍️",
-    points: [
-      "GS I, II, III & IV Questions",
-      "PYQ-based Answer Writing",
-      "Structured Answer Practice",
-      "Answer Evaluation",
-      "Improvement Guidance",
-    ],
-  },
-  {
-    number: "05",
-    label: "AI-POWERED ANALYSIS",
-    title: "AI Answer Evaluation",
-    icon: "🤖",
-    points: [
-      "AI-powered Answer Evaluation",
-      "Score & Assessment",
-      "Strengths & Weaknesses",
-      "Content & Structure Analysis",
-      "Actionable Improvement Suggestions",
-    ],
-  },
-  {
-    number: "06",
-    label: "NOTES & RESOURCES",
-    title: "Study Material",
-    icon: "📚",
-    points: [
-      "GS Resources",
-      "Conceptual Notes",
-      "Revision Material",
-      "UPSC-oriented Reference Resources",
-      "CSAT: Comprehension, factual questions & detailed analysis",
-    ],
-  },
-];
-
 const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg, #0b0b0b 0%, #111111 100%)",
-    color: "#ffffff",
+      "linear-gradient(180deg, #f8f7f3 0%, #f1f0ec 100%)",
+    color: "#111111",
     fontFamily:
-      "Inter, Poppins, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
     paddingBottom: "105px",
   },
 
@@ -151,8 +70,7 @@ const styles = {
 
   brand: {
     fontSize: "20px",
-    fontWeight: "950",
-    color: "#ffffff",
+    fontWeight: "900",
     letterSpacing: "-0.7px",
   },
 
@@ -162,7 +80,7 @@ const styles = {
 
   brandSub: {
     fontSize: "9px",
-    color: "#858585",
+    color: "#8b8b8b",
     marginTop: "4px",
     letterSpacing: "1.3px",
     textTransform: "uppercase",
@@ -190,7 +108,7 @@ const styles = {
     color: "#ffffff",
     borderRadius: "31px",
     padding: "30px 23px 25px",
-    marginBottom: "16px",
+    marginBottom: "20px",
     boxShadow: "0 22px 48px rgba(0,0,0,0.17)",
     position: "relative",
     overflow: "hidden",
@@ -268,11 +186,11 @@ const styles = {
     justifyContent: "center",
     padding: "13px 17px",
     borderRadius: "14px",
-    background: "#d6bd79",
+    background: "#ffffff",
     color: "#111111",
     textDecoration: "none",
     fontSize: "11px",
-    fontWeight: "950",
+    fontWeight: "900",
   },
 
   secondaryButton: {
@@ -315,7 +233,7 @@ const styles = {
   },
 
   landingSection: {
-    marginTop: "28px",
+    marginTop: "39px",
   },
 
   goldLabel: {
@@ -330,15 +248,13 @@ const styles = {
     marginTop: "7px",
     fontSize: "27px",
     lineHeight: "1.12",
-    fontWeight: "950",
-    color: "#ffffff",
+    fontWeight: "900",
     letterSpacing: "-0.9px",
   },
 
   landingSectionSub: {
     marginTop: "8px",
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#777777",
     fontSize: "12px",
     lineHeight: "1.6",
     maxWidth: "560px",
@@ -353,8 +269,8 @@ const styles = {
   },
 
   featureCard: {
-    background: "linear-gradient(145deg,#171717,#0d0d0d)",
-    border: "1px solid #292929",
+    background: "#ffffff",
+    border: "1px solid #e5e3de",
     borderRadius: "21px",
     padding: "16px",
     minHeight: "140px",
@@ -364,8 +280,8 @@ const styles = {
   },
 
   featureIcon: {
-    width: "38px",
-    height: "38px",
+    width: "43px",
+    height: "43px",
     borderRadius: "14px",
     background:
       "linear-gradient(145deg, #181818, #080808)",
@@ -385,8 +301,7 @@ const styles = {
   featureText: {
     marginTop: "5px",
     fontSize: "10px",
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#858585",
     lineHeight: "1.45",
   },
 
@@ -504,11 +419,11 @@ const styles = {
   },
 
   premiumLandingCard: {
-    marginTop: "28px",
+    marginTop: "39px",
     background:
-      "linear-gradient(145deg,#1b1b1b,#101010)",
+      "linear-gradient(145deg,#eee6d2,#e3dac1)",
     border:
-      "1px solid #302d25",
+      "1px solid #d7ccb0",
     borderRadius: "27px",
     padding: "23px",
     position: "relative",
@@ -532,7 +447,7 @@ const styles = {
   },
 
   premiumLabel: {
-    color: "#d6bd79",
+    color: "#806425",
     fontSize: "9px",
     fontWeight: "950",
     letterSpacing: "1.5px",
@@ -548,8 +463,7 @@ const styles = {
 
   premiumText: {
     marginTop: "9px",
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#6f685a",
     fontSize: "11px",
     lineHeight: "1.6",
     maxWidth: "520px",
@@ -565,10 +479,11 @@ const styles = {
   premiumPill: {
     padding: "7px 9px",
     borderRadius: "999px",
-    background: "#242424",
+    background:
+      "rgba(255,255,255,0.55)",
     border:
-      "1px solid #363636",
-    color: "#eeeeee",
+      "1px solid rgba(130,110,70,0.13)",
+    color: "#5f584b",
     fontSize: "8px",
     fontWeight: "800",
   },
@@ -586,7 +501,7 @@ const styles = {
   },
 
   finalCTA: {
-    marginTop: "28px",
+    marginTop: "42px",
     textAlign: "center",
     padding: "8px 8px 0",
   },
@@ -596,15 +511,13 @@ const styles = {
     fontSize: "29px",
     lineHeight: "1.08",
     fontWeight: "950",
-    color: "#ffffff",
     letterSpacing: "-1px",
   },
 
   finalText: {
     margin: "10px auto 0",
     maxWidth: "470px",
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#777777",
     fontSize: "11px",
     lineHeight: "1.6",
   },
@@ -614,7 +527,7 @@ const styles = {
     marginTop: "18px",
     padding: "14px 22px",
     borderRadius: "15px",
-    background: "#d6bd79",
+    background: "#111111",
     color: "#ffffff",
     textDecoration: "none",
     fontSize: "11px",
@@ -624,9 +537,9 @@ const styles = {
   },
 
   publicFooter: {
-    marginTop: "32px",
-    paddingTop: "18px",
-    borderTop: "1px solid #292929",
+    marginTop: "48px",
+    paddingTop: "20px",
+    borderTop: "1px solid #dedcd6",
   },
 
   footerLinks: {
@@ -636,7 +549,7 @@ const styles = {
   },
 
   footerLink: {
-    color: "#9a9a9a",
+    color: "#666666",
     textDecoration: "none",
     fontSize: "9px",
     fontWeight: "700",
@@ -644,12 +557,12 @@ const styles = {
 
   footerCopy: {
     marginTop: "13px",
-    color: "#666666",
+    color: "#999999",
     fontSize: "8px",
   },
 
   greeting: {
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
 
   greetingTitle: {
@@ -662,9 +575,8 @@ const styles = {
 
   greetingSub: {
     marginTop: "7px",
-    color: "#a3a3a3",
+    color: "#777777",
     fontSize: "14px",
-    fontWeight: "700",
   },
 
   accessCard: {
@@ -710,7 +622,7 @@ const styles = {
     padding: "15px",
     fontSize: "14px",
     fontWeight: "750",
-    marginBottom: "14px",
+    marginBottom: "17px",
     cursor: "pointer",
   },
 
@@ -718,7 +630,7 @@ const styles = {
     background:
       "linear-gradient(135deg, #111111 0%, #191919 55%, #252525 100%)",
     color: "#ffffff",
-    borderRadius: "22px",
+    borderRadius: "25px",
     padding: "21px",
     marginBottom: "18px",
     boxShadow:
@@ -799,9 +711,9 @@ const styles = {
 
   adminCard: {
     background:
-      "linear-gradient(145deg,#211e17,#171510)",
-    color: "#ffffff",
-    borderRadius: "22px",
+      "linear-gradient(135deg, #f0e7cf 0%, #e2d4b1 55%, #d5c398 100%)",
+    color: "#111111",
+    borderRadius: "25px",
     padding: "21px",
     marginBottom: "27px",
     boxShadow:
@@ -810,7 +722,7 @@ const styles = {
     overflow: "hidden",
     cursor: "pointer",
     border:
-      "1px solid #4a402a",
+      "1px solid #d4c49e",
   },
 
   adminGlow: {
@@ -848,8 +760,7 @@ const styles = {
 
   adminSub: {
     marginTop: "7px",
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#655d4e",
     fontSize: "11px",
     lineHeight: "1.55",
     maxWidth: "390px",
@@ -896,8 +807,8 @@ const styles = {
   },
 
   card: {
-    background: "linear-gradient(145deg,#171717,#101010)",
-    border: "1px solid #292929",
+    background: "#ffffff",
+    border: "1px solid #e8e8e6",
     borderRadius: "22px",
     padding: "15px",
     minHeight: "108px",
@@ -936,9 +847,8 @@ const styles = {
 
   cardSubtitle: {
     marginTop: "5px",
-    color: "#a3a3a3",
+    color: "#858585",
     fontSize: "10px",
-    fontWeight: "700",
     lineHeight: "1.35",
   },
 
@@ -947,8 +857,8 @@ const styles = {
     height: "28px",
     minWidth: "28px",
     borderRadius: "50%",
-    background: "#232323",
-    color: "#d6bd79",
+    background: "#f0f0ee",
+    color: "#777777",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -956,10 +866,9 @@ const styles = {
   },
 
   pendingCard: {
-    marginTop: "42px",
-    background: "linear-gradient(145deg,#171717,#0d0d0d)",
-    border: "1px solid #292929",
-    color: "#ffffff",
+    marginTop: "70px",
+    background: "#ffffff",
+    border: "1px solid #e5e5e3",
     borderRadius: "24px",
     padding: "30px 22px",
     textAlign: "center",
@@ -1030,9 +939,9 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(19,19,19,.98)",
-    border: "1px solid #303030",
-    borderRadius: "22px",
+    background: "rgba(255,255,255,0.97)",
+    border: "1px solid #e5e5e3",
+    borderRadius: "25px",
     boxShadow:
       "0 10px 35px rgba(0,0,0,0.12)",
     display: "grid",
@@ -1053,13 +962,13 @@ const styles = {
     gap: "3px",
     fontSize: "10px",
     color: "#777777",
-    fontWeight: "850",
+    fontWeight: "600",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "#242424",
-    color: "#ffffff",
+    background: "#eeeeec",
+    color: "#111111",
   },
 
   navIcon: {
@@ -1084,13 +993,11 @@ const styles = {
   lockedTitle: {
     margin: 0,
     fontSize: "25px",
-    fontWeight: "950",
-    color: "#ffffff",
+    fontWeight: "900",
   },
 
   lockedText: {
-    color: "#a3a3a3",
-    fontWeight: "700",
+    color: "#777",
     fontSize: "13px",
     lineHeight: "1.6",
     margin: "10px auto 0",
@@ -1102,404 +1009,11 @@ const styles = {
     marginTop: "18px",
     padding: "8px 13px",
     borderRadius: "999px",
-    background: "#d6bd79",
-    color: "#111111",
+    background: "#f0f0ee",
+    color: "#555",
     fontSize: "10px",
     fontWeight: "800",
     textTransform: "uppercase",
-  },
-
-  dashboardPage: {
-    minHeight: "100vh",
-    background: "#0b0b0b",
-    color: "#ffffff",
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    paddingBottom: "92px",
-  },
-
-  dashboardContainer: {
-    width: "100%",
-    maxWidth: "760px",
-    margin: "0 auto",
-    padding: "12px 12px 20px",
-    boxSizing: "border-box",
-  },
-
-  dashboardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "16px",
-  },
-
-  dashboardBrand: {
-    fontSize: "20px",
-    fontWeight: "950",
-    letterSpacing: "-0.7px",
-  },
-
-  dashboardBrandGold: {
-    color: "#d6bd79",
-  },
-
-  dashboardBrandSub: {
-    marginTop: "4px",
-    color: "#858585",
-    fontSize: "8px",
-    fontWeight: "950",
-    letterSpacing: "1.2px",
-    textTransform: "uppercase",
-  },
-
-  dashboardAvatar: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    background: "linear-gradient(145deg,#292929,#141414)",
-    border: "1px solid rgba(214,189,121,0.28)",
-    color: "#d6bd79",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "15px",
-    fontWeight: "950",
-  },
-
-  dashboardGreeting: {
-    marginBottom: "14px",
-  },
-
-  dashboardGreetingTitle: {
-    margin: 0,
-    fontSize: "28px",
-    lineHeight: "1.1",
-    fontWeight: "950",
-    letterSpacing: "-1px",
-  },
-
-  dashboardGreetingSub: {
-    margin: "7px 0 0",
-    color: "#a4a4a4",
-    fontSize: "12px",
-    lineHeight: "1.45",
-    fontWeight: "900",
-  },
-
-  dashboardAccessCard: {
-    background: "linear-gradient(145deg,#191919,#101010)",
-    border: "1px solid #292929",
-    borderRadius: "19px",
-    padding: "13px 14px",
-    marginBottom: "9px",
-  },
-
-  dashboardAccessLabel: {
-    color: "#d6bd79",
-    fontSize: "8px",
-    letterSpacing: "1.4px",
-    fontWeight: "950",
-    textTransform: "uppercase",
-  },
-
-  dashboardAccessTitle: {
-    marginTop: "6px",
-    fontSize: "16px",
-    fontWeight: "950",
-  },
-
-  dashboardAccessSub: {
-    marginTop: "3px",
-    color: "#8d8d8d",
-    fontSize: "10px",
-    fontWeight: "900",
-  },
-
-  dashboardSecretary: {
-    width: "100%",
-    border: "1px solid #2c2c2c",
-    borderRadius: "15px",
-    background: "#151515",
-    color: "#ffffff",
-    padding: "11px 13px",
-    fontSize: "11px",
-    fontWeight: "900",
-    marginBottom: "9px",
-    cursor: "pointer",
-  },
-
-  dashboardPremium: {
-    background: "linear-gradient(145deg,#1b1b1b,#111111)",
-    border: "1px solid #302d25",
-    color: "#ffffff",
-    borderRadius: "19px",
-    padding: "14px",
-    marginBottom: "10px",
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  dashboardPremiumBadge: {
-    display: "inline-flex",
-    padding: "5px 8px",
-    borderRadius: "999px",
-    background: "#d6bd79",
-    color: "#111111",
-    fontSize: "8px",
-    fontWeight: "950",
-    letterSpacing: ".8px",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  dashboardPremiumTitle: {
-    marginTop: "9px",
-    fontSize: "18px",
-    fontWeight: "950",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  dashboardPremiumSub: {
-    marginTop: "5px",
-    color: "#b0b0b0",
-    fontSize: "10px",
-    lineHeight: "1.5",
-    fontWeight: "900",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  dashboardPremiumAction: {
-    marginTop: "12px",
-    padding: "9px 12px",
-    borderRadius: "11px",
-    background: "#ffffff",
-    color: "#111111",
-    fontSize: "10px",
-    fontWeight: "950",
-    border: "none",
-    cursor: "pointer",
-    position: "relative",
-    zIndex: 2,
-  },
-
-  dashboardAdmin: {
-    background: "linear-gradient(145deg,#211e17,#171510)",
-    border: "1px solid #4a402a",
-    color: "#ffffff",
-    borderRadius: "19px",
-    padding: "14px",
-    marginBottom: "10px",
-    cursor: "pointer",
-  },
-
-  ecosystemHeader: {
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: "12px",
-    margin: "15px 2px 8px",
-  },
-
-  ecosystemTitle: {
-    fontSize: "20px",
-    fontWeight: "950",
-    letterSpacing: "-.5px",
-  },
-
-  ecosystemSub: {
-    marginTop: "3px",
-    color: "#9a9a9a",
-    fontSize: "9px",
-    fontWeight: "950",
-  },
-
-  ecosystemCount: {
-    color: "#777777",
-    fontSize: "9px",
-    fontWeight: "950",
-    whiteSpace: "nowrap",
-  },
-
-  ecosystemCard: {
-    background: "linear-gradient(145deg,#171717,#0d0d0d)",
-    border: "1px solid #282828",
-    borderRadius: "22px",
-    overflow: "hidden",
-    boxShadow: "0 18px 45px rgba(0,0,0,.28)",
-  },
-
-  ecosystemIntro: {
-    padding: "16px 16px 13px",
-    borderBottom: "1px solid #2a2a2a",
-  },
-
-  ecosystemEyebrow: {
-    color: "#d6bd79",
-    fontSize: "8px",
-    letterSpacing: "1.5px",
-    fontWeight: "950",
-  },
-
-  ecosystemHero: {
-    marginTop: "9px",
-    fontSize: "25px",
-    lineHeight: "1.05",
-    fontWeight: "950",
-    letterSpacing: "-1px",
-  },
-
-  ecosystemIntroText: {
-    marginTop: "9px",
-    color: "#a3a3a3",
-    fontSize: "11.5px",
-    lineHeight: "1.45",
-    fontWeight: "900",
-  },
-
-  ecoItem: {
-    borderBottom: "1px solid #292929",
-  },
-
-  ecoButton: {
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "18px 38px minmax(0,1fr) 28px",
-    alignItems: "center",
-    gap: "6px",
-    padding: "10px 12px",
-    textAlign: "left",
-    justifyContent: "stretch",
-    border: "none",
-    background: "transparent",
-    color: "#ffffff",
-    textAlign: "left",
-    cursor: "pointer",
-  },
-
-  ecoNumber: {
-    color: "#777777",
-    fontSize: "9px",
-    fontWeight: "950",
-  },
-
-  ecoIcon: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "14px",
-    background: "linear-gradient(145deg,#252525,#151515)",
-    border: "1px solid #343434",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "18px",
-  },
-
-  ecoContent: {
-    minWidth: 0,
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    textAlign: "left",
-  },
-
-  ecoLabel: {
-    color: "#d6bd79",
-    fontSize: "9.5px",
-    letterSpacing: "1.15px",
-    fontWeight: "950",
-    lineHeight: "1.2",
-    textAlign: "left",
-  },
-
-  ecoTitle: {
-    marginTop: "3px",
-    fontSize: "17px",
-    fontWeight: "950",
-    lineHeight: "1.15",
-    letterSpacing: "-.25px",
-    textAlign: "left",
-    justifySelf: "start",
-  },
-
-  ecoArrow: {
-    width: "30px",
-    height: "30px",
-    borderRadius: "50%",
-    background: "#232323",
-    color: "#d6bd79",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "17px",
-    fontWeight: "950",
-  },
-
-  ecoDetails: {
-    padding: "0 12px 12px 66px",
-    animation: "ecoReveal .18s ease-out",
-  },
-
-  ecoPoint: {
-    display: "flex",
-    gap: "8px",
-    alignItems: "flex-start",
-    color: "#eeeeee",
-    fontSize: "11px",
-    lineHeight: "1.5",
-    fontWeight: "900",
-    marginTop: "6px",
-    textAlign: "left",
-  },
-
-  ecoDot: {
-    color: "#d6bd79",
-    fontWeight: "950",
-  },
-
-  dashboardBottomNav: {
-    position: "fixed",
-    left: "50%",
-    bottom: "10px",
-    transform: "translateX(-50%)",
-    width: "calc(100% - 24px)",
-    maxWidth: "730px",
-    height: "64px",
-    background: "rgba(19,19,19,.98)",
-    border: "1px solid #303030",
-    borderRadius: "23px",
-    boxShadow: "0 12px 35px rgba(0,0,0,.42)",
-    display: "grid",
-    gridTemplateColumns: "repeat(4,1fr)",
-    alignItems: "center",
-    zIndex: 50,
-  },
-
-  dashboardNavItem: {
-    height: "50px",
-    margin: "5px",
-    borderRadius: "18px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "2px",
-    fontSize: "9px",
-    color: "#8b8b8b",
-    fontWeight: "950",
-    cursor: "pointer",
-  },
-
-  dashboardNavActive: {
-    background: "#242424",
-    color: "#ffffff",
-  },
-
-  dashboardNavIcon: {
-    fontSize: "17px",
-    lineHeight: "17px",
   },
 };
 
@@ -1866,65 +1380,6 @@ function PublicLanding() {
   );
 }
 
-function LearningEcosystem() {
-  const [openIndex, setOpenIndex] = useState(0);
-
-  return (
-    <>
-      <div style={styles.ecosystemHeader}>
-        <div>
-          <div style={styles.ecosystemTitle}>Learning Ecosystem</div>
-          <div style={styles.ecosystemSub}>Complete UPSC preparation cycle</div>
-        </div>
-        <div style={styles.ecosystemCount}>06 MODULES</div>
-      </div>
-
-      <section style={styles.ecosystemCard}>
-        <div style={styles.ecosystemIntro}>
-          <div style={styles.ecosystemEyebrow}>SAMBHAV LEARNING ECOSYSTEM</div>
-          <div style={styles.ecosystemHero}>One integrated preparation cycle.</div>
-          <div style={styles.ecosystemIntroText}>
-            SAMBHAV का core learning ecosystem UPSC preparation के प्रमुख stages को एक integrated platform पर cover करता है।
-          </div>
-        </div>
-
-        {ecosystemModules.map((item, index) => {
-          const isOpen = openIndex === index;
-          return (
-            <div key={item.number} style={{...styles.ecoItem, borderBottom: index === ecosystemModules.length - 1 ? "none" : styles.ecoItem.borderBottom}}>
-              <button
-                type="button"
-                aria-expanded={isOpen}
-                style={styles.ecoButton}
-                onClick={() => setOpenIndex(isOpen ? -1 : index)}
-              >
-                <div style={styles.ecoNumber}>{item.number}</div>
-                <div style={styles.ecoIcon}>{item.icon}</div>
-                <div style={styles.ecoContent}>
-                  <div style={styles.ecoLabel}>{item.label}</div>
-                  <div style={styles.ecoTitle}>{item.title}</div>
-                </div>
-                <div style={{...styles.ecoArrow, transform: isOpen ? "rotate(90deg)" : "none"}}>›</div>
-              </button>
-
-              {isOpen && (
-                <div style={{...styles.ecoDetails, textAlign: "left"}}>
-                  {item.points.map((point) => (
-                    <div key={point} style={styles.ecoPoint}>
-                      <span style={styles.ecoDot}>•</span>
-                      <span>{point}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </section>
-    </>
-  );
-}
-
 /* =========================================================
 MAIN HOME
 ========================================================= */
@@ -2186,7 +1641,7 @@ export default function Home() {
               </div>
 
               <p style={styles.greetingSub}>
-                Preparing your SAMBHAV workspace...
+                Checking access...
               </p>
             </div>
           </div>
@@ -2247,7 +1702,9 @@ export default function Home() {
               </h1>
 
               <p style={styles.lockedText}>
-                Your SAMBHAV UPSC workspace requires an authorized login to continue.
+                SAMBHAV UPSC application access
+                ke liye Telegram se authorized
+                login required hai.
               </p>
 
               <div style={styles.statusPill}>
@@ -2435,11 +1892,11 @@ export default function Home() {
               </div>
 
               <div style={styles.welcomeTitle}>
-                Welcome to SAMBHAV UPSC
+                SAMBHAV UPSC
               </div>
 
               <div style={styles.welcomeUser}>
-                {firstName}, your preparation workspace is ready.
+                {firstName}
               </div>
 
               <div style={styles.welcomeStatus}>
@@ -2451,7 +1908,7 @@ export default function Home() {
                   ? premiumPlan === "demo"
                     ? "✦ PREMIUM DEMO ACTIVE"
                     : "✦ PREMIUM ACTIVE"
-                  : "✦ YOUR UPSC PREPARATION WORKSPACE"}
+                  : "✦ SAMBHAV UPSC • PREMIUM EXPERIENCE"}
               </div>
             </div>
           </div>
@@ -2485,16 +1942,16 @@ export default function Home() {
   const premiumTitleText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Your Premium Demo is Active"
-        : "Your Premium Access is Active"
-      : "Unlock the Full SAMBHAV Experience";
+        ? "Premium Demo is Active"
+        : "Premium Access is Active"
+      : "Upgrade Your Preparation";
 
   const premiumSubText =
     isPremium
       ? premiumPlan === "demo"
-        ? "Your 2-day Premium Demo is currently active. Open your Premium workspace and explore SAMBHAV."
-        : "Your Premium subscription is currently active. Open your Premium workspace and continue your preparation."
-      : "Current Affairs, PYQ Intelligence, Tests, Mains practice, AI evaluation & premium study resources — all in one place.";
+        ? "Explore the complete SAMBHAV workspace."
+        : "Your premium workspace is ready for focused preparation."
+      : "Current Affairs, PYQs, Tests, Mains practice and AI evaluation in one focused workspace.";
 
   const premiumActionText =
     isPremium
@@ -2508,249 +1965,712 @@ export default function Home() {
         strategy="beforeInteractive"
       />
 
-      <main style={styles.dashboardPage}>
-        <div style={styles.dashboardContainer}>
+      <main style={styles.page}>
+        <div style={styles.container}>
 
           {/* HEADER */}
-
-          <header style={styles.dashboardHeader}>
+          <header
+            style={{
+              ...styles.header,
+              marginBottom: "24px",
+            }}
+          >
             <div>
-              <div style={styles.dashboardBrand}>
+              <div style={styles.brand}>
                 SAMBHAV
-                <span style={styles.dashboardBrandGold}>
+                <span style={styles.brandGold}>
                   {" "}UPSC
                 </span>
               </div>
-
-              <div style={styles.dashboardBrandSub}>
-                UPSC Preparation Platform
+              <div style={styles.brandSub}>
+                INTELLIGENCE • PREPARATION • PERFORMANCE
               </div>
             </div>
 
-            <div style={styles.dashboardAvatar}>
+            <div
+              style={{
+                ...styles.avatar,
+                width: "46px",
+                height: "46px",
+                fontSize: "18px",
+              }}
+            >
               {initial}
             </div>
           </header>
 
-          {/* GREETING */}
-
-          <section style={styles.dashboardGreeting}>
-            <h1 style={styles.dashboardGreetingTitle}>
-              Hello, {firstName}
-            </h1>
-
-            <p style={styles.dashboardGreetingSub}>
-              Continue your preparation.
-            </p>
-          </section>
-
-          {/* ACCESS CARD */}
-
-          <section style={styles.dashboardAccessCard}>
-            <div style={styles.dashboardAccessLabel}>
-              Officer Access Card
-            </div>
-
-            <div style={styles.dashboardAccessTitle}>
-              {firstName}
-            </div>
-
-            <div style={styles.dashboardAccessSub}>
-              Clearance: ACTIVE
-            </div>
-          </section>
-
-          {/* AI SECRETARY */}
-
-          <button
-            style={styles.dashboardSecretary}
-            onClick={() =>
-              console.log(
-                "AI Secretary coming soon"
-              )
-            }
+          {/* HERO */}
+          <section
+            style={{
+              background:
+                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+              color: "#ffffff",
+              borderRadius: "28px",
+              padding: "24px 21px 21px",
+              marginBottom: "16px",
+              boxShadow: "0 20px 42px rgba(0,0,0,0.14)",
+              position: "relative",
+              overflow: "hidden",
+            }}
           >
-            ✦ Open AI Secretary →
-          </button>
-
-          {/* PREMIUM */}
-
-          <section style={styles.dashboardPremium}>
-            <div style={styles.dashboardPremiumBadge}>
-              {premiumBadgeText}
-            </div>
-
             <div
-              style={
-                styles.premiumTitleDashboard
-              }
-            >
-              {premiumTitleText}
-            </div>
+              style={{
+                position: "absolute",
+                width: "190px",
+                height: "190px",
+                borderRadius: "50%",
+                background: "rgba(190,157,76,0.10)",
+                right: "-85px",
+                top: "-95px",
+              }}
+            />
 
-            <div style={styles.dashboardPremiumSub}>
-              {premiumSubText}
-            </div>
-
-            {/* DEMO USER */}
-            {isPremium &&
-            premiumPlan === "demo" ? (
+            <div style={{ position: "relative", zIndex: 1 }}>
               <div
                 style={{
-                  display: "flex",
-                  gap: "9px",
-                  flexWrap: "wrap",
-                  marginTop: "16px",
-                  position: "relative",
-                  zIndex: 2,
+                  fontSize: "9px",
+                  fontWeight: "900",
+                  letterSpacing: "1.7px",
+                  color: "#d6bd79",
+                  marginBottom: "10px",
                 }}
               >
-                <button
-                  type="button"
-                  style={{
-                    ...styles.premiumAction,
-                    marginTop: 0,
-                    border: "none",
-                  }}
-                  onClick={() => {
-                    window.location.href =
-                      "/premium/home";
-                  }}
-                >
-                  Open Premium →
-                </button>
-
-                <button
-                  type="button"
-                  style={{
-                    ...styles.premiumAction,
-                    marginTop: 0,
-                    background: "#d6bd79",
-                    color: "#111111",
-                    border: "none",
-                  }}
-                  onClick={() => {
-                    window.location.href =
-                      "/premium";
-                  }}
-                >
-                  View Paid Plans →
-                </button>
+                PERSONAL PREPARATION WORKSPACE
               </div>
-            ) : (
-              /* FREE / PAID USER */
-              <button
-                type="button"
+
+              <div
                 style={{
-                  ...styles.premiumAction,
-                  border: "none",
-                }}
-                onClick={() => {
-                  window.location.href =
-                    isPremium
-                      ? "/premium/home"
-                      : "/premium";
+                  fontSize: "28px",
+                  lineHeight: "1.08",
+                  fontWeight: "900",
+                  letterSpacing: "-1px",
                 }}
               >
-                {premiumActionText}
-              </button>
-            )}
+                Hello, {firstName}.
+              </div>
+
+              <div
+                style={{
+                  marginTop: "9px",
+                  fontSize: "28px",
+                  lineHeight: "1.08",
+                  fontWeight: "900",
+                  letterSpacing: "-1px",
+                  color: "#d6bd79",
+                  maxWidth: "620px",
+                }}
+              >
+                संभव है, तो UPSC संभव है।
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(3, minmax(0, 1fr))",
+                  gap: "8px",
+                  marginTop: "20px",
+                }}
+              >
+                {[
+                  ["01", "FOCUS"],
+                  ["02", "PRACTICE"],
+                  ["03", "PERFORM"],
+                ].map(([num, label]) => (
+                  <div
+                    key={num}
+                    style={{
+                      paddingTop: "11px",
+                      borderTop:
+                        "1px solid rgba(255,255,255,0.14)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: "900",
+                      }}
+                    >
+                      {num}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "3px",
+                        fontSize: "8px",
+                        fontWeight: "800",
+                        letterSpacing: "1.1px",
+                        color:
+                          "rgba(255,255,255,0.48)",
+                      }}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
-          {/* =================================================
-          ADMIN CONTROL CENTER
-          ONLY ADMIN CAN SEE THIS
-          ================================================= */}
+          {/* OFFICER ACCESS */}
+          <section
+            style={{
+              background:
+                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+              color: "#ffffff",
+              borderRadius: "22px",
+              padding: "17px 18px",
+              marginBottom: "16px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                width: "150px",
+                height: "150px",
+                borderRadius: "50%",
+                background: "rgba(214,189,121,0.08)",
+                right: "-65px",
+                top: "-75px",
+              }}
+            />
 
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div
+                style={{
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "1.3px",
+                  color: "#d6bd79",
+                }}
+              >
+                OFFICER ACCESS
+              </div>
+
+              <div
+                style={{
+                  marginTop: "7px",
+                  fontSize: "17px",
+                  fontWeight: "900",
+                }}
+              >
+                {firstName}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "5px",
+                  fontSize: "10px",
+                  color: "rgba(255,255,255,0.55)",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                ● ACTIVE CLEARANCE
+              </div>
+            </div>
+          </section>
+
+          {/* PREMIUM */}
+          <section
+            style={{
+              background:
+                "linear-gradient(145deg, #171717, #242424)",
+              color: "#ffffff",
+              borderRadius: "25px",
+              padding: "20px",
+              marginBottom: "23px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow:
+                "0 18px 36px rgba(0,0,0,0.13)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                width: "170px",
+                height: "170px",
+                borderRadius: "50%",
+                background:
+                  "rgba(214,189,121,0.08)",
+                right: "-75px",
+                top: "-85px",
+              }}
+            />
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  padding: "7px 10px",
+                  borderRadius: "999px",
+                  background: "#ffffff",
+                  color: "#171717",
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "1px",
+                }}
+              >
+                {premiumBadgeText}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "13px",
+                  fontSize: "21px",
+                  lineHeight: "1.2",
+                  fontWeight: "900",
+                }}
+              >
+                {premiumTitleText}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "7px",
+                  maxWidth: "610px",
+                  fontSize: "12px",
+                  lineHeight: "1.55",
+                  color:
+                    "rgba(255,255,255,0.63)",
+                }}
+              >
+                {premiumSubText}
+              </div>
+
+              {!isPremium && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(2, minmax(0, 1fr))",
+                    gap: "7px",
+                    marginTop: "14px",
+                  }}
+                >
+                  {[
+                    "Current Affairs",
+                    "PYQ Intelligence",
+                    "Mains Practice",
+                    "AI Evaluation",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "800",
+                        color:
+                          "rgba(255,255,255,0.68)",
+                        padding: "8px 9px",
+                        border:
+                          "1px solid rgba(255,255,255,0.10)",
+                        borderRadius: "9px",
+                      }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isPremium &&
+              premiumPlan === "demo" ? (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                    marginTop: "15px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{
+                      ...styles.premiumAction,
+                      marginTop: 0,
+                      border: "none",
+                    }}
+                    onClick={() => {
+                      window.location.href =
+                        "/premium/home";
+                    }}
+                  >
+                    Open Premium →
+                  </button>
+
+                  <button
+                    type="button"
+                    style={{
+                      ...styles.premiumAction,
+                      marginTop: 0,
+                      background: "#d6bd79",
+                      color: "#111111",
+                      border: "none",
+                    }}
+                    onClick={() => {
+                      window.location.href =
+                        "/premium";
+                    }}
+                  >
+                    View Paid Plans →
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  style={{
+                    ...styles.premiumAction,
+                    border: "none",
+                  }}
+                  onClick={() => {
+                    window.location.href =
+                      isPremium
+                        ? "/premium/home"
+                        : "/premium";
+                  }}
+                >
+                  {premiumActionText}
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* ADMIN */}
           {isAdmin && (
             <section
-              style={styles.dashboardAdmin}
+              style={{
+                background:
+                  "linear-gradient(135deg, #f4ead0, #fffaf0)",
+                border:
+                  "1px solid rgba(160,125,50,0.24)",
+                borderRadius: "20px",
+                padding: "17px",
+                marginBottom: "23px",
+                cursor: "pointer",
+              }}
               onClick={() => {
                 window.location.href =
                   "/admin";
               }}
             >
-              <div style={styles.adminBadge}>
-                🔐 ADMIN ACCESS
+              <div
+                style={{
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "1.2px",
+                  color: "#8c6b27",
+                }}
+              >
+                ADMIN ACCESS
               </div>
 
-              <div style={styles.adminTitle}>
-                Admin Control Center
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "17px",
+                  fontWeight: "900",
+                }}
+              >
+                Control Center →
               </div>
 
-              <div style={styles.adminSub}>
-                Manage users, access requests,
-                approvals, Premium accounts,
-                subscriptions and account status.
-              </div>
-
-              <div style={styles.adminAction}>
-                Open Admin Panel →
+              <div
+                style={{
+                  marginTop: "4px",
+                  fontSize: "11px",
+                  color: "#77736c",
+                }}
+              >
+                Users • Approvals • Premium • Accounts
               </div>
             </section>
           )}
 
-          <LearningEcosystem />
+          {/* TODAY'S PREPARATION */}
+          <section
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e7e4dd",
+              borderRadius: "20px",
+              padding: "15px 16px",
+              marginBottom: "23px",
+              boxShadow: "0 7px 20px rgba(0,0,0,0.035)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    fontWeight: "900",
+                    letterSpacing: "1.4px",
+                    color: "#a07d32",
+                  }}
+                >
+                  TODAY'S PREPARATION
+                </div>
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "15px",
+                    fontWeight: "900",
+                  }}
+                >
+                  Stay focused. Keep moving.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: "8px 10px",
+                  borderRadius: "10px",
+                  background: "#f5f2eb",
+                  color: "#6f6a61",
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "0.8px",
+                }}
+              >
+                DAILY FOCUS
+              </div>
+            </div>
+          </section>
+
+          {/* SAMBHAV LEARNING ECOSYSTEM */}
+          <section style={{ marginTop: "2px" }}>
+            <div
+              style={{
+                marginBottom: "11px",
+                padding: "0 2px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "9px",
+                  fontWeight: "900",
+                  letterSpacing: "1.5px",
+                  color: "#a07d32",
+                }}
+              >
+                SAMBHAV LEARNING ECOSYSTEM
+              </div>
+
+              <div
+                style={{
+                  marginTop: "5px",
+                  fontSize: "23px",
+                  lineHeight: "1.15",
+                  fontWeight: "900",
+                  letterSpacing: "-0.6px",
+                }}
+              >
+                Complete UPSC Preparation
+              </div>
+
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "10.5px",
+                  lineHeight: "1.45",
+                  color: "#77736c",
+                  maxWidth: "620px",
+                }}
+              >
+                An integrated learning ecosystem built around the complete UPSC preparation cycle.
+              </div>
+            </div>
+
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(230px, 1fr))",
+                gap: "11px",
+              }}
+            >
+              {[
+                {
+                  no: "01",
+                  title: "Current Affairs",
+                  label: "DAILY & MONTHLY INTELLIGENCE",
+                  points: [
+                    "Daily & Monthly Current Affairs",
+                    "UPSC-oriented Analysis",
+                    "The Hindu • PIB • Government Sources",
+                    "Prelims & Mains Relevance",
+                    "Revision-oriented Content",
+                  ],
+                },
+                {
+                  no: "02",
+                  title: "PYQ Intelligence",
+                  label: "PREVIOUS YEAR QUESTIONS",
+                  points: [
+                    "Prelims & Mains PYQs",
+                    "Subject & Topic-wise Classification",
+                    "Question-wise Practice",
+                    "Detailed Explanations",
+                    "Performance & Trend Analysis",
+                  ],
+                },
+                {
+                  no: "03",
+                  title: "Prelims Test",
+                  label: "PYQ-ORIENTED PRACTICE",
+                  points: [
+                    "PYQ-oriented MCQs",
+                    "Subject & Topic-wise Practice",
+                    "PYQ-based Tests",
+                    "Question Analysis",
+                    "Score & Performance Analysis",
+                  ],
+                },
+                {
+                  no: "04",
+                  title: "Mains",
+                  label: "ANSWER WRITING",
+                  points: [
+                    "GS I • II • III • IV",
+                    "PYQ-based Answer Writing",
+                    "Structured Answer Practice",
+                    "Answer Evaluation",
+                    "Improvement Guidance",
+                  ],
+                },
+                {
+                  no: "05",
+                  title: "AI Answer Evaluation",
+                  label: "AI-POWERED ANALYSIS",
+                  points: [
+                    "AI-powered Answer Evaluation",
+                    "Score & Assessment",
+                    "Strengths & Weaknesses",
+                    "Content & Structure Analysis",
+                    "Actionable Improvement Suggestions",
+                  ],
+                },
+                {
+                  no: "06",
+                  title: "Study Material",
+                  label: "NOTES & RESOURCES",
+                  points: [
+                    "GS Resources",
+                    "Conceptual Notes",
+                    "Revision Material",
+                    "UPSC-oriented Reference Resources",
+                    "CSAT Focus • Questions • Explanations",
+                  ],
+                },
+              ].map((item) => (
+                <div
+                  key={item.no}
+                  style={{
+                    background:
+                      "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+                    border:
+                      "1px solid rgba(255,255,255,0.08)",
+                    color: "#ffffff",
+                    borderRadius: "21px",
+                    padding: "16px",
+                    minWidth: 0,
+                    minHeight: 0,
+                    position: "relative",
+                    boxShadow:
+                      "0 12px 28px rgba(0,0,0,0.12)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "8px",
+                        fontWeight: "900",
+                        letterSpacing: "1.2px",
+                        color: "#d6bd79",
+                      }}
+                    >
+                      {item.label}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "900",
+                        color:
+                          "rgba(255,255,255,0.34)",
+                      }}
+                    >
+                      {item.no}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "16px",
+                      lineHeight: "1.25",
+                      fontWeight: "900",
+                    }}
+                  >
+                    {item.title}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      display: "grid",
+                      gap: "6px",
+                    }}
+                  >
+                    {item.points.map((point) => (
+                      <div
+                        key={point}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "7px",
+                          fontSize: "11px",
+                          lineHeight: "1.42",
+                          color:
+                            "rgba(255,255,255,0.72)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#d6bd79",
+                            fontWeight: "900",
+                            flexShrink: 0,
+                          }}
+                        >
+                          •
+                        </span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </section>
+          </section>
 
         </div>
 
-        {/* BOTTOM NAV */}
-
-        <nav style={styles.dashboardBottomNav}>
-          <div
-            style={{
-              ...styles.navItem,
-              ...styles.navActive,
-            }}
-          >
-            <span style={styles.dashboardNavIcon}>
-              ⌂
-            </span>
-
-            Home
-          </div>
-
-          <div
-            style={styles.dashboardNavItem}
-            onClick={() =>
-              console.log(
-                "Current Affairs"
-              )
-            }
-          >
-            <span style={styles.dashboardNavIcon}>
-              ▤
-            </span>
-
-            CA
-          </div>
-
-          <div
-            style={styles.dashboardNavItem}
-            onClick={() =>
-              console.log("GS")
-            }
-          >
-            <span style={styles.dashboardNavIcon}>
-              ▣
-            </span>
-
-            GS
-          </div>
-
-          <div
-            style={styles.dashboardNavItem}
-            onClick={() =>
-              console.log("AI")
-            }
-          >
-            <span style={styles.dashboardNavIcon}>
-              ▦
-            </span>
-
-            AI
-          </div>
-        </nav>
       </main>
     </>
   );
