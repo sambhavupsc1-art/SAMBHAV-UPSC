@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { validateTelegramInitData } from "../../../../lib/telegram/validateInitData";
 
 const SUPABASE_URL =
@@ -84,9 +85,7 @@ function verifyEmailSession(token) {
     if (
       !crypto.timingSafeEqual(
         Buffer.from(signature),
-        Buffer.from(
-          expectedSignature
-        )
+        Buffer.from(expectedSignature)
       )
     ) {
       return null;
@@ -124,9 +123,7 @@ function verifyEmailSession(token) {
  * ------------------------------------------------
  */
 
-async function getUserById(
-  userId
-) {
+async function getUserById(userId) {
   const response =
     await fetch(
       `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
@@ -175,18 +172,23 @@ async function getUserById(
  * ------------------------------------------------
  */
 
-async function getAuthenticatedUser(
-  request
-) {
+async function getAuthenticatedUser(request) {
   /*
    * ==============================================
    * 1. WEBSITE SESSION
    * ==============================================
+   *
+   * IMPORTANT:
+   * Use Next.js cookies() here.
+   * This matches /api/auth/me.
    */
 
   try {
+    const cookieStore =
+      await cookies();
+
     const sessionToken =
-      request.cookies.get(
+      cookieStore.get(
         "sambhav_session"
       )?.value;
 
@@ -292,9 +294,7 @@ async function getAuthenticatedUser(
  * ========================================================
  */
 
-export async function POST(
-  request
-) {
+export async function POST(request) {
   try {
     /*
      * ----------------------------------------
@@ -459,9 +459,6 @@ export async function POST(
      * ----------------------------------------
      * ALREADY ACTIVE
      * ----------------------------------------
-     *
-     * Webhook may have activated it
-     * before this verification request.
      */
 
     if (
