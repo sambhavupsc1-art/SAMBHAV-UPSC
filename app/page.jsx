@@ -1968,7 +1968,7 @@ export default function Home() {
       <main style={styles.page}>
         <div style={styles.container}>
 
-          {/* PROFESSIONAL HEADER */}
+          {/* HEADER */}
           <header
             style={{
               ...styles.header,
@@ -1999,7 +1999,7 @@ export default function Home() {
             </div>
           </header>
 
-          {/* DASHBOARD HERO */}
+          {/* HERO */}
           <section
             style={{
               background:
@@ -2019,19 +2019,13 @@ export default function Home() {
                 width: "190px",
                 height: "190px",
                 borderRadius: "50%",
-                background:
-                  "rgba(190,157,76,0.10)",
+                background: "rgba(190,157,76,0.10)",
                 right: "-85px",
                 top: "-95px",
               }}
             />
 
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
+            <div style={{ position: "relative", zIndex: 1 }}>
               <div
                 style={{
                   fontSize: "9px",
@@ -2058,10 +2052,12 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "9px",
-                  fontSize: "14px",
-                  lineHeight: "1.55",
-                  color: "rgba(255,255,255,0.68)",
-                  maxWidth: "560px",
+                  fontSize: "28px",
+                  lineHeight: "1.08",
+                  fontWeight: "900",
+                  letterSpacing: "-1px",
+                  color: "#d6bd79",
+                  maxWidth: "620px",
                 }}
               >
                 संभव है, तो UPSC संभव है।
@@ -2115,33 +2111,39 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ACCESS + AI */}
+          {/* OFFICER ACCESS */}
           <section
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
-              gap: "12px",
+              background:
+                "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+              color: "#ffffff",
+              borderRadius: "22px",
+              padding: "17px 18px",
               marginBottom: "16px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
             }}
           >
             <div
               style={{
-                background: "#ffffff",
-                border: "1px solid #e7e4dd",
-                borderRadius: "20px",
-                padding: "16px",
-                minWidth: 0,
-                boxShadow:
-                  "0 8px 22px rgba(0,0,0,0.035)",
+                position: "absolute",
+                width: "150px",
+                height: "150px",
+                borderRadius: "50%",
+                background: "rgba(214,189,121,0.08)",
+                right: "-65px",
+                top: "-75px",
               }}
-            >
+            />
+
+            <div style={{ position: "relative", zIndex: 1 }}>
               <div
                 style={{
                   fontSize: "8px",
                   fontWeight: "900",
                   letterSpacing: "1.3px",
-                  color: "#a07d32",
+                  color: "#d6bd79",
                 }}
               >
                 OFFICER ACCESS
@@ -2152,9 +2154,6 @@ export default function Home() {
                   marginTop: "7px",
                   fontSize: "17px",
                   fontWeight: "900",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
                 }}
               >
                 {firstName}
@@ -2163,54 +2162,14 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "5px",
-                  fontSize: "11px",
-                  color: "#77736c",
+                  fontSize: "10px",
+                  color: "rgba(255,255,255,0.55)",
+                  letterSpacing: "0.5px",
                 }}
               >
-                ● ACTIVE
+                ● ACTIVE CLEARANCE
               </div>
             </div>
-
-            <button
-              type="button"
-              style={{
-                background: "#111111",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "20px",
-                padding: "16px",
-                textAlign: "left",
-                cursor: "pointer",
-                boxShadow:
-                  "0 8px 22px rgba(0,0,0,0.10)",
-              }}
-              onClick={() =>
-                console.log(
-                  "AI Secretary coming soon"
-                )
-              }
-            >
-              <div
-                style={{
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "1.3px",
-                  color: "#d6bd79",
-                }}
-              >
-                INTELLIGENT ASSISTANCE
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  fontSize: "16px",
-                  fontWeight: "900",
-                }}
-              >
-                AI Secretary →
-              </div>
-            </button>
           </section>
 
           {/* PREMIUM */}
@@ -2241,12 +2200,7 @@ export default function Home() {
               }}
             />
 
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
+            <div style={{ position: "relative", zIndex: 1 }}>
               <div
                 style={{
                   display: "inline-flex",
@@ -2445,12 +2399,50 @@ export default function Home() {
               boxShadow: "0 7px 20px rgba(0,0,0,0.035)",
             }}
           >
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
               <div>
-                <div style={{fontSize:"8px",fontWeight:"900",letterSpacing:"1.4px",color:"#a07d32"}}>TODAY'S PREPARATION</div>
-                <div style={{marginTop:"5px",fontSize:"15px",fontWeight:"900"}}>Stay focused. Keep moving.</div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    fontWeight: "900",
+                    letterSpacing: "1.4px",
+                    color: "#a07d32",
+                  }}
+                >
+                  TODAY'S PREPARATION
+                </div>
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "15px",
+                    fontWeight: "900",
+                  }}
+                >
+                  Stay focused. Keep moving.
+                </div>
               </div>
-              <div style={{flexShrink:0,padding:"8px 10px",borderRadius:"10px",background:"#f5f2eb",color:"#6f6a61",fontSize:"8px",fontWeight:"900",letterSpacing:"0.8px"}}>DAILY FOCUS</div>
+
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: "8px 10px",
+                  borderRadius: "10px",
+                  background: "#f5f2eb",
+                  color: "#6f6a61",
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "0.8px",
+                }}
+              >
+                DAILY FOCUS
+              </div>
             </div>
           </section>
 
@@ -2505,7 +2497,7 @@ export default function Home() {
             style={{
               display: "grid",
               gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
+                "repeat(auto-fit, minmax(230px, 1fr))",
               gap: "11px",
             }}
           >
@@ -2513,8 +2505,11 @@ export default function Home() {
               <div
                 key={module.title}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e7e4dd",
+                  background:
+                    "linear-gradient(145deg, #0b0b0b 0%, #151515 58%, #242424 100%)",
+                  border:
+                    "1px solid rgba(255,255,255,0.08)",
+                  color: "#ffffff",
                   borderRadius: "20px",
                   padding: "15px",
                   minWidth: 0,
@@ -2522,9 +2517,7 @@ export default function Home() {
                   position: "relative",
                   cursor: "pointer",
                   boxShadow:
-                    "0 7px 20px rgba(0,0,0,0.035)",
-                  transition:
-                    "transform .18s ease, box-shadow .18s ease",
+                    "0 12px 28px rgba(0,0,0,0.12)",
                 }}
                 onClick={() => {
                   if (module.route) {
@@ -2552,7 +2545,8 @@ export default function Home() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background: "#111111",
+                      background:
+                        "rgba(255,255,255,0.08)",
                       color: "#d6bd79",
                       fontSize: "17px",
                     }}
@@ -2564,7 +2558,8 @@ export default function Home() {
                     style={{
                       fontSize: "9px",
                       fontWeight: "900",
-                      color: "#b7b3ab",
+                      color:
+                        "rgba(255,255,255,0.38)",
                       letterSpacing: "0.8px",
                     }}
                   >
@@ -2593,7 +2588,8 @@ export default function Home() {
                       marginTop: "5px",
                       fontSize: "10px",
                       lineHeight: "1.4",
-                      color: "#85817a",
+                      color:
+                        "rgba(255,255,255,0.55)",
                     }}
                   >
                     {module.subtitle}
@@ -2607,7 +2603,7 @@ export default function Home() {
                     bottom: "13px",
                     fontSize: "17px",
                     fontWeight: "700",
-                    color: "#b08c3e",
+                    color: "#d6bd79",
                   }}
                 >
                   →
