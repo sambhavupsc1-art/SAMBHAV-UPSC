@@ -127,8 +127,8 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg, #f8f7f3 0%, #f1f0ec 100%)",
-    color: "#111111",
+      "linear-gradient(180deg, #0b0b0b 0%, #111111 100%)",
+    color: "#ffffff",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
     paddingBottom: "105px",
@@ -151,7 +151,8 @@ const styles = {
 
   brand: {
     fontSize: "20px",
-    fontWeight: "900",
+    fontWeight: "950",
+    color: "#ffffff",
     letterSpacing: "-0.7px",
   },
 
@@ -161,7 +162,7 @@ const styles = {
 
   brandSub: {
     fontSize: "9px",
-    color: "#8b8b8b",
+    color: "#858585",
     marginTop: "4px",
     letterSpacing: "1.3px",
     textTransform: "uppercase",
@@ -267,11 +268,11 @@ const styles = {
     justifyContent: "center",
     padding: "13px 17px",
     borderRadius: "14px",
-    background: "#ffffff",
+    background: "#d6bd79",
     color: "#111111",
     textDecoration: "none",
     fontSize: "11px",
-    fontWeight: "900",
+    fontWeight: "950",
   },
 
   secondaryButton: {
@@ -314,7 +315,7 @@ const styles = {
   },
 
   landingSection: {
-    marginTop: "39px",
+    marginTop: "28px",
   },
 
   goldLabel: {
@@ -329,13 +330,15 @@ const styles = {
     marginTop: "7px",
     fontSize: "27px",
     lineHeight: "1.12",
-    fontWeight: "900",
+    fontWeight: "950",
+    color: "#ffffff",
     letterSpacing: "-0.9px",
   },
 
   landingSectionSub: {
     marginTop: "8px",
-    color: "#777777",
+    color: "#a3a3a3",
+    fontWeight: "700",
     fontSize: "12px",
     lineHeight: "1.6",
     maxWidth: "560px",
@@ -350,8 +353,8 @@ const styles = {
   },
 
   featureCard: {
-    background: "#ffffff",
-    border: "1px solid #e5e3de",
+    background: "linear-gradient(145deg,#171717,#0d0d0d)",
+    border: "1px solid #292929",
     borderRadius: "21px",
     padding: "16px",
     minHeight: "140px",
@@ -382,7 +385,8 @@ const styles = {
   featureText: {
     marginTop: "5px",
     fontSize: "10px",
-    color: "#858585",
+    color: "#a3a3a3",
+    fontWeight: "700",
     lineHeight: "1.45",
   },
 
@@ -500,11 +504,11 @@ const styles = {
   },
 
   premiumLandingCard: {
-    marginTop: "39px",
+    marginTop: "28px",
     background:
-      "linear-gradient(145deg,#eee6d2,#e3dac1)",
+      "linear-gradient(145deg,#1b1b1b,#101010)",
     border:
-      "1px solid #d7ccb0",
+      "1px solid #302d25",
     borderRadius: "27px",
     padding: "23px",
     position: "relative",
@@ -528,7 +532,7 @@ const styles = {
   },
 
   premiumLabel: {
-    color: "#806425",
+    color: "#d6bd79",
     fontSize: "9px",
     fontWeight: "950",
     letterSpacing: "1.5px",
@@ -544,7 +548,8 @@ const styles = {
 
   premiumText: {
     marginTop: "9px",
-    color: "#6f685a",
+    color: "#a3a3a3",
+    fontWeight: "700",
     fontSize: "11px",
     lineHeight: "1.6",
     maxWidth: "520px",
@@ -560,11 +565,10 @@ const styles = {
   premiumPill: {
     padding: "7px 9px",
     borderRadius: "999px",
-    background:
-      "rgba(255,255,255,0.55)",
+    background: "#242424",
     border:
-      "1px solid rgba(130,110,70,0.13)",
-    color: "#5f584b",
+      "1px solid #363636",
+    color: "#eeeeee",
     fontSize: "8px",
     fontWeight: "800",
   },
@@ -582,7 +586,7 @@ const styles = {
   },
 
   finalCTA: {
-    marginTop: "42px",
+    marginTop: "28px",
     textAlign: "center",
     padding: "8px 8px 0",
   },
@@ -592,13 +596,15 @@ const styles = {
     fontSize: "29px",
     lineHeight: "1.08",
     fontWeight: "950",
+    color: "#ffffff",
     letterSpacing: "-1px",
   },
 
   finalText: {
     margin: "10px auto 0",
     maxWidth: "470px",
-    color: "#777777",
+    color: "#a3a3a3",
+    fontWeight: "700",
     fontSize: "11px",
     lineHeight: "1.6",
   },
@@ -608,7 +614,7 @@ const styles = {
     marginTop: "18px",
     padding: "14px 22px",
     borderRadius: "15px",
-    background: "#111111",
+    background: "#d6bd79",
     color: "#ffffff",
     textDecoration: "none",
     fontSize: "11px",
@@ -618,9 +624,9 @@ const styles = {
   },
 
   publicFooter: {
-    marginTop: "48px",
-    paddingTop: "20px",
-    borderTop: "1px solid #dedcd6",
+    marginTop: "32px",
+    paddingTop: "18px",
+    borderTop: "1px solid #292929",
   },
 
   footerLinks: {
@@ -630,7 +636,7 @@ const styles = {
   },
 
   footerLink: {
-    color: "#666666",
+    color: "#9a9a9a",
     textDecoration: "none",
     fontSize: "9px",
     fontWeight: "700",
@@ -638,7 +644,7 @@ const styles = {
 
   footerCopy: {
     marginTop: "13px",
-    color: "#999999",
+    color: "#666666",
     fontSize: "8px",
   },
 
@@ -656,8 +662,9 @@ const styles = {
 
   greetingSub: {
     marginTop: "7px",
-    color: "#777777",
+    color: "#a3a3a3",
     fontSize: "14px",
+    fontWeight: "700",
   },
 
   accessCard: {
@@ -792,8 +799,8 @@ const styles = {
 
   adminCard: {
     background:
-      "linear-gradient(135deg, #f0e7cf 0%, #e2d4b1 55%, #d5c398 100%)",
-    color: "#111111",
+      "linear-gradient(145deg,#211e17,#171510)",
+    color: "#ffffff",
     borderRadius: "25px",
     padding: "21px",
     marginBottom: "27px",
@@ -803,7 +810,7 @@ const styles = {
     overflow: "hidden",
     cursor: "pointer",
     border:
-      "1px solid #d4c49e",
+      "1px solid #4a402a",
   },
 
   adminGlow: {
@@ -841,7 +848,8 @@ const styles = {
 
   adminSub: {
     marginTop: "7px",
-    color: "#655d4e",
+    color: "#a3a3a3",
+    fontWeight: "700",
     fontSize: "11px",
     lineHeight: "1.55",
     maxWidth: "390px",
@@ -888,8 +896,8 @@ const styles = {
   },
 
   card: {
-    background: "#ffffff",
-    border: "1px solid #e8e8e6",
+    background: "linear-gradient(145deg,#171717,#101010)",
+    border: "1px solid #292929",
     borderRadius: "22px",
     padding: "15px",
     minHeight: "108px",
@@ -928,8 +936,9 @@ const styles = {
 
   cardSubtitle: {
     marginTop: "5px",
-    color: "#858585",
+    color: "#a3a3a3",
     fontSize: "10px",
+    fontWeight: "700",
     lineHeight: "1.35",
   },
 
@@ -938,8 +947,8 @@ const styles = {
     height: "28px",
     minWidth: "28px",
     borderRadius: "50%",
-    background: "#f0f0ee",
-    color: "#777777",
+    background: "#232323",
+    color: "#d6bd79",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -947,9 +956,10 @@ const styles = {
   },
 
   pendingCard: {
-    marginTop: "70px",
-    background: "#ffffff",
-    border: "1px solid #e5e5e3",
+    marginTop: "42px",
+    background: "linear-gradient(145deg,#171717,#0d0d0d)",
+    border: "1px solid #292929",
+    color: "#ffffff",
     borderRadius: "24px",
     padding: "30px 22px",
     textAlign: "center",
@@ -1020,8 +1030,8 @@ const styles = {
     width: "calc(100% - 28px)",
     maxWidth: "730px",
     height: "68px",
-    background: "rgba(255,255,255,0.97)",
-    border: "1px solid #e5e5e3",
+    background: "rgba(19,19,19,.98)",
+    border: "1px solid #303030",
     borderRadius: "25px",
     boxShadow:
       "0 10px 35px rgba(0,0,0,0.12)",
@@ -1043,13 +1053,13 @@ const styles = {
     gap: "3px",
     fontSize: "10px",
     color: "#777777",
-    fontWeight: "600",
+    fontWeight: "850",
     cursor: "pointer",
   },
 
   navActive: {
-    background: "#eeeeec",
-    color: "#111111",
+    background: "#242424",
+    color: "#ffffff",
   },
 
   navIcon: {
@@ -1074,11 +1084,13 @@ const styles = {
   lockedTitle: {
     margin: 0,
     fontSize: "25px",
-    fontWeight: "900",
+    fontWeight: "950",
+    color: "#ffffff",
   },
 
   lockedText: {
-    color: "#777",
+    color: "#a3a3a3",
+    fontWeight: "700",
     fontSize: "13px",
     lineHeight: "1.6",
     margin: "10px auto 0",
@@ -1090,8 +1102,8 @@ const styles = {
     marginTop: "18px",
     padding: "8px 13px",
     borderRadius: "999px",
-    background: "#f0f0ee",
-    color: "#555",
+    background: "#d6bd79",
+    color: "#111111",
     fontSize: "10px",
     fontWeight: "800",
     textTransform: "uppercase",
@@ -1318,7 +1330,7 @@ const styles = {
   },
 
   ecosystemIntro: {
-    padding: "22px 20px 18px",
+    padding: "18px 18px 15px",
     borderBottom: "1px solid #2a2a2a",
   },
 
@@ -1355,7 +1367,7 @@ const styles = {
     gridTemplateColumns: "38px 46px minmax(0,1fr) 34px",
     alignItems: "center",
     gap: "9px",
-    padding: "13px 14px",
+    padding: "11px 14px",
     border: "none",
     background: "transparent",
     color: "#ffffff",
@@ -1410,7 +1422,7 @@ const styles = {
   },
 
   ecoDetails: {
-    padding: "0 20px 16px 93px",
+    padding: "0 18px 13px 93px",
     animation: "ecoReveal .18s ease-out",
   },
 
@@ -2157,7 +2169,7 @@ export default function Home() {
               </div>
 
               <p style={styles.greetingSub}>
-                Checking access...
+                Preparing your SAMBHAV workspace...
               </p>
             </div>
           </div>
@@ -2218,9 +2230,7 @@ export default function Home() {
               </h1>
 
               <p style={styles.lockedText}>
-                SAMBHAV UPSC application access
-                ke liye Telegram se authorized
-                login required hai.
+                Your SAMBHAV UPSC workspace requires an authorized login to continue.
               </p>
 
               <div style={styles.statusPill}>
