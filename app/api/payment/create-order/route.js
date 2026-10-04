@@ -1,53 +1,65 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { cookies } from "next/headers";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SECRET_KEY;
-
-const CASHFREE_APP_ID =
-  process.env.CASHFREE_APP_ID;
-
-const CASHFREE_SECRET_KEY =
-  process.env.CASHFREE_SECRET_KEY;
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 
 const CASHFREE_ENV =
-  process.env.CASHFREE_ENV || "sandbox";
+  process.env.CASHFREE_ENV === "production"
+    ? "production"
+    : "sandbox";
+
+const CASHFREE_BASE_URL =
+  CASHFREE_ENV === "production"
+    ? "https://api.cashfree.com/pg"
+    : "https://sandbox.cashfree.com/pg";
+
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "http://localhost:3000";
 
 const PLANS = {
   monthly: {
+    name: "Monthly",
     amount: 99,
-    durationDays: 30,
+    days: 30,
   },
-
   quarterly: {
+    name: "Quarterly",
     amount: 399,
-    durationDays: 90,
+    days: 90,
   },
-
   annual: {
+    name: "Annual",
     amount: 999,
-    durationDays: 365,
+    days: 365,
   },
 };
 
-/*
- * ========================================================
- * VERIFY EMAIL SESSION
- * ========================================================
- */
+/* -------------------------------------------------------
+   EMAIL SESSION
+------------------------------------------------------- */
+
+function base64urlDecode(value) {
+  try {
+    return Buffer.from(value, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+function base64urlEncode(buffer) {
+  return Buffer.from(buffer).toString("base64url");
+}
 
 function verifyEmailSession(token) {
   try {
-    const secret =
-      process.env.AUTH_SESSION_SECRET;
-
-    if (!secret || !token) {
-      return null;
-    }
+    if (!token) return null;
 
     const parts = token.split(".");
 
@@ -55,92 +67,84 @@ function verifyEmailSession(token) {
       return null;
     }
 
-    const [payload, signature] = parts;
+    const [encodedPayload, encodedSignature] = parts;
 
-    const expectedSignature =
-      crypto
-        .createHmac("sha256", secret)
-        .update(payload)
-        .digest("base64url");
+    const secret = process.env.AUTH_SESSION_SECRET;
 
-    if (
-      signature.length !==
-      expectedSignature.length
-    ) {
+    if (!secret) {
+      console.error("AUTH_SESSION_SECRET is missing");
       return null;
     }
 
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(encodedPayload)
+      .digest();
+
+    const actualSignature =
+      Buffer.from(encodedSignature, "base64url");
+
     if (
+      actualSignature.length !== expectedSignature.length ||
       !crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
+        actualSignature,
+        expectedSignature
       )
     ) {
       return null;
     }
 
-    const data = JSON.parse(
-      Buffer.from(
-        payload,
-        "base64url"
-      ).toString("utf8")
-    );
+    const payloadText =
+      base64urlDecode(encodedPayload);
 
-    if (
-      !data?.userId ||
-      !data?.exp
-    ) {
+    if (!payloadText) {
       return null;
     }
 
-    if (Date.now() > data.exp) {
+    const payload = JSON.parse(payloadText);
+
+    if (!payload?.userId) {
       return null;
     }
 
-    return data;
+    if (payload.exp) {
+      const now = Math.floor(Date.now() / 1000);
+
+      if (now >= Number(payload.exp)) {
+        return null;
+      }
+    }
+
+    return payload;
   } catch (error) {
-    console.error(
-      "Session verification error:",
-      error
-    );
-
+    console.error("Session verification error:", error);
     return null;
   }
 }
 
-/*
- * ========================================================
- * READ SESSION DIRECTLY FROM RAW COOKIE HEADER
- * ========================================================
- */
+/* -------------------------------------------------------
+   COOKIE PARSER
+------------------------------------------------------- */
 
-function getSessionTokenFromCookieHeader(
-  cookieHeader
-) {
+function getSessionTokenFromCookieHeader(cookieHeader) {
   if (!cookieHeader) {
     return null;
   }
 
-  const cookies =
-    cookieHeader.split(";");
+  const cookieParts = cookieHeader.split(";");
 
-  for (const item of cookies) {
-    const separator =
-      item.indexOf("=");
+  for (const item of cookieParts) {
+    const separator = item.indexOf("=");
 
     if (separator === -1) {
       continue;
     }
 
-    const name =
-      item
-        .slice(0, separator)
-        .trim();
+    const name = item
+      .slice(0, separator)
+      .trim();
 
-    if (
-      name !==
-      "sambhav_session"
-    ) {
+    if (name !== "sambhav_session") {
       continue;
     }
 
@@ -152,439 +156,282 @@ function getSessionTokenFromCookieHeader(
   return null;
 }
 
-/*
- * ========================================================
- * GET USER BY ID
- * ========================================================
- */
+/* -------------------------------------------------------
+   SUPABASE
+------------------------------------------------------- */
 
 async function getUserById(userId) {
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_SECRET_KEY ||
-    !userId
-  ) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Supabase environment variables missing");
     return null;
   }
 
   try {
-    const response =
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
-          userId
-        )}&select=id,email,telegram_id,first_name,last_name,username,status,plan,created_at`,
-        {
-          method: "GET",
-
-          headers: {
-            apikey:
-              SUPABASE_SECRET_KEY,
-
-            Authorization:
-              `Bearer ${SUPABASE_SECRET_KEY}`,
-          },
-
-          cache: "no-store",
-        }
-      );
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(
+        userId
+      )}&select=*`,
+      {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       console.error(
-        "Payment user lookup failed:",
+        "Supabase user lookup failed:",
+        response.status,
         await response.text()
       );
 
       return null;
     }
 
-    const users =
-      await response.json();
+    const users = await response.json();
 
-    return users?.length
-      ? users[0]
-      : null;
+    return users?.[0] || null;
   } catch (error) {
-    console.error(
-      "Payment user lookup exception:",
-      error
-    );
-
+    console.error("getUserById error:", error);
     return null;
   }
 }
 
-/*
- * ========================================================
- * EMAIL AUTHENTICATION ONLY
- * ========================================================
- */
+/* -------------------------------------------------------
+   AUTHENTICATION
+------------------------------------------------------- */
 
-async function getAuthenticatedUser(
-  request
-) {
-  const cookieHeader =
-    request.headers.get(
-      "cookie"
-    );
-
-  const sessionToken =
-    getSessionTokenFromCookieHeader(
-      cookieHeader
-    );
-
-  if (!sessionToken) {
-    return {
-      user: null,
-      reason:
-        "sambhav_session not found in request Cookie header",
-    };
-  }
-
-  const session =
-    verifyEmailSession(
-      sessionToken
-    );
-
-  if (!session?.userId) {
-    return {
-      user: null,
-      reason:
-        "sambhav_session exists but session verification failed",
-    };
-  }
-
-  const user =
-    await getUserById(
-      session.userId
-    );
-
-  if (!user) {
-    return {
-      user: null,
-      reason:
-        "Session is valid but Supabase user was not found",
-    };
-  }
-
-  return {
-    user,
-    authMethod: "email",
-    reason:
-      "Authentication successful",
-  };
-}
-
-/*
- * ========================================================
- * ACTIVE SUBSCRIPTION
- * ========================================================
- */
-
-async function getActiveSubscription(
-  userId
-) {
+async function getAuthenticatedUser(request) {
   try {
-    const now =
-      new Date().toISOString();
+    const cookieHeader =
+      request.headers.get("cookie");
 
-    const response =
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(
-          userId
-        )}&status=eq.active&expires_at=gt.${encodeURIComponent(
-          now
-        )}&select=id,plan,status,expires_at,amount&order=expires_at.desc&limit=1`,
-        {
-          method: "GET",
-
-          headers: {
-            apikey:
-              SUPABASE_SECRET_KEY,
-
-            Authorization:
-              `Bearer ${SUPABASE_SECRET_KEY}`,
-          },
-
-          cache: "no-store",
-        }
-      );
-
-    if (!response.ok) {
-      console.error(
-        "Active subscription lookup failed:",
-        await response.text()
-      );
-
-      return null;
+    if (!cookieHeader) {
+      return {
+        user: null,
+        reason: "Cookie header missing",
+      };
     }
 
-    const subscriptions =
-      await response.json();
+    const sessionToken =
+      getSessionTokenFromCookieHeader(cookieHeader);
 
-    return subscriptions?.length
-      ? subscriptions[0]
-      : null;
+    if (!sessionToken) {
+      return {
+        user: null,
+        reason: "sambhav_session cookie missing",
+      };
+    }
+
+    const session =
+      verifyEmailSession(sessionToken);
+
+    if (!session?.userId) {
+      return {
+        user: null,
+        reason: "Invalid or expired session",
+      };
+    }
+
+    const user =
+      await getUserById(session.userId);
+
+    if (!user) {
+      return {
+        user: null,
+        reason: "User not found",
+      };
+    }
+
+    return {
+      user,
+      reason: null,
+    };
   } catch (error) {
     console.error(
-      "Active subscription lookup exception:",
+      "Authentication error:",
       error
     );
 
-    return null;
+    return {
+      user: null,
+      reason: "Authentication exception",
+    };
   }
 }
 
-/*
- * ========================================================
- * POST
- * ========================================================
- */
+/* -------------------------------------------------------
+   CASHFREE ORDER ID
+------------------------------------------------------- */
+
+function createOrderId() {
+  return `SAMBHAV_${Date.now()}_${crypto
+    .randomBytes(5)
+    .toString("hex")}`;
+}
+
+/* -------------------------------------------------------
+   CREATE ORDER
+------------------------------------------------------- */
 
 export async function POST(request) {
   try {
-    /*
-     * ====================================================
-     * CONFIGURATION
-     * ====================================================
-     */
+    /* -------------------------------
+       AUTH
+    -------------------------------- */
 
-    if (
-      !SUPABASE_URL ||
-      !SUPABASE_SECRET_KEY
-    ) {
+    const auth =
+      await getAuthenticatedUser(request);
+
+    if (!auth?.user?.id) {
       return NextResponse.json(
         {
-          error:
-            "Supabase payment configuration missing.",
+          error: "Authentication required.",
+          reason:
+            auth?.reason ||
+            "Unknown authentication error",
         },
-        { status: 500 }
+        {
+          status: 401,
+        }
       );
     }
+
+    const user = auth.user;
+
+    /* -------------------------------
+       REQUEST BODY
+    -------------------------------- */
+
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error: "Invalid request body.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const planKey = body?.plan;
+
+    const selectedPlan =
+      PLANS[planKey];
+
+    if (!selectedPlan) {
+      return NextResponse.json(
+        {
+          error: "Invalid plan.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* -------------------------------
+       CASHFREE ENV CHECK
+    -------------------------------- */
 
     if (
       !CASHFREE_APP_ID ||
       !CASHFREE_SECRET_KEY
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Cashfree payment configuration missing.",
-        },
-        { status: 500 }
-      );
-    }
-
-    if (
-      !process.env.AUTH_SESSION_SECRET
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Authentication configuration missing.",
-        },
-        { status: 500 }
-      );
-    }
-
-    /*
-     * ====================================================
-     * AUTHENTICATION
-     * ====================================================
-     */
-
-    const auth =
-      await getAuthenticatedUser(
-        request
-      );
-
-    if (!auth?.user?.id) {
       console.error(
-        "CREATE ORDER AUTH FAILED:",
-        auth?.reason
+        "Cashfree environment variables missing"
       );
 
       return NextResponse.json(
         {
           error:
-            "Authentication required.",
-          reason:
-            auth?.reason ||
-            "Unknown authentication error",
+            "Payment gateway configuration missing.",
         },
-        { status: 401 }
-      );
-    }
-
-    const user =
-      auth.user;
-
-    /*
-     * ====================================================
-     * PLAN
-     * ====================================================
-     */
-
-    const body =
-      await request
-        .json()
-        .catch(() => ({}));
-
-    const plan =
-      body?.plan;
-
-    if (
-      !plan ||
-      !PLANS[plan]
-    ) {
-      return NextResponse.json(
         {
-          error:
-            "Invalid Premium plan.",
-        },
-        { status: 400 }
+          status: 500,
+        }
       );
     }
 
-    const selectedPlan =
-      PLANS[plan];
-
-    /*
-     * ====================================================
-     * APPROVAL
-     * ====================================================
-     */
-
-    if (
-      user.status !==
-      "approved"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Your SAMBHAV UPSC account is not approved yet.",
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-     * ====================================================
-     * ACTIVE SUBSCRIPTION
-     * ====================================================
-     */
-
-    const activeSubscription =
-      await getActiveSubscription(
-        user.id
-      );
-
-    const activePlan =
-      String(
-        activeSubscription?.plan ||
-          ""
-      ).toLowerCase();
-
-    /*
-     * Demo can upgrade.
-     */
-
-    if (
-      activeSubscription &&
-      activePlan !== "demo"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "You already have an active Premium subscription.",
-
-          subscription:
-            activeSubscription,
-        },
-        { status: 409 }
-      );
-    }
-
-    /*
-     * ====================================================
-     * ORDER ID
-     * ====================================================
-     */
+    /* -------------------------------
+       ORDER
+    -------------------------------- */
 
     const orderId =
-      `sambhav_${plan}_${String(
-        user.id
-      ).slice(0, 8)}_${Date.now()}`;
-
-    /*
-     * ====================================================
-     * BASE URL
-     * ====================================================
-     */
-
-    const baseUrl =
-      (
-        process.env
-          .NEXT_PUBLIC_APP_URL ||
-        "https://sambhav-upsc.vercel.app"
-      ).replace(
-        /\/$/,
-        ""
-      );
-
-    const returnUrl =
-      `${baseUrl}/premium/payment/success?order_id={order_id}`;
-
-    /*
-     * ====================================================
-     * CASHFREE URL
-     * ====================================================
-     */
-
-    const cashfreeUrl =
-      String(
-        CASHFREE_ENV
-      ).toLowerCase() ===
-      "production"
-        ? "https://api.cashfree.com/pg/orders"
-        : "https://sandbox.cashfree.com/pg/orders";
-
-    /*
-     * ====================================================
-     * CUSTOMER
-     * ====================================================
-     */
+      createOrderId();
 
     const customerId =
-      `sambhav_${user.id}`;
+      `user_${String(user.id).replace(
+        /[^a-zA-Z0-9_-]/g,
+        ""
+      )}`;
 
     const customerName =
       user.first_name ||
       user.username ||
-      user.email ||
-      "SAMBHAV User";
+      "SAMBHAV UPSC User";
 
-    const customerPhone =
-      String(
-        user.phone || ""
-      ).replace(
-        /\D/g,
-        ""
-      ) ||
-      "9999999999";
+    const customerEmail =
+      user.email;
 
-    /*
-     * ====================================================
-     * CREATE CASHFREE ORDER
-     * ====================================================
-     */
+    /* -------------------------------
+       CASHFREE PAYLOAD
+    -------------------------------- */
+
+    const cashfreePayload = {
+      order_id: orderId,
+
+      order_amount:
+        selectedPlan.amount,
+
+      order_currency: "INR",
+
+      customer_details: {
+        customer_id: customerId,
+        customer_name: customerName,
+        customer_email:
+          customerEmail,
+        customer_phone:
+          user.phone ||
+          "9999999999",
+      },
+
+      order_meta: {
+        return_url:
+          `${APP_URL}/premium/payment/success?order_id=${encodeURIComponent(
+            orderId
+          )}`,
+
+        notify_url:
+          `${APP_URL}/api/payment/webhook`,
+      },
+
+      order_note:
+        `SAMBHAV UPSC ${selectedPlan.name} Premium`,
+    };
+
+    /* -------------------------------
+       CASHFREE CREATE ORDER
+    -------------------------------- */
 
     const cashfreeResponse =
       await fetch(
-        cashfreeUrl,
+        `${CASHFREE_BASE_URL}/orders`,
         {
           method: "POST",
 
           headers: {
+            "Content-Type":
+              "application/json",
+
             "x-client-id":
               CASHFREE_APP_ID,
 
@@ -593,228 +440,204 @@ export async function POST(request) {
 
             "x-api-version":
               "2025-01-01",
-
-            Accept:
-              "application/json",
-
-            "Content-Type":
-              "application/json",
           },
 
-          body: JSON.stringify({
-            order_id:
-              orderId,
+          body:
+            JSON.stringify(
+              cashfreePayload
+            ),
 
-            order_amount:
-              selectedPlan.amount,
-
-            order_currency:
-              "INR",
-
-            customer_details: {
-              customer_id:
-                customerId,
-
-              customer_name:
-                customerName,
-
-              customer_email:
-                user.email ||
-                undefined,
-
-              customer_phone:
-                customerPhone,
-            },
-
-            order_meta: {
-              return_url:
-                returnUrl,
-
-              notify_url:
-                `${baseUrl}/api/payment/webhook`,
-            },
-
-            order_note:
-              `SAMBHAV UPSC ${plan} Premium`,
-          }),
+          cache: "no-store",
         }
       );
 
-    const cashfreeData =
-      await cashfreeResponse
-        .json()
-        .catch(() => ({}));
+    const cashfreeText =
+      await cashfreeResponse.text();
 
-    /*
-     * ====================================================
-     * CASHFREE ERROR
-     * ====================================================
-     */
+    let cashfreeData;
 
-    if (
-      !cashfreeResponse.ok
-    ) {
+    try {
+      cashfreeData =
+        JSON.parse(cashfreeText);
+    } catch {
+      cashfreeData = {
+        raw: cashfreeText,
+      };
+    }
+
+    if (!cashfreeResponse.ok) {
       console.error(
-        "Cashfree create order error:",
+        "Cashfree order creation failed:",
+        cashfreeResponse.status,
         cashfreeData
       );
 
       return NextResponse.json(
         {
           error:
-            cashfreeData?.message ||
-            cashfreeData?.type ||
-            "Cashfree order creation failed.",
+            "Unable to create payment order.",
+          details:
+            cashfreeData,
         },
-        { status: 502 }
-      );
-    }
-
-    /*
-     * ====================================================
-     * PAYMENT SESSION
-     * ====================================================
-     */
-
-    if (
-      !cashfreeData?.payment_session_id
-    ) {
-      console.error(
-        "Cashfree payment session missing:",
-        cashfreeData
-      );
-
-      return NextResponse.json(
         {
-          error:
-            "Cashfree payment session was not returned.",
-        },
-        { status: 502 }
-      );
-    }
-
-    /*
-     * ====================================================
-     * PENDING SUBSCRIPTION
-     * ====================================================
-     */
-
-    const now =
-      new Date();
-
-    const expiresAt =
-      new Date(
-        now.getTime() +
-          selectedPlan.durationDays *
-            24 *
-            60 *
-            60 *
-            1000
-      ).toISOString();
-
-    const subscriptionResponse =
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/subscriptions`,
-        {
-          method: "POST",
-
-          headers: {
-            apikey:
-              SUPABASE_SECRET_KEY,
-
-            Authorization:
-              `Bearer ${SUPABASE_SECRET_KEY}`,
-
-            "Content-Type":
-              "application/json",
-
-            Prefer:
-              "return=representation",
-          },
-
-          body: JSON.stringify({
-            user_id:
-              user.id,
-
-            plan,
-
-            status:
-              "pending",
-
-            payment_id:
-              null,
-
-            order_id:
-              orderId,
-
-            amount:
-              selectedPlan.amount,
-
-            started_at:
-              now.toISOString(),
-
-            expires_at:
-              expiresAt,
-          }),
+          status: 500,
         }
       );
+    }
+
+    /* -------------------------------
+       SAVE PENDING SUBSCRIPTION
+    -------------------------------- */
 
     if (
-      !subscriptionResponse.ok
+      SUPABASE_URL &&
+      SUPABASE_SERVICE_ROLE_KEY
     ) {
-      console.error(
-        "Subscription insert failed:",
-        await subscriptionResponse.text()
-      );
+      try {
+        const now =
+          new Date();
 
-      return NextResponse.json(
-        {
-          error:
-            "Payment order created but subscription record could not be created.",
+        const expiresAt =
+          new Date(
+            now.getTime() +
+              selectedPlan.days *
+                24 *
+                60 *
+                60 *
+                1000
+          );
 
+        const subscriptionPayload = {
+          user_id: user.id,
+          plan: planKey,
+          status: "pending",
+          amount:
+            selectedPlan.amount,
+          started_at:
+            now.toISOString(),
+          expires_at:
+            expiresAt.toISOString(),
           order_id:
             orderId,
-        },
-        { status: 500 }
-      );
+          payment_id:
+            null,
+        };
+
+        const subscriptionResponse =
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/subscriptions`,
+            {
+              method: "POST",
+
+              headers: {
+                apikey:
+                  SUPABASE_SERVICE_ROLE_KEY,
+
+                Authorization:
+                  `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+                "Content-Type":
+                  "application/json",
+
+                Prefer:
+                  "return=minimal",
+              },
+
+              body:
+                JSON.stringify(
+                  subscriptionPayload
+                ),
+
+              cache: "no-store",
+            }
+          );
+
+        if (
+          !subscriptionResponse.ok
+        ) {
+          console.error(
+            "Subscription insert failed:",
+            subscriptionResponse.status,
+            await subscriptionResponse.text()
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Subscription insert error:",
+          error
+        );
+      }
     }
 
-    /*
-     * ====================================================
-     * SUCCESS
-     * ====================================================
-     */
+    /* -------------------------------
+       RESPONSE
+    -------------------------------- */
 
-    return NextResponse.json({
-      success: true,
+    return NextResponse.json(
+      {
+        success: true,
 
-      order_id:
         orderId,
 
-      plan,
+        paymentSessionId:
+          cashfreeData?.payment_session_id ||
+          null,
 
-      amount:
-        selectedPlan.amount,
-
-      payment_session_id:
-        cashfreeData.payment_session_id,
-
-      environment:
-        CASHFREE_ENV,
-    });
+        plan: {
+          key: planKey,
+          name:
+            selectedPlan.name,
+          amount:
+            selectedPlan.amount,
+          days:
+            selectedPlan.days,
+        },
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error(
-      "Create payment order error:",
+      "CREATE ORDER ERROR:",
       error
     );
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "Internal payment order creation error.",
+          "Something went wrong while creating the payment order.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
+}
+
+/* -------------------------------------------------------
+   TEMPORARY AUTH DIAGNOSTIC
+   REMOVE AFTER TESTING
+------------------------------------------------------- */
+
+export async function GET(request) {
+  const auth =
+    await getAuthenticatedUser(request);
+
+  return NextResponse.json({
+    route: "payment/create-order",
+
+    cookiePresent:
+      !!request.headers
+        .get("cookie")
+        ?.includes(
+          "sambhav_session="
+        ),
+
+    authenticated:
+      !!auth?.user?.id,
+
+    reason:
+      auth?.reason || null,
+  });
 }
