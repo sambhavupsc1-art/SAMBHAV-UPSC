@@ -4,10 +4,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const TEST_OPTIONS = [25, 50, 100];
+const TEST_OPTIONS = [20, 30, 50, 75, 100];
 const MARKS_PER_QUESTION = 2;
 const NEGATIVE_MARKS = 2 / 3;
 const TOTAL_SECONDS = 2 * 60 * 60;
+const DAILY_SECONDS = 30 * 60;
+const ACTIVE_ATTEMPT_KEY = "sambhav-prelims-active-attempt-v2";
 
 function shuffle(arr) {
   const copy = [...arr];
@@ -35,14 +37,17 @@ export default function PrelimsTestPage() {
   const [error, setError] = useState("");
 
   const [screen, setScreen] = useState("center");
-  const [testType, setTestType] = useState("pyq");
-  const [advancedMode, setAdvancedMode] = useState(true);
+  const [testType, setTestType] = useState("full");
   const [year, setYear] = useState("all");
   const [subject, setSubject] = useState("all");
   const [topic, setTopic] = useState("all");
-  const [questionCount, setQuestionCount] = useState(25);
+  const [questionCount, setQuestionCount] = useState(20);
   const [history, setHistory] = useState([]);
   const [language, setLanguage] = useState("en");
+  const [translation, setTranslation] = useState(null);
+  const [translationQuestionId, setTranslationQuestionId] = useState(null);
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [translationError, setTranslationError] = useState("");
 
   const [testQuestions, setTestQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
@@ -53,10 +58,15 @@ export default function PrelimsTestPage() {
   const [startedAt, setStartedAt] = useState(null);
   const [finishedAt, setFinishedAt] = useState(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(TOTAL_SECONDS);
+  const [resumeCandidate, setResumeCandidate] = useState(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const [theme, setTheme] = useState("light");
   const [isMobile, setIsMobile] = useState(false);
   const submittingRef = useRef(false);
+  const answersRef = useRef({});
+  const remainingRef = useRef(TOTAL_SECONDS);
 
   useEffect(() => {
     try {
@@ -281,11 +291,19 @@ export default function PrelimsTestPage() {
   const topics = useMemo(() => {
     const set = new Set();
     questions.forEach((q) => {
+      const qSubject = String(q?.subject || q?.category || "");
+      if (subject !== "all" && qSubject !== subject) return;
       const value = q?.topic;
       if (value) set.add(String(value));
     });
     return ["all", ...Array.from(set).sort()];
-  }, [questions]);
+  }, [questions, subject]);
+
+  useEffect(() => {
+    if (testType === "paper" && year === "all" && years.includes("2015")) {
+      setYear("2015");
+    }
+  }, [testType, years]);
 
   useEffect(() => {
     try {
@@ -295,6 +313,86 @@ export default function PrelimsTestPage() {
       setHistory([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (loading || !questions.length || screen !== "center") return;
+
+    try {
+      const raw = localStorage.getItem(ACTIVE_ATTEMPT_KEY);
+      if (!raw) {
+        setResumeCandidate(null);
+        return;
+      }
+
+      const saved = JSON.parse(raw);
+      if (!saved?.testQuestions?.length || !saved?.savedAt) {
+        localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+        setResumeCandidate(null);
+        return;
+      }
+
+      const savedAt = Number(saved.savedAt);
+      const savedRemaining = Number(saved.remaining);
+      const elapsedSinceSave = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
+      const liveRemaining = Math.max(0, savedRemaining - elapsedSinceSave);
+
+      if (!Number.isFinite(liveRemaining) || liveRemaining <= 0) {
+        localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+        setResumeCandidate(null);
+        return;
+      }
+
+      setResumeCandidate({ ...saved, remaining: liveRemaining });
+    } catch {
+      try {
+        localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+      } catch {}
+      setResumeCandidate(null);
+    }
+  }, [loading, questions.length, screen]);
+
+  useEffect(() => {
+    if (screen !== "test" || !testQuestions.length || !startedAt) return;
+
+    try {
+      localStorage.setItem(
+        ACTIVE_ATTEMPT_KEY,
+        JSON.stringify({
+          version: 2,
+          savedAt: Date.now(),
+          testType,
+          year,
+          subject,
+          topic,
+          questionCount,
+          language,
+          durationSeconds,
+          remaining: remainingRef.current,
+          current,
+          answers: answersRef.current,
+          marked,
+          visited,
+          startedAt,
+          testQuestions,
+        })
+      );
+    } catch {}
+  }, [
+    screen,
+    testQuestions,
+    current,
+    marked,
+    visited,
+    language,
+    durationSeconds,
+    startedAt,
+    remaining,
+    testType,
+    year,
+    subject,
+    topic,
+    questionCount,
+  ]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -311,7 +409,7 @@ export default function PrelimsTestPage() {
 
       return yearOk && subjectOk && topicOk;
     });
-  }, [questions, year, subject]);
+  }, [questions, year, subject, topic, testType]);
 
   const currentQuestion = testQuestions[current];
 
@@ -326,7 +424,7 @@ export default function PrelimsTestPage() {
   );
 
   const elapsed = startedAt
-    ? Math.max(0, TOTAL_SECONDS - remaining)
+    ? Math.max(0, durationSeconds - remaining)
     : 0;
 
   const result = useMemo(() => {
@@ -339,6 +437,7 @@ export default function PrelimsTestPage() {
         negative: 0,
         score: 0,
         accuracy: 0,
+        analysis: { subject: [], topic: [], year: [] },
       };
     }
 
@@ -360,6 +459,24 @@ export default function PrelimsTestPage() {
     const accuracy =
       correct + wrong > 0 ? (correct / (correct + wrong)) * 100 : 0;
 
+    const buildAnalysis = (key) => {
+      const groups = {};
+      testQuestions.forEach((q) => {
+        const label = String(q?.[key] || (key === "year" ? "Unknown" : "General"));
+        if (!groups[label]) groups[label] = { label, total: 0, correct: 0, wrong: 0, attempted: 0 };
+        groups[label].total += 1;
+        const chosen = answers[q.id];
+        if (chosen === undefined || chosen === null) return;
+        groups[label].attempted += 1;
+        if (Number(chosen) === Number(q.answer)) groups[label].correct += 1;
+        else groups[label].wrong += 1;
+      });
+      return Object.values(groups)
+        .map((g) => ({ ...g, accuracy: g.attempted ? (g.correct / g.attempted) * 100 : 0 }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8);
+    };
+
     return {
       correct,
       wrong,
@@ -368,10 +485,21 @@ export default function PrelimsTestPage() {
       negative,
       score,
       accuracy,
+      analysis: {
+        subject: buildAnalysis("subject"),
+        topic: buildAnalysis("topic"),
+        year: buildAnalysis("year"),
+      },
     };
   }, [answers, testQuestions]);
 
   const startTest = () => {
+    let eligible = (
+      testType === "daily" ? questions : filteredQuestions
+    ).filter(
+      (q) => Array.isArray(q.options) && q.options.length >= 2
+    );
+
     if (testType === "subject" && subject === "all") {
       setError("Please select a subject for Subject Test.");
       return;
@@ -382,26 +510,57 @@ export default function PrelimsTestPage() {
       return;
     }
 
-    if (!filteredQuestions.length) {
+    if (testType === "paper" && year === "all") {
+      setError("Please select a year for the Original Paper.");
+      return;
+    }
+
+    if (testType === "paper") {
+      eligible = eligible.filter((q) => String(q.year) === String(year));
+    }
+
+    if (!eligible.length) {
       setError("No questions are available for the selected filters.");
       return;
     }
 
-    const eligible = filteredQuestions.filter(
-      (q) => Array.isArray(q.options) && q.options.length > 0
-    );
+    const forcedCount =
+      testType === "full" || testType === "paper"
+        ? 100
+        : testType === "daily"
+        ? 20
+        : Number(questionCount);
 
-    const count =
-      testType === "full" || testType === "mock"
-        ? Math.min(100, eligible.length)
-        : Math.min(Number(questionCount), eligible.length);
-
-    if (!count) {
-      setError("No questions are available for this test.");
+    if (testType === "paper" && eligible.length < 100) {
+      setError(
+        `${year} Original Paper needs 100 questions. Only ${eligible.length} are available in the current PYQ data.`
+      );
       return;
     }
 
-    const selected = shuffle(eligible).slice(0, count);
+    if (eligible.length < forcedCount) {
+      setError(
+        `Only ${eligible.length} questions are available for this selection.`
+      );
+      return;
+    }
+
+    const selected =
+      testType === "paper"
+        ? [...eligible]
+            .sort((a, b) => {
+              const an = Number(a?.question_number ?? a?.question_no ?? a?.qno);
+              const bn = Number(b?.question_number ?? b?.question_no ?? b?.qno);
+              if (Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+              if (Number.isFinite(an)) return -1;
+              if (Number.isFinite(bn)) return 1;
+              return 0;
+            })
+            .slice(0, 100)
+        : shuffle(eligible).slice(0, forcedCount);
+
+    const selectedDuration =
+      testType === "daily" ? DAILY_SECONDS : TOTAL_SECONDS;
 
     const initialVisited = {};
     if (selected[0]?.id !== undefined) initialVisited[selected[0].id] = true;
@@ -410,16 +569,93 @@ export default function PrelimsTestPage() {
     setTestQuestions(selected);
     setCurrent(0);
     setAnswers({});
+    answersRef.current = {};
     setMarked({});
     setVisited(initialVisited);
-    setRemaining(TOTAL_SECONDS);
+    setDurationSeconds(selectedDuration);
+    setRemaining(selectedDuration);
+    remainingRef.current = selectedDuration;
     setStartedAt(Date.now());
     setFinishedAt(null);
     setAutoSubmitted(false);
     setTranslation(null);
     setTranslationQuestionId(null);
     setTranslationError("");
-    setLanguage("en");
+    submittingRef.current = false;
+    setScreen("test");
+  };
+
+  const startTestForDaily = () => {
+    const eligible = questions.filter(
+      (q) => Array.isArray(q.options) && q.options.length >= 2
+    );
+
+    if (eligible.length < 20) {
+      setError(`Daily 20 needs at least 20 questions. ${eligible.length} are currently available.`);
+      return;
+    }
+
+    const selected = shuffle(eligible).slice(0, 20);
+    const initialVisited = {};
+    if (selected[0]?.id !== undefined) initialVisited[selected[0].id] = true;
+
+    setError("");
+    setTestQuestions(selected);
+    setCurrent(0);
+    setAnswers({});
+    answersRef.current = {};
+    setMarked({});
+    setVisited(initialVisited);
+    setDurationSeconds(DAILY_SECONDS);
+    setRemaining(DAILY_SECONDS);
+    remainingRef.current = DAILY_SECONDS;
+    setStartedAt(Date.now());
+    setFinishedAt(null);
+    setAutoSubmitted(false);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
+    submittingRef.current = false;
+    setScreen("test");
+  };
+
+
+  const resumeTest = () => {
+    if (!resumeCandidate?.testQuestions?.length) return;
+
+    const liveRemaining = Number(resumeCandidate.remaining);
+    if (!Number.isFinite(liveRemaining) || liveRemaining <= 0) {
+      try {
+        localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+      } catch {}
+      setResumeCandidate(null);
+      return;
+    }
+
+    setTestType(resumeCandidate.testType || "full");
+    setYear(resumeCandidate.year || "all");
+    setSubject(resumeCandidate.subject || "all");
+    setTopic(resumeCandidate.topic || "all");
+    setQuestionCount(Number(resumeCandidate.questionCount) || 20);
+    setLanguage(resumeCandidate.language === "hi" ? "hi" : "en");
+    setDurationSeconds(Number(resumeCandidate.durationSeconds) || TOTAL_SECONDS);
+    setTestQuestions(resumeCandidate.testQuestions);
+    setCurrent(Math.min(Number(resumeCandidate.current) || 0, resumeCandidate.testQuestions.length - 1));
+    setAnswers(resumeCandidate.answers || {});
+    answersRef.current = resumeCandidate.answers || {};
+    setMarked(resumeCandidate.marked || {});
+    setVisited(resumeCandidate.visited || {});
+    setRemaining(liveRemaining);
+    remainingRef.current = liveRemaining;
+    setStartedAt(Number(resumeCandidate.startedAt) || Date.now());
+    setFinishedAt(null);
+    setAutoSubmitted(false);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
+    setShowSubmitConfirm(false);
+    setResumeCandidate(null);
+    setError("");
     submittingRef.current = false;
     setScreen("test");
   };
@@ -435,26 +671,54 @@ export default function PrelimsTestPage() {
     try {
       const history = JSON.parse(localStorage.getItem("sambhav-prelims-history") || "[]");
 
+      const liveAnswers = answersRef.current;
+      let liveCorrect = 0;
+      let liveWrong = 0;
+      testQuestions.forEach((q) => {
+        const chosen = liveAnswers[q.id];
+        if (chosen === undefined || chosen === null) return;
+        if (Number(chosen) === Number(q.answer)) liveCorrect += 1;
+        else liveWrong += 1;
+      });
+      const liveUnanswered = testQuestions.length - liveCorrect - liveWrong;
+      const liveScore =
+        liveCorrect * MARKS_PER_QUESTION -
+        liveWrong * NEGATIVE_MARKS;
+      const liveAccuracy =
+        liveCorrect + liveWrong > 0
+          ? (liveCorrect / (liveCorrect + liveWrong)) * 100
+          : 0;
+
       const entry = {
         id: Date.now(),
         date: new Date().toISOString(),
         type: testType,
         year,
         subject,
+        topic,
         total: testQuestions.length,
-        correct: result.correct,
-        wrong: result.wrong,
-        unanswered: result.unanswered,
-        score: Number(result.score.toFixed(2)),
-        accuracy: Number(result.accuracy.toFixed(1)),
-        timeUsed: TOTAL_SECONDS - remaining,
+        correct: liveCorrect,
+        wrong: liveWrong,
+        unanswered: liveUnanswered,
+        score: Number(liveScore.toFixed(2)),
+        accuracy: Number(liveAccuracy.toFixed(1)),
+        timeUsed: durationSeconds - remainingRef.current,
+        durationSeconds,
+        questionIds: testQuestions.map((q) => q.id),
       };
 
+      const nextHistory = [entry, ...history].slice(0, 20);
       localStorage.setItem(
         "sambhav-prelims-history",
-        JSON.stringify([entry, ...history].slice(0, 20))
+        JSON.stringify(nextHistory)
       );
+      setHistory(nextHistory);
     } catch {}
+
+    try {
+      localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+    } catch {}
+    setShowSubmitConfirm(false);
   };
 
   useEffect(() => {
@@ -462,12 +726,14 @@ export default function PrelimsTestPage() {
 
     const timer = setInterval(() => {
       setRemaining((prev) => {
-        if (prev <= 1) {
+        const next = Math.max(0, prev - 1);
+        remainingRef.current = next;
+
+        if (next === 0) {
           clearInterval(timer);
           setTimeout(() => submitTest(true), 0);
-          return 0;
         }
-        return prev - 1;
+        return next;
       });
     }, 1000);
 
@@ -477,10 +743,11 @@ export default function PrelimsTestPage() {
   const chooseAnswer = (index) => {
     if (!currentQuestion) return;
 
-    setAnswers((prev) => ({
-      ...prev,
-      [currentQuestion.id]: index,
-    }));
+    setAnswers((prev) => {
+      const next = { ...prev, [currentQuestion.id]: index };
+      answersRef.current = next;
+      return next;
+    });
   };
 
   const goToQuestion = (index) => {
@@ -512,6 +779,7 @@ export default function PrelimsTestPage() {
     setAnswers((prev) => {
       const next = { ...prev };
       delete next[currentQuestion.id];
+      answersRef.current = next;
       return next;
     });
   };
@@ -521,9 +789,12 @@ export default function PrelimsTestPage() {
     setTestQuestions([]);
     setCurrent(0);
     setAnswers({});
+    answersRef.current = {};
     setMarked({});
     setVisited({});
+    setDurationSeconds(TOTAL_SECONDS);
     setRemaining(TOTAL_SECONDS);
+    remainingRef.current = TOTAL_SECONDS;
     setStartedAt(null);
     setFinishedAt(null);
     setAutoSubmitted(false);
@@ -531,7 +802,12 @@ export default function PrelimsTestPage() {
     setTranslationQuestionId(null);
     setTranslationError("");
     setLanguage("en");
+    setShowSubmitConfirm(false);
+    setResumeCandidate(null);
     submittingRef.current = false;
+    try {
+      localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+    } catch {}
   };
 
   const translateCurrentQuestion = async () => {
@@ -664,7 +940,14 @@ export default function PrelimsTestPage() {
     return (
       <main style={pageStyle(colors)}>
         <div style={testHeaderStyle(colors, isMobile)}>
-          <button style={backButton(colors)} onClick={() => setScreen("center")}>
+          <button
+            style={backButton(colors)}
+            onClick={() => {
+              if (window.confirm("Leave this test? Your current attempt will remain saved so you can resume it later.")) {
+                setScreen("center");
+              }
+            }}
+          >
             ← Test Center
           </button>
 
@@ -768,7 +1051,7 @@ export default function PrelimsTestPage() {
               </button>
 
               {current === testQuestions.length - 1 ? (
-                <button style={primaryButton(colors)} onClick={() => submitTest(false)}>
+                <button style={primaryButton(colors)} onClick={() => setShowSubmitConfirm(true)}>
                   Submit Test
                 </button>
               ) : (
@@ -834,6 +1117,26 @@ export default function PrelimsTestPage() {
             </div>
           </aside>
         </div>
+
+        {showSubmitConfirm ? (
+          <div style={modalBackdropStyle}>
+            <div style={modalStyle(colors)}>
+              <div style={eyebrow(colors)}>SUBMIT TEST</div>
+              <h2 style={{ margin: "7px 0 0", fontSize: 21 }}>Submit your test?</h2>
+              <p style={{ margin: "8px 0 0", color: colors.muted, lineHeight: 1.6, fontSize: 12 }}>
+                {testQuestions.length - answeredCount} questions are unanswered. Once submitted, the current attempt will move to results.
+              </p>
+              <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                <button type="button" style={{ ...secondaryButton(colors), flex: 1 }} onClick={() => setShowSubmitConfirm(false)}>
+                  Continue Test
+                </button>
+                <button type="button" style={{ ...primaryButton(colors), flex: 1 }} onClick={() => submitTest(false)}>
+                  Submit Now
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </main>
     );
   }
@@ -858,7 +1161,7 @@ export default function PrelimsTestPage() {
             </h1>
 
             <p style={mutedStyle(colors)}>
-              {testQuestions.length} questions • {formatTime(TOTAL_SECONDS - remaining)} used
+              {testQuestions.length} questions • {formatTime(durationSeconds - remaining)} used
             </p>
 
             <div style={resultHero}>
@@ -877,6 +1180,18 @@ export default function PrelimsTestPage() {
               <ResultStat colors={colors} label="Wrong" value={result.wrong} />
               <ResultStat colors={colors} label="Unanswered" value={result.unanswered} />
               <ResultStat colors={colors} label="Negative Marks" value={`-${result.negative.toFixed(2)}`} />
+            </div>
+
+            <div style={{ ...analysisGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))" }}>
+              {result.analysis.subject.length ? (
+                <AnalysisCard colors={colors} title="Subject Analysis" items={result.analysis.subject} />
+              ) : null}
+              {result.analysis.topic.length ? (
+                <AnalysisCard colors={colors} title="Topic Analysis" items={result.analysis.topic} />
+              ) : null}
+              {result.analysis.year.length ? (
+                <AnalysisCard colors={colors} title="Year Analysis" items={result.analysis.year} />
+              ) : null}
             </div>
 
             <div style={actionRow}>
@@ -1041,86 +1356,166 @@ export default function PrelimsTestPage() {
         router={router}
       />
 
-      <div style={containerStyle}>
-        <section style={heroCard(colors)}>
-          <div>
+      <div style={minimalContainerStyle}>
+        <section style={minimalHeroStyle(colors)}>
+          <div style={{ minWidth: 0 }}>
             <div style={eyebrow(colors)}>SAMBHAV UPSC • PRELIMS</div>
-            <h1 style={heroTitle(colors)}>Prelims Practice</h1>
-            <p style={heroSub(colors)}>
-              PYQ-based practice, exam-style tests and focused performance analysis.
+            <h1 style={minimalHeroTitle(colors)}>Prelims Test Series</h1>
+            <p style={minimalHeroSub(colors)}>
+              UPSC-style simulation, original PYQ papers and focused practice.
             </p>
           </div>
 
-          <div style={heroBadge(colors)}>
+          <div style={markBadgeStyle(colors)}>
             <strong>+2</strong>
             <span>−0.66</span>
           </div>
         </section>
 
-        <section style={cardStyle(colors)}>
-          <div style={sectionHeading}>
+        <div style={topControlRow}>
+          <div style={{ minWidth: 0 }}>
+            <div style={eyebrow(colors)}>TEST LANGUAGE</div>
+            <div style={{ marginTop: 5, color: colors.muted, fontSize: 11 }}>
+              Choose your preferred question language.
+            </div>
+          </div>
+
+          <div style={segmentedStyle(colors)}>
+            <button
+              type="button"
+              onClick={() => setLanguage("en")}
+              style={language === "en" ? segmentActiveStyle(colors) : segmentStyle(colors)}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage("hi")}
+              style={language === "hi" ? segmentActiveStyle(colors) : segmentStyle(colors)}
+            >
+              हिंदी
+            </button>
+          </div>
+        </div>
+
+        {resumeCandidate ? (
+          <section style={resumeCardStyle(colors)}>
             <div>
-              <div style={eyebrow(colors)}>TEST CENTER</div>
-              <h2 style={sectionTitle(colors)}>Build your test</h2>
+              <div style={eyebrow(colors)}>UNFINISHED TEST</div>
+              <h2 style={{ margin: "5px 0 0", fontSize: 18, letterSpacing: "-.025em" }}>
+                Resume your Prelims test
+              </h2>
+              <p style={{ margin: "6px 0 0", color: colors.muted, fontSize: 11, lineHeight: 1.5 }}>
+                {resumeCandidate.testQuestions?.length || 0} questions • {formatTime(resumeCandidate.remaining)} remaining
+              </p>
             </div>
-            <div style={mutedStyle(colors)}>
-              {filteredQuestions.length} questions available
+            <button type="button" style={primaryButton(colors)} onClick={resumeTest}>
+              Resume →
+            </button>
+          </section>
+        ) : null}
+
+        <section style={minimalSectionStyle(colors)}>
+          <div style={minimalSectionHead}>
+            <div>
+              <div style={eyebrow(colors)}>TEST SERIES</div>
+              <h2 style={minimalSectionTitle(colors)}>Choose a test</h2>
             </div>
+            <span style={{ color: colors.muted, fontSize: 11 }}>
+              {questions.length} PYQs
+            </span>
           </div>
 
-          <div style={typeGrid}>
-            <TestTypeCard
-              colors={colors}
-              active={testType === "pyq"}
-              title="PYQ Test"
-              subtitle="Year-wise UPSC Prelims PYQs"
-              icon="📚"
-              onClick={() => setTestType("pyq")}
-            />
-            <TestTypeCard
-              colors={colors}
-              active={testType === "full"}
-              title="Full Length"
-              subtitle="100-question exam-style paper"
-              icon="🎯"
-              onClick={() => setTestType("full")}
-            />
-            <TestTypeCard
-              colors={colors}
-              active={testType === "subject"}
-              title="Subject Test"
-              subtitle="Polity, Economy, History and more"
-              icon="📖"
-              onClick={() => setTestType("subject")}
-            />
-            <TestTypeCard
-              colors={colors}
-              active={testType === "topic"}
-              title="Topic Test"
-              subtitle="Focused practice by topic"
-              icon="🔎"
-              onClick={() => setTestType("topic")}
-            />
-            <TestTypeCard
-              colors={colors}
-              active={testType === "mock"}
-              title="Mock Test"
-              subtitle="Mixed questions for exam simulation"
-              icon="🏆"
-              onClick={() => setTestType("mock")}
-            />
-            <TestTypeCard
-              colors={colors}
-              active={advancedMode}
-              title="Advanced Exam Mode"
-              subtitle="Full UPSC-style timer, palette & review engine"
-              icon="⚡"
-              onClick={() => setAdvancedMode(true)}
-            />
+          <div style={{ display: "grid", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setTestType("full");
+                setError("");
+              }}
+              style={{
+                ...minimalChoiceStyle(colors),
+                ...(testType === "full" ? minimalChoiceActiveStyle(colors) : {}),
+              }}
+            >
+              <span style={choiceIconStyle(colors)}>01</span>
+              <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                <strong style={{ display: "block", fontSize: 15 }}>
+                  Full UPSC Simulator
+                </strong>
+                <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
+                  100 questions • 2 hours • complete exam simulation
+                </small>
+              </span>
+              <span style={choiceArrowStyle(colors)}>›</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTestType("paper");
+                setError("");
+                if (years.includes("2015")) setYear("2015");
+              }}
+              style={{
+                ...minimalChoiceStyle(colors),
+                ...(testType === "paper" ? minimalChoiceActiveStyle(colors) : {}),
+              }}
+            >
+              <span style={choiceIconStyle(colors)}>02</span>
+              <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                <strong style={{ display: "block", fontSize: 15 }}>
+                  Original PYQ Paper
+                </strong>
+                <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
+                  Attempt the complete paper year-wise from the existing PYQ bank
+                </small>
+              </span>
+              <span style={choiceArrowStyle(colors)}>›</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTestType("custom");
+                setError("");
+              }}
+              style={{
+                ...minimalChoiceStyle(colors),
+                ...(testType === "custom" ? minimalChoiceActiveStyle(colors) : {}),
+              }}
+            >
+              <span style={choiceIconStyle(colors)}>03</span>
+              <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                <strong style={{ display: "block", fontSize: 15 }}>
+                  Custom Test
+                </strong>
+                <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
+                  Year • Subject • Topic • question count
+                </small>
+              </span>
+              <span style={choiceArrowStyle(colors)}>›</span>
+            </button>
           </div>
 
-          <div style={filterGrid}>
-            {testType === "pyq" && (
+          {testType === "paper" && (
+            <div style={compactConfigStyle(colors)}>
+              <SelectBox
+                colors={colors}
+                label="Paper Year"
+                value={year}
+                onChange={setYear}
+                options={years}
+              />
+              <div style={{ color: colors.muted, fontSize: 11, lineHeight: 1.5 }}>
+                <strong style={{ color: colors.text }}>2015</strong> is available here when its
+                100 questions are present in the existing Supabase PYQ data.
+              </div>
+            </div>
+          )}
+
+          {testType === "custom" && (
+            <div style={customConfigGrid}>
               <SelectBox
                 colors={colors}
                 label="Year"
@@ -1128,19 +1523,16 @@ export default function PrelimsTestPage() {
                 onChange={setYear}
                 options={years}
               />
-            )}
-
-            {(testType === "subject" || testType === "topic") && (
               <SelectBox
                 colors={colors}
                 label="Subject"
                 value={subject}
-                onChange={setSubject}
+                onChange={(value) => {
+                  setSubject(value);
+                  setTopic("all");
+                }}
                 options={subjects}
               />
-            )}
-
-            {testType === "topic" && (
               <SelectBox
                 colors={colors}
                 label="Topic"
@@ -1148,120 +1540,145 @@ export default function PrelimsTestPage() {
                 onChange={setTopic}
                 options={topics}
               />
-            )}
 
-            {testType !== "pyq" && testType !== "subject" && testType !== "topic" && (
-              <div style={filterInfo(colors)}>
-                <span style={eyebrow(colors)}>MODE</span>
-                <strong>{testType === "full" ? "Full Length UPSC Test" : "Mixed Mock Test"}</strong>
-                <small>Questions are selected automatically from the available PYQ pool.</small>
+              <div>
+                <div style={eyebrow(colors)}>QUESTIONS</div>
+                <div style={compactCountGrid}>
+                  {TEST_OPTIONS.map((count) => (
+                    <button
+                      type="button"
+                      key={count}
+                      onClick={() => setQuestionCount(count)}
+                      style={{
+                        ...compactCountStyle(colors),
+                        ...(questionCount === count
+                          ? {
+                              background: colors.gold,
+                              color: colors.goldText,
+                              borderColor: colors.gold,
+                            }
+                          : {}),
+                      }}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <div style={eyebrow(colors)}>QUESTIONS</div>
-            <div style={countGrid}>
-              {TEST_OPTIONS.map((count) => (
-                <button
-                  key={count}
-                  onClick={() => setQuestionCount(count)}
-                  disabled={testType === "full" || testType === "mock"}
-                  style={{
-                    ...countButton(colors),
-                    ...(questionCount === count
-                      ? {
-                          background: colors.gold,
-                          color: colors.goldText,
-                          borderColor: colors.gold,
-                        }
-                      : {}),
-                    ...(testType === "full" || testType === "mock" ? { opacity: 0.45 } : {}),
-                  }}
-                >
-                  {count}
-                </button>
-              ))}
             </div>
-          </div>
+          )}
 
-          <div
-            style={{
-              marginTop: 18,
-              padding: 15,
-              borderRadius: 18,
-              border: `1px solid ${colors.border}`,
-              background: colors.card2,
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 10,
-            }}
-          >
-            <div>
-              <div style={eyebrow(colors)}>ADVANCED ENGINE</div>
-              <strong style={{ display: "block", marginTop: 5 }}>
-                UPSC-style simulation
-              </strong>
-              <span style={{ display: "block", marginTop: 4, color: colors.muted, fontSize: 12 }}>
-                Timer • Palette • Review • Auto-submit
-              </span>
-            </div>
-            <div>
-              <div style={eyebrow(colors)}>PERFORMANCE</div>
-              <strong style={{ display: "block", marginTop: 5 }}>
-                Detailed analysis
-              </strong>
-              <span style={{ display: "block", marginTop: 4, color: colors.muted, fontSize: 12 }}>
-                Accuracy • Negative marks • Time • Review
-              </span>
-            </div>
-          </div>
-
-          <div style={testInfoGrid}>
-            <InfoItem colors={colors} label="Duration" value="2 Hours" />
-            <InfoItem colors={colors} label="Marking" value="+2 / −0.66" />
-            <InfoItem colors={colors} label="Mode" value="Exam Style" />
-            <InfoItem colors={colors} label="Language" value="English / Hindi" />
+          <div style={testSummaryLine(colors)}>
+            <span>
+              {testType === "full"
+                ? "100 questions • 120 minutes"
+                : testType === "paper"
+                ? `${year === "all" ? "Select a year" : `${year} paper`} • 100 questions`
+                : testType === "custom"
+                ? `${questionCount} questions • 120 minutes`
+                : "20 questions • quick practice"}
+            </span>
+            <span>+2 / −0.66</span>
           </div>
 
           <button
-            style={{ ...primaryButton(colors), width: "100%", marginTop: 20, minHeight: 52 }}
+            type="button"
+            style={{ ...primaryButton(colors), width: "100%", minHeight: 50, marginTop: 12 }}
             onClick={startTest}
           >
-            Start Test →
+            {testType === "paper"
+              ? `Start ${year === "all" ? "Original Paper" : year + " Paper"} →`
+              : testType === "custom"
+              ? "Start Custom Test →"
+              : "Start Full Simulator →"}
           </button>
+
+          {error ? (
+            <div style={{ ...compactErrorStyle(colors), marginTop: 10 }}>
+              {error}
+            </div>
+          ) : null}
         </section>
 
-        <section style={cardStyle(colors)}>
-          <div style={sectionHeading}>
+        <section style={quickSectionStyle(colors)}>
+          <div style={minimalSectionHead}>
             <div>
-              <div style={eyebrow(colors)}>TEST HISTORY</div>
-              <h2 style={sectionTitle(colors)}>Your recent tests</h2>
+              <div style={eyebrow(colors)}>QUICK PRACTICE</div>
+              <h2 style={minimalSectionTitle(colors)}>Keep your daily practice moving</h2>
             </div>
-            <span style={mutedStyle(colors)}>
+          </div>
+
+          <div style={quickGrid}>
+            <button
+              type="button"
+              onClick={() => {
+                setTestType("daily");
+                setError("");
+                startTestForDaily();
+              }}
+              style={quickItemStyle(colors)}
+            >
+              <span style={quickIconStyle(colors)}>20</span>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                <strong style={{ display: "block", fontSize: 14 }}>Daily 20 PYQ</strong>
+                <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
+                  Evening quick practice
+                </small>
+              </span>
+              <span style={choiceArrowStyle(colors)}>›</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const target = document.getElementById("prelims-history");
+                target?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              style={quickItemStyle(colors)}
+            >
+              <span style={quickIconStyle(colors)}>↺</span>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                <strong style={{ display: "block", fontSize: 14 }}>Previous Tests</strong>
+                <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
+                  Score, accuracy and attempts
+                </small>
+              </span>
+              <span style={choiceArrowStyle(colors)}>›</span>
+            </button>
+          </div>
+        </section>
+
+        <section id="prelims-history" style={minimalSectionStyle(colors)}>
+          <div style={minimalSectionHead}>
+            <div>
+              <div style={eyebrow(colors)}>PERFORMANCE</div>
+              <h2 style={minimalSectionTitle(colors)}>Previous Tests</h2>
+            </div>
+            <span style={{ color: colors.muted, fontSize: 11 }}>
               {history.length} saved
             </span>
           </div>
 
           {history.length === 0 ? (
-            <div style={emptyHistory(colors)}>
-              No test attempted yet. Start your first test above.
+            <div style={minimalEmptyStyle(colors)}>
+              Your completed tests will appear here.
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 9 }}>
-              {history.slice(0, 5).map((item) => (
-                <div key={item.id} style={historyRow(colors)}>
+            <div style={{ display: "grid", gap: 7 }}>
+              {history.slice(0, 6).map((item) => (
+                <div key={item.id} style={minimalHistoryRow(colors)}>
                   <div style={{ minWidth: 0 }}>
-                    <strong style={{ display: "block" }}>
+                    <strong style={{ display: "block", fontSize: 13 }}>
                       {getTestLabel(item.type)}
                     </strong>
-                    <span style={{ color: colors.muted, fontSize: 12 }}>
+                    <span style={{ display: "block", marginTop: 3, color: colors.muted, fontSize: 10 }}>
+                      {item.year !== "all" && item.year ? `${item.year} • ` : ""}
                       {item.total} Questions • {item.accuracy}% Accuracy
                     </span>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <strong>{item.score}</strong>
-                    <span style={{ display: "block", color: colors.muted, fontSize: 11 }}>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <strong style={{ fontSize: 14 }}>{item.score}</strong>
+                    <span style={{ display: "block", marginTop: 3, color: colors.muted, fontSize: 9 }}>
                       {formatHistoryDate(item.date)}
                     </span>
                   </div>
@@ -1271,28 +1688,14 @@ export default function PrelimsTestPage() {
           )}
         </section>
 
-        <section style={cardStyle(colors)}>
-          <div style={eyebrow(colors)}>SAMBHAV SYSTEM</div>
-          <div style={{ marginTop: 7, fontSize: 18, fontWeight: 900 }}>
-            One platform. One preparation system.
-          </div>
-          <div style={{ marginTop: 6, color: colors.muted, fontSize: 12, lineHeight: 1.5 }}>
-            Prelims testing stays inside the same SAMBHAV design language across mobile and desktop.
-          </div>
-        </section>
-
-        <section style={cardStyle(colors)}>
-          <div style={eyebrow(colors)}>HOW IT WORKS</div>
-
-          <div style={howGrid}>
-            <HowItem colors={colors} number="01" title="Choose" text="Select PYQ, year, subject and question count." />
-            <HowItem colors={colors} number="02" title="Practice" text="Solve questions with timer and review tools." />
-            <HowItem colors={colors} number="03" title="Analyse" text="See score, accuracy, negative marks and review." />
-          </div>
-        </section>
+        <div style={minimalFooterNote(colors)}>
+          <span>UPSC marking: +2 correct • −0.66 incorrect • 0 unanswered</span>
+          <span>Timer • Palette • Review • Auto-submit</span>
+        </div>
       </div>
     </main>
   );
+
 }
 
 function Header({ colors, theme, setTheme, user, router }) {
@@ -1378,6 +1781,24 @@ function SelectBox({ colors, label, value, onChange, options }) {
   );
 }
 
+function AnalysisCard({ colors, title, items }) {
+  return (
+    <div style={analysisCardStyle(colors)}>
+      <div style={eyebrow(colors)}>{title}</div>
+      <div style={{ display: "grid", gap: 7, marginTop: 8 }}>
+        {items.map((item) => (
+          <div key={item.label} style={analysisRowStyle(colors)}>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+            <span style={{ color: colors.muted, whiteSpace: "nowrap" }}>
+              {item.correct}/{item.total} • {item.accuracy.toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MiniStat({ colors, value, label }) {
   return (
     <div style={miniStatStyle(colors)}>
@@ -1426,6 +1847,8 @@ function getTestLabel(type) {
     subject: "Subject Test",
     topic: "Topic Test",
     mock: "Mock Test",
+    paper: "Original PYQ Paper",
+    daily: "Daily 20 PYQ",
   };
   return labels[type] || "Prelims Test";
 }
@@ -1441,6 +1864,60 @@ function formatHistoryDate(value) {
     return "";
   }
 }
+
+const modalBackdropStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 100,
+  background: "rgba(0,0,0,.48)",
+  display: "grid",
+  placeItems: "center",
+  padding: 18,
+};
+
+const modalStyle = (c) => ({
+  width: "min(100%, 430px)",
+  background: c.card,
+  color: c.text,
+  border: `1px solid ${c.border}`,
+  borderRadius: 20,
+  padding: 20,
+  boxShadow: "0 24px 70px rgba(0,0,0,.28)",
+});
+
+const resumeCardStyle = (c) => ({
+  ...cardStyle(c),
+  padding: "16px 17px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  marginBottom: 10,
+  borderColor: c.gold,
+});
+
+const analysisGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: 8,
+  marginTop: 14,
+};
+
+const analysisCardStyle = (c) => ({
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  borderRadius: 14,
+  padding: 12,
+  minWidth: 0,
+});
+
+const analysisRowStyle = (c) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  fontSize: 10,
+  lineHeight: 1.35,
+});
 
 const pageStyle = (c) => ({
   minHeight: "100vh",
@@ -2006,6 +2483,278 @@ const explanationBox = (c) => ({
   background: c.card2,
   display: "grid",
   gap: 8,
+});
+
+const minimalContainerStyle = {
+  width: "min(760px, calc(100% - 28px))",
+  margin: "0 auto",
+  padding: "22px 0 90px",
+  display: "grid",
+  gap: 14,
+};
+
+const minimalHeroStyle = (c) => ({
+  ...cardStyle(c),
+  padding: "20px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 18,
+  background: c.card2,
+});
+
+const minimalHeroTitle = (c) => ({
+  margin: "6px 0 5px",
+  fontSize: "clamp(28px, 7vw, 38px)",
+  lineHeight: 1.02,
+  letterSpacing: "-.045em",
+});
+
+const minimalHeroSub = (c) => ({
+  margin: 0,
+  color: c.muted,
+  fontSize: 12,
+  lineHeight: 1.5,
+  maxWidth: 520,
+});
+
+const markBadgeStyle = (c) => ({
+  flex: "0 0 auto",
+  minWidth: 70,
+  padding: "11px 10px",
+  borderRadius: 16,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  display: "grid",
+  gap: 2,
+  textAlign: "center",
+  fontSize: 13,
+});
+
+const topControlRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "2px 3px",
+};
+
+const segmentedStyle = (c) => ({
+  display: "flex",
+  gap: 3,
+  padding: 3,
+  borderRadius: 12,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  flexShrink: 0,
+});
+
+const segmentStyle = (c) => ({
+  border: 0,
+  background: "transparent",
+  color: c.muted,
+  minHeight: 32,
+  padding: "0 11px",
+  borderRadius: 9,
+  cursor: "pointer",
+  fontSize: 11,
+  fontWeight: 800,
+});
+
+const segmentActiveStyle = (c) => ({
+  ...segmentStyle(c),
+  background: c.gold,
+  color: c.goldText,
+});
+
+const minimalSectionStyle = (c) => ({
+  ...cardStyle(c),
+  padding: "18px",
+});
+
+const quickSectionStyle = (c) => ({
+  ...cardStyle(c),
+  padding: "16px",
+  background: c.card2,
+});
+
+const minimalSectionHead = {
+  display: "flex",
+  alignItems: "end",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 13,
+};
+
+const minimalSectionTitle = (c) => ({
+  margin: "5px 0 0",
+  fontSize: 21,
+  letterSpacing: "-.035em",
+});
+
+const minimalChoiceStyle = (c) => ({
+  width: "100%",
+  minHeight: 70,
+  padding: "10px 12px",
+  borderRadius: 15,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  color: c.text,
+  display: "flex",
+  alignItems: "center",
+  gap: 11,
+  cursor: "pointer",
+  textAlign: "left",
+});
+
+const minimalChoiceActiveStyle = (c) => ({
+  borderColor: c.gold,
+  boxShadow: `inset 0 0 0 1px ${c.gold}`,
+});
+
+const choiceIconStyle = (c) => ({
+  width: 32,
+  height: 32,
+  borderRadius: 10,
+  display: "grid",
+  placeItems: "center",
+  background: c.soft,
+  color: c.text,
+  fontSize: 9,
+  fontWeight: 900,
+  flexShrink: 0,
+});
+
+const choiceArrowStyle = (c) => ({
+  color: c.gold,
+  fontSize: 22,
+  lineHeight: 1,
+  flexShrink: 0,
+});
+
+const compactConfigStyle = (c) => ({
+  marginTop: 11,
+  padding: 12,
+  borderRadius: 14,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  display: "grid",
+  gap: 10,
+});
+
+const customConfigGrid = {
+  marginTop: 11,
+  padding: 12,
+  borderRadius: 14,
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+  background: "transparent",
+};
+
+const compactCountGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gap: 5,
+  marginTop: 7,
+};
+
+const compactCountStyle = (c) => ({
+  minHeight: 39,
+  borderRadius: 10,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  color: c.text,
+  cursor: "pointer",
+  fontSize: 11,
+  fontWeight: 850,
+});
+
+const testSummaryLine = (c) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  marginTop: 13,
+  paddingTop: 12,
+  borderTop: `1px solid ${c.border}`,
+  color: c.muted,
+  fontSize: 10,
+  fontWeight: 750,
+});
+
+const compactErrorStyle = (c) => ({
+  padding: "10px 12px",
+  borderRadius: 11,
+  border: `1px solid ${c.red}`,
+  background: c.red + "12",
+  color: c.red,
+  fontSize: 11,
+  lineHeight: 1.45,
+});
+
+const quickGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 8,
+};
+
+const quickItemStyle = (c) => ({
+  minHeight: 62,
+  padding: "9px 11px",
+  borderRadius: 14,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  color: c.text,
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  cursor: "pointer",
+});
+
+const quickIconStyle = (c) => ({
+  width: 32,
+  height: 32,
+  borderRadius: 10,
+  display: "grid",
+  placeItems: "center",
+  background: c.soft,
+  color: c.text,
+  fontSize: 10,
+  fontWeight: 900,
+  flexShrink: 0,
+});
+
+const minimalEmptyStyle = (c) => ({
+  padding: "16px 12px",
+  borderRadius: 13,
+  border: `1px dashed ${c.border}`,
+  color: c.muted,
+  textAlign: "center",
+  fontSize: 11,
+});
+
+const minimalHistoryRow = (c) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  minHeight: 57,
+  padding: "8px 11px",
+  borderRadius: 13,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+});
+
+const minimalFooterNote = (c) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+  color: c.muted,
+  fontSize: 9,
+  lineHeight: 1.5,
+  padding: "2px 3px",
 });
 
 export const dynamic = "force-dynamic";
