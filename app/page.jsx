@@ -2179,6 +2179,7 @@ export default function Home() {
     {
       no: "01",
       title: "Current Affairs",
+      icon: "📰",
       route: "/current-affairs",
       label: "DAILY & MONTHLY INTELLIGENCE",
       points: [
@@ -2192,6 +2193,7 @@ export default function Home() {
     {
       no: "02",
       title: "PYQ Intelligence",
+      icon: "🎯",
       route: "/pyq",
       label: "PREVIOUS YEAR QUESTIONS",
       points: [
@@ -2205,6 +2207,7 @@ export default function Home() {
     {
       no: "03",
       title: "Prelims Test",
+      icon: "📝",
       route: "/prelims-test",
       label: "PYQ-ORIENTED PRACTICE",
       points: [
@@ -2218,6 +2221,7 @@ export default function Home() {
     {
       no: "04",
       title: "Mains",
+      icon: "✍️",
       route: "/answer",
       label: "ANSWER WRITING",
       points: [
@@ -2231,6 +2235,7 @@ export default function Home() {
     {
       no: "05",
       title: "AI Answer Evaluation",
+      icon: "🤖",
       route: null,
       label: "AI-POWERED ANALYSIS",
       points: [
@@ -2244,6 +2249,7 @@ export default function Home() {
     {
       no: "06",
       title: "Study Material",
+      icon: "📚",
       route: null,
       label: "NOTES & RESOURCES",
       points: [
@@ -2283,7 +2289,7 @@ export default function Home() {
           color: ui.text,
           fontFamily:
             "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          paddingBottom: isAdmin ? "94px" : "48px",
+          paddingBottom: isAdmin ? "108px" : "48px",
           transition: "background 180ms ease, color 180ms ease",
         }}
       >
@@ -2692,62 +2698,7 @@ export default function Home() {
           </section>
 
           {/* ADMIN */}
-          {isAdmin && (
-            <section
-              style={{
-                background: dark
-                  ? "linear-gradient(145deg,#1b1915,#242018)"
-                  : "linear-gradient(145deg,#fffaf0,#f4ead0)",
-                border: `1px solid ${
-                  dark
-                    ? "rgba(214,189,121,0.20)"
-                    : "rgba(160,125,50,0.22)"
-                }`,
-                borderRadius: "20px",
-                padding: "16px 18px",
-                marginBottom: "15px",
-                cursor: "pointer",
-                boxShadow: ui.shadow,
-              }}
-              onClick={() => {
-                window.location.href = "/admin";
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "8px",
-                  fontWeight: "950",
-                  letterSpacing: "1.3px",
-                  color: ui.gold,
-                }}
-              >
-                ADMIN ACCESS
-              </div>
-
-              <div
-                style={{
-                  marginTop: "6px",
-                  fontSize: "18px",
-                  fontWeight: "950",
-                }}
-              >
-                Control Center →
-              </div>
-
-              <div
-                style={{
-                  marginTop: "4px",
-                  fontSize: "11px",
-                  color: ui.muted,
-                  fontWeight: "750",
-                }}
-              >
-                Users • Approvals • Premium • Accounts
-              </div>
-            </section>
-          )}
-
-          {/* TODAY'S PREPARATION */}
+{/* TODAY'S PREPARATION */}
           <section
             style={{
               background: ui.surface,
@@ -2880,13 +2831,13 @@ export default function Home() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: "11px",
+                gap: "13px",
                 width: "100%",
               }}
             >
               {ecosystem.map((item) => (
                 <div
-                  key={item.no}
+                  key={item.title}
                   role="button"
                   tabIndex={0}
                   onClick={() => openModule(item.route)}
@@ -2904,15 +2855,16 @@ export default function Home() {
                   style={{
                     position: "relative",
                     minWidth: 0,
-                    minHeight: "176px",
+                    minHeight: "208px",
                     boxSizing: "border-box",
-                    padding: "16px",
+                    padding: "17px",
                     borderRadius: "21px",
-                    background: ui.surface,
+                    background: dark
+                      ? "linear-gradient(145deg,#171717,#111111)"
+                      : "linear-gradient(145deg,#ffffff,#faf9f5)",
                     border: `1px solid ${ui.line}`,
                     boxShadow: ui.shadow,
                     cursor: "pointer",
-                    transition: "background 150ms ease, transform 150ms ease",
                   }}
                 >
                   <div
@@ -2925,28 +2877,28 @@ export default function Home() {
                   >
                     <div
                       style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "13px",
+                        width: "46px",
+                        height: "46px",
+                        borderRadius: "14px",
                         background: dark
-                          ? "linear-gradient(145deg,#222,#0a0a0a)"
+                          ? "linear-gradient(145deg,#242424,#0b0b0b)"
                           : "linear-gradient(145deg,#181818,#080808)",
                         color: ui.gold,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "12px",
-                        fontWeight: "950",
+                        fontSize: "21px",
+                        flexShrink: 0,
                       }}
                     >
-                      {item.no}
+                      {item.icon}
                     </div>
 
                     <div
                       aria-hidden="true"
                       style={{
-                        width: "29px",
-                        height: "29px",
+                        width: "31px",
+                        height: "31px",
                         borderRadius: "50%",
                         background: hasModuleAccess
                           ? ui.surfaceSoft
@@ -2958,7 +2910,7 @@ export default function Home() {
                         alignItems: "center",
                         justifyContent: "center",
                         color: hasModuleAccess ? ui.gold : ui.soft,
-                        fontSize: "13px",
+                        fontSize: "14px",
                         fontWeight: "950",
                         flexShrink: 0,
                       }}
@@ -2970,9 +2922,9 @@ export default function Home() {
                   <div
                     style={{
                       marginTop: "13px",
-                      fontSize: "8px",
+                      fontSize: "8.5px",
                       fontWeight: "950",
-                      letterSpacing: "1.2px",
+                      letterSpacing: "1.15px",
                       color: ui.gold,
                       lineHeight: "1.3",
                     }}
@@ -2982,11 +2934,11 @@ export default function Home() {
 
                   <div
                     style={{
-                      marginTop: "5px",
-                      fontSize: "15px",
-                      lineHeight: "1.2",
+                      marginTop: "6px",
+                      fontSize: "17px",
+                      lineHeight: "1.18",
                       fontWeight: "950",
-                      letterSpacing: "-0.25px",
+                      letterSpacing: "-0.35px",
                     }}
                   >
                     {item.title}
@@ -2994,19 +2946,19 @@ export default function Home() {
 
                   <div
                     style={{
-                      marginTop: "9px",
+                      marginTop: "10px",
                       display: "grid",
-                      gap: "5px",
+                      gap: "6px",
                     }}
                   >
-                    {item.points.slice(0, 3).map((point) => (
+                    {item.points.slice(0, 4).map((point) => (
                       <div
                         key={point}
                         style={{
                           display: "flex",
                           alignItems: "flex-start",
-                          gap: "6px",
-                          fontSize: "9px",
+                          gap: "7px",
+                          fontSize: "10px",
                           lineHeight: "1.35",
                           color: ui.muted,
                           fontWeight: "750",
@@ -3027,8 +2979,7 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </section>
-          </section>
+            </section>          </section>
         </div>
       </main>
 
