@@ -1391,7 +1391,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [theme, setTheme] = useState("light");
 
   useEffect(() => {
@@ -1496,13 +1495,6 @@ export default function Home() {
            */
           await verifyAdmin();
 
-          if (
-            emailData.user?.status ===
-            "approved"
-          ) {
-            setShowWelcome(true);
-          }
-
           setLoading(false);
 
           return;
@@ -1560,13 +1552,6 @@ export default function Home() {
             telegramData.isAdmin === true
           );
 
-          if (
-            telegramData.user?.status ===
-            "approved"
-          ) {
-            setShowWelcome(true);
-          }
-
           setLoading(false);
 
           return;
@@ -1609,19 +1594,6 @@ export default function Home() {
     };
   }, []);
 
-  /* =====================================================
-  WELCOME SCREEN TIMER
-  ===================================================== */
-
-  useEffect(() => {
-    if (!showWelcome) return;
-
-    const timer = setTimeout(() => {
-      setShowWelcome(false);
-    }, 220);
-
-    return () => clearTimeout(timer);
-  }, [showWelcome]);
 
   /* =====================================================
   PUBLIC WEBSITE
@@ -1885,190 +1857,12 @@ export default function Home() {
     ).toLowerCase();
 
   /* =====================================================
-  WELCOME
-  ===================================================== */
+  SIGN-IN SUCCESS / PREVIEW SCREEN
 
-  if (
-    showWelcome &&
-    user.status ===
-      "approved"
-  ) {
-    const firstName =
-      user.first_name ||
-      user.firstName ||
-      user.name ||
-      "Aspirant";
-
-    const darkWelcome =
-      theme === "dark";
-
-    const welcomeBg = darkWelcome
-      ? "linear-gradient(145deg,#0b0b0b,#181818)"
-      : "linear-gradient(145deg,#fffdf8,#f0eadb)";
-
-    const welcomeText =
-      darkWelcome ? "#ffffff" : "#111111";
-
-    const welcomeMuted =
-      darkWelcome ? "#a9a49a" : "#6d685f";
-
-    const welcomeGold = "#a07d32";
-
-    return (
-      <>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-
-        <main
-          style={{
-            minHeight: "100vh",
-            background: darkWelcome
-              ? "#090909"
-              : "linear-gradient(180deg,#f8f7f3,#efeee9)",
-            color: welcomeText,
-            fontFamily:
-              "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px 16px",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "560px",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: "10px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={toggleTheme}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "7px",
-                  height: "38px",
-                  padding: "0 12px",
-                  borderRadius: "999px",
-                  border: `1px solid ${
-                    darkWelcome
-                      ? "rgba(255,255,255,0.12)"
-                      : "#dedbd2"
-                  }`,
-                  background: darkWelcome
-                    ? "#151515"
-                    : "#ffffff",
-                  color: welcomeText,
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  letterSpacing: "0.8px",
-                  cursor: "pointer",
-                }}
-              >
-                {darkWelcome ? "☀ LIGHT" : "☾ DARK"}
-              </button>
-            </div>
-
-            <div
-              style={{
-                background: welcomeBg,
-                borderRadius: "28px",
-                padding: "22px 22px",
-                textAlign: "left",
-                border: `1px solid ${
-                  darkWelcome
-                    ? "rgba(255,255,255,0.08)"
-                    : "#e3dfd5"
-                }`,
-                boxShadow: darkWelcome
-                  ? "0 24px 60px rgba(0,0,0,0.32)"
-                  : "0 20px 50px rgba(40,35,20,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "9px",
-                  color: welcomeGold,
-                  letterSpacing: "1.8px",
-                  fontWeight: "950",
-                }}
-              >
-                WELCOME TO SAMBHAV
-              </div>
-
-              <div
-                style={{
-                  marginTop: "12px",
-                  fontSize: "24px",
-                  lineHeight: "1.05",
-                  fontWeight: "950",
-                  letterSpacing: "-1px",
-                }}
-              >
-                Your UPSC preparation
-                <br />
-                workspace is ready.
-              </div>
-
-              <div
-                style={{
-                  marginTop: "12px",
-                  fontSize: "15px",
-                  fontWeight: "850",
-                }}
-              >
-                Welcome, {firstName}.
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  color: welcomeMuted,
-                  fontSize: "11px",
-                  fontWeight: "700",
-                }}
-              >
-                Focused preparation. Structured practice. Consistent progress.
-              </div>
-
-              <div
-                style={{
-                  display: "inline-flex",
-                  marginTop: "20px",
-                  padding: "8px 12px",
-                  borderRadius: "999px",
-                  background: darkWelcome
-                    ? "#f5f1e7"
-                    : "#111111",
-                  color: darkWelcome
-                    ? "#111111"
-                    : "#ffffff",
-                  fontSize: "9px",
-                  fontWeight: "950",
-                  letterSpacing: "0.8px",
-                }}
-              >
-                ✓ ACCESS VERIFIED
-              </div>
-            </div>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  /* =====================================================
-  APPROVED USER DASHBOARD
+  IMPORTANT:
+  This screen is intentionally non-functional.
+  The actual SAMBHAV modules are available only after
+  Demo/Premium activation from /premium.
   ===================================================== */
 
   const firstName =
@@ -2078,201 +1872,48 @@ export default function Home() {
     "Aspirant";
 
   const initial =
-    firstName
-      .charAt(0)
-      .toUpperCase();
+    String(firstName).charAt(0).toUpperCase() || "A";
 
-  const premiumBadgeText =
-    isPremium
-      ? premiumPlan === "demo"
-        ? "✦ PREMIUM DEMO ACTIVE"
-        : "✦ PREMIUM ACTIVE"
-      : "✦ PREMIUM ACCESS";
-
-  const premiumTitleText =
-    isPremium
-      ? premiumPlan === "demo"
-        ? "Premium Demo is Active"
-        : "Premium Access is Active"
-      : "Upgrade Your Preparation";
-
-  const premiumSubText =
-    isPremium
-      ? premiumPlan === "demo"
-        ? "Explore the complete SAMBHAV workspace."
-        : "Your premium workspace is ready for focused preparation."
-      : "Current Affairs, PYQs, Tests, Mains practice and AI evaluation in one focused workspace.";
-
-  const premiumActionText =
-    isPremium
-      ? "Open Premium →"
-      : "Explore Premium →";
-
-  const dark = theme === "dark";
-
-  const ui = dark
-    ? {
-        pageBg: "linear-gradient(180deg, #090909 0%, #111111 100%)",
-        text: "#f7f4ec",
-        muted: "#a9a49a",
-        soft: "#77736b",
-        line: "rgba(255,255,255,0.09)",
-        surface: "#151515",
-        surfaceAlt: "#1a1a1a",
-        surfaceSoft: "#202020",
-        gold: "#d6bd79",
-        goldSoft: "rgba(214,189,121,0.12)",
-        buttonBg: "#f5f1e7",
-        buttonText: "#111111",
-        shadow: "0 14px 38px rgba(0,0,0,0.28)",
-      }
-    : {
-        pageBg: "linear-gradient(180deg, #f8f7f3 0%, #efeee9 100%)",
-        text: "#111111",
-        muted: "#625f58",
-        soft: "#77736c",
-        line: "#e4e1da",
-        surface: "#ffffff",
-        surfaceAlt: "#f8f6f0",
-        surfaceSoft: "#f1eee6",
-        gold: "#a07d32",
-        goldSoft: "#f4ead0",
-        buttonBg: "#111111",
-        buttonText: "#ffffff",
-        shadow: "0 12px 30px rgba(30,25,15,0.07)",
-      };
-
-  const themeToggle = (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      aria-label={
-        dark ? "Switch to light theme" : "Switch to dark theme"
-      }
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "7px",
-        height: "38px",
-        padding: "0 12px",
-        borderRadius: "999px",
-        border: `1px solid ${ui.line}`,
-        background: ui.surface,
-        color: ui.text,
-        fontSize: "9px",
-        fontWeight: "900",
-        letterSpacing: "0.8px",
-        cursor: "pointer",
-        boxShadow: dark
-          ? "none"
-          : "0 5px 14px rgba(0,0,0,0.04)",
-      }}
-    >
-      <span style={{ color: ui.gold, fontSize: "14px" }}>
-        {dark ? "☀" : "☾"}
-      </span>
-      THEME
-    </button>
-  );
-
-  const ecosystem = [
+  const previewFeatures = [
     {
-      no: "01",
-      title: "Current Affairs",
       icon: "📰",
-      route: "/current-affairs",
-      label: "DAILY & MONTHLY INTELLIGENCE",
-      points: [
-        "Daily & Monthly Current Affairs",
-        "UPSC-oriented Analysis",
-        "The Hindu • PIB • Government Sources",
-        "Prelims & Mains Relevance",
-        "Revision-oriented Content",
-      ],
+      title: "Current Affairs",
+      subtitle: "Daily + Monthly • UPSC Analysis",
     },
     {
-      no: "02",
-      title: "PYQ Intelligence",
       icon: "🎯",
-      route: "/pyq",
-      label: "PREVIOUS YEAR QUESTIONS",
-      points: [
-        "Prelims & Mains PYQs",
-        "Subject & Topic-wise Classification",
-        "Question-wise Practice",
-        "Detailed Explanations",
-        "Performance & Trend Analysis",
-      ],
+      title: "PYQ Intelligence",
+      subtitle: "Prelims + Mains • Topic-wise",
     },
     {
-      no: "03",
-      title: "Prelims Test",
       icon: "📝",
-      route: "/prelims-test",
-      label: "PYQ-ORIENTED PRACTICE",
-      points: [
-        "PYQ-oriented MCQs",
-        "Subject & Topic-wise Practice",
-        "PYQ-based Tests",
-        "Question Analysis",
-        "Score & Performance Analysis",
-      ],
+      title: "Prelims Test",
+      subtitle: "PYQ-based Tests • Performance",
     },
     {
-      no: "04",
-      title: "Mains",
       icon: "✍️",
-      route: "/answer",
-      label: "ANSWER WRITING",
-      points: [
-        "GS I • II • III • IV",
-        "PYQ-based Answer Writing",
-        "Structured Answer Practice",
-        "Answer Evaluation",
-        "Improvement Guidance",
-      ],
+      title: "Mains Answer Writing",
+      subtitle: "GS I • II • III • IV",
     },
     {
-      no: "05",
-      title: "AI Answer Evaluation",
       icon: "🤖",
-      route: null,
-      label: "AI-POWERED ANALYSIS",
-      points: [
-        "AI-powered Answer Evaluation",
-        "Score & Assessment",
-        "Strengths & Weaknesses",
-        "Content & Structure Analysis",
-        "Actionable Improvement Suggestions",
-      ],
+      title: "AI Answer Evaluation",
+      subtitle: "Score • Analysis • Improvement",
     },
     {
-      no: "06",
-      title: "Study Material",
       icon: "📚",
-      route: null,
-      label: "NOTES & RESOURCES",
-      points: [
-        "GS Resources",
-        "Conceptual Notes",
-        "Revision Material",
-        "UPSC-oriented Reference Resources",
-        "CSAT Focus • Questions • Explanations",
-      ],
+      title: "Study Material",
+      subtitle: "Notes • Revision • CSAT",
+    },
+    {
+      icon: "📊",
+      title: "Performance Analytics",
+      subtitle: "Progress • Accuracy • Weak Areas",
     },
   ];
 
-  const hasModuleAccess = isPremium;
-  const moduleLockedMessage =
-    "Demo ya Premium activate karke is module ko access karein.";
-
-  const openModule = (route) => {
-    if (!hasModuleAccess || !route) {
-      window.location.href = "/premium";
-      return;
-    }
-
-    window.location.href = route;
+  const goPremium = () => {
+    window.location.href = "/premium";
   };
 
   return (
@@ -2285,12 +1926,13 @@ export default function Home() {
       <main
         style={{
           minHeight: "100vh",
-          background: ui.pageBg,
-          color: ui.text,
+          background:
+            "radial-gradient(circle at 50% -10%, rgba(191,158,76,0.10), transparent 32%), linear-gradient(180deg, #080808 0%, #101010 100%)",
+          color: "#f4f0e7",
           fontFamily:
             "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          paddingBottom: isAdmin ? "108px" : "48px",
-          transition: "background 180ms ease, color 180ms ease",
+          padding: "26px 16px 70px",
+          boxSizing: "border-box",
         }}
       >
         <div
@@ -2298,738 +1940,341 @@ export default function Home() {
             width: "100%",
             maxWidth: "760px",
             margin: "0 auto",
-            padding: "18px 16px 42px",
-            boxSizing: "border-box",
           }}
         >
-          {/* HEADER */}
+          {/* Header — same visual language as the supplied premium design */}
           <header
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "12px",
-              marginBottom: "18px",
+              marginBottom: "54px",
             }}
           >
-            <div style={{ minWidth: 0 }}>
+            <div>
               <div
                 style={{
                   fontSize: "20px",
-                  fontWeight: "950",
-                  letterSpacing: "-0.8px",
+                  lineHeight: 1,
+                  fontWeight: 950,
+                  letterSpacing: "-0.7px",
                 }}
               >
-                SAMBHAV{" "}
-                <span style={{ color: ui.gold }}>
-                  UPSC
-                </span>
+                SAMBHAV <span style={{ color: "#c7a85d" }}>UPSC</span>
               </div>
-
               <div
                 style={{
-                  marginTop: "4px",
-                  color: ui.soft,
+                  marginTop: "8px",
+                  color: "#7e796f",
                   fontSize: "8px",
-                  letterSpacing: "1.35px",
-                  textTransform: "uppercase",
-                  fontWeight: "900",
+                  fontWeight: 800,
+                  letterSpacing: "2.1px",
                 }}
               >
-                Intelligence • Preparation • Performance
+                INTELLIGENCE • PREPARATION • PERFORMANCE
               </div>
             </div>
 
             <div
               style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                flexShrink: 0,
+                justifyContent: "center",
+                background: "#171717",
+                border: "1px solid rgba(199,168,93,0.35)",
+                color: "#c7a85d",
+                fontSize: "14px",
+                fontWeight: 950,
+                boxSizing: "border-box",
               }}
+              title={String(firstName)}
             >
-              {themeToggle}
-
-              <div
-                style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "50%",
-                  background: dark
-                    ? "linear-gradient(145deg,#222,#090909)"
-                    : "#111111",
-                  color: "#d6bd79",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "16px",
-                  fontWeight: "950",
-                  boxShadow: dark
-                    ? "none"
-                    : "0 7px 18px rgba(0,0,0,0.10)",
-                }}
-              >
-                {initial}
-              </div>
+              {initial}
             </div>
           </header>
 
-          {/* HERO */}
-          <section
-            style={{
-              background: dark
-                ? "linear-gradient(145deg,#0b0b0b,#171717 58%,#252525)"
-                : "linear-gradient(145deg,#fffdf8,#f0eadb)",
-              color: ui.text,
-              borderRadius: "28px",
-              padding: "26px 22px 21px",
-              marginBottom: "14px",
-              border: `1px solid ${ui.line}`,
-              boxShadow: ui.shadow,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
+          {/* Hero */}
+          <section style={{ textAlign: "center", marginBottom: "48px" }}>
             <div
               style={{
-                position: "absolute",
-                width: "190px",
-                height: "190px",
-                borderRadius: "50%",
-                background: dark
-                  ? "rgba(214,189,121,0.10)"
-                  : "rgba(214,189,121,0.16)",
-                right: "-85px",
-                top: "-95px",
-              }}
-            />
-
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  fontSize: "9px",
-                  fontWeight: "950",
-                  letterSpacing: "1.7px",
-                  color: ui.gold,
-                  marginBottom: "10px",
-                }}
-              >
-                PERSONAL PREPARATION WORKSPACE
-              </div>
-
-              <div
-                style={{
-                  fontSize: "29px",
-                  lineHeight: "1.05",
-                  fontWeight: "950",
-                  letterSpacing: "-1.2px",
-                }}
-              >
-                Hello, {firstName}.
-              </div>
-
-              <div
-                style={{
-                  marginTop: "9px",
-                  fontSize: "26px",
-                  lineHeight: "1.08",
-                  fontWeight: "950",
-                  letterSpacing: "-0.9px",
-                  color: ui.gold,
-                }}
-              >
-                No Shortcut Just Consistency
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(3, minmax(0,1fr))",
-                  gap: "9px",
-                  marginTop: "21px",
-                }}
-              >
-                {[
-                  ["01", "FOCUS"],
-                  ["02", "PRACTICE"],
-                  ["03", "PERFORM"],
-                ].map(([num, label]) => (
-                  <div
-                    key={num}
-                    style={{
-                      paddingTop: "11px",
-                      borderTop: `1px solid ${ui.line}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: "950",
-                      }}
-                    >
-                      {num}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "3px",
-                        fontSize: "8px",
-                        fontWeight: "900",
-                        letterSpacing: "1.1px",
-                        color: ui.soft,
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* OFFICER ACCESS */}
-          <section
-            style={{
-              background: dark
-                ? "linear-gradient(145deg,#151515,#1d1d1d)"
-                : "linear-gradient(145deg,#ffffff,#f8f5ed)",
-              border: `1px solid ${ui.line}`,
-              borderRadius: "20px",
-              padding: "16px 18px",
-              marginBottom: "14px",
-              boxShadow: ui.shadow,
-            }}
-          >
-            <div
-              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "28px",
+                padding: "0 12px",
+                borderRadius: "999px",
+                border: "1px solid rgba(199,168,93,0.24)",
+                background: "rgba(199,168,93,0.06)",
+                color: "#c7a85d",
                 fontSize: "8px",
-                fontWeight: "950",
-                letterSpacing: "1.3px",
-                color: ui.gold,
+                fontWeight: 950,
+                letterSpacing: "1.7px",
               }}
             >
-              OFFICER ACCESS
+              ✦ YOUR SAMBHAV WORKSPACE
             </div>
 
-            <div
+            <h1
               style={{
-                marginTop: "6px",
-                fontSize: "18px",
-                fontWeight: "950",
+                margin: "18px auto 0",
+                maxWidth: "620px",
+                fontSize: "clamp(34px, 7vw, 58px)",
+                lineHeight: 1.02,
+                letterSpacing: "-2.4px",
+                fontWeight: 950,
               }}
             >
-              {firstName}
-            </div>
+              Prepare with clarity.
+              <br />
+              <span style={{ color: "#c7a85d" }}>Perform with SAMBHAV.</span>
+            </h1>
 
-            <div
+            <p
               style={{
-                marginTop: "4px",
-                fontSize: "10px",
-                color: ui.muted,
-                fontWeight: "800",
+                maxWidth: "520px",
+                margin: "20px auto 0",
+                color: "#8d887f",
+                fontSize: "13px",
+                lineHeight: 1.7,
               }}
             >
-              ● ACTIVE CLEARANCE
-            </div>
+              Your complete UPSC preparation ecosystem — designed for focused,
+              structured and consistent preparation.
+            </p>
           </section>
 
-          {/* PREMIUM */}
-          <section
-            style={{
-              background: dark
-                ? "linear-gradient(145deg,#171717,#242424)"
-                : "linear-gradient(145deg,#fffdf8,#f1ead9)",
-              border: `1px solid ${ui.line}`,
-              borderRadius: "24px",
-              padding: "20px",
-              marginBottom: "15px",
-              boxShadow: ui.shadow,
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                width: "190px",
-                height: "190px",
-                borderRadius: "50%",
-                background: dark
-                  ? "rgba(214,189,121,0.07)"
-                  : "rgba(214,189,121,0.12)",
-                right: "-85px",
-                top: "-95px",
-              }}
-            />
-
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  padding: "7px 10px",
-                  borderRadius: "999px",
-                  background: dark ? "#f5f1e7" : "#111111",
-                  color: dark ? "#111111" : "#ffffff",
-                  fontSize: "8px",
-                  fontWeight: "950",
-                  letterSpacing: "1px",
-                }}
-              >
-                {premiumBadgeText}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "12px",
-                  fontSize: "21px",
-                  lineHeight: "1.2",
-                  fontWeight: "950",
-                }}
-              >
-                {premiumTitleText}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  fontSize: "12px",
-                  lineHeight: "1.55",
-                  color: ui.muted,
-                  fontWeight: "700",
-                  maxWidth: "620px",
-                }}
-              >
-                {premiumSubText}
-              </div>
-
-              {!isPremium && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(2,minmax(0,1fr))",
-                    gap: "7px",
-                    marginTop: "14px",
-                  }}
-                >
-                  {[
-                    "Current Affairs",
-                    "PYQ Intelligence",
-                    "Mains Practice",
-                    "AI Evaluation",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      style={{
-                        fontSize: "9px",
-                        fontWeight: "850",
-                        color: ui.muted,
-                        padding: "8px 9px",
-                        border: `1px solid ${ui.line}`,
-                        borderRadius: "9px",
-                      }}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isPremium &&
-              premiumPlan === "demo" ? (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                    marginTop: "15px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.premiumAction,
-                      marginTop: 0,
-                      border: "none",
-                    }}
-                    onClick={() => {
-                      window.location.href =
-                        "/premium/home";
-                    }}
-                  >
-                    Open Premium →
-                  </button>
-
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.premiumAction,
-                      marginTop: 0,
-                      background: ui.gold,
-                      color: "#111111",
-                      border: "none",
-                    }}
-                    onClick={() => {
-                      window.location.href =
-                        "/premium";
-                    }}
-                  >
-                    View Paid Plans →
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  style={{
-                    ...styles.premiumAction,
-                    border: "none",
-                  }}
-                  onClick={() => {
-                    window.location.href =
-                      isPremium
-                        ? "/premium/home"
-                        : "/premium";
-                  }}
-                >
-                  {premiumActionText}
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* ADMIN */}
-{/* TODAY'S PREPARATION */}
-          <section
-            style={{
-              background: ui.surface,
-              border: `1px solid ${ui.line}`,
-              borderRadius: "18px",
-              padding: "14px 16px",
-              marginBottom: "26px",
-              boxShadow: ui.shadow,
-            }}
-          >
+          {/* Feature section — intentionally non-clickable */}
+          <section>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "12px",
+                gap: "16px",
+                marginBottom: "18px",
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: "8px",
-                    fontWeight: "950",
-                    letterSpacing: "1.4px",
-                    color: ui.gold,
-                  }}
-                >
-                  TODAY'S PREPARATION
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "5px",
-                    fontSize: "15px",
-                    fontWeight: "950",
-                  }}
-                >
-                  Stay focused. Keep moving.
-                </div>
-              </div>
-
               <div
                 style={{
-                  flexShrink: 0,
-                  padding: "8px 10px",
-                  borderRadius: "10px",
-                  background: ui.surfaceSoft,
-                  color: ui.muted,
+                  color: "#777269",
                   fontSize: "8px",
-                  fontWeight: "950",
+                  fontWeight: 950,
+                  letterSpacing: "1.8px",
+                }}
+              >
+                YOUR LEARNING ECOSYSTEM
+              </div>
+              <div
+                style={{
+                  color: "#555149",
+                  fontSize: "8px",
+                  fontWeight: 800,
                   letterSpacing: "0.8px",
                 }}
               >
-                DAILY FOCUS
+                PREMIUM ACCESS
               </div>
             </div>
-          </section>
 
-          {/* LEARNING ECOSYSTEM */}
-          <section>
             <div
-              style={{
-                marginBottom: "15px",
-                padding: "0 2px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "9px",
-                  fontWeight: "950",
-                  letterSpacing: "1.5px",
-                  color: ui.gold,
-                }}
-              >
-                SAMBHAV LEARNING ECOSYSTEM
-              </div>
-
-              <div
-                style={{
-                  marginTop: "5px",
-                  fontSize: "25px",
-                  lineHeight: "1.08",
-                  fontWeight: "950",
-                  letterSpacing: "-0.8px",
-                }}
-              >
-                Complete UPSC Preparation
-              </div>
-
-              <div
-                style={{
-                  marginTop: "7px",
-                  fontSize: "11px",
-                  lineHeight: "1.55",
-                  color: ui.muted,
-                  fontWeight: "650",
-                  maxWidth: "650px",
-                }}
-              >
-                An integrated learning ecosystem built around the complete UPSC preparation cycle.
-              </div>
-
-              <div
-                style={{
-                  marginTop: "9px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "7px 10px",
-                  borderRadius: "999px",
-                  background: hasModuleAccess
-                    ? ui.goldSoft
-                    : ui.surfaceSoft,
-                  color: hasModuleAccess
-                    ? ui.gold
-                    : ui.muted,
-                  fontSize: "8px",
-                  fontWeight: "900",
-                  letterSpacing: "0.4px",
-                }}
-              >
-                {hasModuleAccess
-                  ? "🔓 MODULE ACCESS ACTIVE"
-                  : "🔒 TAKE PREMIUM DEMO TO UNLOCK MODULES"}
-              </div>
-            </div>
-
-            {/* LEARNING MODULE CARDS — SAME GRID ON PHONE, TABLET & LAPTOP */}
-            <section
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: "13px",
-                width: "100%",
+                gap: "12px",
               }}
             >
-              {ecosystem.map((item) => (
+              {previewFeatures.map((feature) => (
                 <div
-                  key={item.title}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openModule(item.route)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openModule(item.route);
-                    }
-                  }}
-                  title={
-                    hasModuleAccess && item.route
-                      ? `Open ${item.title}`
-                      : moduleLockedMessage
-                  }
+                  key={feature.title}
+                  aria-disabled="true"
                   style={{
-                    position: "relative",
-                    minWidth: 0,
-                    minHeight: "208px",
+                    minHeight: "112px",
+                    padding: "18px",
                     boxSizing: "border-box",
-                    padding: "17px",
-                    borderRadius: "21px",
-                    background: dark
-                      ? "linear-gradient(145deg,#171717,#111111)"
-                      : "linear-gradient(145deg,#ffffff,#faf9f5)",
-                    border: `1px solid ${ui.line}`,
-                    boxShadow: ui.shadow,
-                    cursor: "pointer",
+                    borderRadius: "18px",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018))",
+                    opacity: 0.9,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
                   <div
                     style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      width: "80px",
+                      height: "80px",
+                      background:
+                        "radial-gradient(circle, rgba(199,168,93,0.10), transparent 68%)",
+                    }}
+                  />
+
+                  <div
+                    style={{
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "8px",
+                      alignItems: "flex-start",
+                      gap: "12px",
                     }}
                   >
                     <div
                       style={{
-                        width: "46px",
-                        height: "46px",
-                        borderRadius: "14px",
-                        background: dark
-                          ? "linear-gradient(145deg,#242424,#0b0b0b)"
-                          : "linear-gradient(145deg,#181818,#080808)",
-                        color: ui.gold,
+                        width: "38px",
+                        height: "38px",
+                        flex: "0 0 38px",
+                        borderRadius: "12px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "21px",
-                        flexShrink: 0,
+                        background: "rgba(199,168,93,0.08)",
+                        border: "1px solid rgba(199,168,93,0.13)",
+                        fontSize: "17px",
+                        filter: "grayscale(0.15)",
                       }}
                     >
-                      {item.icon}
+                      {feature.icon}
                     </div>
 
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        width: "31px",
-                        height: "31px",
-                        borderRadius: "50%",
-                        background: hasModuleAccess
-                          ? ui.surfaceSoft
-                          : dark
-                          ? "rgba(255,255,255,0.06)"
-                          : "#f3f1eb",
-                        border: `1px solid ${ui.line}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: hasModuleAccess ? ui.gold : ui.soft,
-                        fontSize: "14px",
-                        fontWeight: "950",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {hasModuleAccess ? "↗" : "🔒"}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "13px",
-                      fontSize: "8.5px",
-                      fontWeight: "950",
-                      letterSpacing: "1.15px",
-                      color: ui.gold,
-                      lineHeight: "1.3",
-                    }}
-                  >
-                    {item.label}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      fontSize: "17px",
-                      lineHeight: "1.18",
-                      fontWeight: "950",
-                      letterSpacing: "-0.35px",
-                    }}
-                  >
-                    {item.title}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      display: "grid",
-                      gap: "6px",
-                    }}
-                  >
-                    {item.points.slice(0, 4).map((point) => (
+                    <div style={{ minWidth: 0 }}>
                       <div
-                        key={point}
                         style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: "7px",
-                          fontSize: "10px",
-                          lineHeight: "1.35",
-                          color: ui.muted,
-                          fontWeight: "750",
+                          color: "#eee9df",
+                          fontSize: "12px",
+                          lineHeight: 1.35,
+                          fontWeight: 900,
                         }}
                       >
-                        <span
-                          style={{
-                            color: ui.gold,
-                            fontWeight: "950",
-                            flexShrink: 0,
-                          }}
-                        >
-                          •
-                        </span>
-                        <span>{point}</span>
+                        {feature.title}
                       </div>
-                    ))}
+                      <div
+                        style={{
+                          marginTop: "7px",
+                          color: "#777269",
+                          fontSize: "9px",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        {feature.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      color: "#504c45",
+                      fontSize: "7px",
+                      fontWeight: 900,
+                      letterSpacing: "1.1px",
+                    }}
+                  >
+                    AVAILABLE WITH PREMIUM
                   </div>
                 </div>
               ))}
-            </section>          </section>
-        </div>
-      </main>
+            </div>
+          </section>
 
-      {isAdmin && (
-        <nav
-          aria-label="Admin navigation"
-          style={{
-            position: "fixed",
-            left: "50%",
-            bottom: "12px",
-            transform: "translateX(-50%)",
-            width: "calc(100% - 28px)",
-            maxWidth: "730px",
-            height: "58px",
-            padding: "5px",
-            boxSizing: "border-box",
-            background: dark ? "rgba(20,20,20,0.97)" : "rgba(255,255,255,0.97)",
-            border: `1px solid ${ui.line}`,
-            borderRadius: "21px",
-            boxShadow: dark ? "0 12px 35px rgba(0,0,0,0.35)" : "0 10px 35px rgba(0,0,0,0.12)",
-            zIndex: 50,
-            backdropFilter: "blur(14px)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => { window.location.href = "/admin"; }}
+          {/* Premium conversion card — the only actionable item on this screen */}
+          <section
             style={{
-              width: "100%",
-              height: "48px",
-              border: "none",
-              borderRadius: "17px",
-              background: dark ? "#242424" : "#f1eee6",
-              color: ui.text,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              fontSize: "10px",
-              fontWeight: "950",
-              letterSpacing: "0.7px",
-              cursor: "pointer",
+              marginTop: "14px",
+              padding: "24px",
+              borderRadius: "22px",
+              border: "1px solid rgba(199,168,93,0.28)",
+              background:
+                "linear-gradient(135deg, rgba(199,168,93,0.13), rgba(255,255,255,0.025))",
+              boxShadow: "0 18px 55px rgba(0,0,0,0.24)",
             }}
           >
-            <span style={{ color: ui.gold, fontSize: "15px" }}>⚙</span>
-            ADMIN CONTROL
-          </button>
-        </nav>
-      )}
+            <div
+              style={{
+                color: "#c7a85d",
+                fontSize: "8px",
+                fontWeight: 950,
+                letterSpacing: "1.8px",
+              }}
+            >
+              ✦ UNLOCK THE COMPLETE EXPERIENCE
+            </div>
+
+            <h2
+              style={{
+                margin: "11px 0 0",
+                fontSize: "24px",
+                lineHeight: 1.15,
+                letterSpacing: "-0.8px",
+                fontWeight: 950,
+              }}
+            >
+              Your preparation starts here.
+            </h2>
+
+            <p
+              style={{
+                margin: "10px 0 20px",
+                color: "#8d887f",
+                fontSize: "11px",
+                lineHeight: 1.65,
+              }}
+            >
+              Activate Demo or Premium to enter the fully functional SAMBHAV
+              Learning Ecosystem.
+            </p>
+
+            <button
+              type="button"
+              onClick={goPremium}
+              style={{
+                width: "100%",
+                minHeight: "52px",
+                border: "none",
+                borderRadius: "14px",
+                background: "#f1ede4",
+                color: "#111111",
+                fontSize: "10px",
+                fontWeight: 950,
+                letterSpacing: "1.1px",
+                cursor: "pointer",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.20)",
+              }}
+            >
+              EXPLORE PREMIUM →
+            </button>
+
+            <div
+              style={{
+                marginTop: "13px",
+                textAlign: "center",
+                color: "#575249",
+                fontSize: "7px",
+                fontWeight: 800,
+                letterSpacing: "0.8px",
+              }}
+            >
+              2-DAY DEMO • MONTHLY • QUARTERLY • ANNUAL
+            </div>
+          </section>
+
+          <div
+            style={{
+              marginTop: "28px",
+              textAlign: "center",
+              color: "#4f4b44",
+              fontSize: "7px",
+              fontWeight: 800,
+              letterSpacing: "0.8px",
+            }}
+          >
+            SAMBHAV UPSC • INTELLIGENCE • PREPARATION • PERFORMANCE
+          </div>
+        </div>
+      </main>
     </>
   );
 }
-
