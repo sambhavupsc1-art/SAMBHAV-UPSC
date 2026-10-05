@@ -2611,8 +2611,6 @@ const optionsGridStyle = (mobile = false) => ({
   gap: 10,
 });
 
-);
-
 const testChoiceGrid = (mobile = false) => ({
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
