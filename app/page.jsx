@@ -1948,7 +1948,8 @@ export default function Home() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "54px",
+              gap: "12px",
+              marginBottom: "20px",
             }}
           >
             <div>
@@ -1977,24 +1978,124 @@ export default function Home() {
 
             <div
               style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                background: "#171717",
-                border: "1px solid rgba(199,168,93,0.35)",
-                color: "#c7a85d",
-                fontSize: "14px",
-                fontWeight: 950,
-                boxSizing: "border-box",
+                gap: "8px",
               }}
-              title={String(firstName)}
             >
-              {initial}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                style={{
+                  height: "36px",
+                  padding: "0 11px",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(199,168,93,0.28)",
+                  background: "rgba(255,255,255,0.045)",
+                  color: "#c7a85d",
+                  fontSize: "8px",
+                  fontWeight: 900,
+                  letterSpacing: "0.8px",
+                  cursor: "pointer",
+                }}
+              >
+                {theme === "dark" ? "☀ LIGHT" : "☾ DARK"}
+              </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = "/admin"; }}
+                  style={{
+                    height: "36px",
+                    padding: "0 11px",
+                    borderRadius: "999px",
+                    border: "1px solid rgba(199,168,93,0.32)",
+                    background: "rgba(199,168,93,0.10)",
+                    color: "#d6bd79",
+                    fontSize: "8px",
+                    fontWeight: 900,
+                    letterSpacing: "0.8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  ADMIN
+                </button>
+              )}
+
+              <div
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#171717",
+                  border: "1px solid rgba(199,168,93,0.35)",
+                  color: "#c7a85d",
+                  fontSize: "14px",
+                  fontWeight: 950,
+                  boxSizing: "border-box",
+                }}
+                title={String(firstName)}
+              >
+                {initial}
+              </div>
             </div>
           </header>
+
+          {/* PREVIEW NAVIGATION — visual only; modules remain locked */}
+          <nav
+            aria-label="SAMBHAV preview navigation"
+            style={{
+              display: "flex",
+              gap: "7px",
+              overflowX: "auto",
+              padding: "5px 2px 15px",
+              marginBottom: "20px",
+              scrollbarWidth: "none",
+            }}
+          >
+            {[
+              ["⌂", "Home"],
+              ["📰", "Current Affairs"],
+              ["🎯", "PYQ"],
+              ["📝", "Prelims"],
+              ["✍️", "Mains"],
+              ["🤖", "AI"],
+              ["📚", "Material"],
+              ["📊", "Analytics"],
+            ].map(([icon, label], index) => (
+              <div
+                key={label}
+                aria-disabled="true"
+                style={{
+                  flex: "0 0 auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  height: "34px",
+                  padding: "0 11px",
+                  borderRadius: "999px",
+                  border: index === 0
+                    ? "1px solid rgba(199,168,93,0.32)"
+                    : "1px solid rgba(255,255,255,0.08)",
+                  background: index === 0
+                    ? "rgba(199,168,93,0.10)"
+                    : "rgba(255,255,255,0.035)",
+                  color: index === 0 ? "#d6bd79" : "#777269",
+                  fontSize: "8px",
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                  userSelect: "none",
+                }}
+              >
+                <span>{icon}</span>{label}
+              </div>
+            ))}
+          </nav>
 
           {/* Hero */}
           <section style={{ textAlign: "center", marginBottom: "48px" }}>
@@ -2260,6 +2361,55 @@ export default function Home() {
               2-DAY DEMO • MONTHLY • QUARTERLY • ANNUAL
             </div>
           </section>
+
+          <nav
+            aria-label="SAMBHAV quick navigation"
+            style={{
+              position: "sticky",
+              bottom: "14px",
+              zIndex: 20,
+              marginTop: "24px",
+              display: "grid",
+              gridTemplateColumns: "repeat(4,1fr)",
+              gap: "6px",
+              padding: "7px",
+              borderRadius: "20px",
+              background: "rgba(18,18,18,0.94)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 15px 40px rgba(0,0,0,0.28)",
+              backdropFilter: "blur(14px)",
+            }}
+          >
+            {[
+              ["⌂", "Home"],
+              ["◈", "PYQ"],
+              ["✎", "Mains"],
+              ["✦", "Premium"],
+            ].map(([icon, label], index) => (
+              <div
+                key={label}
+                onClick={label === "Premium" ? goPremium : undefined}
+                style={{
+                  height: "42px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "2px",
+                  background: index === 0 ? "rgba(199,168,93,0.10)" : "transparent",
+                  color: index === 0 ? "#d6bd79" : label === "Premium" ? "#d6bd79" : "#777269",
+                  fontSize: "7px",
+                  fontWeight: 900,
+                  cursor: label === "Premium" ? "pointer" : "default",
+                  userSelect: "none",
+                }}
+              >
+                <span style={{ fontSize: "15px", lineHeight: 1 }}>{icon}</span>
+                {label}
+              </div>
+            ))}
+          </nav>
 
           <div
             style={{
