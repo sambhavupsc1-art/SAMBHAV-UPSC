@@ -420,97 +420,86 @@ export default function CurrentAffairsPage() {
         <span>Back</span>
       </button>
 
-      <section className="ca-premium-hero">
-        <div className="ca-hero-topbar">
-          <div className="ca-hero-brand">
-            <span className="ca-hero-brand-kicker">SAMBHAV UPSC</span>
-            <strong>Current Affairs</strong>
-            <small>UPSC Daily Intelligence • Prelims + Mains</small>
-          </div>
+      <section className="ca-header">
+        <div>
+          <p className="eyebrow">SAMBHAV UPSC</p>
 
-          <div className="ca-hero-actions">
-            <div className="ca-hero-action-card ca-language-card">
-              <span>{hi ? "भाषा" : "Language"}</span>
-              <div className="ca-lang-pills">
-                <button
-                  type="button"
-                  className={hi ? "ca-lang-pill active" : "ca-lang-pill"}
-                  onClick={() => setLanguage("hi")}
-                >
-                  हिन्दी
-                </button>
-                <button
-                  type="button"
-                  className={!hi ? "ca-lang-pill active" : "ca-lang-pill"}
-                  onClick={() => setLanguage("en")}
-                >
-                  English
-                </button>
-              </div>
-            </div>
+          <h1>Current Affairs</h1>
 
-            <div className="ca-hero-action-card ca-date-card">
-              <span>Latest Update</span>
-              <strong>{getLatestDate()}</strong>
-              <small>Daily update • 10:00 AM</small>
-            </div>
-
-            <button
-              type="button"
-              className="ca-hero-utility-btn magazine"
-              onClick={() => (window.location.href = "/current-affairs/magazine")}
-            >
-              <span>▣</span>
-              <b>Monthly Magazine</b>
-            </button>
-
-            <button
-              type="button"
-              className="ca-hero-utility-btn notification"
-              onClick={() => setNotificationOpen(!notificationOpen)}
-            >
-              <span>◉</span>
-              <b>Notifications</b>
-            </button>
-          </div>
-        </div>
-
-        <div className="ca-hero-divider" />
-
-        <div className="ca-hero-copy">
-          <span className="ca-hero-eyebrow">SAMBHAV UPSC • DAILY INTELLIGENCE</span>
-          <h2>
-            {hi ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।" : "Not just news. The right news for UPSC."}
-          </h2>
-          <p>
+          <p className="sub">
             {hi
-              ? "PIB, GKToday, The Hindu और Better India को एक structured UPSC view में पढ़ें — Prelims + Mains + Ethics."
-              : "PIB, GKToday, The Hindu and Better India in one structured UPSC view — Prelims + Mains + Ethics."}
+              ? "UPSC प्रासंगिक दैनिक करेंट अफेयर्स — Prelims + Mains"
+              : "UPSC-relevant daily current affairs — Prelims + Mains"}
           </p>
-
-          <div className="ca-hero-stats">
-            <div className="ca-hero-stat">
-              <strong>{news.filter((item) => !isEthicsExample(item)).length}</strong>
-              <span>Daily Updates</span>
-            </div>
-            <div className="ca-hero-stat">
-              <strong>4</strong>
-              <span>Core Sources</span>
-            </div>
-            <div className="ca-hero-stat">
-              <strong>GS I–IV</strong>
-              <span>UPSC Mapping</span>
-            </div>
-          </div>
         </div>
 
-        <div className="ca-hero-seal">
-          <div className="ca-hero-seal-ring">
-            <span>CA</span>
-            <small>2026</small>
+        <div className="header-actions">
+          <div className="language-box">
+            <span>
+              {hi ? "भाषा" : "Language"}
+            </span>
+
+            <div className="language-buttons">
+              <button
+                className={
+                  hi ? "lang active" : "lang"
+                }
+                onClick={() =>
+                  setLanguage("hi")
+                }
+              >
+                हिन्दी
+              </button>
+
+              <button
+                className={
+                  !hi
+                    ? "lang active"
+                    : "lang"
+                }
+                onClick={() =>
+                  setLanguage("en")
+                }
+              >
+                English
+              </button>
+            </div>
           </div>
-          <div className="ca-hero-seal-line" />
-          <span className="ca-hero-date">UPDATED • {getLatestDate()}</span>
+
+          <div className="date-card">
+            <span>Latest Update</span>
+
+            <strong>
+              {getLatestDate()}
+            </strong>
+
+            <small>
+              Daily update: 10:00 AM
+            </small>
+          </div>
+
+          <button
+            className="magazine-button"
+            onClick={() =>
+              (window.location.href =
+                "/current-affairs/magazine")
+            }
+          >
+            📖
+            <span>Monthly Magazine</span>
+          </button>
+
+          <button
+            className="notification-button"
+            onClick={() =>
+              setNotificationOpen(
+                !notificationOpen
+              )
+            }
+          >
+            🔔
+            <span>Notifications</span>
+          </button>
         </div>
       </section>
 
@@ -932,9 +921,9 @@ export default function CurrentAffairsPage() {
 .ca-page {
           min-height: 100vh;
           background:
-            radial-gradient(circle at 12% 0%, rgba(195,161,90,.10), transparent 24%),
-            radial-gradient(circle at 88% 6%, rgba(15,23,42,.055), transparent 25%),
-            linear-gradient(180deg,#f8f6f1 0%,#f3f5f7 48%,#eef1f4 100%);
+            radial-gradient(circle at 8% 0%, rgba(30, 64, 175, 0.055), transparent 28%),
+            radial-gradient(circle at 92% 8%, rgba(15, 23, 42, 0.045), transparent 25%),
+            #f6f8fb;
           color: #172033;
           padding: 32px 18px 90px;
           font-family:
@@ -956,170 +945,6 @@ export default function CurrentAffairsPage() {
           max-width: 1050px;
           margin-left: auto;
           margin-right: auto;
-        }
-
-        /* ---------- PREMIUM UPSC HERO ---------- */
-        .ca-premium-hero {
-          position: relative;
-          overflow: hidden;
-          max-width: 1050px;
-          margin: 0 auto 16px;
-          padding: 27px 29px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 28px;
-          color: #fff;
-          border: 1px solid rgba(195,161,90,.30);
-          border-radius: 25px;
-          background:
-            radial-gradient(circle at 88% 10%, rgba(195,161,90,.25), transparent 25%),
-            radial-gradient(circle at 65% 120%, rgba(52,64,84,.55), transparent 35%),
-            linear-gradient(145deg, #0d1118 0%, #151b25 62%, #0b0f15 100%);
-          box-shadow: 0 22px 55px rgba(15,23,42,.15);
-        }
-
-        .ca-premium-hero::before {
-          content: "";
-          position: absolute;
-          width: 230px;
-          height: 230px;
-          right: 75px;
-          bottom: -170px;
-          border: 1px solid rgba(226,199,125,.16);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-
-        .ca-premium-hero::after {
-          content: "";
-          position: absolute;
-          width: 150px;
-          height: 150px;
-          right: -70px;
-          top: -75px;
-          border: 1px solid rgba(226,199,125,.13);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-
-        .ca-hero-copy {
-          position: relative;
-          z-index: 1;
-          max-width: 720px;
-        }
-
-        .ca-hero-eyebrow {
-          display: inline-flex;
-          color: #e2c77d;
-          font-size: 9px;
-          line-height: 1;
-          letter-spacing: .18em;
-          font-weight: 950;
-        }
-
-        .ca-hero-copy h2 {
-          margin: 10px 0 8px;
-          font-size: clamp(25px, 3.2vw, 38px);
-          line-height: 1.06;
-          letter-spacing: -1.25px;
-          color: #fffdf9;
-          max-width: 650px;
-        }
-
-        .ca-hero-copy p {
-          margin: 0;
-          max-width: 650px;
-          color: #b9c0ca;
-          font-size: 12px;
-          line-height: 1.7;
-        }
-
-        .ca-hero-stats {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 19px;
-        }
-
-        .ca-hero-stat {
-          min-width: 108px;
-          padding: 9px 11px;
-          border: 1px solid rgba(255,255,255,.09);
-          border-radius: 12px;
-          background: rgba(255,255,255,.055);
-          backdrop-filter: blur(8px);
-        }
-
-        .ca-hero-stat strong {
-          display: block;
-          color: #fff;
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .ca-hero-stat span {
-          display: block;
-          margin-top: 3px;
-          color: #929ba8;
-          font-size: 8px;
-          font-weight: 800;
-          letter-spacing: .03em;
-        }
-
-        .ca-hero-seal {
-          position: relative;
-          z-index: 1;
-          flex: 0 0 155px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .ca-hero-seal-ring {
-          width: 112px;
-          height: 112px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid rgba(226,199,125,.45);
-          outline: 1px solid rgba(226,199,125,.12);
-          outline-offset: 7px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(226,199,125,.13), rgba(255,255,255,.015) 68%);
-        }
-
-        .ca-hero-seal-ring span {
-          color: #e2c77d;
-          font-size: 29px;
-          line-height: 1;
-          font-weight: 950;
-          letter-spacing: -.06em;
-        }
-
-        .ca-hero-seal-ring small {
-          margin-top: 7px;
-          color: #aeb5bf;
-          font-size: 8px;
-          letter-spacing: .2em;
-          font-weight: 900;
-        }
-
-        .ca-hero-seal-line {
-          width: 46px;
-          height: 1px;
-          margin: 18px 0 8px;
-          background: rgba(226,199,125,.38);
-        }
-
-        .ca-hero-date {
-          color: #8e97a4;
-          font-size: 7px;
-          letter-spacing: .13em;
-          font-weight: 900;
-          text-align: center;
         }
 
         .source-nav-wrap {
@@ -2215,19 +2040,6 @@ export default function CurrentAffairsPage() {
           .premium-clean-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
-        @media (max-width: 800px) {
-          .ca-premium-hero {
-            padding: 22px;
-          }
-          .ca-hero-seal {
-            flex-basis: 125px;
-          }
-          .ca-hero-seal-ring {
-            width: 94px;
-            height: 94px;
-          }
-        }
-
         @media (max-width: 600px) {
   .page-back-button {
     width: 100%;
@@ -2236,14 +2048,6 @@ export default function CurrentAffairsPage() {
     margin-bottom: 10px;
   }
           .ca-page { width:100%; max-width:100%; min-width:0; padding:12px 10px 48px; overflow-x:hidden; }
-          .ca-premium-hero { display:block; padding:19px; border-radius:19px; }
-          .ca-hero-copy h2 { font-size:26px; line-height:1.1; margin-top:9px; }
-          .ca-hero-copy p { font-size:11.5px; line-height:1.65; }
-          .ca-hero-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:15px; }
-          .ca-hero-stat { min-width:0; padding:8px 7px; border-radius:10px; }
-          .ca-hero-stat strong { font-size:11px; }
-          .ca-hero-stat span { font-size:7px; }
-          .ca-hero-seal { display:none; }
           .ca-header { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:17px; padding:17px; border-radius:18px; }
           h1 { font-size:clamp(29px,9vw,38px); }
           .sub { font-size:12.5px; }
@@ -2310,316 +2114,598 @@ export default function CurrentAffairsPage() {
           .source { grid-column:auto; }
         }
 
-        /* =========================================================
-           SAMBHAV PREMIUM CA POLISH
-           Single-card hero: brand + language + update + actions
-           ========================================================= */
-        .ca-premium-hero {
-          display:grid;
-          grid-template-columns:minmax(0,1fr) 165px;
-          gap:24px;
-          align-items:center;
-          padding:18px 20px 23px;
-          border-radius:26px;
-          border:1px solid rgba(195,161,90,.34);
-          box-shadow:0 24px 60px rgba(15,23,42,.17);
-        }
-
-        .ca-hero-topbar {
-          grid-column:1 / -1;
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:18px;
-          position:relative;
-          z-index:2;
-        }
-
-        .ca-hero-brand {
-          min-width:185px;
-        }
-        .ca-hero-brand-kicker {
-          display:block;
-          color:#d9bd72;
-          font-size:8px;
-          letter-spacing:.18em;
-          font-weight:950;
-          text-transform:uppercase;
-          margin-bottom:5px;
-        }
-        .ca-hero-brand strong {
-          display:block;
-          color:#fffdf9;
-          font-size:21px;
-          line-height:1.05;
-          letter-spacing:-.6px;
-        }
-        .ca-hero-brand small {
-          display:block;
-          color:#8f98a5;
-          font-size:9px;
-          line-height:1.4;
-          margin-top:5px;
-        }
-
-        .ca-hero-actions {
-          display:flex;
-          align-items:stretch;
-          justify-content:flex-end;
-          gap:7px;
-          flex-wrap:wrap;
-        }
-
-        .ca-hero-action-card,
-        .ca-hero-utility-btn {
-          min-height:52px;
-          border-radius:14px;
-          border:1px solid rgba(255,255,255,.10);
-          background:rgba(255,255,255,.055);
-          color:#fff;
-          backdrop-filter:blur(10px);
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
-        }
-
-        .ca-hero-action-card {
-          padding:8px 10px;
-        }
-        .ca-language-card { min-width:148px; }
-        .ca-date-card { min-width:138px; }
-        .ca-hero-action-card > span {
-          display:block;
-          color:#8e97a4;
-          font-size:7px;
-          font-weight:850;
-          letter-spacing:.08em;
-          text-transform:uppercase;
-          margin-bottom:5px;
-        }
-        .ca-date-card strong {
-          display:block;
-          color:#fffdf9;
-          font-size:11px;
-          line-height:1;
-        }
-        .ca-date-card small {
-          display:block;
-          color:#7f8996;
-          font-size:7px;
-          margin-top:5px;
-        }
-        .ca-lang-pills { display:flex; gap:4px; }
-        .ca-lang-pill {
-          border:1px solid rgba(255,255,255,.10);
-          background:rgba(255,255,255,.05);
-          color:#aeb5bf;
-          border-radius:8px;
-          padding:6px 8px;
-          font-size:9px;
-          font-weight:900;
-          cursor:pointer;
-        }
-        .ca-lang-pill.active {
-          background:#f7f1df;
-          color:#111827;
-          border-color:#f7f1df;
-          box-shadow:0 4px 12px rgba(0,0,0,.14);
-        }
-
-        .ca-hero-utility-btn {
-          min-width:126px;
-          padding:0 12px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:6px;
-          cursor:pointer;
-          font-size:9px;
-          transition:transform .16s ease, background .16s ease, border-color .16s ease;
-        }
-        .ca-hero-utility-btn span {
-          color:#e2c77d;
-          font-size:12px;
-        }
-        .ca-hero-utility-btn:hover {
-          transform:translateY(-1px);
-          background:rgba(255,255,255,.09);
-          border-color:rgba(226,199,125,.28);
-        }
-        .ca-hero-utility-btn.notification {
-          background:#f7f1df;
-          color:#172033;
-          border-color:#f7f1df;
-        }
-        .ca-hero-utility-btn.notification span { color:#8d6a22; }
-
-        .ca-hero-divider {
-          grid-column:1 / -1;
-          height:1px;
-          background:linear-gradient(90deg,transparent,rgba(226,199,125,.25),transparent);
-          margin:0 0 -4px;
-        }
-
-        .ca-hero-copy { min-width:0; }
-        .ca-hero-copy h2 {
-          font-size:clamp(24px,3vw,37px);
-          line-height:1.08;
-          letter-spacing:-1.45px;
-          max-width:720px;
-          margin:7px 0 9px;
-        }
-        .ca-hero-copy p {
-          max-width:700px;
-          font-size:12px;
-          line-height:1.75;
-          color:#aeb6c1;
-        }
-        .ca-hero-stats { margin-top:18px; gap:8px; }
-        .ca-hero-stat {
-          min-width:112px;
-          padding:10px 12px;
-          border-radius:13px;
-          background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
-          border-color:rgba(255,255,255,.10);
-        }
-        .ca-hero-stat strong { font-size:14px; letter-spacing:-.2px; }
-        .ca-hero-stat span { font-size:8px; text-transform:uppercase; letter-spacing:.07em; }
-
-        .source-nav-wrap {
-          padding:14px;
-          border-radius:20px;
-          background:rgba(255,255,255,.94);
-          border-color:#e1e5eb;
-          box-shadow:0 12px 32px rgba(15,23,42,.055);
-        }
-        .source-nav-head { padding:1px 3px 11px; }
-        .source-nav-head strong { font-size:14px; letter-spacing:-.25px; }
-        .source-tab {
-          min-height:48px;
-          border-radius:14px;
-          background:linear-gradient(180deg,#fff,#fafbfc);
-          box-shadow:0 2px 5px rgba(15,23,42,.025);
-        }
-        .source-tab.active {
-          background:linear-gradient(145deg,#1a2232,#111827);
-          box-shadow:0 9px 20px rgba(15,23,42,.15);
-        }
-        .source-tab.ethics.active {
-          background:linear-gradient(145deg,#8b3046,#682235);
-        }
-
-        .filter-row {
-          gap:8px;
-          padding:4px 0 15px;
-        }
-        .filter {
-          min-height:43px;
-          padding:10px 15px;
-          border-radius:13px;
-          border:1px solid #e1e6ed;
-          background:linear-gradient(180deg,#fff,#f8fafc);
-          color:#344054;
-          font-size:11px;
-          font-weight:900;
-          letter-spacing:-.05px;
-          box-shadow:0 4px 12px rgba(15,23,42,.035);
-        }
-        .filter:hover {
-          transform:translateY(-1px);
-          box-shadow:0 8px 18px rgba(15,23,42,.07);
-        }
-        .filter.active {
-          background:#172033;
-          border-color:#172033;
-          color:#fff;
-          box-shadow:0 9px 20px rgba(15,23,42,.14);
-        }
-        .filter.important.active { background:#8d6a22; border-color:#8d6a22; }
-
-        .section-heading {
-          padding:15px 18px;
-          margin-bottom:12px;
-          border:1px solid #e3e7ed;
-          border-radius:17px;
-          background:rgba(255,255,255,.82);
-          box-shadow:0 7px 22px rgba(15,23,42,.04);
-        }
-        .section-heading h2 {
-          font-size:22px;
-          letter-spacing:-.7px;
-        }
-        .section-heading p { color:#7d8794; }
-
-        .news-card {
-          border-radius:19px;
-          border-color:#e2e7ee;
-          box-shadow:0 10px 28px rgba(15,23,42,.055);
-          transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-        }
-        .news-card:hover {
-          transform:translateY(-2px);
-          border-color:#d5dce5;
-          box-shadow:0 17px 35px rgba(15,23,42,.085);
-        }
-        .news-card h3 {
-          font-size:19px;
-          line-height:1.42;
-          letter-spacing:-.35px;
-        }
-        .summary { color:#5f6b79; line-height:1.75; }
-        .read-button,
-        .important-button {
-          border-radius:11px;
-          min-height:40px;
-          font-weight:900;
-        }
-
-        .premium-facts-wrap,
-        .special-section {
-          border-radius:21px;
-        }
-
-        @media (max-width: 900px) {
-          .ca-premium-hero { grid-template-columns:1fr; }
-          .ca-hero-seal { display:none; }
-          .ca-hero-topbar { align-items:flex-start; flex-direction:column; }
-          .ca-hero-actions { width:100%; justify-content:flex-start; }
-        }
-
-        @media (max-width: 600px) {
-          .ca-premium-hero {
-            display:block;
-            padding:15px;
-            border-radius:20px;
-          }
-          .ca-hero-topbar { display:block; }
-          .ca-hero-brand { margin-bottom:12px; }
-          .ca-hero-brand strong { font-size:20px; }
-          .ca-hero-actions {
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:7px;
-          }
-          .ca-hero-action-card,
-          .ca-hero-utility-btn { width:100%; min-width:0; }
-          .ca-language-card, .ca-date-card { min-width:0; }
-          .ca-hero-utility-btn { min-height:46px; }
-          .ca-hero-divider { margin:13px 0 3px; }
-          .ca-hero-copy h2 { font-size:25px; letter-spacing:-1px; }
-          .ca-hero-copy p { font-size:11.5px; }
-          .ca-hero-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
-          .ca-hero-stat { min-width:0; padding:8px 7px; }
-          .ca-hero-stat strong { font-size:11px; }
-          .ca-hero-stat span { font-size:6.5px; }
-          .source-nav-wrap { border-radius:17px; }
-          .source-tab { min-height:43px; border-radius:12px; }
-          .filter { border-radius:12px; }
-        }
-
         html, body { max-width:100%; overflow-x:hidden; }
         *, *::before, *::after { box-sizing:border-box; }
         button, input, select, textarea { max-width:100%; }
         img, video, iframe { max-width:100%; height:auto; }
-      `}</style>
+      `}
+
+
+/* =========================================================
+   SAMBHAV UPSC — CURRENT AFFAIRS PREMIUM VISUAL OVERRIDE
+   DESIGN ONLY — NO FUNCTIONAL / FEATURE CHANGES
+   Paste this at the END of the existing <style jsx global> block.
+   ========================================================= */
+
+.ca-page {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(191, 158, 76, .10), transparent 23%),
+    radial-gradient(circle at 92% 4%, rgba(30, 41, 59, .045), transparent 24%),
+    linear-gradient(180deg, #f8f7f3 0%, #f1f2f4 48%, #eceef1 100%);
+  color: #172033;
+  padding: 28px 18px 90px;
+}
+
+/* Back */
+.page-back-button {
+  border: 1px solid #ddd9cf;
+  background: rgba(255,255,255,.92);
+  color: #202634;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(22, 29, 43, .055);
+}
+
+/* =========================================================
+   PREMIUM HERO — LIGHT, HIGH CONTRAST
+   ========================================================= */
+
+.ca-premium-hero {
+  max-width: 1050px;
+  margin-bottom: 18px;
+  padding: 18px 20px 23px;
+  border: 1px solid #d9cfb6;
+  border-radius: 26px;
+  color: #18202f;
+  background:
+    radial-gradient(circle at 88% 5%, rgba(191,158,76,.17), transparent 25%),
+    radial-gradient(circle at 15% 120%, rgba(148,163,184,.12), transparent 32%),
+    linear-gradient(145deg, #fffdf8 0%, #f7f3e8 58%, #eee9dc 100%);
+  box-shadow:
+    0 24px 60px rgba(22, 29, 43, .11),
+    inset 0 1px 0 rgba(255,255,255,.95);
+}
+
+.ca-premium-hero::before {
+  border-color: rgba(154,118,45,.15);
+}
+
+.ca-premium-hero::after {
+  border-color: rgba(154,118,45,.12);
+}
+
+.ca-hero-brand-kicker,
+.ca-hero-eyebrow {
+  color: #94732b;
+}
+
+.ca-hero-brand strong,
+.ca-hero-copy h2 {
+  color: #171d29;
+}
+
+.ca-hero-brand small,
+.ca-hero-copy p {
+  color: #687181;
+}
+
+.ca-hero-divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(154,118,45,.28),
+    transparent
+  );
+}
+
+.ca-hero-action-card,
+.ca-hero-utility-btn {
+  border-color: #ddd6c7;
+  background: rgba(255,255,255,.78);
+  color: #202838;
+  box-shadow:
+    0 5px 14px rgba(22,29,43,.045),
+    inset 0 1px 0 rgba(255,255,255,.85);
+}
+
+.ca-hero-action-card > span {
+  color: #7b7467;
+}
+
+.ca-date-card strong {
+  color: #202838;
+}
+
+.ca-date-card small {
+  color: #858070;
+}
+
+.ca-lang-pill {
+  border-color: #ded8ca;
+  background: #f8f6f0;
+  color: #6c675e;
+}
+
+.ca-lang-pill.active {
+  background: #202838;
+  color: #fff;
+  border-color: #202838;
+}
+
+.ca-hero-utility-btn span {
+  color: #9a762d;
+}
+
+.ca-hero-utility-btn:hover {
+  background: #fff;
+  border-color: #cbb986;
+}
+
+.ca-hero-utility-btn.notification {
+  background: #202838;
+  color: #fff;
+  border-color: #202838;
+}
+
+.ca-hero-utility-btn.notification span {
+  color: #e1c77e;
+}
+
+.ca-hero-stat {
+  background: rgba(255,255,255,.68);
+  border-color: #ded8ca;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
+}
+
+.ca-hero-stat strong {
+  color: #202838;
+}
+
+.ca-hero-stat span {
+  color: #7d776d;
+}
+
+.ca-hero-seal-ring {
+  border-color: rgba(154,118,45,.46);
+  outline-color: rgba(154,118,45,.12);
+  background: radial-gradient(
+    circle,
+    rgba(191,158,76,.14),
+    rgba(255,255,255,.30) 68%
+  );
+}
+
+.ca-hero-seal-ring span {
+  color: #94732b;
+}
+
+.ca-hero-seal-ring small,
+.ca-hero-date {
+  color: #817b70;
+}
+
+.ca-hero-seal-line {
+  background: rgba(154,118,45,.35);
+}
+
+/* =========================================================
+   SOURCE NAV
+   ========================================================= */
+
+.source-nav-wrap {
+  background: rgba(255,255,255,.91);
+  border-color: #dedfdc;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(22,29,43,.055);
+}
+
+.source-nav-eyebrow {
+  color: #9a762d;
+}
+
+.source-nav-head strong {
+  color: #202838;
+}
+
+.source-nav-note {
+  color: #7a818c;
+}
+
+.source-tab {
+  background: linear-gradient(180deg,#fff,#f8f9fa);
+  border-color: #e0e3e7;
+  color: #3b4351;
+}
+
+.source-tab:hover {
+  border-color: #cfd4dc;
+}
+
+.source-tab.active {
+  background: linear-gradient(145deg,#202838,#151b27);
+  border-color: #202838;
+  color: #fff;
+}
+
+.source-tab.ethics.active {
+  background: linear-gradient(145deg,#8b3046,#682235);
+  border-color: #8b3046;
+}
+
+.source-tab-sub,
+.source-tab-count {
+  background: #f0f2f4;
+  color: #626b78;
+}
+
+.source-tab.active .source-tab-sub,
+.source-tab.active .source-tab-count {
+  background: rgba(255,255,255,.13);
+  color: #fff;
+}
+
+/* =========================================================
+   FILTERS
+   ========================================================= */
+
+.filter-row {
+  padding-top: 5px;
+}
+
+.filter {
+  background: rgba(255,255,255,.94);
+  border-color: #dde1e6;
+  color: #414957;
+  box-shadow: 0 4px 12px rgba(22,29,43,.035);
+}
+
+.filter:hover {
+  border-color: #cbd1d9;
+}
+
+.filter.active {
+  background: #202838;
+  border-color: #202838;
+  color: #fff;
+}
+
+.filter.important.active {
+  background: #967126;
+  border-color: #967126;
+}
+
+.filter.premium.active {
+  background: #7d2940;
+  border-color: #7d2940;
+}
+
+/* =========================================================
+   SECTION HEADER
+   ========================================================= */
+
+.section-heading {
+  background: rgba(255,255,255,.82);
+  border-color: #e0e3e7;
+  border-radius: 17px;
+  box-shadow: 0 7px 22px rgba(22,29,43,.04);
+}
+
+.section-heading h2 {
+  color: #1d2533;
+}
+
+.section-heading p {
+  color: #7a828e;
+}
+
+.badge {
+  background: #f1eee7;
+  color: #75643e;
+}
+
+/* =========================================================
+   NEWS CARDS
+   ========================================================= */
+
+.news-card {
+  background: rgba(255,255,255,.96);
+  border-color: #e0e4e9;
+  border-radius: 19px;
+  box-shadow: 0 10px 28px rgba(22,29,43,.052);
+}
+
+.news-card:hover {
+  border-color: #d0d6de;
+  box-shadow: 0 17px 35px rgba(22,29,43,.08);
+}
+
+.source-chip {
+  background: #f0f2f4;
+  color: #596270;
+}
+
+.source-chip.pib {
+  background: #edf4ff;
+  color: #175cd3;
+}
+
+.source-chip.gktoday {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.source-chip.the-hindu {
+  background: #fff0f2;
+  color: #b42318;
+}
+
+.source-chip.better-india {
+  background: #fff5dc;
+  color: #8a6500;
+}
+
+.meta,
+.source {
+  color: #7b8490;
+}
+
+.news-card h3 {
+  color: #1b2432;
+}
+
+.summary {
+  color: #596574;
+}
+
+.card-actions {
+  border-top-color: #edf0f3;
+}
+
+.read-button {
+  background: #202838;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(22,29,43,.13);
+}
+
+.read-button:hover {
+  background: #293348;
+}
+
+.important-button {
+  background: #f3f4f5;
+  color: #46505d;
+}
+
+.important-button.saved {
+  background: #fff4d8;
+  color: #8b6411;
+  border-color: #ead39b;
+}
+
+/* =========================================================
+   NOTIFICATION PANEL
+   ========================================================= */
+
+.notification-panel {
+  background: rgba(255,255,255,.96);
+  border-color: #dfe3e8;
+  box-shadow: 0 12px 30px rgba(22,29,43,.055);
+}
+
+.notification-title h2,
+.notification-title p {
+  color: #202838;
+}
+
+.notification-title p,
+.setting-box label,
+.notification-info span {
+  color: #707985;
+}
+
+.switch.on {
+  background: #202838;
+}
+
+.setting-box {
+  background: #fafbfc;
+  border-color: #e2e6eb;
+}
+
+.setting-btn.active,
+.save-time {
+  background: #202838;
+  border-color: #202838;
+  color: #fff;
+}
+
+.notification-info {
+  background: #f5f6f7;
+}
+
+.notification-message {
+  color: #175cd3;
+}
+
+/* =========================================================
+   STATES
+   ========================================================= */
+
+.empty,
+.state-card {
+  background: rgba(255,255,255,.96);
+  border-color: #d6dce3;
+  color: #707985;
+  box-shadow: 0 10px 28px rgba(22,29,43,.045);
+}
+
+.state-card h2 {
+  color: #202838;
+}
+
+.loader {
+  border-color: #e4e7eb;
+  border-top-color: #202838;
+}
+
+/* =========================================================
+   PREMIUM FACTS
+   ========================================================= */
+
+.premium-main-heading {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(191,158,76,.13), transparent 25%),
+    linear-gradient(135deg,#fffdf8,#f5f1e8);
+  border-color: #dfd5bf;
+}
+
+.premium-main-badge {
+  background: #f3ead7;
+  color: #80611e;
+}
+
+.premium-main-heading h2,
+.premium-active-heading h3 {
+  color: #202838;
+}
+
+.premium-main-heading p,
+.premium-active-heading p {
+  color: #707985;
+}
+
+.premium-tab {
+  background: #fff;
+  border-color: #dfe4e9;
+  color: #202838;
+}
+
+.premium-tab.active {
+  background: #202838;
+  border-color: #202838;
+}
+
+.premium-tab-copy small {
+  color: #737c88;
+}
+
+.premium-tab b {
+  background: #f1f3f5;
+  color: #46505d;
+}
+
+.premium-type-pill {
+  background: #f4ead9;
+  color: #80611e;
+}
+
+.premium-gs-pill {
+  background: #f1f3f5;
+  color: #596270;
+}
+
+.premium-clean-card {
+  background: rgba(255,255,255,.97);
+  border-color: #e0e4e9;
+  box-shadow: 0 8px 22px rgba(22,29,43,.045);
+}
+
+.premium-clean-card h3 {
+  color: #202838;
+}
+
+.premium-clean-fact {
+  color: #596574;
+}
+
+.premium-clean-footer {
+  border-top-color: #edf0f3;
+  color: #8a929d;
+}
+
+.premium-clean-empty {
+  background: #fafbfc;
+  border-color: #d9dee5;
+  color: #707985;
+}
+
+/* =========================================================
+   INLINE ANALYSIS / ARTICLE DETAIL
+   ========================================================= */
+
+.inline-analysis {
+  border-top-color: #e2e6eb;
+}
+
+.inline-analysis-card {
+  background:
+    linear-gradient(180deg,#ffffff 0%,#fafbfc 100%);
+  border-color: #dce1e7;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 10px 28px rgba(22,29,43,.055);
+}
+
+.inline-analysis-card .close {
+  background: #fff;
+  border-color: #dce1e7;
+  color: #4a5360;
+}
+
+.modal h2,
+.modal h3 {
+  color: #202838;
+}
+
+.modal h3 {
+  border-bottom-color: #edf0f3;
+}
+
+.modal p,
+.content-block {
+  color: #596574;
+}
+
+.source-link {
+  color: #175cd3;
+}
+
+.premium-box {
+  background: linear-gradient(135deg,#fff8e9,#f8edd3);
+  border-color: #e7d09a;
+}
+
+.premium-box strong {
+  color: #80611e;
+}
+
+/* =========================================================
+   MOBILE POLISH
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .ca-page {
+    padding: 12px 10px 48px;
+  }
+
+  .ca-premium-hero {
+    border-radius: 20px;
+    padding: 15px;
+  }
+
+  .ca-hero-actions {
+    gap: 7px;
+  }
+
+  .source-nav-wrap {
+    border-radius: 17px;
+  }
+
+  .news-card {
+    border-radius: 16px;
+  }
+}
+
+</style>
     </main>
   );
 }
