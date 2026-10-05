@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const TEST_OPTIONS = [20, 30, 50, 75, 100];
+const TEST_OPTIONS = [25, 50, 100];
 const MARKS_PER_QUESTION = 2;
 const NEGATIVE_MARKS = 2 / 3;
 const TOTAL_SECONDS = 2 * 60 * 60;
@@ -42,9 +42,6 @@ export default function PrelimsTestPage() {
   const [topic, setTopic] = useState("all");
   const [questionCount, setQuestionCount] = useState(25);
   const [history, setHistory] = useState([]);
-  const [hasResume, setHasResume] = useState(false);
-  const [dailyNotification, setDailyNotification] = useState(false);
-  const [notificationSaving, setNotificationSaving] = useState(false);
   const [language, setLanguage] = useState("en");
 
   const [testQuestions, setTestQuestions] = useState([]);
@@ -60,7 +57,6 @@ export default function PrelimsTestPage() {
   const [theme, setTheme] = useState("light");
   const [isMobile, setIsMobile] = useState(false);
   const submittingRef = useRef(false);
-  const submitTestRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -285,13 +281,11 @@ export default function PrelimsTestPage() {
   const topics = useMemo(() => {
     const set = new Set();
     questions.forEach((q) => {
-      const qSubject = String(q?.subject || q?.category || "");
-      if (subject !== "all" && qSubject !== subject) return;
       const value = q?.topic;
       if (value) set.add(String(value));
     });
     return ["all", ...Array.from(set).sort()];
-  }, [questions, subject]);
+  }, [questions]);
 
   useEffect(() => {
     try {
@@ -301,87 +295,6 @@ export default function PrelimsTestPage() {
       setHistory([]);
     }
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/current-affairs/notifications?user_id=${encodeURIComponent(user.id)}`, { credentials: "include", cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
-        const item = Array.isArray(data?.notifications) ? data.notifications[0] : data?.notification;
-        if (item) setDailyNotification(Boolean(item.enabled));
-      } catch {}
-    })();
-  }, [user]);
-
-  const toggleDailyNotification = async () => {
-    if (!user?.id || notificationSaving) return;
-    const next = !dailyNotification;
-    setNotificationSaving(true);
-    try {
-      const res = await fetch("/api/current-affairs/notifications", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, enabled: next, language, notification_time: "18:00" }),
-      });
-      if (!res.ok) throw new Error("notification save failed");
-      setDailyNotification(next);
-    } catch (e) {
-      console.error("Daily PYQ notification error:", e);
-    } finally {
-      setNotificationSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    try { setHasResume(Boolean(localStorage.getItem("sambhav-prelims-active"))); } catch { setHasResume(false); }
-  }, [screen]);
-
-  // Restore an unfinished exam attempt after the question bank is loaded.
-  useEffect(() => {
-    if (!questions.length || screen !== "center") return;
-    try {
-      const raw = localStorage.getItem("sambhav-prelims-active");
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (!saved?.testQuestions?.length) return;
-      const ids = new Set(questions.map((q) => String(q.id)));
-      const valid = saved.testQuestions.every((q) => ids.has(String(q.id)));
-      if (!valid || Number(saved.remaining) <= 0) return;
-      setTestQuestions(saved.testQuestions);
-      setCurrent(Math.min(Number(saved.current) || 0, saved.testQuestions.length - 1));
-      setAnswers(saved.answers || {});
-      setMarked(saved.marked || {});
-      setVisited(saved.visited || {});
-      setRemaining(Number(saved.remaining) || TOTAL_SECONDS);
-      setStartedAt(saved.startedAt || Date.now());
-      setFinishedAt(null);
-      setAutoSubmitted(false);
-      setTestType(saved.testType || "pyq");
-      setYear(saved.year || "all");
-      setSubject(saved.subject || "all");
-      setTopic(saved.topic || "all");
-      setQuestionCount(Number(saved.questionCount) || 20);
-      setLanguage(saved.language === "hi" ? "hi" : "en");
-      setScreen("test");
-      setHasResume(false);
-    } catch {}
-  }, [questions, screen]);
-
-  // Persist the current exam so refresh/reopen does not destroy progress.
-  useEffect(() => {
-    if (screen !== "test" || !testQuestions.length) return;
-    try {
-      localStorage.setItem(
-        "sambhav-prelims-active",
-        JSON.stringify({
-          testQuestions, current, answers, marked, visited, remaining, startedAt,
-          testType, year, subject, topic, questionCount, language,
-        })
-      );
-    } catch {}
-  }, [screen, testQuestions, current, answers, marked, visited, remaining, startedAt, testType, year, subject, topic, questionCount, language]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -393,11 +306,12 @@ export default function PrelimsTestPage() {
       const subjectOk = subject === "all" || qSubject === subject;
       const topicOk = topic === "all" || qTopic === topic;
 
-      if (testType === "custom" && year === "all" && subject === "all" && topic === "all") return false;
+      if (testType === "subject" && subject === "all") return false;
+      if (testType === "topic" && topic === "all") return false;
 
       return yearOk && subjectOk && topicOk;
     });
-  }, [questions, year, subject, topic, testType]);
+  }, [questions, year, subject]);
 
   const currentQuestion = testQuestions[current];
 
@@ -457,27 +371,9 @@ export default function PrelimsTestPage() {
     };
   }, [answers, testQuestions]);
 
-  const resultAnalysis = useMemo(() => {
-    const build = (key) => {
-      const map = {};
-      testQuestions.forEach((q) => {
-        const name = String(q?.[key] || "General");
-        if (!map[name]) map[name] = { name, total: 0, correct: 0, wrong: 0 };
-        map[name].total += 1;
-        const chosen = answers[q.id];
-        if (chosen !== undefined && chosen !== null) {
-          if (Number(chosen) === Number(q.answer)) map[name].correct += 1;
-          else map[name].wrong += 1;
-        }
-      });
-      return Object.values(map).sort((a, b) => b.total - a.total);
-    };
-    return { subject: build("subject"), topic: build("topic"), year: build("year") };
-  }, [testQuestions, answers]);
-
   const startTest = () => {
-    if (testType === "custom" && year === "all" && subject === "all" && topic === "all") {
-      setError("Please select at least one Year, Subject or Topic for Custom Test.");
+    if (testType === "subject" && subject === "all") {
+      setError("Please select a subject for Subject Test.");
       return;
     }
 
@@ -486,67 +382,26 @@ export default function PrelimsTestPage() {
       return;
     }
 
-    if ((testType === "pyq" || testType === "original") && year === "all") {
-      setError("Please select a year for the selected PYQ mode.");
-      return;
-    }
-
     if (!filteredQuestions.length) {
       setError("No questions are available for the selected filters.");
       return;
     }
 
-    const sourceQuestions =
-      testType === "full" || testType === "mock" || testType === "daily"
-        ? questions
-        : testType === "original"
-        ? questions.filter((q) => String(q?.year ?? "") === String(year))
-        : filteredQuestions;
-
-    const eligible = sourceQuestions.filter(
-      (q) => Array.isArray(q.options) && q.options.length >= 4
+    const eligible = filteredQuestions.filter(
+      (q) => Array.isArray(q.options) && q.options.length > 0
     );
 
-    if (!eligible.length) {
-      setError("No complete MCQ records are available for this selection.");
-      return;
-    }
+    const count =
+      testType === "full" || testType === "mock"
+        ? Math.min(100, eligible.length)
+        : Math.min(Number(questionCount), eligible.length);
 
-    let selected = [];
-
-    if (testType === "original") {
-      // Original Paper preserves the database order for the selected year.
-      selected = [...eligible];
-      if (selected.length < 100) {
-        setError(`Selected year has only ${selected.length} complete questions available. A full UPSC paper needs 100.`);
-        return;
-      }
-      selected = selected.slice(0, 100);
-    } else if (testType === "daily") {
-      // Stable daily set: same 20 questions for the same date, different on a new date.
-      const dateKey = new Date().toISOString().slice(0, 10);
-      let seed = Array.from(dateKey).reduce((acc, ch) => ((acc * 31) + ch.charCodeAt(0)) >>> 0, 2166136261);
-      const seeded = [...eligible].sort((a, b) => {
-        const hash = (id) => {
-          let h = seed;
-          for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
-          return h;
-        };
-        return hash(a.id) - hash(b.id);
-      });
-      selected = seeded.slice(0, Math.min(20, seeded.length));
-    } else {
-      const count =
-        testType === "full" || testType === "mock"
-          ? Math.min(100, eligible.length)
-          : Math.min(Number(questionCount), eligible.length);
-      selected = shuffle(eligible).slice(0, count);
-    }
-
-    if (selected.length === 0) {
+    if (!count) {
       setError("No questions are available for this test.");
       return;
     }
+
+    const selected = shuffle(eligible).slice(0, count);
 
     const initialVisited = {};
     if (selected[0]?.id !== undefined) initialVisited[selected[0].id] = true;
@@ -557,7 +412,7 @@ export default function PrelimsTestPage() {
     setAnswers({});
     setMarked({});
     setVisited(initialVisited);
-    setRemaining(testType === "daily" ? 30 * 60 : TOTAL_SECONDS);
+    setRemaining(TOTAL_SECONDS);
     setStartedAt(Date.now());
     setFinishedAt(null);
     setAutoSubmitted(false);
@@ -571,7 +426,6 @@ export default function PrelimsTestPage() {
 
   const submitTest = (forced = false) => {
     if (submittingRef.current || screen !== "test") return;
-    if (!forced && !window.confirm("Submit this test now? Unanswered questions will remain unattempted.")) return;
 
     submittingRef.current = true;
     setAutoSubmitted(Boolean(forced));
@@ -600,11 +454,8 @@ export default function PrelimsTestPage() {
         "sambhav-prelims-history",
         JSON.stringify([entry, ...history].slice(0, 20))
       );
-      localStorage.removeItem("sambhav-prelims-active");
     } catch {}
   };
-
-  submitTestRef.current = submitTest;
 
   useEffect(() => {
     if (screen !== "test") return;
@@ -613,7 +464,7 @@ export default function PrelimsTestPage() {
       setRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          setTimeout(() => submitTestRef.current?.(true), 0);
+          setTimeout(() => submitTest(true), 0);
           return 0;
         }
         return prev - 1;
@@ -666,7 +517,6 @@ export default function PrelimsTestPage() {
   };
 
   const restart = () => {
-    try { localStorage.removeItem("sambhav-prelims-active"); } catch {}
     setScreen("center");
     setTestQuestions([]);
     setCurrent(0);
@@ -814,12 +664,7 @@ export default function PrelimsTestPage() {
     return (
       <main style={pageStyle(colors)}>
         <div style={testHeaderStyle(colors, isMobile)}>
-          <button
-            style={backButton(colors)}
-            onClick={() => {
-              if (window.confirm("Exit this test? Your current progress will be saved and can be resumed.")) setScreen("center");
-            }}
-          >
+          <button style={backButton(colors)} onClick={() => setScreen("center")}>
             ← Test Center
           </button>
 
@@ -828,11 +673,6 @@ export default function PrelimsTestPage() {
             <strong>
               Question {current + 1} / {testQuestions.length}
             </strong>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "center", gap: 5 }}>
-            <button type="button" onClick={() => setLanguage("en")} style={language === "en" ? smallActiveButton(colors) : smallSecondaryButton(colors)}>EN</button>
-            <button type="button" onClick={translateCurrentQuestion} disabled={translationLoading} style={language === "hi" ? smallActiveButton(colors) : smallSecondaryButton(colors)}>HI</button>
           </div>
 
           <div
@@ -1050,19 +890,6 @@ export default function PrelimsTestPage() {
           </div>
 
           <div style={cardStyle(colors)}>
-            <div style={eyebrow(colors)}>PERFORMANCE ANALYSIS</div>
-            <h2 style={sectionTitle(colors)}>Subject / Topic / Year breakdown</h2>
-            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-              {resultAnalysis.subject.map((item) => (
-                <div key={item.name} style={historyRow(colors)}>
-                  <div><strong>{item.name}</strong><span style={{ display: "block", color: colors.muted, fontSize: 11 }}>{item.total} Questions • {item.correct} Correct • {item.wrong} Wrong</span></div>
-                  <strong>{item.total ? Math.round((item.correct / item.total) * 100) : 0}%</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={cardStyle(colors)}>
             <div style={eyebrow(colors)}>QUESTION-WISE REVIEW</div>
 
             <div style={{ display: "grid", gap: 10 }}>
@@ -1244,14 +1071,6 @@ export default function PrelimsTestPage() {
           <div style={typeGrid}>
             <TestTypeCard
               colors={colors}
-              active={testType === "full"}
-              title="Full UPSC Prelims Simulator"
-              subtitle="100 questions • 120 minutes • real exam flow"
-              icon="🎯"
-              onClick={() => setTestType("full")}
-            />
-            <TestTypeCard
-              colors={colors}
               active={testType === "pyq"}
               title="PYQ Test"
               subtitle="Year-wise UPSC Prelims PYQs"
@@ -1260,19 +1079,19 @@ export default function PrelimsTestPage() {
             />
             <TestTypeCard
               colors={colors}
-              active={testType === "original"}
-              title="Original Paper"
-              subtitle="100 questions in database order for a selected year"
-              icon="📝"
-              onClick={() => setTestType("original")}
+              active={testType === "full"}
+              title="Full Length"
+              subtitle="100-question exam-style paper"
+              icon="🎯"
+              onClick={() => setTestType("full")}
             />
             <TestTypeCard
               colors={colors}
-              active={testType === "custom"}
-              title="Custom Test"
-              subtitle="Combine Year + Subject + Topic filters"
-              icon="⚙"
-              onClick={() => setTestType("custom")}
+              active={testType === "subject"}
+              title="Subject Test"
+              subtitle="Polity, Economy, History and more"
+              icon="📖"
+              onClick={() => setTestType("subject")}
             />
             <TestTypeCard
               colors={colors}
@@ -1285,77 +1104,59 @@ export default function PrelimsTestPage() {
             <TestTypeCard
               colors={colors}
               active={testType === "mock"}
-              title="Mixed Mock"
-              subtitle="Random mixed PYQs for simulation"
+              title="Mock Test"
+              subtitle="Mixed questions for exam simulation"
               icon="🏆"
               onClick={() => setTestType("mock")}
             />
-          </div>
-
-          <div style={{ marginTop: 12 }}>
             <TestTypeCard
               colors={colors}
-              active={testType === "daily"}
-              title="Daily 20 PYQ"
-              subtitle="Small daily practice set • separate from the full simulator"
-              icon="◷"
-              onClick={() => setTestType("daily")}
+              active={advancedMode}
+              title="Advanced Exam Mode"
+              subtitle="Full UPSC-style timer, palette & review engine"
+              icon="⚡"
+              onClick={() => setAdvancedMode(true)}
             />
-            <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 13, border: `1px solid ${colors.border}`, background: colors.card2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-              <div>
-                <strong style={{ fontSize: 12 }}>Daily evening notification</strong>
-                <span style={{ display: "block", color: colors.muted, fontSize: 10, marginTop: 2 }}>Existing notification system • 6:00 PM</span>
-              </div>
-              <button type="button" onClick={toggleDailyNotification} disabled={notificationSaving} style={dailyNotification ? primaryButton(colors) : secondaryButton(colors)}>
-                {notificationSaving ? "Saving…" : dailyNotification ? "Enabled" : "Enable"}
-              </button>
-            </div>
           </div>
 
           <div style={filterGrid}>
-            <SelectBox
-              colors={colors}
-              label="Year"
-              value={year}
-              onChange={setYear}
-              options={years}
-            />
+            {testType === "pyq" && (
+              <SelectBox
+                colors={colors}
+                label="Year"
+                value={year}
+                onChange={setYear}
+                options={years}
+              />
+            )}
 
-            <SelectBox
-              colors={colors}
-              label="Subject"
-              value={subject}
-              onChange={setSubject}
-              options={subjects}
-            />
+            {(testType === "subject" || testType === "topic") && (
+              <SelectBox
+                colors={colors}
+                label="Subject"
+                value={subject}
+                onChange={setSubject}
+                options={subjects}
+              />
+            )}
 
-            <SelectBox
-              colors={colors}
-              label="Topic"
-              value={topic}
-              onChange={setTopic}
-              options={topics}
-            />
+            {testType === "topic" && (
+              <SelectBox
+                colors={colors}
+                label="Topic"
+                value={topic}
+                onChange={setTopic}
+                options={topics}
+              />
+            )}
 
-            <div style={filterInfo(colors)}>
-              <span style={eyebrow(colors)}>SELECTED MODE</span>
-              <strong>
-                {testType === "full"
-                  ? "100Q Full Simulator"
-                  : testType === "original"
-                  ? "Original Year Paper"
-                  : testType === "daily"
-                  ? "Daily 20 PYQ"
-                  : testType === "custom"
-                  ? "Custom Year / Subject / Topic Test"
-                  : testType === "topic"
-                  ? "Topic Test"
-                  : testType === "mock"
-                  ? "Mixed Mock Test"
-                  : "Year-wise PYQ Test"}
-              </strong>
-              <small>Year, subject and topic can be combined where applicable.</small>
-            </div>
+            {testType !== "pyq" && testType !== "subject" && testType !== "topic" && (
+              <div style={filterInfo(colors)}>
+                <span style={eyebrow(colors)}>MODE</span>
+                <strong>{testType === "full" ? "Full Length UPSC Test" : "Mixed Mock Test"}</strong>
+                <small>Questions are selected automatically from the available PYQ pool.</small>
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: 20 }}>
@@ -1365,7 +1166,7 @@ export default function PrelimsTestPage() {
                 <button
                   key={count}
                   onClick={() => setQuestionCount(count)}
-                  disabled={testType === "full" || testType === "mock" || testType === "original" || testType === "daily"}
+                  disabled={testType === "full" || testType === "mock"}
                   style={{
                     ...countButton(colors),
                     ...(questionCount === count
@@ -1375,7 +1176,7 @@ export default function PrelimsTestPage() {
                           borderColor: colors.gold,
                         }
                       : {}),
-                    ...(testType === "full" || testType === "mock" || testType === "original" || testType === "daily" ? { opacity: 0.45 } : {}),
+                    ...(testType === "full" || testType === "mock" ? { opacity: 0.45 } : {}),
                   }}
                 >
                   {count}
@@ -1429,41 +1230,6 @@ export default function PrelimsTestPage() {
           >
             Start Test →
           </button>
-        </section>
-
-        {hasResume ? (
-          <section style={cardStyle(colors)}>
-            <div style={sectionHeading}>
-              <div>
-                <div style={eyebrow(colors)}>RESUME TEST</div>
-                <h2 style={sectionTitle(colors)}>Unfinished test saved</h2>
-              </div>
-              <button style={primaryButton(colors)} onClick={() => {
-                try {
-                  const saved = JSON.parse(localStorage.getItem("sambhav-prelims-active") || "null");
-                  if (saved?.testQuestions?.length) {
-                    setTestQuestions(saved.testQuestions); setCurrent(saved.current || 0); setAnswers(saved.answers || {}); setMarked(saved.marked || {}); setVisited(saved.visited || {}); setRemaining(saved.remaining || TOTAL_SECONDS); setStartedAt(saved.startedAt || Date.now()); setTestType(saved.testType || "pyq"); setYear(saved.year || "all"); setSubject(saved.subject || "all"); setTopic(saved.topic || "all"); setQuestionCount(saved.questionCount || 20); setLanguage(saved.language === "hi" ? "hi" : "en"); setScreen("test"); setHasResume(false);
-                  }
-                } catch {}
-              }}>Resume</button>
-            </div>
-            <p style={mutedStyle(colors)}>Your answers, timer, marks and current question were saved automatically.</p>
-          </section>
-        ) : null}
-
-        <section style={cardStyle(colors)}>
-          <div style={sectionHeading}>
-            <div>
-              <div style={eyebrow(colors)}>PERFORMANCE</div>
-              <h2 style={sectionTitle(colors)}>Previous Tests & Analysis</h2>
-            </div>
-            <span style={mutedStyle(colors)}>{history.length} saved</span>
-          </div>
-          <div style={miniStatsGrid}>
-            <MiniStat colors={colors} value={history.length} label="Tests" />
-            <MiniStat colors={colors} value={history.length ? Math.round(history.reduce((a, b) => a + Number(b.accuracy || 0), 0) / history.length) + "%" : "—"} label="Avg Accuracy" />
-            <MiniStat colors={colors} value={history.length ? Math.max(...history.map((h) => Number(h.score || 0))).toFixed(2) : "—"} label="Best Score" />
-          </div>
         </section>
 
         <section style={cardStyle(colors)}>
@@ -1659,10 +1425,7 @@ function getTestLabel(type) {
     full: "Full Length Test",
     subject: "Subject Test",
     topic: "Topic Test",
-    custom: "Custom Test",
     mock: "Mock Test",
-    original: "Original Paper",
-    daily: "Daily 20 PYQ",
   };
   return labels[type] || "Prelims Test";
 }
@@ -2002,7 +1765,7 @@ const testHeaderStyle = (c, mobile = false) => ({
   minHeight: 68,
   padding: "10px clamp(14px, 3vw, 32px)",
   display: "grid",
-  gridTemplateColumns: mobile ? "auto minmax(0, 1fr) auto auto" : "1fr auto auto auto",
+  gridTemplateColumns: mobile ? "auto minmax(0, 1fr) auto" : "1fr auto 1fr",
   alignItems: "center",
   gap: 12,
   borderBottom: `1px solid ${c.border}`,
