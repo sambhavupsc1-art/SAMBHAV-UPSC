@@ -71,6 +71,13 @@ export default function PrelimsTestPage() {
   }, [theme]);
 
   useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 900);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
     let alive = true;
 
     async function load() {
@@ -407,6 +414,10 @@ export default function PrelimsTestPage() {
     setStartedAt(Date.now());
     setFinishedAt(null);
     setAutoSubmitted(false);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
+    setLanguage("en");
     submittingRef.current = false;
     setScreen("test");
   };
@@ -514,10 +525,85 @@ export default function PrelimsTestPage() {
     setStartedAt(null);
     setFinishedAt(null);
     setAutoSubmitted(false);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
+    setLanguage("en");
     submittingRef.current = false;
   };
 
+  const translateCurrentQuestion = async () => {
+    const question = currentQuestion;
+    if (!question) return;
+
+    setTranslationError("");
+
+    if (translationQuestionId === question.id && translation) {
+      setLanguage("hi");
+      return;
+    }
+
+    const cacheKey = `sambhav_translation_v2_${question.id}`;
+
+    try {
+      setTranslationLoading(true);
+
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.question_hi && Array.isArray(parsed?.options_hi)) {
+            setTranslation(parsed);
+            setTranslationQuestionId(question.id);
+            setLanguage("hi");
+            return;
+          }
+        }
+      } catch {}
+
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          question: question.question || "",
+          options: question.options || [],
+          explanation: question.explanation_en || question.explanation || "",
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.success || !data?.translation) {
+        throw new Error(data?.error || "Translation failed. Please try again.");
+      }
+
+      const translated = data.translation;
+      setTranslation(translated);
+      setTranslationQuestionId(question.id);
+      setLanguage("hi");
+
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(translated));
+      } catch {}
+    } catch (err) {
+      setTranslationError(err?.message || "Translation failed. Please try again.");
+    } finally {
+      setTranslationLoading(false);
+    }
+  };
+
+  const showEnglish = () => {
+    setLanguage("en");
+    setTranslationError("");
+  };
+
   const optionText = (q, index) => {
+    if (language === "hi" && translationQuestionId === q?.id && translation?.options_hi?.[index]) {
+      return translation.options_hi[index];
+    }
     if (language === "hi" && Array.isArray(q?.options_hi) && q.options_hi[index]) {
       return q.options_hi[index];
     }
@@ -525,7 +611,9 @@ export default function PrelimsTestPage() {
   };
 
   const questionText =
-    language === "hi" && currentQuestion?.question_hi
+    language === "hi" && translationQuestionId === currentQuestion?.id && translation?.question_hi
+      ? translation.question_hi
+      : language === "hi" && currentQuestion?.question_hi
       ? currentQuestion.question_hi
       : currentQuestion?.question || "";
 
@@ -573,7 +661,7 @@ export default function PrelimsTestPage() {
   if (screen === "test" && currentQuestion) {
     return (
       <main style={pageStyle(colors)}>
-        <div style={testHeaderStyle(colors)}>
+        <div style={testHeaderStyle(colors, isMobile)}>
           <button style={backButton(colors)} onClick={() => setScreen("center")}>
             ← Test Center
           </button>
@@ -595,7 +683,7 @@ export default function PrelimsTestPage() {
           </div>
         </div>
 
-        <div style={testLayout}>
+        <div style={testLayoutStyle(colors, isMobile)}>
           <section style={cardStyle(colors)}>
             <div style={questionMetaStyle(colors)}>
               <span>{currentQuestion.year || "PYQ"}</span>
@@ -608,6 +696,26 @@ export default function PrelimsTestPage() {
             </div>
 
             <h1 style={questionStyle(colors)}>{questionText}</h1>
+
+            <div style={translationBar(colors, isMobile)}>
+              <button
+                style={language === "en" ? smallActiveButton(colors) : smallSecondaryButton(colors)}
+                onClick={showEnglish}
+              >
+                English
+              </button>
+              <button
+                style={language === "hi" ? smallActiveButton(colors) : smallSecondaryButton(colors)}
+                onClick={translateCurrentQuestion}
+                disabled={translationLoading}
+              >
+                {translationLoading ? "Translating…" : "हिंदी / Translate"}
+              </button>
+            </div>
+
+            {translationError ? (
+              <div style={translationErrorStyle(colors)}>{translationError}</div>
+            ) : null}
 
             <div style={{ display: "grid", gap: 12 }}>
               {(currentQuestion.options || []).map((_, index) => {
@@ -711,20 +819,16 @@ export default function PrelimsTestPage() {
 
             <div style={cardStyle(colors)}>
               <div style={eyebrow(colors)}>LANGUAGE</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button
-                  style={language === "en" ? primaryButton(colors) : secondaryButton(colors)}
-                  onClick={() => setLanguage("en")}
-                >
-                  English
-                </button>
-                <button
-                  style={language === "hi" ? primaryButton(colors) : secondaryButton(colors)}
-                  onClick={() => setLanguage("hi")}
-                >
-                  हिंदी
-                </button>
-              </div>
+              <p style={{ margin: "8px 0 0", color: colors.muted, fontSize: 13, lineHeight: 1.55 }}>
+                Translate the current UPSC question and options into exam-standard Hindi.
+              </p>
+              <button
+                style={{ ...primaryButton(colors), width: "100%", marginTop: 12 }}
+                onClick={translateCurrentQuestion}
+                disabled={translationLoading}
+              >
+                {translationLoading ? "Translating…" : language === "hi" ? "Hindi Translation Active" : "Translate to Hindi"}
+              </button>
             </div>
           </aside>
         </div>
@@ -1363,9 +1467,12 @@ const containerStyle = {
 const cardStyle = (c) => ({
   background: c.card,
   border: `1px solid ${c.border}`,
-  borderRadius: 20,
-  padding: "clamp(18px, 3vw, 28px)",
-  boxShadow: "0 8px 30px rgba(0,0,0,.04)",
+  borderRadius: 22,
+  padding: "clamp(18px, 3vw, 30px)",
+  boxShadow: c.page === "#0b0b0b"
+    ? "0 18px 50px rgba(0,0,0,.28)"
+    : "0 12px 36px rgba(16,16,16,.06)",
+  overflow: "hidden",
 });
 
 const heroCard = (c) => ({
@@ -1602,11 +1709,11 @@ const backButton = (c) => ({
   padding: 0,
 });
 
-const testHeaderStyle = (c) => ({
+const testHeaderStyle = (c, mobile = false) => ({
   minHeight: 68,
   padding: "10px clamp(14px, 3vw, 32px)",
   display: "grid",
-  gridTemplateColumns: "1fr auto 1fr",
+  gridTemplateColumns: mobile ? "auto minmax(0, 1fr) auto" : "1fr auto 1fr",
   alignItems: "center",
   gap: 12,
   borderBottom: `1px solid ${c.border}`,
@@ -1623,13 +1730,56 @@ const timerStyle = (c) => ({
   fontSize: 17,
 });
 
-const testLayout = {
-  width: "min(1280px, calc(100% - 28px))",
-  margin: "20px auto 40px",
+const testLayoutStyle = (c, mobile = false) => ({
+  width: mobile ? "calc(100% - 24px)" : "min(1280px, calc(100% - 28px))",
+  margin: mobile ? "12px auto 28px" : "20px auto 40px",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 310px",
-  gap: 18,
-};
+  gridTemplateColumns: mobile ? "minmax(0, 1fr)" : "minmax(0, 1fr) 310px",
+  gap: mobile ? 12 : 18,
+});
+
+const translationBar = (c, mobile = false) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  alignItems: "center",
+  margin: mobile ? "-8px 0 18px" : "-10px 0 20px",
+});
+
+const smallActiveButton = (c) => ({
+  minHeight: 36,
+  padding: "0 13px",
+  borderRadius: 10,
+  border: `1px solid ${c.gold}`,
+  background: c.gold,
+  color: c.goldText,
+  cursor: "pointer",
+  fontWeight: 850,
+  fontSize: 12,
+});
+
+const smallSecondaryButton = (c) => ({
+  minHeight: 36,
+  padding: "0 13px",
+  borderRadius: 10,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  color: c.text,
+  cursor: "pointer",
+  fontWeight: 800,
+  fontSize: 12,
+});
+
+const translationErrorStyle = (c) => ({
+  margin: "-8px 0 18px",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: `1px solid ${c.red}`,
+  background: c.red + "12",
+  color: c.red,
+  fontSize: 12,
+  lineHeight: 1.5,
+});
 
 const questionMetaStyle = (c) => ({
   display: "flex",
