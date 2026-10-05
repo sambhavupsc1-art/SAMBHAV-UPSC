@@ -20,13 +20,13 @@ const modules = [
     title: "Prelims Test",
     subtitle: "Practice & Test Series",
     icon: "📝",
-    route: null,
+    route: "/prelims-test",
   },
   {
     title: "Mains",
     subtitle: "Answer Writing Practice",
     icon: "✍️",
-    route: null,
+    route: "/answer",
   },
   {
     title: "AI Answer Evaluation",
@@ -2179,6 +2179,7 @@ export default function Home() {
     {
       no: "01",
       title: "Current Affairs",
+      route: "/current-affairs",
       label: "DAILY & MONTHLY INTELLIGENCE",
       points: [
         "Daily & Monthly Current Affairs",
@@ -2191,6 +2192,7 @@ export default function Home() {
     {
       no: "02",
       title: "PYQ Intelligence",
+      route: "/pyq",
       label: "PREVIOUS YEAR QUESTIONS",
       points: [
         "Prelims & Mains PYQs",
@@ -2203,6 +2205,7 @@ export default function Home() {
     {
       no: "03",
       title: "Prelims Test",
+      route: "/prelims-test",
       label: "PYQ-ORIENTED PRACTICE",
       points: [
         "PYQ-oriented MCQs",
@@ -2215,6 +2218,7 @@ export default function Home() {
     {
       no: "04",
       title: "Mains",
+      route: "/answer",
       label: "ANSWER WRITING",
       points: [
         "GS I • II • III • IV",
@@ -2227,6 +2231,7 @@ export default function Home() {
     {
       no: "05",
       title: "AI Answer Evaluation",
+      route: null,
       label: "AI-POWERED ANALYSIS",
       points: [
         "AI-powered Answer Evaluation",
@@ -2239,6 +2244,7 @@ export default function Home() {
     {
       no: "06",
       title: "Study Material",
+      route: null,
       label: "NOTES & RESOURCES",
       points: [
         "GS Resources",
@@ -2249,6 +2255,19 @@ export default function Home() {
       ],
     },
   ];
+
+  const hasModuleAccess = isPremium;
+  const moduleLockedMessage =
+    "Demo ya Premium activate karke is module ko access karein.";
+
+  const openModule = (route) => {
+    if (!hasModuleAccess || !route) {
+      window.location.href = "/premium";
+      return;
+    }
+
+    window.location.href = route;
+  };
 
   return (
     <>
@@ -2830,6 +2849,30 @@ export default function Home() {
               >
                 An integrated learning ecosystem built around the complete UPSC preparation cycle.
               </div>
+
+              <div
+                style={{
+                  marginTop: "9px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "7px 10px",
+                  borderRadius: "999px",
+                  background: hasModuleAccess
+                    ? ui.goldSoft
+                    : ui.surfaceSoft,
+                  color: hasModuleAccess
+                    ? ui.gold
+                    : ui.muted,
+                  fontSize: "8px",
+                  fontWeight: "900",
+                  letterSpacing: "0.4px",
+                }}
+              >
+                {hasModuleAccess
+                  ? "🔓 MODULE ACCESS ACTIVE"
+                  : "🔒 TAKE PREMIUM DEMO TO UNLOCK MODULES"}
+              </div>
             </div>
 
             {/* One refined surface instead of six heavy cards */}
@@ -2845,10 +2888,24 @@ export default function Home() {
               {ecosystem.map((item, index) => (
                 <div
                   key={item.no}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openModule(item.route)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openModule(item.route);
+                    }
+                  }}
+                  title={
+                    hasModuleAccess && item.route
+                      ? `Open ${item.title}`
+                      : moduleLockedMessage
+                  }
                   style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "38px minmax(0,1fr)",
+                      "38px minmax(0,1fr) 34px",
                     gap: "13px",
                     padding: "18px 17px",
                     borderBottom:
@@ -2859,6 +2916,9 @@ export default function Home() {
                       dark && index % 2 === 1
                         ? "rgba(255,255,255,0.015)"
                         : "transparent",
+                    cursor: "pointer",
+                    transition:
+                      "background 150ms ease, transform 150ms ease",
                   }}
                 >
                   <div
@@ -2934,6 +2994,32 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      background: hasModuleAccess
+                        ? ui.surfaceSoft
+                        : dark
+                        ? "rgba(255,255,255,0.06)"
+                        : "#f3f1eb",
+                      border: `1px solid ${ui.line}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      alignSelf: "center",
+                      color: hasModuleAccess
+                        ? ui.gold
+                        : ui.soft,
+                      fontSize: "14px",
+                      fontWeight: "950",
+                    }}
+                  >
+                    {hasModuleAccess ? "↗" : "🔒"}
                   </div>
                 </div>
               ))}
