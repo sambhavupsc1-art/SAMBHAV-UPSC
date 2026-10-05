@@ -2714,7 +2714,6 @@ const keywordChipStyle = (c) => ({
   fontWeight: 800,
 });
 
-);
 
 const paletteGrid = {
   display: "grid",
@@ -2800,7 +2799,6 @@ const reviewTop = {
   marginBottom: 15,
 };
 
-);
 
 const minimalContainerStyle = {
   width: "min(920px, calc(100% - 28px))",
@@ -3060,6 +3058,5 @@ const minimalHistoryRow = (c) => ({
   background: c.card2,
 });
 
-);
 
 export const dynamic = "force-dynamic";
