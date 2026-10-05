@@ -84,37 +84,114 @@ async function sendTelegramMessage(
 ========================================================= */
 
 async function sendWelcomeMessage(chatId) {
-  const result = await telegramApi(
-    "sendPhoto",
-    {
-      chat_id: chatId,
+  const caption =
+    "Welcome to SAMBHAV UPSC\n\n" +
+    "SAMBHAV UPSC se judne ke liye pehle hamara official channel join karein.";
 
-      photo: WELCOME_IMAGE_URL,
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: "Join Channel",
+          url: TELEGRAM_CHANNEL_URL,
+        },
+      ],
+      [
+        {
+          text: "I Have Joined / Continue",
+          callback_data: "verify_channel",
+        },
+      ],
+    ],
+  };
 
-      caption:
-        "Welcome to SAMBHAV UPSC\n\n" +
-        "SAMBHAV UPSC se judne ke liye pehle hamara official channel join karein.",
+  try {
+    /*
+      Telegram Vercel-hosted image URL ko directly fetch
+      nahi kar paa raha tha.
 
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "Join Channel",
-              url: TELEGRAM_CHANNEL_URL,
-            },
-          ],
-          [
-            {
-              text: "I Have Joined / Continue",
-              callback_data: "verify_channel",
-            },
-          ],
-        ],
-      },
+      Isliye:
+      1. Server image ko fetch karega
+      2. Image ko Telegram par upload karega
+      3. Caption + buttons ke saath sendPhoto karega
+    */
+
+    const imageResponse = await fetch(
+      WELCOME_IMAGE_URL,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!imageResponse.ok) {
+      throw new Error(
+        `Welcome image fetch failed: ${imageResponse.status}`
+      );
     }
-  );
 
-  return result;
+    const imageBlob =
+      await imageResponse.blob();
+
+    const formData = new FormData();
+
+    formData.append(
+      "chat_id",
+      String(chatId)
+    );
+
+    formData.append(
+      "photo",
+      imageBlob,
+      "sambhav-welcome.png"
+    );
+
+    formData.append(
+      "caption",
+      caption
+    );
+
+    formData.append(
+      "reply_markup",
+      JSON.stringify(replyMarkup)
+    );
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body: formData,
+        cache: "no-store",
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!data.ok) {
+      console.error(
+        "Telegram sendPhoto upload error:",
+        data
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error(
+      "Telegram welcome image upload error:",
+      error
+    );
+
+    /*
+      Agar image upload fail ho jaye,
+      tab bhi welcome text + buttons send honge.
+    */
+
+    return sendTelegramMessage(
+      chatId,
+      caption,
+      replyMarkup
+    );
+  }
 }
 
 /* =========================================================
@@ -141,18 +218,20 @@ async function checkChannelMembership(
     return null;
   }
 
-  const member = result.result;
+  const member =
+    result.result;
 
-  const status = member?.status;
+  const status =
+    member?.status;
 
   /*
-   Telegram statuses:
-   creator
-   administrator
-   member
-   restricted
-   left
-   kicked
+    Telegram statuses:
+    creator
+    administrator
+    member
+    restricted
+    left
+    kicked
   */
 
   if (
@@ -178,7 +257,9 @@ async function checkChannelMembership(
    VERIFIED USER MESSAGE
 ========================================================= */
 
-async function sendVerifiedMessage(chatId) {
+async function sendVerifiedMessage(
+  chatId
+) {
   return sendTelegramMessage(
     chatId,
 
@@ -203,7 +284,9 @@ async function sendVerifiedMessage(chatId) {
    NOT JOINED MESSAGE
 ========================================================= */
 
-async function sendNotJoinedMessage(chatId) {
+async function sendNotJoinedMessage(
+  chatId
+) {
   return sendTelegramMessage(
     chatId,
 
@@ -234,7 +317,9 @@ async function sendNotJoinedMessage(chatId) {
    VERIFICATION ERROR MESSAGE
 ========================================================= */
 
-async function sendVerificationError(chatId) {
+async function sendVerificationError(
+  chatId
+) {
   return sendTelegramMessage(
     chatId,
 
@@ -282,7 +367,8 @@ export async function POST(request) {
        READ TELEGRAM UPDATE
     ----------------------------------------------------- */
 
-    const update = await request.json();
+    const update =
+      await request.json();
 
     /* =====================================================
        BUTTON CALLBACK
@@ -306,7 +392,8 @@ export async function POST(request) {
       --------------------------------------------------- */
 
       if (
-        callbackData === "verify_channel" &&
+        callbackData ===
+          "verify_channel" &&
         chatId &&
         telegramUser?.id
       ) {
@@ -378,7 +465,8 @@ export async function POST(request) {
        NORMAL TELEGRAM MESSAGE
     ===================================================== */
 
-    const message = update?.message;
+    const message =
+      update?.message;
 
     if (
       !message?.from ||
@@ -389,7 +477,8 @@ export async function POST(request) {
       });
     }
 
-    const chatId = message.chat.id;
+    const chatId =
+      message.chat.id;
 
     const text =
       message.text || "";
@@ -440,8 +529,11 @@ export async function POST(request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    service: "SAMBHAV UPSC Telegram Webhook",
-    channel: TELEGRAM_CHANNEL,
-    app: SAMBHAV_APP_URL,
+    service:
+      "SAMBHAV UPSC Telegram Webhook",
+    channel:
+      TELEGRAM_CHANNEL,
+    app:
+      SAMBHAV_APP_URL,
   });
 }
