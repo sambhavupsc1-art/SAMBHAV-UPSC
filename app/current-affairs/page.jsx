@@ -480,7 +480,7 @@ export default function CurrentAffairsPage() {
         <div className="ca-hero-copy">
           <span className="ca-hero-eyebrow">SAMBHAV UPSC • DAILY INTELLIGENCE</span>
           <h2>
-            {hi "Not just news. The right news for UPSC."}
+            {hi? :"Not just news. The right news for UPSC."}
           </h2>
           <p>
             {hi
