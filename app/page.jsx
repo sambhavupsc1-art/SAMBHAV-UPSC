@@ -536,6 +536,74 @@ const styles = {
       "0 10px 25px rgba(0,0,0,0.13)",
   },
 
+    legalCard: {
+      marginTop: 28,
+      padding: "24px",
+      border: "1px solid #e5e2d9",
+      borderRadius: 24,
+      background: "#fff",
+      boxShadow: "0 12px 30px rgba(0,0,0,0.04)",
+    },
+    legalEyebrow: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: "0.16em",
+      color: "#9b7a24",
+      marginBottom: 8,
+    },
+    legalTitle: {
+      fontSize: 22,
+      fontWeight: 900,
+      color: "#111",
+      marginBottom: 6,
+    },
+    legalSub: {
+      fontSize: 13,
+      lineHeight: 1.6,
+      color: "#666",
+      marginBottom: 18,
+    },
+    legalGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+      gap: 12,
+    },
+    legalItem: {
+      padding: "14px 15px",
+      border: "1px solid #ece9e1",
+      borderRadius: 16,
+      background: "#faf9f6",
+    },
+    legalLabel: {
+      fontSize: 10,
+      fontWeight: 800,
+      letterSpacing: "0.08em",
+      color: "#888",
+      marginBottom: 6,
+    },
+    legalValue: {
+      fontSize: 13,
+      lineHeight: 1.5,
+      fontWeight: 700,
+      color: "#222",
+      wordBreak: "break-word",
+    },
+    legalTelegram: {
+      display: "inline-block",
+      marginTop: 7,
+      fontSize: 12,
+      fontWeight: 800,
+      color: "#111",
+      textDecoration: "none",
+    },
+    legalDescription: {
+      marginTop: 14,
+      paddingTop: 14,
+      borderTop: "1px solid #ece9e1",
+      fontSize: 12,
+      lineHeight: 1.65,
+      color: "#666",
+    },
   publicFooter: {
     marginTop: "48px",
     paddingTop: "20px",
@@ -1342,7 +1410,51 @@ function PublicLanding() {
             </a>
           </section>
 
-          <footer style={styles.publicFooter}>
+                <section style={styles.legalCard}>
+        <div style={styles.legalEyebrow}>CONTACT & LEGAL</div>
+        <div style={styles.legalTitle}>SAMBHAV UPSC</div>
+        <div style={styles.legalSub}>
+          Official platform information and customer support.
+        </div>
+
+        <div style={styles.legalGrid}>
+          <div style={styles.legalItem}>
+            <div style={styles.legalLabel}>LEGAL NAME</div>
+            <div style={styles.legalValue}>AMAN SRIVASTAVA</div>
+          </div>
+
+          <div style={styles.legalItem}>
+            <div style={styles.legalLabel}>CUSTOMER SUPPORT</div>
+            <div style={styles.legalValue}>amanshrivastava9140@gmail.com</div>
+          </div>
+
+          <div style={styles.legalItem}>
+            <div style={styles.legalLabel}>PHONE</div>
+            <div style={styles.legalValue}>+91 9140302792</div>
+          </div>
+
+          <div style={styles.legalItem}>
+            <div style={styles.legalLabel}>OFFICIAL TELEGRAM</div>
+            <div style={styles.legalValue}>@SAMBHAVUPSC1</div>
+            <a
+              href="https://t.me/SAMBHAVUPSC1"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.legalTelegram}
+            >
+              Join Official Channel →
+            </a>
+          </div>
+        </div>
+
+        <div style={styles.legalDescription}>
+          SAMBHAV UPSC is an online UPSC preparation platform providing
+          Current Affairs, PYQ-based practice, Prelims practice, Mains answer
+          writing and AI-assisted learning resources.
+        </div>
+      </section>
+
+<footer style={styles.publicFooter}>
             <div style={styles.footerLinks}>
               <a href="/about" style={styles.footerLink}>
                 About
