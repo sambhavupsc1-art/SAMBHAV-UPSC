@@ -43,7 +43,13 @@ export default function PrelimsTestPage() {
   const [topic, setTopic] = useState("all");
   const [questionCount, setQuestionCount] = useState(20);
   const [history, setHistory] = useState([]);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguageState] = useState("en");
+
+  const setLanguage = (value) => {
+    const next = value === "hi" ? "hi" : "en";
+    setLanguageState(next);
+    try { localStorage.setItem("sambhav-prelims-language", next); } catch {}
+  };
   const [translation, setTranslation] = useState(null);
   const [translationQuestionId, setTranslationQuestionId] = useState(null);
   const [translationLoading, setTranslationLoading] = useState(false);
@@ -785,6 +791,13 @@ export default function PrelimsTestPage() {
   };
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("sambhav-prelims-language");
+      if (saved === "hi" || saved === "en") setLanguageState(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     if (screen !== "test") return;
 
     const timer = setInterval(() => {
@@ -818,6 +831,9 @@ export default function PrelimsTestPage() {
 
     const q = testQuestions[index];
     setCurrent(index);
+    setTranslation(null);
+    setTranslationQuestionId(null);
+    setTranslationError("");
     setShowQuestionPalette(false);
 
     if (q?.id !== undefined) {
@@ -865,7 +881,6 @@ export default function PrelimsTestPage() {
     setTranslation(null);
     setTranslationQuestionId(null);
     setTranslationError("");
-    setLanguage("en");
     setShowSubmitConfirm(false);
     setShowQuestionPalette(false);
     setResumeCandidate(null);
@@ -886,7 +901,7 @@ export default function PrelimsTestPage() {
       return;
     }
 
-    const cacheKey = `sambhav_translation_v2_${question.id}`;
+    const cacheKey = `sambhav_prelims_translation_v4_${question.id}`;
 
     try {
       setTranslationLoading(true);
@@ -904,7 +919,7 @@ export default function PrelimsTestPage() {
         }
       } catch {}
 
-      const response = await fetch("/api/translate", {
+      const response = await fetch("/api/prelims-translate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -942,6 +957,12 @@ export default function PrelimsTestPage() {
     setLanguage("en");
     setTranslationError("");
   };
+
+  useEffect(() => {
+    if (screen !== "test" || language !== "hi" || !currentQuestion) return;
+    if (translationQuestionId === currentQuestion.id && translation) return;
+    translateCurrentQuestion();
+  }, [screen, language, currentQuestion?.id, translationQuestionId]);
 
   const optionText = (q, index) => {
     if (language === "hi" && translationQuestionId === q?.id && translation?.options_hi?.[index]) {
@@ -1454,12 +1475,11 @@ export default function PrelimsTestPage() {
                 <p style={minimalHeroSub(colors)}>
                   Real UPSC PYQs, full-length practice, custom tests and performance analysis.
                 </p>
+                <div style={{ marginTop: 8, color: colors.gold, fontSize: 12, fontWeight: 800, letterSpacing: "0.01em" }}>
+                  All the best 👍
+                </div>
               </div>
 
-              <div style={markBadgeStyle(colors)}>
-                <strong>+2</strong>
-                <span>−0.66</span>
-              </div>
             </div>
 
             {isPaidOrDemoUser ? (
