@@ -1376,6 +1376,63 @@ function PublicLanding() {
           </footer>
         </div>
       </main>
+
+          {/* ADMIN-ONLY BOTTOM NAVIGATION */}
+          {isAdmin && (
+            <nav
+              aria-label="Admin navigation"
+              style={{
+                position: "fixed",
+                left: "50%",
+                bottom: "12px",
+                transform: "translateX(-50%)",
+                width: "calc(100% - 28px)",
+                maxWidth: "730px",
+                height: "58px",
+                padding: "5px",
+                boxSizing: "border-box",
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                alignItems: "center",
+                background: dark
+                  ? "rgba(20,20,20,0.97)"
+                  : "rgba(255,255,255,0.97)",
+                border: `1px solid ${ui.line}`,
+                borderRadius: "21px",
+                boxShadow: dark
+                  ? "0 12px 35px rgba(0,0,0,0.35)"
+                  : "0 10px 35px rgba(0,0,0,0.12)",
+                zIndex: 50,
+                backdropFilter: "blur(14px)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/admin";
+                }}
+                style={{
+                  width: "100%",
+                  height: "48px",
+                  border: "none",
+                  borderRadius: "17px",
+                  background: dark ? "#242424" : "#f1eee6",
+                  color: ui.text,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  fontSize: "10px",
+                  fontWeight: "950",
+                  letterSpacing: "0.7px",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ color: ui.gold, fontSize: "15px" }}>⚙</span>
+                ADMIN CONTROL
+              </button>
+            </nav>
+          )}
     </>
   );
 }
@@ -1618,7 +1675,7 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setShowWelcome(false);
-    }, 1200);
+    }, 220);
 
     return () => clearTimeout(timer);
   }, [showWelcome]);
@@ -2171,7 +2228,7 @@ export default function Home() {
       <span style={{ color: ui.gold, fontSize: "14px" }}>
         {dark ? "☀" : "☾"}
       </span>
-      {dark ? "LIGHT" : "DARK"}
+      THEME
     </button>
   );
 
@@ -2283,7 +2340,7 @@ export default function Home() {
           color: ui.text,
           fontFamily:
             "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          paddingBottom: "48px",
+          paddingBottom: isAdmin ? "94px" : "48px",
           transition: "background 180ms ease, color 180ms ease",
         }}
       >
@@ -2875,17 +2932,16 @@ export default function Home() {
               </div>
             </div>
 
-            {/* One refined surface instead of six heavy cards */}
+            {/* LEARNING MODULE CARDS — SAME GRID ON PHONE, TABLET & LAPTOP */}
             <section
               style={{
-                background: ui.surface,
-                border: `1px solid ${ui.line}`,
-                borderRadius: "24px",
-                overflow: "hidden",
-                boxShadow: ui.shadow,
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: "11px",
+                width: "100%",
               }}
             >
-              {ecosystem.map((item, index) => (
+              {ecosystem.map((item) => (
                 <div
                   key={item.no}
                   role="button"
@@ -2903,24 +2959,133 @@ export default function Home() {
                       : moduleLockedMessage
                   }
                   style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "38px minmax(0,1fr) 34px",
-                    gap: "13px",
-                    padding: "18px 17px",
-                    borderBottom:
-                      index === ecosystem.length - 1
-                        ? "none"
-                        : `1px solid ${ui.line}`,
-                    background:
-                      dark && index % 2 === 1
-                        ? "rgba(255,255,255,0.015)"
-                        : "transparent",
+                    position: "relative",
+                    minWidth: 0,
+                    minHeight: "176px",
+                    boxSizing: "border-box",
+                    padding: "16px",
+                    borderRadius: "21px",
+                    background: ui.surface,
+                    border: `1px solid ${ui.line}`,
+                    boxShadow: ui.shadow,
                     cursor: "pointer",
                     transition:
                       "background 150ms ease, transform 150ms ease",
                   }}
                 >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "13px",
+                        background: dark
+                          ? "linear-gradient(145deg,#222,#0a0a0a)"
+                          : "linear-gradient(145deg,#181818,#080808)",
+                        color: ui.gold,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "17px",
+                        fontWeight: "950",
+                      }}
+                    >
+                      {item.no}
+                    </div>
+
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: "29px",
+                        height: "29px",
+                        borderRadius: "50%",
+                        background: hasModuleAccess
+                          ? ui.surfaceSoft
+                          : dark
+                          ? "rgba(255,255,255,0.06)"
+                          : "#f3f1eb",
+                        border: `1px solid ${ui.line}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: hasModuleAccess ? ui.gold : ui.soft,
+                        fontSize: "13px",
+                        fontWeight: "950",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {hasModuleAccess ? "↗" : "🔒"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "13px",
+                      fontSize: "8px",
+                      fontWeight: "950",
+                      letterSpacing: "1.2px",
+                      color: ui.gold,
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {item.label}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "5px",
+                      fontSize: "15px",
+                      lineHeight: "1.2",
+                      fontWeight: "950",
+                      letterSpacing: "-0.25px",
+                    }}
+                  >
+                    {item.title}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "9px",
+                      display: "grid",
+                      gap: "5px",
+                    }}
+                  >
+                    {item.points.slice(0, 3).map((point) => (
+                      <div
+                        key={point}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "6px",
+                          fontSize: "9px",
+                          lineHeight: "1.35",
+                          color: ui.muted,
+                          fontWeight: "750",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: ui.gold,
+                            fontWeight: "950",
+                            flexShrink: 0,
+                          }}
+                        >
+                          •
+                        </span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </section>
                   <div
                     style={{
                       paddingTop: "2px",
@@ -2994,36 +3159,7 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
-                  </div>
 
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      width: "32px",
-                      height: "32px",
-                      borderRadius: "50%",
-                      background: hasModuleAccess
-                        ? ui.surfaceSoft
-                        : dark
-                        ? "rgba(255,255,255,0.06)"
-                        : "#f3f1eb",
-                      border: `1px solid ${ui.line}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      alignSelf: "center",
-                      color: hasModuleAccess
-                        ? ui.gold
-                        : ui.soft,
-                      fontSize: "14px",
-                      fontWeight: "950",
-                    }}
-                  >
-                    {hasModuleAccess ? "↗" : "🔒"}
-                  </div>
-                </div>
-              ))}
-            </section>
           </section>
         </div>
       </main>
