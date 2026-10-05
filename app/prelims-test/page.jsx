@@ -1162,16 +1162,6 @@ export default function PrelimsTestPage() {
               })}
             </div>
 
-            {answers[currentQuestion.id] !== undefined && answers[currentQuestion.id] !== null ? (
-              <DetailedExplanation
-                colors={colors}
-                question={currentQuestion}
-                chosen={answers[currentQuestion.id]}
-                language={language}
-                translation={translationQuestionId === currentQuestion.id ? translation : null}
-              />
-            ) : null}
-
             <div style={actionRow}>
               <button style={secondaryButton(colors)} onClick={clearResponse}>
                 Clear Response
