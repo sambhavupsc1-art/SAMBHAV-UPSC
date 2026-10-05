@@ -61,6 +61,9 @@ export default function PrelimsTestPage() {
   const [durationSeconds, setDurationSeconds] = useState(TOTAL_SECONDS);
   const [resumeCandidate, setResumeCandidate] = useState(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showQuestionPalette, setShowQuestionPalette] = useState(false);
+  const [dailyNotification, setDailyNotification] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
 
   const [theme, setTheme] = useState("light");
   const [isMobile, setIsMobile] = useState(false);
@@ -88,6 +91,65 @@ export default function PrelimsTestPage() {
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
+
+  const isPaidOrDemoUser = useMemo(() => {
+    const u = user || {};
+    const values = [
+      u.plan, u.plan_type, u.subscription_type, u.subscription_plan,
+      u.premium_plan, u.premiumPlan, u.access_type, u.accessType,
+      u.subscription?.plan, u.subscription?.type, u.subscription?.status,
+      u.premium?.plan, u.premium?.type, u.premium?.status,
+    ].filter(Boolean).map((v) => String(v).toLowerCase());
+    return Boolean(
+      u.isPremium || u.is_premium || u.premium === true ||
+      values.some((v) => v.includes("paid") || v.includes("premium") || v.includes("demo") || v.includes("pro"))
+    );
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.id || !isPaidOrDemoUser) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/current-affairs/notifications?user_id=${encodeURIComponent(user.id)}`, {
+          credentials: "include", cache: "no-store"
+        });
+        const data = await res.json().catch(() => ({}));
+        const item = Array.isArray(data?.notifications) ? data.notifications[0] : data?.notification;
+        if (!cancelled && item) setDailyNotification(Boolean(item.enabled));
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [user, isPaidOrDemoUser]);
+
+  const toggleDailyNotification = async () => {
+    if (!user?.id || !isPaidOrDemoUser || notificationSaving) return;
+    const next = !dailyNotification;
+    setNotificationSaving(true);
+    try {
+      const res = await fetch("/api/current-affairs/notifications", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          enabled: next,
+          language,
+          notification_time: "18:00",
+          notification_type: "prelims_daily_20",
+          module: "prelims",
+          content_type: "daily_20_pyq",
+        }),
+      });
+      if (!res.ok) throw new Error("notification save failed");
+      setDailyNotification(next);
+    } catch (e) {
+      console.error("Daily Prelims notification error:", e);
+      setError("Daily 20 notification save nahi ho payi.");
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -255,18 +317,18 @@ export default function PrelimsTestPage() {
           blue: "#9ebdff",
         }
       : {
-          page: "#f5f2eb",
-          card: "#fffdf9",
-          card2: "#f8f4eb",
-          text: "#111",
-          muted: "#716e67",
-          border: "#e3ded2",
-          gold: "#dfc477",
+          page: "#f4f1ea",
+          card: "#ffffff",
+          card2: "#fbf8f1",
+          text: "#161616",
+          muted: "#5f5b54",
+          border: "#d9d3c7",
+          gold: "#c7a84e",
           goldText: "#17130b",
-          soft: "#f0ece3",
-          green: "#287442",
-          red: "#b33434",
-          blue: "#315caa",
+          soft: "#eee9df",
+          green: "#216b3a",
+          red: "#a92f2f",
+          blue: "#2d5aa3",
         };
 
   const years = useMemo(() => {
@@ -654,6 +716,7 @@ export default function PrelimsTestPage() {
     setTranslationQuestionId(null);
     setTranslationError("");
     setShowSubmitConfirm(false);
+    setShowQuestionPalette(false);
     setResumeCandidate(null);
     setError("");
     submittingRef.current = false;
@@ -755,6 +818,7 @@ export default function PrelimsTestPage() {
 
     const q = testQuestions[index];
     setCurrent(index);
+    setShowQuestionPalette(false);
 
     if (q?.id !== undefined) {
       setVisited((prev) => ({
@@ -803,6 +867,7 @@ export default function PrelimsTestPage() {
     setTranslationError("");
     setLanguage("en");
     setShowSubmitConfirm(false);
+    setShowQuestionPalette(false);
     setResumeCandidate(null);
     submittingRef.current = false;
     try {
@@ -952,28 +1017,73 @@ export default function PrelimsTestPage() {
           </button>
 
           <div style={{ textAlign: "center" }}>
-            <div style={eyebrow(colors)}>PRELIMS PRACTICE</div>
+            <div style={eyebrow(colors)}>PRELIMS TEST</div>
             <strong>
               Question {current + 1} / {testQuestions.length}
             </strong>
           </div>
 
-          <div
-            style={{
-              ...timerStyle(colors),
-              ...(remaining <= 300 ? { color: colors.red } : {}),
-            }}
-          >
-            {formatTime(remaining)}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+            <div
+              style={{
+                ...timerStyle(colors),
+                ...(remaining <= 300 ? { color: colors.red } : {}),
+              }}
+            >
+              {formatTime(remaining)}
+            </div>
           </div>
         </div>
 
         <div style={testLayoutStyle(colors, isMobile)}>
-          <section style={cardStyle(colors)}>
+          <section style={{ ...cardStyle(colors), position: "relative", padding: "18px" }}>
             <div style={questionMetaStyle(colors)}>
               <span>{currentQuestion.year || "PYQ"}</span>
               <span>{currentQuestion.subject || currentQuestion.category || "General Studies"}</span>
               <span>+2 / -0.66</span>
+            </div>
+
+            <div style={questionPaletteCorner(colors)}>
+              <button
+                type="button"
+                aria-label="Open question grid"
+                onClick={() => setShowQuestionPalette((v) => !v)}
+                style={gridToggleButton(colors, showQuestionPalette)}
+              >
+                ▦ {showQuestionPalette ? "Close" : "Grid"}
+              </button>
+
+              {showQuestionPalette ? (
+                <div style={questionPalettePopover(colors)}>
+                  <div style={eyebrow(colors)}>QUESTION GRID</div>
+                  <div style={{ marginTop: 5, color: colors.muted, fontSize: 9, lineHeight: 1.4 }}>
+                    Gold = answered • Blue = review • Outline = current
+                  </div>
+                  <div style={paletteGrid}>
+                    {testQuestions.map((q, index) => {
+                      const answered = answers[q.id] !== undefined && answers[q.id] !== null;
+                      const isMarked = Boolean(marked[q.id]);
+                      const active = index === current;
+                      return (
+                        <button
+                          key={q.id ?? index}
+                          onClick={() => goToQuestion(index)}
+                          style={{
+                            ...paletteButton(colors),
+                            minHeight: 31,
+                            fontSize: 10,
+                            ...(answered ? { background: colors.gold, color: colors.goldText } : {}),
+                            ...(isMarked && !answered ? { borderColor: colors.blue, color: colors.blue } : {}),
+                            ...(active ? { boxShadow: `inset 0 0 0 2px ${colors.text}` } : {}),
+                          }}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div style={questionNumberStyle(colors)}>
@@ -1002,7 +1112,7 @@ export default function PrelimsTestPage() {
               <div style={translationErrorStyle(colors)}>{translationError}</div>
             ) : null}
 
-            <div style={{ display: "grid", gap: 12 }}>
+            <div style={optionsGridStyle(isMobile)}>
               {(currentQuestion.options || []).map((_, index) => {
                 const selected = answers[currentQuestion.id] === index;
                 const letter = String.fromCharCode(65 + index);
@@ -1030,6 +1140,16 @@ export default function PrelimsTestPage() {
                 );
               })}
             </div>
+
+            {answers[currentQuestion.id] !== undefined && answers[currentQuestion.id] !== null ? (
+              <DetailedExplanation
+                colors={colors}
+                question={currentQuestion}
+                chosen={answers[currentQuestion.id]}
+                language={language}
+                translation={translationQuestionId === currentQuestion.id ? translation : null}
+              />
+            ) : null}
 
             <div style={actionRow}>
               <button style={secondaryButton(colors)} onClick={clearResponse}>
@@ -1076,44 +1196,13 @@ export default function PrelimsTestPage() {
             </div>
 
             <div style={cardStyle(colors)}>
-              <div style={eyebrow(colors)}>QUESTION PALETTE</div>
-              <div style={paletteGrid}>
-                {testQuestions.map((q, index) => {
-                  const answered =
-                    answers[q.id] !== undefined && answers[q.id] !== null;
-                  const isMarked = Boolean(marked[q.id]);
-                  const active = index === current;
-
-                  return (
-                    <button
-                      key={q.id ?? index}
-                      onClick={() => goToQuestion(index)}
-                      style={{
-                        ...paletteButton(colors),
-                        ...(answered ? { background: colors.gold, color: colors.goldText } : {}),
-                        ...(isMarked && !answered ? { borderColor: colors.blue, color: colors.blue } : {}),
-                        ...(active ? { boxShadow: `inset 0 0 0 2px ${colors.text}` } : {}),
-                      }}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={cardStyle(colors)}>
               <div style={eyebrow(colors)}>LANGUAGE</div>
-              <p style={{ margin: "8px 0 0", color: colors.muted, fontSize: 13, lineHeight: 1.55 }}>
-                Translate the current UPSC question and options into exam-standard Hindi.
+              <p style={{ margin: "8px 0 0", color: colors.muted, fontSize: 12, lineHeight: 1.55 }}>
+                English aur Hindi mode poore question, options aur explanation par apply hota hai.
               </p>
-              <button
-                style={{ ...primaryButton(colors), width: "100%", marginTop: 12 }}
-                onClick={translateCurrentQuestion}
-                disabled={translationLoading}
-              >
-                {translationLoading ? "Translating…" : language === "hi" ? "Hindi Translation Active" : "Translate to Hindi"}
-              </button>
+              {translationLoading ? (
+                <div style={{ marginTop: 10, color: colors.gold, fontSize: 11, fontWeight: 800 }}>Hindi translation loading…</div>
+              ) : null}
             </div>
           </aside>
         </div>
@@ -1313,14 +1402,13 @@ export default function PrelimsTestPage() {
               })}
             </div>
 
-            {(currentQuestion.explanation_en || currentQuestion.explanation) && (
-              <div style={explanationBox(colors)}>
-                <div style={eyebrow(colors)}>EXPLANATION</div>
-                <p style={{ margin: 0, lineHeight: 1.7 }}>
-                  {currentQuestion.explanation_en || currentQuestion.explanation}
-                </p>
-              </div>
-            )}
+            <DetailedExplanation
+              colors={colors}
+              question={currentQuestion}
+              chosen={chosen}
+              language={language}
+              translation={translationQuestionId === currentQuestion.id ? translation : null}
+            />
 
             <div style={actionRow}>
               <button
@@ -1358,17 +1446,40 @@ export default function PrelimsTestPage() {
 
       <div style={minimalContainerStyle}>
         <section style={minimalHeroStyle(colors)}>
-          <div style={{ minWidth: 0 }}>
-            <div style={eyebrow(colors)}>SAMBHAV UPSC • PRELIMS</div>
-            <h1 style={minimalHeroTitle(colors)}>Prelims Test Series</h1>
-            <p style={minimalHeroSub(colors)}>
-              UPSC-style simulation, original PYQ papers and focused practice.
-            </p>
-          </div>
+          <div style={{ display: "grid", gap: 14, minWidth: 0, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={eyebrow(colors)}>UPSC PRELIMS</div>
+                <h1 style={minimalHeroTitle(colors)}>Prelims Practice</h1>
+                <p style={minimalHeroSub(colors)}>
+                  Real UPSC PYQs, full-length practice, custom tests and performance analysis.
+                </p>
+              </div>
 
-          <div style={markBadgeStyle(colors)}>
-            <strong>+2</strong>
-            <span>−0.66</span>
+              <div style={markBadgeStyle(colors)}>
+                <strong>+2</strong>
+                <span>−0.66</span>
+              </div>
+            </div>
+
+            {isPaidOrDemoUser ? (
+              <div style={notificationInlineStyle(colors)}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={eyebrow(colors)}>DAILY 20 • 6 PM</div>
+                  <strong style={{ display: "block", marginTop: 3, fontSize: 13 }}>
+                    Evening practice reminder
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleDailyNotification}
+                  disabled={notificationSaving}
+                  style={dailyNotification ? primaryButton(colors) : secondaryButton(colors)}
+                >
+                  {notificationSaving ? "Saving…" : dailyNotification ? "Enabled" : "Enable"}
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -1390,7 +1501,10 @@ export default function PrelimsTestPage() {
             </button>
             <button
               type="button"
-              onClick={() => setLanguage("hi")}
+              onClick={() => {
+                setLanguage("hi");
+                if (currentQuestion) translateCurrentQuestion();
+              }}
               style={language === "hi" ? segmentActiveStyle(colors) : segmentStyle(colors)}
             >
               हिंदी
@@ -1426,7 +1540,7 @@ export default function PrelimsTestPage() {
             </span>
           </div>
 
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={testChoiceGrid(isMobile)}>
             <button
               type="button"
               onClick={() => {
@@ -1441,10 +1555,10 @@ export default function PrelimsTestPage() {
               <span style={choiceIconStyle(colors)}>01</span>
               <span style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
                 <strong style={{ display: "block", fontSize: 15 }}>
-                  Full UPSC Simulator
+                  Full UPSC Practice
                 </strong>
                 <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
-                  100 questions • 2 hours • complete exam simulation
+                  100 questions • 2 hours • complete exam practice
                 </small>
               </span>
               <span style={choiceArrowStyle(colors)}>›</span>
@@ -1590,7 +1704,7 @@ export default function PrelimsTestPage() {
               ? `Start ${year === "all" ? "Original Paper" : year + " Paper"} →`
               : testType === "custom"
               ? "Start Custom Test →"
-              : "Start Full Simulator →"}
+              : "Start Full Practice →"}
           </button>
 
           {error ? (
@@ -1603,8 +1717,8 @@ export default function PrelimsTestPage() {
         <section style={quickSectionStyle(colors)}>
           <div style={minimalSectionHead}>
             <div>
-              <div style={eyebrow(colors)}>QUICK PRACTICE</div>
-              <h2 style={minimalSectionTitle(colors)}>Keep your daily practice moving</h2>
+              <div style={eyebrow(colors)}>PRACTICE & HISTORY</div>
+              <h2 style={minimalSectionTitle(colors)}>Daily practice & previous tests</h2>
             </div>
           </div>
 
@@ -1622,7 +1736,7 @@ export default function PrelimsTestPage() {
               <span style={{ flex: 1, textAlign: "left" }}>
                 <strong style={{ display: "block", fontSize: 14 }}>Daily 20 PYQ</strong>
                 <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
-                  Evening quick practice
+                  Daily 20 • 40 min
                 </small>
               </span>
               <span style={choiceArrowStyle(colors)}>›</span>
@@ -1640,7 +1754,7 @@ export default function PrelimsTestPage() {
               <span style={{ flex: 1, textAlign: "left" }}>
                 <strong style={{ display: "block", fontSize: 14 }}>Previous Tests</strong>
                 <small style={{ display: "block", marginTop: 3, color: colors.muted }}>
-                  Score, accuracy and attempts
+                  Score, accuracy and performance
                 </small>
               </span>
               <span style={choiceArrowStyle(colors)}>›</span>
@@ -1664,7 +1778,7 @@ export default function PrelimsTestPage() {
               Your completed tests will appear here.
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 7 }}>
+            <div style={historyGridStyle}>
               {history.slice(0, 6).map((item) => (
                 <div key={item.id} style={minimalHistoryRow(colors)}>
                   <div style={{ minWidth: 0 }}>
@@ -1688,14 +1802,99 @@ export default function PrelimsTestPage() {
           )}
         </section>
 
-        <div style={minimalFooterNote(colors)}>
-          <span>UPSC marking: +2 correct • −0.66 incorrect • 0 unanswered</span>
-          <span>Timer • Palette • Review • Auto-submit</span>
-        </div>
       </div>
     </main>
   );
 
+}
+
+function DetailedExplanation({ colors, question, chosen, language, translation }) {
+  const options = Array.isArray(question?.options) ? question.options : [];
+  const correctIndex = Number(question?.answer);
+  const chosenIndex = chosen === undefined || chosen === null ? null : Number(chosen);
+  const explanation = language === "hi"
+    ? translation?.explanation_hi || question?.explanation_hi || question?.explanation_en || question?.explanation || ""
+    : question?.explanation_en || question?.explanation || "";
+
+  const optionExplanation = (index) => {
+    const candidates = [
+      question?.option_explanations?.[index],
+      question?.optionExplanations?.[index],
+      question?.explanations?.[index],
+      question?.option_explanation?.[index],
+      question?.[`explanation_${String.fromCharCode(97 + index)}`],
+      question?.[`option_explanation_${String.fromCharCode(97 + index)}`],
+      question?.[`explanation_${String.fromCharCode(65 + index)}`],
+    ];
+    return candidates.find((value) => value !== undefined && value !== null && String(value).trim()) || "";
+  };
+
+  const correctText = options[correctIndex] || "Correct option";
+  const selectedText = chosenIndex !== null ? options[chosenIndex] || "Selected option" : "";
+  const keywords = Array.from(new Set([
+    question?.subject,
+    question?.topic,
+    ...(Array.isArray(question?.keywords) ? question.keywords : []),
+    ...(typeof question?.keywords === "string" ? question.keywords.split(",") : []),
+  ].filter(Boolean).map((v) => String(v).trim()).filter(Boolean)));
+
+  const section = (title, body) => (
+    <div style={explanationSectionStyle(colors)}>
+      <div style={explanationSectionTitle(colors)}>{title}</div>
+      <div style={explanationSectionBody(colors)}>{body}</div>
+    </div>
+  );
+
+  return (
+    <div style={detailedExplanationStyle(colors)}>
+      <div style={eyebrow(colors)}>DETAILED EXPLANATION</div>
+      {section(language === "hi" ? "क्या पूछा गया है" : "What is being asked", explanation || "Source explanation is not available in the current PYQ record.")}
+      {section(
+        language === "hi" ? "सही उत्तर क्यों?" : "Why is the correct answer correct?",
+        <>
+          <strong>{String.fromCharCode(65 + correctIndex)}. {correctText}</strong>
+          <div style={{ marginTop: 5 }}>{explanation || "The current PYQ record does not contain a separate correct-answer rationale."}</div>
+        </>
+      )}
+      {chosenIndex !== null && chosenIndex !== correctIndex ? section(
+        language === "hi" ? "आपका उत्तर गलत क्यों है?" : "Why is the selected answer incorrect?",
+        <>
+          <strong>{String.fromCharCode(65 + chosenIndex)}. {selectedText}</strong>
+          <div style={{ marginTop: 5 }}>
+            {optionExplanation(chosenIndex) || (language === "hi"
+              ? "इस विकल्प के लिए अलग option-level explanation वर्तमान PYQ data में उपलब्ध नहीं है।"
+              : "A separate option-level rationale is not present in the current PYQ data.")}
+          </div>
+        </>
+      ) : null}
+      {section(language === "hi" ? "चारों विकल्पों का विश्लेषण" : "Why each option is correct or incorrect", (
+        <div style={{ display: "grid", gap: 8 }}>
+          {options.map((option, index) => {
+            const isCorrect = index === correctIndex;
+            const detail = optionExplanation(index);
+            return (
+              <div key={index} style={optionExplanationRow(colors, isCorrect)}>
+                <strong>{String.fromCharCode(65 + index)}. {isCorrect ? (language === "hi" ? "सही" : "Correct") : (language === "hi" ? "गलत" : "Incorrect")}</strong>
+                <span>{option}</span>
+                <small>
+                  {detail || (isCorrect
+                    ? (language === "hi" ? explanation || "स्रोत में सामान्य explanation उपलब्ध है।" : explanation || "The source provides the general explanation above.")
+                    : (language === "hi" ? "अलग option-level कारण वर्तमान PYQ data में उपलब्ध नहीं है।" : "No separate option-level rationale is present in the current PYQ data."))}
+                </small>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {section(language === "hi" ? "मुख्य Keywords" : "Key Keywords", (
+        <div style={keywordListStyle}>
+          {(keywords.length ? keywords : ["UPSC Prelims PYQ"]).map((keyword) => (
+            <span key={keyword} style={keywordChipStyle(colors)}>{keyword}</span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Header({ colors, theme, setTheme, user, router }) {
@@ -2333,16 +2532,16 @@ const questionNumberStyle = (c) => ({
 });
 
 const questionStyle = (c) => ({
-  margin: "16px 0 24px",
-  fontSize: "clamp(20px, 3vw, 28px)",
-  lineHeight: 1.5,
+  margin: "12px 0 16px",
+  fontSize: "clamp(17px, 2.4vw, 23px)",
+  lineHeight: 1.48,
   letterSpacing: "-.02em",
 });
 
 const optionButton = (c) => ({
   width: "100%",
-  minHeight: 58,
-  padding: "10px 13px",
+  minHeight: 48,
+  padding: "8px 10px",
   display: "flex",
   alignItems: "center",
   gap: 12,
@@ -2351,8 +2550,8 @@ const optionButton = (c) => ({
   background: c.card,
   color: c.text,
   cursor: "pointer",
-  fontSize: 15,
-  lineHeight: 1.5,
+  fontSize: 13,
+  lineHeight: 1.42,
 });
 
 const optionLetter = (c, active = false) => ({
@@ -2391,9 +2590,137 @@ const miniStatStyle = (c) => ({
   gap: 4,
 });
 
+const gridToggleButton = (c, active = false) => ({
+  minHeight: 34,
+  padding: "0 10px",
+  borderRadius: 10,
+  border: `1px solid ${active ? c.gold : c.border}`,
+  background: active ? c.goldSoft : c.card2,
+  color: active ? c.gold : c.text,
+  cursor: "pointer",
+  fontWeight: 850,
+  fontSize: 11,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+});
+
+const optionsGridStyle = (mobile = false) => ({
+  display: "grid",
+  gridTemplateColumns: mobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+});
+
+);
+
+const testChoiceGrid = (mobile = false) => ({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 8,
+});
+
+const notificationInlineStyle = (c) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  padding: "9px 10px",
+  borderRadius: 12,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+});
+
+const historyGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 8,
+};
+
+const questionPaletteCorner = (c) => ({
+  position: "absolute",
+  top: 14,
+  right: 14,
+  zIndex: 5,
+});
+
+const questionPalettePopover = (c) => ({
+  position: "absolute",
+  top: 40,
+  right: 0,
+  width: "min(330px, calc(100vw - 44px))",
+  padding: 11,
+  borderRadius: 14,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  boxShadow: "0 18px 50px rgba(0,0,0,.24)",
+  zIndex: 30,
+});
+
+const detailedExplanationStyle = (c) => ({
+  marginTop: 14,
+  padding: 13,
+  borderRadius: 14,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  display: "grid",
+  gap: 9,
+});
+
+const explanationSectionStyle = (c) => ({
+  padding: "10px 11px",
+  borderRadius: 11,
+  border: `1px solid ${c.border}`,
+  background: c.card,
+  display: "grid",
+  gap: 5,
+});
+
+const explanationSectionTitle = (c) => ({
+  fontSize: 11,
+  fontWeight: 900,
+  color: c.gold,
+  letterSpacing: ".02em",
+});
+
+const explanationSectionBody = (c) => ({
+  color: c.text,
+  fontSize: 12,
+  lineHeight: 1.65,
+});
+
+const optionExplanationRow = (c, correct) => ({
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  gap: "3px 8px",
+  padding: "8px 9px",
+  borderRadius: 10,
+  border: `1px solid ${correct ? c.green : c.border}`,
+  background: correct ? (c.page === "#0b0b0b" ? "#16321e" : "#edf7ef") : c.card2,
+  color: c.text,
+  fontSize: 11,
+});
+
+const keywordListStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+};
+
+const keywordChipStyle = (c) => ({
+  padding: "5px 8px",
+  borderRadius: 999,
+  border: `1px solid ${c.border}`,
+  background: c.soft,
+  color: c.text,
+  fontSize: 10,
+  fontWeight: 800,
+});
+
+);
+
 const paletteGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
   gap: 7,
   marginTop: 12,
 };
@@ -2475,18 +2802,10 @@ const reviewTop = {
   marginBottom: 15,
 };
 
-const explanationBox = (c) => ({
-  marginTop: 22,
-  padding: 16,
-  borderRadius: 14,
-  border: `1px solid ${c.border}`,
-  background: c.card2,
-  display: "grid",
-  gap: 8,
-});
+);
 
 const minimalContainerStyle = {
-  width: "min(760px, calc(100% - 28px))",
+  width: "min(920px, calc(100% - 28px))",
   margin: "0 auto",
   padding: "22px 0 90px",
   display: "grid",
@@ -2495,11 +2814,8 @@ const minimalContainerStyle = {
 
 const minimalHeroStyle = (c) => ({
   ...cardStyle(c),
-  padding: "20px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 18,
+  padding: "18px",
+  display: "block",
   background: c.card2,
 });
 
@@ -2746,15 +3062,6 @@ const minimalHistoryRow = (c) => ({
   background: c.card2,
 });
 
-const minimalFooterNote = (c) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  flexWrap: "wrap",
-  color: c.muted,
-  fontSize: 9,
-  lineHeight: 1.5,
-  padding: "2px 3px",
-});
+);
 
 export const dynamic = "force-dynamic";
