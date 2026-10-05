@@ -1021,7 +1021,30 @@ const styles = {
 PUBLIC LANDING PAGE
 ========================================================= */
 
-function PublicLanding() {
+function PublicLanding({ theme, toggleTheme }) {
+  const dark = theme === "dark";
+  const publicUi = dark
+    ? {
+        pageBg: "linear-gradient(180deg,#090909 0%,#111111 100%)",
+        text: "#f7f4ec",
+        muted: "#a9a49a",
+        soft: "#77736b",
+        surface: "#151515",
+        surfaceAlt: "#1b1b1b",
+        line: "rgba(255,255,255,0.10)",
+        gold: "#d6bd79",
+      }
+    : {
+        pageBg: "linear-gradient(180deg,#f8f7f3 0%,#efeee9 100%)",
+        text: "#111111",
+        muted: "#625f58",
+        soft: "#77736c",
+        surface: "#ffffff",
+        surfaceAlt: "#f8f6f0",
+        line: "#e4e1da",
+        gold: "#a07d32",
+      };
+
   const features = [
     {
       icon: "◈",
@@ -1060,9 +1083,9 @@ function PublicLanding() {
 
   return (
     <>
-      <main style={styles.page}>
+      <main style={{ ...styles.page, background: publicUi.pageBg, color: publicUi.text, transition: "background 180ms ease, color 180ms ease" }}>
         <div style={styles.container}>
-          <header style={styles.header}>
+          <header style={{ ...styles.header, color: publicUi.text }}>
             <div>
               <div style={styles.brand}>
                 SAMBHAV
@@ -1076,20 +1099,36 @@ function PublicLanding() {
               </div>
             </div>
 
-            <a
-              href="/login"
-              style={{
-                ...styles.secondaryButton,
-                background: "#111111",
-                border: "none",
-                padding: "11px 15px",
-              }}
-            >
-              Sign In
-            </a>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px", height: "38px",
+                  padding: "0 11px", borderRadius: "999px", border: `1px solid ${publicUi.line}`,
+                  background: publicUi.surface, color: publicUi.text, fontSize: "9px", fontWeight: 900,
+                  letterSpacing: "0.8px", cursor: "pointer",
+                }}
+              >
+                <span style={{ color: publicUi.gold, fontSize: "14px" }}>{dark ? "☀" : "☾"}</span>
+                {dark ? "LIGHT" : "DARK"}
+              </button>
+              <a
+                href="/login"
+                style={{
+                  ...styles.secondaryButton,
+                  background: dark ? "#f5f1e7" : "#111111",
+                  color: dark ? "#111111" : "#ffffff",
+                  border: "none",
+                  padding: "11px 15px",
+                }}
+              >
+                Sign In
+              </a>
+            </div>
           </header>
 
-          <section style={styles.landingHero}>
+          <section style={{ ...styles.landingHero, boxShadow: dark ? "0 22px 48px rgba(0,0,0,0.35)" : styles.landingHero.boxShadow }}>
             <div style={styles.landingGlow} />
             <div style={styles.landingGlow2} />
 
@@ -1146,7 +1185,7 @@ function PublicLanding() {
             </div>
           </section>
 
-          <section style={styles.landingSection}>
+          <section style={{ ...styles.landingSection, color: publicUi.text }}>
             <div style={styles.goldLabel}>
               THE SAMBHAV SYSTEM
             </div>
@@ -1157,7 +1196,7 @@ function PublicLanding() {
               One preparation system.
             </div>
 
-            <div style={styles.landingSectionSub}>
+            <div style={{ ...styles.landingSectionSub, color: publicUi.muted }}>
               Instead of jumping between multiple tools,
               organise your preparation inside one
               structured workspace.
@@ -1167,7 +1206,7 @@ function PublicLanding() {
               {features.map((feature, index) => (
                 <div
                   key={feature.title}
-                  style={styles.featureCard}
+                  style={{ ...styles.featureCard, background: publicUi.surface, border: `1px solid ${publicUi.line}`, color: publicUi.text, boxShadow: dark ? "0 8px 24px rgba(0,0,0,0.22)" : styles.featureCard.boxShadow }}
                 >
                   <div style={styles.featureIcon}>
                     {feature.icon}
@@ -1196,7 +1235,7 @@ function PublicLanding() {
             </div>
           </section>
 
-          <section style={styles.landingSection}>
+          <section style={{ ...styles.landingSection, color: publicUi.text }}>
             <div style={styles.goldLabel}>
               INSIDE SAMBHAV
             </div>
@@ -1207,12 +1246,12 @@ function PublicLanding() {
               organised in one dashboard.
             </div>
 
-            <div style={styles.landingSectionSub}>
+            <div style={{ ...styles.landingSectionSub, color: publicUi.muted }}>
               Everything important stays inside your
               preparation workspace.
             </div>
 
-            <div style={styles.previewOuter}>
+            <div style={{ ...styles.previewOuter, boxShadow: dark ? "0 20px 43px rgba(0,0,0,0.35)" : styles.previewOuter.boxShadow }}>
               <div style={styles.previewHeader}>
                 <div>
                   <div style={styles.previewBrand}>
@@ -1271,7 +1310,7 @@ function PublicLanding() {
             </div>
           </section>
 
-          <section style={styles.premiumLandingCard}>
+          <section style={{ ...styles.premiumLandingCard, background: dark ? "linear-gradient(145deg,#1d1d1d,#121212)" : styles.premiumLandingCard.background, border: `1px solid ${dark ? "rgba(255,255,255,0.10)" : "#d7ccb0"}`, color: dark ? "#f7f4ec" : "#111111" }}>
             <div style={styles.premiumLandingGlow} />
 
             <div style={styles.premiumLandingContent}>
@@ -1285,7 +1324,7 @@ function PublicLanding() {
                 UPSC preparation.
               </div>
 
-              <div style={styles.premiumText}>
+              <div style={{ ...styles.premiumText, color: dark ? "#aaa59b" : "#6f685a" }}>
                 Unlock the complete SAMBHAV experience
                 and bring your preparation tools into
                 one focused workspace.
@@ -1311,14 +1350,14 @@ function PublicLanding() {
 
               <a
                 href="/pricing"
-                style={styles.premiumButton}
+                style={{ ...styles.premiumButton, background: dark ? "#f5f1e7" : "#111111", color: dark ? "#111111" : "#ffffff" }}
               >
                 Explore Premium →
               </a>
             </div>
           </section>
 
-          <section style={styles.finalCTA}>
+          <section style={{ ...styles.finalCTA, color: publicUi.text }}>
             <div style={styles.goldLabel}>
               YOUR NEXT STEP
             </div>
@@ -1329,47 +1368,47 @@ function PublicLanding() {
               with SAMBHAV.
             </div>
 
-            <div style={styles.finalText}>
+            <div style={{ ...styles.finalText, color: publicUi.muted }}>
               Create your account and enter your
               personalised UPSC preparation workspace.
             </div>
 
             <a
               href="/login"
-              style={styles.finalButton}
+              style={{ ...styles.finalButton, background: dark ? "#f5f1e7" : "#111111", color: dark ? "#111111" : "#ffffff" }}
             >
               Create Account →
             </a>
           </section>
 
-<footer style={styles.publicFooter}>
+<footer style={{ ...styles.publicFooter, borderTop: `1px solid ${publicUi.line}` }}>
             <div style={styles.footerLinks}>
-              <a href="/about" style={styles.footerLink}>
+              <a href="/about" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 About
               </a>
 
-              <a href="/contact" style={styles.footerLink}>
+              <a href="/contact" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 Contact
               </a>
 
-              <a href="/pricing" style={styles.footerLink}>
+              <a href="/pricing" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 Pricing
               </a>
 
-              <a href="/privacy" style={styles.footerLink}>
+              <a href="/privacy" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 Privacy
               </a>
 
-              <a href="/terms" style={styles.footerLink}>
+              <a href="/terms" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 Terms
               </a>
 
-              <a href="/refund" style={styles.footerLink}>
+              <a href="/refund" style={{ ...styles.footerLink, color: publicUi.muted }}>
                 Refund
               </a>
             </div>
 
-            <div style={styles.footerCopy}>
+            <div style={{ ...styles.footerCopy, color: publicUi.soft }}>
               © {new Date().getFullYear()} SAMBHAV UPSC.
               All rights reserved.
             </div>
@@ -1392,6 +1431,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [telegramMode, setTelegramMode] = useState(false);
   const [theme, setTheme] = useState("light");
+  const [lockedFeature, setLockedFeature] = useState("");
 
   useEffect(() => {
     try {
@@ -1604,7 +1644,7 @@ export default function Home() {
     !telegramMode &&
     !user
   ) {
-    return <PublicLanding />;
+    return <PublicLanding theme={theme} toggleTheme={toggleTheme} />;
   }
 
   /* =====================================================
@@ -1612,6 +1652,10 @@ export default function Home() {
   ===================================================== */
 
   if (loading) {
+    const loadingDark = theme === "dark";
+    const loadingUi = loadingDark
+      ? { bg: "#090909", surface: "#151515", text: "#f7f4ec", muted: "#a9a49a", line: "rgba(255,255,255,0.10)" }
+      : { bg: "#f8f7f3", surface: "#ffffff", text: "#111111", muted: "#77736c", line: "#e4e1da" };
     return (
       <>
         <Script
@@ -1619,13 +1663,10 @@ export default function Home() {
           strategy="beforeInteractive"
         />
 
-        <main style={styles.page}>
+        <main style={{ ...styles.page, background: loadingUi.bg, color: loadingUi.text }}>
           <div style={styles.container}>
             <div
-              style={{
-                ...styles.pendingCard,
-                marginTop: "70px",
-              }}
+              style={{ ...styles.pendingCard, marginTop: "70px", background: loadingUi.surface, color: loadingUi.text, border: `1px solid ${loadingUi.line}` }}
             >
               <div style={styles.brand}>
                 SAMBHAV
@@ -1634,7 +1675,7 @@ export default function Home() {
                 </span>
               </div>
 
-              <p style={styles.greetingSub}>
+              <p style={{ ...styles.greetingSub, color: loadingUi.muted }}>
                 Checking access...
               </p>
             </div>
@@ -1916,6 +1957,31 @@ export default function Home() {
     window.location.href = "/premium";
   };
 
+  const openLockedFeature = (name) => {
+    setLockedFeature(name || "This feature");
+  };
+
+  const closeLockedFeature = () => {
+    setLockedFeature("");
+  };
+
+  const darkPreview = theme === "dark";
+  const preview = darkPreview
+    ? {
+        page: "radial-gradient(circle at 50% -10%, rgba(191,158,76,0.10), transparent 32%), linear-gradient(180deg, #080808 0%, #101010 100%)",
+        text: "#f4f0e7",
+        muted: "#8d887f",
+        card: "rgba(255,255,255,0.045)",
+        line: "rgba(255,255,255,0.08)",
+      }
+    : {
+        page: "linear-gradient(180deg, #f8f7f3 0%, #efeee9 100%)",
+        text: "#151515",
+        muted: "#6f6a61",
+        card: "rgba(255,255,255,0.92)",
+        line: "#dedbd2",
+      };
+
   return (
     <>
       <Script
@@ -1926,9 +1992,8 @@ export default function Home() {
       <main
         style={{
           minHeight: "100vh",
-          background:
-            "radial-gradient(circle at 50% -10%, rgba(191,158,76,0.10), transparent 32%), linear-gradient(180deg, #080808 0%, #101010 100%)",
-          color: "#f4f0e7",
+          background: preview.page,
+          color: preview.text,
           fontFamily:
             "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
           padding: "26px 16px 70px",
@@ -2190,7 +2255,16 @@ export default function Home() {
               {previewFeatures.map((feature) => (
                 <div
                   key={feature.title}
-                  aria-disabled="true"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openLockedFeature(feature.title)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openLockedFeature(feature.title);
+                    }
+                  }}
+                  aria-label={`${feature.title} - Premium locked`}
                   style={{
                     minHeight: "112px",
                     padding: "18px",
@@ -2388,7 +2462,11 @@ export default function Home() {
             ].map(([icon, label], index) => (
               <div
                 key={label}
-                onClick={label === "Premium" ? goPremium : undefined}
+                onClick={() => {
+                  if (label === "Premium") goPremium();
+                  else if (label === "Home") window.scrollTo({ top: 0, behavior: "smooth" });
+                  else openLockedFeature(label);
+                }}
                 style={{
                   height: "42px",
                   borderRadius: "14px",
@@ -2401,7 +2479,7 @@ export default function Home() {
                   color: index === 0 ? "#d6bd79" : label === "Premium" ? "#d6bd79" : "#777269",
                   fontSize: "7px",
                   fontWeight: 900,
-                  cursor: label === "Premium" ? "pointer" : "default",
+                  cursor: "pointer",
                   userSelect: "none",
                 }}
               >
@@ -2410,6 +2488,63 @@ export default function Home() {
               </div>
             ))}
           </nav>
+
+          {lockedFeature && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={closeLockedFeature}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "20px",
+                background: "rgba(0,0,0,0.72)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <div
+                onClick={(event) => event.stopPropagation()}
+                style={{
+                  width: "100%",
+                  maxWidth: "390px",
+                  padding: "26px",
+                  borderRadius: "24px",
+                  background: darkPreview ? "#151515" : "#fffdf8",
+                  color: darkPreview ? "#f4f0e7" : "#151515",
+                  border: `1px solid ${darkPreview ? "rgba(255,255,255,0.10)" : "#dedbd2"}`,
+                  boxShadow: "0 30px 80px rgba(0,0,0,0.40)",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ width: "54px", height: "54px", margin: "0 auto", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(199,168,93,0.12)", border: "1px solid rgba(199,168,93,0.20)", fontSize: "23px" }}>🔒</div>
+                <div style={{ marginTop: "16px", color: "#c7a85d", fontSize: "8px", fontWeight: 950, letterSpacing: "1.7px" }}>PREMIUM ACCESS REQUIRED</div>
+                <h3 style={{ margin: "9px 0 0", fontSize: "22px", fontWeight: 950 }}>
+                  {lockedFeature} is locked
+                </h3>
+                <p style={{ margin: "9px 0 0", color: darkPreview ? "#8d887f" : "#6f6a61", fontSize: "11px", lineHeight: 1.6 }}>
+                  Activate Demo or Premium to access this feature inside the fully functional SAMBHAV Learning Ecosystem.
+                </p>
+                <button
+                  type="button"
+                  onClick={goPremium}
+                  style={{ width: "100%", marginTop: "19px", minHeight: "48px", border: "none", borderRadius: "13px", background: "#111111", color: "#ffffff", fontSize: "9px", fontWeight: 950, letterSpacing: "1px", cursor: "pointer" }}
+                >
+                  UNLOCK PREMIUM →
+                </button>
+                <button
+                  type="button"
+                  onClick={closeLockedFeature}
+                  style={{ marginTop: "10px", border: "none", background: "transparent", color: darkPreview ? "#777269" : "#777269", fontSize: "9px", fontWeight: 850, cursor: "pointer" }}
+                >
+                  Maybe later
+                </button>
+              </div>
+            </div>
+          )}
 
           <div
             style={{
