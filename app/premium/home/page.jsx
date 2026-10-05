@@ -19,7 +19,7 @@ const modules = [
     title: "Prelims Practice",
     subtitle: "PYQ Based • MCQs • Analysis",
     icon: "📝",
-    route: null,
+    route: "/prelims-test",
   },
   {
     title: "Mains Answer Writing",
