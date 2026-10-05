@@ -2118,8 +2118,6 @@ export default function CurrentAffairsPage() {
         *, *::before, *::after { box-sizing:border-box; }
         button, input, select, textarea { max-width:100%; }
         img, video, iframe { max-width:100%; height:auto; }
-      `}
-
 
 /* =========================================================
    SAMBHAV UPSC — CURRENT AFFAIRS PREMIUM VISUAL OVERRIDE
@@ -2705,7 +2703,7 @@ export default function CurrentAffairsPage() {
   }
 }
 
-</style>
+      `}</style>
     </main>
   );
 }
