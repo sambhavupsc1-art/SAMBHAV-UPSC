@@ -38,7 +38,9 @@ export default function PrelimsTestPage() {
   const [testType, setTestType] = useState("pyq");
   const [year, setYear] = useState("all");
   const [subject, setSubject] = useState("all");
+  const [topic, setTopic] = useState("all");
   const [questionCount, setQuestionCount] = useState(25);
+  const [history, setHistory] = useState([]);
   const [language, setLanguage] = useState("en");
 
   const [testQuestions, setTestQuestions] = useState([]);
@@ -104,7 +106,106 @@ export default function PrelimsTestPage() {
           ? pyqData.questions
           : [];
 
-        setQuestions(rows.filter((q) => Array.isArray(q?.options) && q.options.length > 0));
+        // Use the existing Supabase prelims_pyqs data.
+        // Supabase stores options in option_a/option_b/option_c/option_d
+        // and the answer in correct_option (1=A, 2=B, 3=C, 4=D).
+        const mappedRows = rows.map((q, index) => {
+          let answer = q?.answer;
+
+          if (
+            (answer === null ||
+              answer === undefined ||
+              answer === "") &&
+            q?.correct_option !== null &&
+            q?.correct_option !== undefined
+          ) {
+            const numericAnswer = Number(q.correct_option);
+
+            answer =
+              numericAnswer >= 1 && numericAnswer <= 4
+                ? numericAnswer - 1
+                : numericAnswer;
+          } else if (typeof answer === "string") {
+            const normalized = answer.trim().toUpperCase();
+            const answerMap = { A: 0, B: 1, C: 2, D: 3 };
+
+            if (
+              Object.prototype.hasOwnProperty.call(
+                answerMap,
+                normalized
+              )
+            ) {
+              answer = answerMap[normalized];
+            } else if (
+              normalized !== "" &&
+              !Number.isNaN(Number(normalized))
+            ) {
+              answer = Number(normalized);
+            }
+          }
+
+          let options = [];
+
+          if (Array.isArray(q?.options)) {
+            options = q.options;
+          } else if (typeof q?.options === "string") {
+            try {
+              const parsed = JSON.parse(q.options);
+              options = Array.isArray(parsed) ? parsed : [];
+            } catch {
+              options = [];
+            }
+          }
+
+          if (
+            options.length === 0 &&
+            (
+              q?.option_a ||
+              q?.option_b ||
+              q?.option_c ||
+              q?.option_d
+            )
+          ) {
+            options = [
+              q.option_a,
+              q.option_b,
+              q.option_c,
+              q.option_d,
+            ].filter(
+              (option) =>
+                option !== null &&
+                option !== undefined &&
+                String(option).trim() !== ""
+            );
+          }
+
+          return {
+            ...q,
+            id:
+              q?.id ??
+              `prelims-${q?.year ?? "unknown"}-${index + 1}`,
+            year: Number(q?.year),
+            subject: q?.subject || "General",
+            topic: q?.topic || "General",
+            question: q?.question || "",
+            options,
+            answer,
+            explanation: q?.explanation || "",
+            explanation_en:
+              q?.explanation ||
+              q?.explanation_en ||
+              "",
+            explanation_hi: q?.explanation_hi || "",
+          };
+        });
+
+        setQuestions(
+          mappedRows.filter(
+            (q) =>
+              Array.isArray(q?.options) &&
+              q.options.length > 0
+          )
+        );
       } catch (e) {
         if (alive) setError(e?.message || "Unable to load the test.");
       } finally {
@@ -168,15 +269,38 @@ export default function PrelimsTestPage() {
     return ["all", ...Array.from(set).sort()];
   }, [questions]);
 
+  const topics = useMemo(() => {
+    const set = new Set();
+    questions.forEach((q) => {
+      const value = q?.topic;
+      if (value) set.add(String(value));
+    });
+    return ["all", ...Array.from(set).sort()];
+  }, [questions]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("sambhav-prelims-history") || "[]");
+      setHistory(Array.isArray(saved) ? saved : []);
+    } catch {
+      setHistory([]);
+    }
+  }, []);
+
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
       const qYear = String(q?.year ?? "");
       const qSubject = String(q?.subject || q?.category || "");
+      const qTopic = String(q?.topic || "");
 
       const yearOk = year === "all" || qYear === year;
       const subjectOk = subject === "all" || qSubject === subject;
+      const topicOk = topic === "all" || qTopic === topic;
 
-      return yearOk && subjectOk;
+      if (testType === "subject" && subject === "all") return false;
+      if (testType === "topic" && topic === "all") return false;
+
+      return yearOk && subjectOk && topicOk;
     });
   }, [questions, year, subject]);
 
@@ -239,6 +363,16 @@ export default function PrelimsTestPage() {
   }, [answers, testQuestions]);
 
   const startTest = () => {
+    if (testType === "subject" && subject === "all") {
+      setError("Please select a subject for Subject Test.");
+      return;
+    }
+
+    if (testType === "topic" && topic === "all") {
+      setError("Please select a topic for Topic Test.");
+      return;
+    }
+
     if (!filteredQuestions.length) {
       setError("No questions are available for the selected filters.");
       return;
@@ -249,7 +383,7 @@ export default function PrelimsTestPage() {
     );
 
     const count =
-      testType === "full"
+      testType === "full" || testType === "mock"
         ? Math.min(100, eligible.length)
         : Math.min(Number(questionCount), eligible.length);
 
@@ -833,7 +967,7 @@ export default function PrelimsTestPage() {
               colors={colors}
               active={testType === "pyq"}
               title="PYQ Test"
-              subtitle="UPSC Prelims previous-year questions"
+              subtitle="Year-wise UPSC Prelims PYQs"
               icon="📚"
               onClick={() => setTestType("pyq")}
             />
@@ -841,28 +975,74 @@ export default function PrelimsTestPage() {
               colors={colors}
               active={testType === "full"}
               title="Full Length"
-              subtitle="Mixed GS practice under exam conditions"
+              subtitle="100-question exam-style paper"
               icon="🎯"
               onClick={() => setTestType("full")}
+            />
+            <TestTypeCard
+              colors={colors}
+              active={testType === "subject"}
+              title="Subject Test"
+              subtitle="Polity, Economy, History and more"
+              icon="📖"
+              onClick={() => setTestType("subject")}
+            />
+            <TestTypeCard
+              colors={colors}
+              active={testType === "topic"}
+              title="Topic Test"
+              subtitle="Focused practice by topic"
+              icon="🔎"
+              onClick={() => setTestType("topic")}
+            />
+            <TestTypeCard
+              colors={colors}
+              active={testType === "mock"}
+              title="Mock Test"
+              subtitle="Mixed questions for exam simulation"
+              icon="🏆"
+              onClick={() => setTestType("mock")}
             />
           </div>
 
           <div style={filterGrid}>
-            <SelectBox
-              colors={colors}
-              label="Year"
-              value={year}
-              onChange={setYear}
-              options={years}
-            />
+            {testType === "pyq" && (
+              <SelectBox
+                colors={colors}
+                label="Year"
+                value={year}
+                onChange={setYear}
+                options={years}
+              />
+            )}
 
-            <SelectBox
-              colors={colors}
-              label="Subject"
-              value={subject}
-              onChange={setSubject}
-              options={subjects}
-            />
+            {(testType === "subject" || testType === "topic") && (
+              <SelectBox
+                colors={colors}
+                label="Subject"
+                value={subject}
+                onChange={setSubject}
+                options={subjects}
+              />
+            )}
+
+            {testType === "topic" && (
+              <SelectBox
+                colors={colors}
+                label="Topic"
+                value={topic}
+                onChange={setTopic}
+                options={topics}
+              />
+            )}
+
+            {testType !== "pyq" && testType !== "subject" && testType !== "topic" && (
+              <div style={filterInfo(colors)}>
+                <span style={eyebrow(colors)}>MODE</span>
+                <strong>{testType === "full" ? "Full Length UPSC Test" : "Mixed Mock Test"}</strong>
+                <small>Questions are selected automatically from the available PYQ pool.</small>
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: 20 }}>
@@ -872,7 +1052,7 @@ export default function PrelimsTestPage() {
                 <button
                   key={count}
                   onClick={() => setQuestionCount(count)}
-                  disabled={testType === "full"}
+                  disabled={testType === "full" || testType === "mock"}
                   style={{
                     ...countButton(colors),
                     ...(questionCount === count
@@ -882,7 +1062,7 @@ export default function PrelimsTestPage() {
                           borderColor: colors.gold,
                         }
                       : {}),
-                    ...(testType === "full" ? { opacity: 0.45 } : {}),
+                    ...(testType === "full" || testType === "mock" ? { opacity: 0.45 } : {}),
                   }}
                 >
                   {count}
@@ -904,6 +1084,45 @@ export default function PrelimsTestPage() {
           >
             Start Test →
           </button>
+        </section>
+
+        <section style={cardStyle(colors)}>
+          <div style={sectionHeading}>
+            <div>
+              <div style={eyebrow(colors)}>TEST HISTORY</div>
+              <h2 style={sectionTitle(colors)}>Your recent tests</h2>
+            </div>
+            <span style={mutedStyle(colors)}>
+              {history.length} saved
+            </span>
+          </div>
+
+          {history.length === 0 ? (
+            <div style={emptyHistory(colors)}>
+              No test attempted yet. Start your first test above.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 9 }}>
+              {history.slice(0, 5).map((item) => (
+                <div key={item.id} style={historyRow(colors)}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ display: "block" }}>
+                      {getTestLabel(item.type)}
+                    </strong>
+                    <span style={{ color: colors.muted, fontSize: 12 }}>
+                      {item.total} Questions • {item.accuracy}% Accuracy
+                    </span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <strong>{item.score}</strong>
+                    <span style={{ display: "block", color: colors.muted, fontSize: 11 }}>
+                      {formatHistoryDate(item.date)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section style={cardStyle(colors)}>
@@ -1042,6 +1261,29 @@ function HowItem({ colors, number, title, text }) {
       </div>
     </div>
   );
+}
+
+function getTestLabel(type) {
+  const labels = {
+    pyq: "PYQ Test",
+    full: "Full Length Test",
+    subject: "Subject Test",
+    topic: "Topic Test",
+    mock: "Mock Test",
+  };
+  return labels[type] || "Prelims Test";
+}
+
+function formatHistoryDate(value) {
+  try {
+    return new Date(value).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
 }
 
 const pageStyle = (c) => ({
@@ -1271,6 +1513,37 @@ const infoItemStyle = (c) => ({
   background: c.card2,
   display: "grid",
   gap: 5,
+});
+
+const filterInfo = (c) => ({
+  minHeight: 46,
+  borderRadius: 12,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+  padding: "9px 12px",
+  display: "grid",
+  gap: 2,
+  alignContent: "center",
+});
+
+const historyRow = (c) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  minHeight: 58,
+  padding: "9px 12px",
+  borderRadius: 13,
+  border: `1px solid ${c.border}`,
+  background: c.card2,
+});
+
+const emptyHistory = (c) => ({
+  padding: 18,
+  borderRadius: 14,
+  border: `1px dashed ${c.border}`,
+  color: c.muted,
+  textAlign: "center",
 });
 
 const howGrid = {
