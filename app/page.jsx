@@ -2413,7 +2413,7 @@ export default function Home() {
                   color: ui.gold,
                 }}
               >
-                संभव है, तो UPSC संभव है।
+                No Shortcut Just Consistency
               </div>
 
               <div
