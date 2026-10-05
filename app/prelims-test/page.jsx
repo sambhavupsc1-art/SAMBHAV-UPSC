@@ -36,6 +36,7 @@ export default function PrelimsTestPage() {
 
   const [screen, setScreen] = useState("center");
   const [testType, setTestType] = useState("pyq");
+  const [advancedMode, setAdvancedMode] = useState(true);
   const [year, setYear] = useState("all");
   const [subject, setSubject] = useState("all");
   const [topic, setTopic] = useState("all");
@@ -54,6 +55,7 @@ export default function PrelimsTestPage() {
   const [autoSubmitted, setAutoSubmitted] = useState(false);
 
   const [theme, setTheme] = useState("light");
+  const [isMobile, setIsMobile] = useState(false);
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -646,7 +648,7 @@ export default function PrelimsTestPage() {
         />
         <div style={containerStyle}>
           <div style={cardStyle(colors)}>
-            <div style={eyebrow(colors)}>PRELIMS PRACTICE</div>
+            <div style={eyebrow(colors)}>SAMBHAV UPSC • ADVANCED EXAM MODE</div>
             <h1 style={titleStyle(colors)}>Unable to load test</h1>
             <p style={mutedStyle(colors)}>{error}</p>
             <button style={primaryButton(colors)} onClick={() => window.location.reload()}>
@@ -1107,6 +1109,14 @@ export default function PrelimsTestPage() {
               icon="🏆"
               onClick={() => setTestType("mock")}
             />
+            <TestTypeCard
+              colors={colors}
+              active={advancedMode}
+              title="Advanced Exam Mode"
+              subtitle="Full UPSC-style timer, palette & review engine"
+              icon="⚡"
+              onClick={() => setAdvancedMode(true)}
+            />
           </div>
 
           <div style={filterGrid}>
@@ -1175,6 +1185,38 @@ export default function PrelimsTestPage() {
             </div>
           </div>
 
+          <div
+            style={{
+              marginTop: 18,
+              padding: 15,
+              borderRadius: 18,
+              border: `1px solid ${colors.border}`,
+              background: colors.card2,
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            <div>
+              <div style={eyebrow(colors)}>ADVANCED ENGINE</div>
+              <strong style={{ display: "block", marginTop: 5 }}>
+                UPSC-style simulation
+              </strong>
+              <span style={{ display: "block", marginTop: 4, color: colors.muted, fontSize: 12 }}>
+                Timer • Palette • Review • Auto-submit
+              </span>
+            </div>
+            <div>
+              <div style={eyebrow(colors)}>PERFORMANCE</div>
+              <strong style={{ display: "block", marginTop: 5 }}>
+                Detailed analysis
+              </strong>
+              <span style={{ display: "block", marginTop: 4, color: colors.muted, fontSize: 12 }}>
+                Accuracy • Negative marks • Time • Review
+              </span>
+            </div>
+          </div>
+
           <div style={testInfoGrid}>
             <InfoItem colors={colors} label="Duration" value="2 Hours" />
             <InfoItem colors={colors} label="Marking" value="+2 / −0.66" />
@@ -1227,6 +1269,16 @@ export default function PrelimsTestPage() {
               ))}
             </div>
           )}
+        </section>
+
+        <section style={cardStyle(colors)}>
+          <div style={eyebrow(colors)}>SAMBHAV SYSTEM</div>
+          <div style={{ marginTop: 7, fontSize: 18, fontWeight: 900 }}>
+            One platform. One preparation system.
+          </div>
+          <div style={{ marginTop: 6, color: colors.muted, fontSize: 12, lineHeight: 1.5 }}>
+            Prelims testing stays inside the same SAMBHAV design language across mobile and desktop.
+          </div>
         </section>
 
         <section style={cardStyle(colors)}>
