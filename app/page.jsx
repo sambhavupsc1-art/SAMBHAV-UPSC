@@ -1968,20 +1968,47 @@ export default function Home() {
   const darkPreview = theme === "dark";
   const preview = darkPreview
     ? {
-        page: "radial-gradient(circle at 50% -10%, rgba(191,158,76,0.10), transparent 32%), linear-gradient(180deg, #080808 0%, #101010 100%)",
+        page: "radial-gradient(circle at 50% -10%, rgba(199,168,93,0.10), transparent 30%), linear-gradient(180deg, #080808 0%, #101010 100%)",
         text: "#f4f0e7",
-        muted: "#8d887f",
+        muted: "#969087",
+        soft: "#777269",
         card: "rgba(255,255,255,0.045)",
-        line: "rgba(255,255,255,0.08)",
+        cardSolid: "#151515",
+        line: "rgba(255,255,255,0.09)",
+        navBg: "rgba(18,18,18,0.94)",
+        navText: "#777269",
+        navActive: "rgba(199,168,93,0.11)",
+        heroBg: "linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018))",
+        heroBorder: "rgba(255,255,255,0.08)",
+        heroMuted: "#8d887f",
+        gold: "#c7a85d",
+        goldSoft: "rgba(199,168,93,0.08)",
+        premiumBg: "linear-gradient(135deg, rgba(199,168,93,0.14), rgba(255,255,255,0.025))",
+        premiumBorder: "rgba(199,168,93,0.30)",
+        buttonBg: "#f1ede4",
+        buttonText: "#111111",
       }
     : {
-        page: "linear-gradient(180deg, #f8f7f3 0%, #efeee9 100%)",
-        text: "#151515",
-        muted: "#6f6a61",
+        page: "linear-gradient(180deg, #f7f8fa 0%, #eef1f4 100%)",
+        text: "#17202a",
+        muted: "#596574",
+        soft: "#74808d",
         card: "rgba(255,255,255,0.92)",
-        line: "#dedbd2",
+        cardSolid: "#ffffff",
+        line: "#dce2e8",
+        navBg: "rgba(255,255,255,0.96)",
+        navText: "#65717e",
+        navActive: "#f4ead3",
+        heroBg: "linear-gradient(145deg, #ffffff 0%, #f3f5f7 100%)",
+        heroBorder: "#e0e5ea",
+        heroMuted: "#5f6b78",
+        gold: "#9a762d",
+        goldSoft: "#f7f0e1",
+        premiumBg: "linear-gradient(135deg, #fbf7ed 0%, #f2ead8 100%)",
+        premiumBorder: "#d8c79f",
+        buttonBg: "#17202a",
+        buttonText: "#ffffff",
       };
-
   return (
     <>
       <Script
@@ -2026,12 +2053,12 @@ export default function Home() {
                   letterSpacing: "-0.7px",
                 }}
               >
-                SAMBHAV <span style={{ color: "#c7a85d" }}>UPSC</span>
+                SAMBHAV <span style={{ color: preview.gold }}>UPSC</span>
               </div>
               <div
                 style={{
                   marginTop: "8px",
-                  color: "#7e796f",
+                  color: preview.muted,
                   fontSize: "8px",
                   fontWeight: 800,
                   letterSpacing: "2.1px",
@@ -2056,9 +2083,9 @@ export default function Home() {
                   height: "36px",
                   padding: "0 11px",
                   borderRadius: "999px",
-                  border: "1px solid rgba(199,168,93,0.28)",
-                  background: "rgba(255,255,255,0.045)",
-                  color: "#c7a85d",
+                  border: `1px solid ${preview.premiumBorder}`,
+                  background: preview.card,
+                  color: preview.gold,
                   fontSize: "8px",
                   fontWeight: 900,
                   letterSpacing: "0.8px",
@@ -2076,9 +2103,9 @@ export default function Home() {
                     height: "36px",
                     padding: "0 11px",
                     borderRadius: "999px",
-                    border: "1px solid rgba(199,168,93,0.32)",
-                    background: "rgba(199,168,93,0.10)",
-                    color: "#d6bd79",
+                    border: `1px solid ${preview.premiumBorder}`,
+                    background: preview.goldSoft,
+                    color: preview.gold,
                     fontSize: "8px",
                     fontWeight: 900,
                     letterSpacing: "0.8px",
@@ -2097,9 +2124,9 @@ export default function Home() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "#171717",
-                  border: "1px solid rgba(199,168,93,0.35)",
-                  color: "#c7a85d",
+                  background: preview.cardSolid,
+                  border: `1px solid ${preview.premiumBorder}`,
+                  color: preview.gold,
                   fontSize: "14px",
                   fontWeight: 950,
                   boxSizing: "border-box",
@@ -2144,13 +2171,9 @@ export default function Home() {
                   height: "34px",
                   padding: "0 11px",
                   borderRadius: "999px",
-                  border: index === 0
-                    ? "1px solid rgba(199,168,93,0.32)"
-                    : "1px solid rgba(255,255,255,0.08)",
-                  background: index === 0
-                    ? "rgba(199,168,93,0.10)"
-                    : "rgba(255,255,255,0.035)",
-                  color: index === 0 ? "#d6bd79" : "#777269",
+                  border: `1px solid ${index === 0 ? preview.premiumBorder : preview.line}`,
+                  background: index === 0 ? preview.navActive : preview.card,
+                  color: index === 0 ? preview.gold : preview.navText,
                   fontSize: "8px",
                   fontWeight: 900,
                   whiteSpace: "nowrap",
@@ -2163,7 +2186,7 @@ export default function Home() {
           </nav>
 
           {/* Hero */}
-          <section style={{ textAlign: "center", marginBottom: "48px" }}>
+          <section style={{ textAlign: "center", marginBottom: "48px", padding: "34px 22px 32px", borderRadius: "26px", background: preview.heroBg, border: `1px solid ${preview.heroBorder}`, boxShadow: darkPreview ? "0 18px 50px rgba(0,0,0,0.20)" : "0 18px 45px rgba(31,42,55,0.07)" }}>
             <div
               style={{
                 display: "inline-flex",
@@ -2172,9 +2195,9 @@ export default function Home() {
                 minHeight: "28px",
                 padding: "0 12px",
                 borderRadius: "999px",
-                border: "1px solid rgba(199,168,93,0.24)",
-                background: "rgba(199,168,93,0.06)",
-                color: "#c7a85d",
+                border: `1px solid ${preview.premiumBorder}`,
+                background: preview.goldSoft,
+                color: preview.gold,
                 fontSize: "8px",
                 fontWeight: 950,
                 letterSpacing: "1.7px",
@@ -2195,14 +2218,14 @@ export default function Home() {
             >
               Prepare with clarity.
               <br />
-              <span style={{ color: "#c7a85d" }}>Perform with SAMBHAV.</span>
+              <span style={{ color: preview.gold }}>Perform with SAMBHAV.</span>
             </h1>
 
             <p
               style={{
                 maxWidth: "520px",
                 margin: "20px auto 0",
-                color: "#8d887f",
+                color: preview.heroMuted,
                 fontSize: "13px",
                 lineHeight: 1.7,
               }}
@@ -2225,7 +2248,7 @@ export default function Home() {
             >
               <div
                 style={{
-                  color: "#777269",
+                  color: preview.soft,
                   fontSize: "8px",
                   fontWeight: 950,
                   letterSpacing: "1.8px",
@@ -2235,7 +2258,7 @@ export default function Home() {
               </div>
               <div
                 style={{
-                  color: "#555149",
+                  color: preview.soft,
                   fontSize: "8px",
                   fontWeight: 800,
                   letterSpacing: "0.8px",
@@ -2270,10 +2293,10 @@ export default function Home() {
                     padding: "18px",
                     boxSizing: "border-box",
                     borderRadius: "18px",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018))",
-                    opacity: 0.9,
+                    border: `1px solid ${preview.line}`,
+                    background: preview.card,
+                    opacity: 1,
+                    boxShadow: darkPreview ? "none" : "0 10px 28px rgba(31,42,55,0.06)",
                     position: "relative",
                     overflow: "hidden",
                   }}
@@ -2306,8 +2329,8 @@ export default function Home() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "rgba(199,168,93,0.08)",
-                        border: "1px solid rgba(199,168,93,0.13)",
+                        background: preview.goldSoft,
+                        border: `1px solid ${preview.premiumBorder}`,
                         fontSize: "17px",
                         filter: "grayscale(0.15)",
                       }}
@@ -2318,7 +2341,7 @@ export default function Home() {
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{
-                          color: "#eee9df",
+                          color: preview.text,
                           fontSize: "12px",
                           lineHeight: 1.35,
                           fontWeight: 900,
@@ -2329,7 +2352,7 @@ export default function Home() {
                       <div
                         style={{
                           marginTop: "7px",
-                          color: "#777269",
+                          color: preview.soft,
                           fontSize: "9px",
                           lineHeight: 1.55,
                         }}
@@ -2342,7 +2365,7 @@ export default function Home() {
                   <div
                     style={{
                       marginTop: "14px",
-                      color: "#504c45",
+                      color: preview.soft,
                       fontSize: "7px",
                       fontWeight: 900,
                       letterSpacing: "1.1px",
@@ -2361,15 +2384,14 @@ export default function Home() {
               marginTop: "14px",
               padding: "24px",
               borderRadius: "22px",
-              border: "1px solid rgba(199,168,93,0.28)",
-              background:
-                "linear-gradient(135deg, rgba(199,168,93,0.13), rgba(255,255,255,0.025))",
+              border: `1px solid ${preview.premiumBorder}`,
+              background: preview.premiumBg,
               boxShadow: "0 18px 55px rgba(0,0,0,0.24)",
             }}
           >
             <div
               style={{
-                color: "#c7a85d",
+                color: preview.gold,
                 fontSize: "8px",
                 fontWeight: 950,
                 letterSpacing: "1.8px",
@@ -2393,7 +2415,7 @@ export default function Home() {
             <p
               style={{
                 margin: "10px 0 20px",
-                color: "#8d887f",
+                color: preview.heroMuted,
                 fontSize: "11px",
                 lineHeight: 1.65,
               }}
@@ -2410,8 +2432,8 @@ export default function Home() {
                 minHeight: "52px",
                 border: "none",
                 borderRadius: "14px",
-                background: "#f1ede4",
-                color: "#111111",
+                background: preview.buttonBg,
+                color: preview.buttonText,
                 fontSize: "10px",
                 fontWeight: 950,
                 letterSpacing: "1.1px",
@@ -2448,8 +2470,8 @@ export default function Home() {
               gap: "6px",
               padding: "7px",
               borderRadius: "20px",
-              background: "rgba(18,18,18,0.94)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: preview.navBg,
+              border: `1px solid ${preview.line}`,
               boxShadow: "0 15px 40px rgba(0,0,0,0.28)",
               backdropFilter: "blur(14px)",
             }}
@@ -2475,8 +2497,8 @@ export default function Home() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "2px",
-                  background: index === 0 ? "rgba(199,168,93,0.10)" : "transparent",
-                  color: index === 0 ? "#d6bd79" : label === "Premium" ? "#d6bd79" : "#777269",
+                  background: index === 0 ? preview.navActive : "transparent",
+                  color: index === 0 ? preview.gold : label === "Premium" ? preview.gold : preview.navText,
                   fontSize: "7px",
                   fontWeight: 900,
                   cursor: "pointer",
@@ -2521,7 +2543,7 @@ export default function Home() {
                 }}
               >
                 <div style={{ width: "54px", height: "54px", margin: "0 auto", borderRadius: "18px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(199,168,93,0.12)", border: "1px solid rgba(199,168,93,0.20)", fontSize: "23px" }}>🔒</div>
-                <div style={{ marginTop: "16px", color: "#c7a85d", fontSize: "8px", fontWeight: 950, letterSpacing: "1.7px" }}>PREMIUM ACCESS REQUIRED</div>
+                <div style={{ marginTop: "16px", color: preview.gold, fontSize: "8px", fontWeight: 950, letterSpacing: "1.7px" }}>PREMIUM ACCESS REQUIRED</div>
                 <h3 style={{ margin: "9px 0 0", fontSize: "22px", fontWeight: 950 }}>
                   {lockedFeature} is locked
                 </h3>
@@ -2550,7 +2572,7 @@ export default function Home() {
             style={{
               marginTop: "28px",
               textAlign: "center",
-              color: "#4f4b44",
+              color: preview.soft,
               fontSize: "7px",
               fontWeight: 800,
               letterSpacing: "0.8px",
