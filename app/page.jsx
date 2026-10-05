@@ -1376,63 +1376,6 @@ function PublicLanding() {
           </footer>
         </div>
       </main>
-
-          {/* ADMIN-ONLY BOTTOM NAVIGATION */}
-          {isAdmin && (
-            <nav
-              aria-label="Admin navigation"
-              style={{
-                position: "fixed",
-                left: "50%",
-                bottom: "12px",
-                transform: "translateX(-50%)",
-                width: "calc(100% - 28px)",
-                maxWidth: "730px",
-                height: "58px",
-                padding: "5px",
-                boxSizing: "border-box",
-                display: "grid",
-                gridTemplateColumns: "1fr",
-                alignItems: "center",
-                background: dark
-                  ? "rgba(20,20,20,0.97)"
-                  : "rgba(255,255,255,0.97)",
-                border: `1px solid ${ui.line}`,
-                borderRadius: "21px",
-                boxShadow: dark
-                  ? "0 12px 35px rgba(0,0,0,0.35)"
-                  : "0 10px 35px rgba(0,0,0,0.12)",
-                zIndex: 50,
-                backdropFilter: "blur(14px)",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = "/admin";
-                }}
-                style={{
-                  width: "100%",
-                  height: "48px",
-                  border: "none",
-                  borderRadius: "17px",
-                  background: dark ? "#242424" : "#f1eee6",
-                  color: ui.text,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  fontSize: "10px",
-                  fontWeight: "950",
-                  letterSpacing: "0.7px",
-                  cursor: "pointer",
-                }}
-              >
-                <span style={{ color: ui.gold, fontSize: "15px" }}>⚙</span>
-                ADMIN CONTROL
-              </button>
-            </nav>
-          )}
     </>
   );
 }
@@ -2040,7 +1983,7 @@ export default function Home() {
               style={{
                 background: welcomeBg,
                 borderRadius: "28px",
-                padding: "36px 26px",
+                padding: "22px 22px",
                 textAlign: "left",
                 border: `1px solid ${
                   darkWelcome
@@ -2066,7 +2009,7 @@ export default function Home() {
               <div
                 style={{
                   marginTop: "12px",
-                  fontSize: "30px",
+                  fontSize: "24px",
                   lineHeight: "1.05",
                   fontWeight: "950",
                   letterSpacing: "-1px",
@@ -2969,8 +2912,7 @@ export default function Home() {
                     border: `1px solid ${ui.line}`,
                     boxShadow: ui.shadow,
                     cursor: "pointer",
-                    transition:
-                      "background 150ms ease, transform 150ms ease",
+                    transition: "background 150ms ease, transform 150ms ease",
                   }}
                 >
                   <div
@@ -2993,7 +2935,7 @@ export default function Home() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "17px",
+                        fontSize: "12px",
                         fontWeight: "950",
                       }}
                     >
@@ -3086,83 +3028,57 @@ export default function Home() {
                 </div>
               ))}
             </section>
-                  <div
-                    style={{
-                      paddingTop: "2px",
-                      fontSize: "9px",
-                      fontWeight: "950",
-                      color: ui.soft,
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    {item.no}
-                  </div>
-
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "8px",
-                        fontWeight: "950",
-                        letterSpacing: "1.35px",
-                        color: ui.gold,
-                        lineHeight: "1.3",
-                      }}
-                    >
-                      {item.label}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: "5px",
-                        fontSize: "18px",
-                        lineHeight: "1.18",
-                        fontWeight: "950",
-                        letterSpacing: "-0.35px",
-                      }}
-                    >
-                      {item.title}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(2,minmax(0,1fr))",
-                        columnGap: "22px",
-                        rowGap: "7px",
-                        marginTop: "10px",
-                      }}
-                    >
-                      {item.points.map((point) => (
-                        <div
-                          key={point}
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "7px",
-                            fontSize: "10.5px",
-                            lineHeight: "1.42",
-                            color: ui.muted,
-                            fontWeight: "800",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: ui.gold,
-                              fontWeight: "950",
-                              flexShrink: 0,
-                            }}
-                          >
-                            •
-                          </span>
-                          <span>{point}</span>
-                        </div>
-                      ))}
-                    </div>
-
           </section>
         </div>
       </main>
+
+      {isAdmin && (
+        <nav
+          aria-label="Admin navigation"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "12px",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 28px)",
+            maxWidth: "730px",
+            height: "58px",
+            padding: "5px",
+            boxSizing: "border-box",
+            background: dark ? "rgba(20,20,20,0.97)" : "rgba(255,255,255,0.97)",
+            border: `1px solid ${ui.line}`,
+            borderRadius: "21px",
+            boxShadow: dark ? "0 12px 35px rgba(0,0,0,0.35)" : "0 10px 35px rgba(0,0,0,0.12)",
+            zIndex: 50,
+            backdropFilter: "blur(14px)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/admin"; }}
+            style={{
+              width: "100%",
+              height: "48px",
+              border: "none",
+              borderRadius: "17px",
+              background: dark ? "#242424" : "#f1eee6",
+              color: ui.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              fontSize: "10px",
+              fontWeight: "950",
+              letterSpacing: "0.7px",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ color: ui.gold, fontSize: "15px" }}>⚙</span>
+            ADMIN CONTROL
+          </button>
+        </nav>
+      )}
     </>
   );
 }
+
