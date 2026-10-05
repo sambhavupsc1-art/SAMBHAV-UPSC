@@ -118,17 +118,20 @@ async function sendWelcomeMessage(
   chatId
 ) {
   const caption =
-    "🇮🇳 Welcome to SAMBHAV UPSC\n\n" +
-    "Your preparation. Your SAMBHAV.\n\n" +
-    "SAMBHAV UPSC is built for serious UPSC aspirants — " +
-    "learn, practice and improve with a focused preparation ecosystem.\n\n" +
-    "📚 Current Affairs\n" +
-    "📝 PYQ Oriented Practice\n" +
-    "🤖 AI Answer Evaluation\n" +
-    "📖 Study Material\n" +
-    "📊 Performance & Progress\n\n" +
-    "पहले हमारे official Telegram channel से जुड़ें। " +
-    "Channel verification के बाद ही SAMBHAV UPSC app access मिलेगा.";
+    <b>🇮🇳 Welcome to SAMBHAV UPSC</b>
+
+<b>Your focused UPSC preparation platform.</b>
+
+📚 <b>Daily Current Affairs</b>
+📝 <b>PYQ-Oriented Practice</b>
+🤖 <b>AI-Powered Mains Evaluation</b>
+📖 <b>Structured Study Material</b>
+📊 <b>Performance Tracking</b>
+🎯 <b>Prelims & Mains Focus</b>
+
+<b>First, join our official Telegram channel.</b>
+
+<b>After joining the channel, you can open the SAMBHAV UPSC app.</b>
 
   // =======================================================
   // PROFESSIONAL 2-COLUMN GRID
