@@ -34,10 +34,7 @@ const WELCOME_IMAGE_URL =
    TELEGRAM API
 ========================================================= */
 
-async function telegramApi(
-  method,
-  body
-) {
+async function telegramApi(method, body) {
   if (!TELEGRAM_BOT_TOKEN) {
     console.error(
       "TELEGRAM_BOT_TOKEN is missing"
@@ -53,8 +50,7 @@ async function telegramApi(
         method: "POST",
 
         headers: {
-          "Content-Type":
-            "application/json",
+          "Content-Type": "application/json",
         },
 
         body: JSON.stringify(body),
@@ -63,8 +59,7 @@ async function telegramApi(
       }
     );
 
-    const data =
-      await response.json();
+    const data = await response.json();
 
     if (!data.ok) {
       console.error(
@@ -100,10 +95,11 @@ async function sendTelegramMessage(
 
       text,
 
+      parse_mode: "HTML",
+
       ...(replyMarkup
         ? {
-            reply_markup:
-              replyMarkup,
+            reply_markup: replyMarkup,
           }
         : {}),
     }
@@ -114,11 +110,9 @@ async function sendTelegramMessage(
    WELCOME MESSAGE
 ========================================================= */
 
-async function sendWelcomeMessage(
-  chatId
-) {
-  const caption =
-    <b>🇮🇳 Welcome to SAMBHAV UPSC</b>
+async function sendWelcomeMessage(chatId) {
+  const caption = `
+<b>🇮🇳 Welcome to SAMBHAV UPSC</b>
 
 <b>Your focused UPSC preparation platform.</b>
 
@@ -127,11 +121,12 @@ async function sendWelcomeMessage(
 🤖 <b>AI-Powered Mains Evaluation</b>
 📖 <b>Structured Study Material</b>
 📊 <b>Performance Tracking</b>
-🎯 <b>Prelims & Mains Focus</b>
+🎯 <b>Prelims &amp; Mains Focus</b>
 
 <b>First, join our official Telegram channel.</b>
 
 <b>After joining the channel, you can open the SAMBHAV UPSC app.</b>
+`;
 
   // =======================================================
   // PROFESSIONAL 2-COLUMN GRID
@@ -139,19 +134,16 @@ async function sendWelcomeMessage(
 
   const replyMarkup = {
     inline_keyboard: [
-
       // Row 1
       [
         {
-          text:
-            "📚 Current Affairs",
+          text: "📚 Current Affairs",
           callback_data:
             "info_current_affairs",
         },
 
         {
-          text:
-            "📝 PYQ Practice",
+          text: "📝 PYQ Practice",
           callback_data:
             "info_pyq",
         },
@@ -160,15 +152,13 @@ async function sendWelcomeMessage(
       // Row 2
       [
         {
-          text:
-            "🤖 AI Evaluation",
+          text: "🤖 AI Evaluation",
           callback_data:
             "info_ai",
         },
 
         {
-          text:
-            "📖 Study Material",
+          text: "📖 Study Material",
           callback_data:
             "info_material",
         },
@@ -177,15 +167,13 @@ async function sendWelcomeMessage(
       // Row 3
       [
         {
-          text:
-            "📊 Performance",
+          text: "📊 Performance",
           callback_data:
             "info_performance",
         },
 
         {
-          text:
-            "💬 SAMBHAV UPSC Helpline",
+          text: "💬 SAMBHAV UPSC Helpline",
           url:
             TELEGRAM_CHANNEL_URL,
         },
@@ -194,8 +182,7 @@ async function sendWelcomeMessage(
       // Official Channel
       [
         {
-          text:
-            "📢 Join Official Channel",
+          text: "📢 Join Official Channel",
           url:
             TELEGRAM_CHANNEL_URL,
         },
@@ -204,8 +191,7 @@ async function sendWelcomeMessage(
       // Verification
       [
         {
-          text:
-            "✓ I Have Joined / Continue",
+          text: "✓ I Have Joined / Continue",
           callback_data:
             "verify_channel",
         },
@@ -215,11 +201,8 @@ async function sendWelcomeMessage(
 
   try {
     /*
-      Telegram Vercel image URL ko directly fetch
-      karne me problem aa rahi thi.
-
-      Isliye pehle server image ko fetch karega
-      aur phir Telegram ko upload karega.
+      Vercel image ko pehle server-side fetch
+      karke Telegram par upload kiya ja raha hai.
     */
 
     const imageResponse =
@@ -258,11 +241,15 @@ async function sendWelcomeMessage(
       caption
     );
 
+    // Telegram HTML formatting
+    formData.append(
+      "parse_mode",
+      "HTML"
+    );
+
     formData.append(
       "reply_markup",
-      JSON.stringify(
-        replyMarkup
-      )
+      JSON.stringify(replyMarkup)
     );
 
     const response =
@@ -369,16 +356,17 @@ async function checkChannelMembership(
    VERIFIED USER MESSAGE
 ========================================================= */
 
-async function sendVerifiedMessage(
-  chatId
-) {
+async function sendVerifiedMessage(chatId) {
   return sendTelegramMessage(
     chatId,
 
-    "🇮🇳 Welcome to SAMBHAV UPSC\n\n" +
-      "✅ Channel verification successful.\n\n" +
-      "Ab aap SAMBHAV UPSC app open karke signup kar sakte hain.\n\n" +
-      "📚 Learn • Practice • Progress",
+    `<b>🇮🇳 Welcome to SAMBHAV UPSC</b>
+
+✅ <b>Channel verification successful.</b>
+
+Ab aap SAMBHAV UPSC app open karke signup kar sakte hain.
+
+📚 <b>Learn • Practice • Progress</b>`,
 
     {
       inline_keyboard: [
@@ -386,6 +374,7 @@ async function sendVerifiedMessage(
           {
             text:
               "🚀 Open SAMBHAV UPSC",
+
             url:
               SAMBHAV_APP_URL,
           },
@@ -405,18 +394,21 @@ async function sendNotJoinedMessage(
   return sendTelegramMessage(
     chatId,
 
-    "🔒 SAMBHAV UPSC\n\n" +
-      "Aapne abhi official channel join nahi kiya hai.\n\n" +
-      "Access continue karne ke liye pehle official channel join karein.\n\n" +
-      "Channel join karne ke baad नीचे दिए गए button par click karein.",
+    `<b>🔒 SAMBHAV UPSC</b>
+
+Aapne abhi official channel join nahi kiya hai.
+
+<b>Access continue karne ke liye pehle official channel join karein.</b>
+
+Channel join karne ke baad neeche diye gaye button par click karein.`,
 
     {
       inline_keyboard: [
-
         [
           {
             text:
               "📢 Join Official Channel",
+
             url:
               TELEGRAM_CHANNEL_URL,
           },
@@ -426,11 +418,11 @@ async function sendNotJoinedMessage(
           {
             text:
               "✓ I Have Joined / Continue",
+
             callback_data:
               "verify_channel",
           },
         ],
-
       ],
     }
   );
@@ -446,9 +438,11 @@ async function sendVerificationError(
   return sendTelegramMessage(
     chatId,
 
-    "⚠️ SAMBHAV UPSC\n\n" +
-      "Channel membership verify nahi ho pa rahi.\n\n" +
-      "Please thodi der baad dobara try karein."
+    `<b>⚠️ SAMBHAV UPSC</b>
+
+Channel membership verify nahi ho pa rahi.
+
+Please thodi der baad dobara try karein.`
   );
 }
 
@@ -461,26 +455,30 @@ async function sendInfoMessage(
   type
 ) {
   const messages = {
-
     info_current_affairs:
-      "📚 Current Affairs\n\n" +
-      "UPSC-oriented current affairs aur important developments ko focused preparation ke liye organize kiya gaya hai.",
+      `<b>📚 Current Affairs</b>
+
+UPSC-oriented current affairs aur important developments ko focused preparation ke liye organize kiya gaya hai.`,
 
     info_pyq:
-      "📝 PYQ Oriented Practice\n\n" +
-      "Previous Year Questions ke through exam pattern, concepts aur question demand ko samajhne ke liye practice.",
+      `<b>📝 PYQ Oriented Practice</b>
+
+Previous Year Questions ke through exam pattern, concepts aur question demand ko samajhne ke liye practice.`,
 
     info_ai:
-      "🤖 AI Answer Evaluation\n\n" +
-      "Mains answers ko structured evaluation ke through analyse karke improvement areas identify karne ka system.",
+      `<b>🤖 AI Answer Evaluation</b>
+
+Mains answers ko structured evaluation ke through analyse karke improvement areas identify karne ka system.`,
 
     info_material:
-      "📖 Study Material\n\n" +
-      "UPSC preparation ke liye focused study resources aur subject-wise learning ecosystem.",
+      `<b>📖 Study Material</b>
+
+UPSC preparation ke liye focused study resources aur subject-wise learning ecosystem.`,
 
     info_performance:
-      "📊 Performance\n\n" +
-      "Aapki preparation, practice aur progress ko ek focused dashboard ke through track karne ka ecosystem.",
+      `<b>📊 Performance</b>
+
+Aapki preparation, practice aur progress ko ek focused dashboard ke through track karne ka ecosystem.`,
   };
 
   const message =
@@ -489,7 +487,7 @@ async function sendInfoMessage(
   if (!message) {
     return sendTelegramMessage(
       chatId,
-      "SAMBHAV UPSC"
+      "<b>SAMBHAV UPSC</b>"
     );
   }
 
@@ -503,6 +501,7 @@ async function sendInfoMessage(
           {
             text:
               "📢 Official Channel",
+
             url:
               TELEGRAM_CHANNEL_URL,
           },
@@ -512,6 +511,7 @@ async function sendInfoMessage(
           {
             text:
               "← Back",
+
             callback_data:
               "back_to_welcome",
           },
@@ -525,11 +525,8 @@ async function sendInfoMessage(
    POST — TELEGRAM WEBHOOK
 ========================================================= */
 
-export async function POST(
-  request
-) {
+export async function POST(request) {
   try {
-
     /* -----------------------------------------------------
        WEBHOOK SECURITY
     ----------------------------------------------------- */
@@ -575,7 +572,6 @@ export async function POST(
       update?.callback_query;
 
     if (callbackQuery) {
-
       const callbackData =
         callbackQuery.data;
 
@@ -596,7 +592,6 @@ export async function POST(
         chatId &&
         telegramUser?.id
       ) {
-
         await telegramApi(
           "answerCallbackQuery",
           {
@@ -617,7 +612,6 @@ export async function POST(
         if (
           isMember === null
         ) {
-
           await sendVerificationError(
             chatId
           );
@@ -632,7 +626,6 @@ export async function POST(
         ----------------------------------------------- */
 
         if (!isMember) {
-
           await sendNotJoinedMessage(
             chatId
           );
@@ -666,12 +659,9 @@ export async function POST(
           "info_ai",
           "info_material",
           "info_performance",
-        ].includes(
-          callbackData
-        ) &&
+        ].includes(callbackData) &&
         chatId
       ) {
-
         await telegramApi(
           "answerCallbackQuery",
           {
@@ -699,7 +689,6 @@ export async function POST(
           "back_to_welcome" &&
         chatId
       ) {
-
         await telegramApi(
           "answerCallbackQuery",
           {
@@ -751,7 +740,6 @@ export async function POST(
     if (
       text.startsWith("/start")
     ) {
-
       await sendWelcomeMessage(
         chatId
       );
@@ -768,9 +756,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
     });
-
   } catch (error) {
-
     console.error(
       "Telegram webhook error:",
       error
