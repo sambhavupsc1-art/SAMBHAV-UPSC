@@ -16,12 +16,12 @@ const plans = [
   },
   {
     name: "Quarterly",
-    price: "₹399",
+    price: "₹299",
     duration: "90 Days",
   },
   {
     name: "Annual",
-    price: "₹999",
+    price: "₹599",
     duration: "365 Days",
   },
 ];
