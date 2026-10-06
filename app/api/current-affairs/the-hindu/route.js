@@ -686,285 +686,93 @@ function buildPdfTextLines(
   textContent,
   viewport
 ) {
-  const items =
-    (
-      textContent?.items ||
-      []
-    )
-      .filter(
-        (item) =>
-          item &&
-          typeof item.str ===
-            "string" &&
-          item.str.trim()
-      )
-      .map((item) => {
-        const transformed =
-          pdfjsLib.Util.transform(
-            viewport.transform,
-            item.transform
-          );
-
-        const x =
-          Number(
-            transformed[4]
-          ) || 0;
-
-        const y =
-          Number(
-            transformed[5]
-          ) || 0;
-
-        /*
-         * IMPORTANT:
-         *
-         * transformed coordinates are
-         * already viewport-scaled.
-         *
-         * Do NOT multiply width by
-         * scale again.
-         */
-
-        const rawWidth =
-          Math.abs(
-            Number(
-              item.width
-            ) || 0
-          );
-
-        const width =
-          Math.max(
-            1,
-            rawWidth *
-              (
-                viewport.scale ||
-                1
-              )
-          );
-
-        const height =
-          Math.max(
-            5,
-            Math.sqrt(
-              (
-                transformed[2] ||
-                0
-              ) *
-                (
-                  transformed[2] ||
-                  0
-                ) +
-                (
-                  transformed[3] ||
-                  0
-                ) *
-                  (
-                    transformed[3] ||
-                    0
-                  )
-            )
-          );
-
-        return {
-          text:
-            String(
-              item.str ||
-                ""
-            ).trim(),
-
-          x,
-
-          y,
-
-          width,
-
-          height,
-        };
-      });
+  const items = (textContent?.items || [])
+    .filter(item => item && typeof item.str === "string" && item.str.trim())
+    .map(item => {
+      const transform = Array.isArray(item.transform) ? item.transform : [1,0,0,1,0,0];
+      const pdfX = Number(transform[4]) || 0;
+      const pdfY = Number(transform[5]) || 0;
+      const pdfWidth = Math.max(1, Math.abs(Number(item.width) || 0));
+      const pdfHeight = Math.max(
+        1,
+        Number(item.height) ||
+          Math.hypot(Number(transform[2]) || 0, Number(transform[3]) || 0) ||
+          Math.hypot(Number(transform[0]) || 0, Number(transform[1]) || 0)
+      );
+      const rect = viewport.convertToViewportRectangle([
+        pdfX,
+        pdfY - pdfHeight,
+        pdfX + pdfWidth,
+        pdfY,
+      ]);
+      const x1 = Math.min(rect[0], rect[2]);
+      const x2 = Math.max(rect[0], rect[2]);
+      const y1 = Math.min(rect[1], rect[3]);
+      const y2 = Math.max(rect[1], rect[3]);
+      const fontSize = Math.max(
+        1,
+        Math.hypot(Number(transform[0]) || 0, Number(transform[1]) || 0) * (viewport.scale || 1)
+      );
+      const fontName = String(item.fontName || "");
+      const style = textContent?.styles?.[item.fontName] || {};
+      const fontFamily = String(style.fontFamily || "");
+      return {
+        text: String(item.str || "").trim(),
+        x1, x2, y1, y2,
+        x: x1,
+        y: (y1 + y2) / 2,
+        width: Math.max(1, x2 - x1),
+        height: Math.max(1, y2 - y1),
+        fontSize,
+        bold: /bold|black|heavy|semibold|demi/i.test(fontName + " " + fontFamily),
+      };
+    });
 
   const lines = [];
-
-  for (
-    const item of items
-  ) {
-    let existing =
-      null;
-
-    for (
-      const line of lines
-    ) {
-      const tolerance =
-        Math.max(
-          3,
-          Math.min(
-            14,
-            Math.max(
-              line.height ||
-                0,
-
-              item.height ||
-                0
-            ) *
-              0.65
-          )
-        );
-
-      if (
-        Math.abs(
-          line.y -
-            item.y
-        ) <=
-        tolerance
-      ) {
-        existing =
-          line;
-
+  for (const item of items) {
+    let existing = null;
+    for (const line of lines) {
+      const tolerance = Math.max(4, Math.min(18, Math.max(line.height || 0, item.height || 0) * 0.65));
+      if (Math.abs(line.y - item.y) <= tolerance) {
+        existing = line;
         break;
       }
     }
-
-    if (
-      existing
-    ) {
-      existing.items.push(
-        item
-      );
-
-      existing.x1 =
-        Math.min(
-          existing.x1,
-          item.x
-        );
-
-      existing.x2 =
-        Math.max(
-          existing.x2,
-          item.x +
-            item.width
-        );
-
-      existing.y1 =
-        Math.min(
-          existing.y1,
-          item.y -
-            item.height
-        );
-
-      existing.y2 =
-        Math.max(
-          existing.y2,
-          item.y
-        );
-
-      existing.height =
-        Math.max(
-          existing.height ||
-            0,
-
-          item.height ||
-            0
-        );
-
-      existing.y =
-        existing.items.reduce(
-          (
-            sum,
-            current
-          ) =>
-            sum +
-            current.y,
-
-          0
-        ) /
-        existing.items.length;
+    if (existing) {
+      existing.items.push(item);
+      existing.x1 = Math.min(existing.x1, item.x1);
+      existing.x2 = Math.max(existing.x2, item.x2);
+      existing.y1 = Math.min(existing.y1, item.y1);
+      existing.y2 = Math.max(existing.y2, item.y2);
+      existing.height = Math.max(existing.height, item.height);
+      existing.fontSize = Math.max(existing.fontSize || 0, item.fontSize || 0);
+      existing.bold = existing.bold || item.bold;
+      existing.y = (existing.y1 + existing.y2) / 2;
     } else {
       lines.push({
-        y:
-          item.y,
-
-        items: [
-          item,
-        ],
-
-        x1:
-          item.x,
-
-        x2:
-          item.x +
-          item.width,
-
-        y1:
-          item.y -
-          item.height,
-
-        y2:
-          item.y,
-
-        height:
-          item.height,
+        y: item.y,
+        items: [item],
+        x1: item.x1,
+        x2: item.x2,
+        y1: item.y1,
+        y2: item.y2,
+        height: item.height,
+        fontSize: item.fontSize,
+        bold: item.bold,
       });
     }
   }
 
-  for (
-    const line of lines
-  ) {
-    line.items.sort(
-      (
-        a,
-        b
-      ) =>
-        a.x -
-        b.x
-    );
-
-    line.text =
-      line.items
-        .map(
-          (
-            item
-          ) =>
-            item.text
-        )
-        .join(" ")
-        .replace(
-          /\s+/g,
-          " "
-        )
-        .trim();
+  for (const line of lines) {
+    line.items.sort((a, b) => a.x1 - b.x1);
+    line.text = line.items.map(item => item.text).join(" ").replace(/\s+/g, " ").trim();
+    line.tokenCount = uniqueTokens(line.text).length;
   }
 
-  /*
-   * PDF viewport coordinates
-   * normally increase downward
-   * after viewport transform.
-   *
-   * Sort top -> bottom.
-   */
-
-  lines.sort(
-    (
-      a,
-      b
-    ) => {
-      if (
-        Math.abs(
-          a.y -
-            b.y
-        ) < 2
-      ) {
-        return (
-          a.x1 -
-          b.x1
-        );
-      }
-
-      return (
-        a.y -
-        b.y
-      );
-    }
-  );
+  lines.sort((a, b) => {
+    if (Math.abs(a.y - b.y) < 2) return a.x1 - b.x1;
+    return a.y - b.y;
+  });
 
   return lines;
 }
@@ -1122,136 +930,55 @@ function findBestHeadlineOnPage(
   lines,
   wanted
 ) {
-  if (
-    !lines?.length ||
-    !wanted
-  ) {
-    return null;
-  }
+  if (!Array.isArray(lines) || !lines.length || !wanted) return null;
 
-  const matches = [];
+  let best = null;
+  const wantedCount = uniqueTokens(wanted).length;
+  const maxLines = Math.min(6, lines.length);
 
-  /*
-   * Search short visual windows first.
-   * The goal is the MAIN HEADLINE only,
-   * not the headline + subtitle/deck.
-   */
-  for (
-    let start = 0;
-    start < lines.length;
-    start++
-  ) {
+  for (let start = 0; start < lines.length; start++) {
     let combined = "";
+    let windowFontSize = 0;
+    let windowBold = false;
 
-    for (
-      let count = 1;
-      count <= MAX_HEADLINE_LINES &&
-      start + count <= lines.length;
-      count++
-    ) {
-      const current =
-        lines[start + count - 1];
-
-      if (!current?.text) {
-        continue;
-      }
+    for (let count = 1; count <= maxLines && start + count <= lines.length; count++) {
+      const current = lines[start + count - 1];
+      if (!current?.text) continue;
 
       if (count > 1) {
-        const previous =
-          lines[start + count - 2];
-
-        const gap = Math.abs(
-          current.y - previous.y
-        );
-
-        const maxGap = Math.max(
-          55,
-          Math.max(
-            current.height || 0,
-            previous.height || 0
-          ) * 2.6
-        );
-
-        /* A large vertical gap normally means
-           the next block is subtitle/body text. */
-        if (gap > maxGap) {
-          break;
-        }
+        const previous = lines[start + count - 2];
+        const gap = Math.abs(current.y - previous.y);
+        const maxGap = Math.max(90, Math.max(current.height || 0, previous.height || 0) * 5);
+        if (gap > maxGap) break;
       }
 
-      combined = `${combined} ${current.text}`
-        .replace(/\s+/g, " ")
-        .trim();
+      combined = (combined + " " + current.text).replace(/\s+/g, " ").trim();
+      windowFontSize = Math.max(windowFontSize, current.fontSize || 0);
+      windowBold = windowBold || !!current.bold;
 
-      const metrics =
-        scoreHeadlineWindow(
-          wanted,
-          combined
-        );
-
-      matches.push({
+      const metrics = scoreHeadlineWindow(wanted, combined);
+      const candidate = {
         ...metrics,
         start,
         count,
-        lines: lines.slice(
-          start,
-          start + count
-        ),
-        allLines: lines,
+        lines: lines.slice(start, start + count),
         text: combined,
-      });
+        fontSize: windowFontSize,
+        bold: windowBold,
+      };
+
+      const exactEnough = metrics.exact || metrics.coverage >= 0.88;
+      const fontBonus = Math.min(0.12, (windowFontSize / 100) * 0.12) + (windowBold ? 0.035 : 0);
+      const adjustedScore = metrics.score + fontBonus - Math.max(0, count - 1) * 0.025;
+      candidate.adjustedScore = adjustedScore;
+
+      if (!best || adjustedScore > best.adjustedScore) best = candidate;
+
+      if (exactEnough && wantedCount <= uniqueTokens(combined).length + 2) break;
     }
   }
 
-  if (!matches.length) {
-    return null;
-  }
-
-  /*
-   * First preference:
-   * an exact/high-coverage match using
-   * the FEWEST visual lines.
-   * This is the key protection against
-   * accidentally cropping the subtitle.
-   */
-  const exactMatches = matches.filter(
-    (item) =>
-      item.exact &&
-      item.coverage >= 0.85
-  );
-
-  if (exactMatches.length) {
-    exactMatches.sort((a, b) => {
-      if (a.count !== b.count) {
-        return a.count - b.count;
-      }
-      return b.score - a.score;
-    });
-
-    return exactMatches[0];
-  }
-
-  const strongMatches = matches.filter(
-    (item) =>
-      item.coverage >= 0.85
-  );
-
-  if (strongMatches.length) {
-    strongMatches.sort((a, b) => {
-      if (a.count !== b.count) {
-        return a.count - b.count;
-      }
-      return b.score - a.score;
-    });
-
-    return strongMatches[0];
-  }
-
-  matches.sort(
-    (a, b) => b.score - a.score
-  );
-
-  return matches[0];
+  return best;
 }
 
 /* =========================================================
@@ -1612,313 +1339,86 @@ async function renderAndUploadHeadline(
   fileUniqueId,
   headline
 ) {
-  if (
-    !match ||
-    !match.pageNumber ||
-    !Array.isArray(match.lines) ||
-    !match.lines.length
-  ) {
-    return "";
-  }
+  if (!match?.pageNumber || !Array.isArray(match.lines) || !match.lines.length) return "";
 
-  const page =
-    await pdf.getPage(
-      match.pageNumber
-    );
-
+  const page = await pdf.getPage(match.pageNumber);
   try {
-    const viewport =
-      page.getViewport({
-        scale:
-          HEADLINE_RENDER_SCALE,
-      });
+    const viewport = page.getViewport({ scale: HEADLINE_RENDER_SCALE });
+    const pageCanvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+    const pageContext = pageCanvas.getContext("2d");
+    pageContext.fillStyle = "#ffffff";
+    pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
 
-    const pageCanvas =
-      createCanvas(
-        Math.ceil(viewport.width),
-        Math.ceil(viewport.height)
-      );
+    const canvasFactory = createPdfCanvasFactory(createCanvas);
+    console.log("THE HINDU HEADLINE RENDER START:", {
+      headline,
+      page: match.pageNumber,
+      matchText: match.text,
+      score: match.score,
+      coverage: match.coverage,
+      lines: match.lines.length,
+    });
 
-    const pageContext =
-      pageCanvas.getContext("2d");
+    await page.render({ canvasContext: pageContext, viewport, canvasFactory }).promise;
 
-    pageContext.fillStyle =
-      "#ffffff";
-
-    pageContext.fillRect(
-      0,
-      0,
-      pageCanvas.width,
-      pageCanvas.height
-    );
-
-    const canvasFactory =
-      createPdfCanvasFactory(
-        createCanvas
-      );
-
-    console.log(
-      "THE HINDU HEADLINE RENDER START:",
-      {
-        headline,
-        page: match.pageNumber,
-        matchText: match.text,
-        lines: match.lines.length,
-      }
-    );
-
-    await page.render({
-      canvasContext:
-        pageContext,
-      viewport,
-      canvasFactory,
-    }).promise;
-
-    /*
-     * Start with the exact matched headline lines.
-     * If the headline itself wraps to another visual
-     * line, include only nearby lines with a similar
-     * font height. Smaller deck/subtitle text is ignored.
-     */
-    let headlineLines = [
-      ...match.lines,
-    ];
-
-    const allLines =
-      Array.isArray(match.allLines)
-        ? match.allLines
-        : [];
-
-    if (allLines.length) {
-      const baseHeight =
-        Math.max(
-          1,
-          ...match.lines.map(
-            (line) =>
-              Number(line?.height) || 0
-          )
-        );
-
-      let lastIndex =
-        match.start +
-        match.count - 1;
-
-      for (
-        let i = lastIndex + 1;
-        i < allLines.length && i <= lastIndex + 3;
-        i++
-      ) {
-        const next = allLines[i];
-        const previous =
-          allLines[i - 1];
-
-        if (!next?.text) {
-          continue;
-        }
-
-        const gap = Math.abs(
-          next.y - previous.y
-        );
-
-        const nextHeight =
-          Number(next.height) || 0;
-
-        const sameHeadlineSize =
-          nextHeight >=
-          baseHeight * 0.72;
-
-        const closeEnough =
-          gap <=
-          Math.max(
-            55,
-            baseHeight * 2.6
-          );
-
-        if (
-          !sameHeadlineSize ||
-          !closeEnough
-        ) {
-          break;
-        }
-
-        /* Only append a continuation line when it
-           actually improves the requested headline match. */
-        const currentText =
-          headlineLines
-            .map((line) => line.text)
-            .join(" ");
-
-        const extendedText =
-          `${currentText} ${next.text}`
-            .replace(/\s+/g, " ")
-            .trim();
-
-        const currentScore =
-          scoreHeadlineWindow(
-            headline,
-            currentText
-          );
-
-        const extendedScore =
-          scoreHeadlineWindow(
-            headline,
-            extendedText
-          );
-
-        if (
-          extendedScore.coverage >=
-            currentScore.coverage
-        ) {
-          headlineLines.push(next);
-          lastIndex = i;
-        } else {
-          break;
-        }
-      }
-    }
-
-    let x1 = Infinity;
-    let y1 = Infinity;
-    let x2 = -Infinity;
-    let y2 = -Infinity;
-
-    for (const line of headlineLines) {
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    for (const line of match.lines) {
       if (!line) continue;
-
-      x1 = Math.min(
-        x1,
-        Number(line.x1) || 0
-      );
-
-      y1 = Math.min(
-        y1,
-        Number(line.y1) || 0
-      );
-
-      x2 = Math.max(
-        x2,
-        Number(line.x2) || 0
-      );
-
-      y2 = Math.max(
-        y2,
-        Number(line.y2) || 0
-      );
+      x1 = Math.min(x1, line.x1);
+      y1 = Math.min(y1, line.y1);
+      x2 = Math.max(x2, line.x2);
+      y2 = Math.max(y2, line.y2);
     }
 
-    if (
-      !Number.isFinite(x1) ||
-      !Number.isFinite(y1) ||
-      !Number.isFinite(x2) ||
-      !Number.isFinite(y2) ||
-      x2 <= x1 ||
-      y2 <= y1
-    ) {
+    if (![x1, y1, x2, y2].every(Number.isFinite) || x2 <= x1 || y2 <= y1) {
+      console.warn("THE HINDU HEADLINE INVALID BOUNDS:", { headline, x1, y1, x2, y2 });
       return "";
     }
 
-    /* Tight crop: headline only, with a small
-       newspaper margin around it. */
-    const paddingX = 18;
-    const paddingY = 14;
+    const paddingX = 12;
+    const paddingY = 10;
+    x1 = Math.max(0, Math.floor(x1 - paddingX));
+    y1 = Math.max(0, Math.floor(y1 - paddingY));
+    x2 = Math.min(pageCanvas.width, Math.ceil(x2 + paddingX));
+    y2 = Math.min(pageCanvas.height, Math.ceil(y2 + paddingY));
 
-    x1 = Math.max(
-      0,
-      Math.floor(x1 - paddingX)
-    );
+    const cropWidth = Math.max(1, x2 - x1);
+    const cropHeight = Math.max(1, y2 - y1);
 
-    y1 = Math.max(
-      0,
-      Math.floor(y1 - paddingY)
-    );
-
-    x2 = Math.min(
-      pageCanvas.width,
-      Math.ceil(x2 + paddingX)
-    );
-
-    y2 = Math.min(
-      pageCanvas.height,
-      Math.ceil(y2 + paddingY)
-    );
-
-    const cropWidth =
-      Math.max(1, x2 - x1);
-
-    const cropHeight =
-      Math.max(1, y2 - y1);
-
-    if (
-      cropWidth > pageCanvas.width ||
-      cropHeight > pageCanvas.height
-    ) {
+    if (cropWidth > pageCanvas.width * 0.95 || cropHeight > pageCanvas.height * 0.35) {
+      console.warn("THE HINDU HEADLINE CROP REJECTED AS TOO LARGE:", {
+        headline, cropWidth, cropHeight, pageWidth: pageCanvas.width, pageHeight: pageCanvas.height,
+      });
       return "";
     }
 
-    const cropCanvas =
-      createCanvas(
-        cropWidth,
-        cropHeight
-      );
+    const cropCanvas = createCanvas(cropWidth, cropHeight);
+    const cropContext = cropCanvas.getContext("2d");
+    cropContext.fillStyle = "#ffffff";
+    cropContext.fillRect(0, 0, cropWidth, cropHeight);
+    cropContext.drawImage(pageCanvas, x1, y1, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-    const cropContext =
-      cropCanvas.getContext("2d");
+    const imageBuffer = cropCanvas.toBuffer("image/png");
+    const publicUrl = await uploadHeadlineImage(imageBuffer, fileUniqueId, headline);
 
-    cropContext.fillStyle =
-      "#ffffff";
-
-    cropContext.fillRect(
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-
-    cropContext.drawImage(
-      pageCanvas,
-      x1,
-      y1,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-
-    const imageBuffer =
-      cropCanvas.toBuffer(
-        "image/png"
-      );
-
-    const publicUrl =
-      await uploadHeadlineImage(
-        imageBuffer,
-        fileUniqueId,
-        headline
-      );
-
-    console.log(
-      "THE HINDU HEADLINE RENDER SUCCESS:",
-      {
-        headline,
-        page: match.pageNumber,
-        matchedText: match.text,
-        finalLines:
-          headlineLines.length,
-        crop: {
-          x1,
-          y1,
-          x2,
-          y2,
-          width: cropWidth,
-          height: cropHeight,
-        },
-        url: publicUrl,
-      }
-    );
+    console.log("THE HINDU HEADLINE IMAGE CREATED:", {
+      headline,
+      page: match.pageNumber,
+      score: match.score,
+      coverage: match.coverage,
+      text: match.text,
+      bounds: { x1, y1, x2, y2 },
+      url: publicUrl,
+    });
 
     return publicUrl;
+  } catch (error) {
+    console.error("THE HINDU HEADLINE RENDER ERROR:", {
+      headline,
+      page: match?.pageNumber,
+      error: error?.message || error,
+    });
+    return "";
   } finally {
     page.cleanup();
   }
