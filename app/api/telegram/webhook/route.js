@@ -1,4 +1,4 @@
-1import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN;
