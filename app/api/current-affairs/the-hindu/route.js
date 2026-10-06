@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+export const runtime = "nodejs";
 
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN;
@@ -224,25 +225,8 @@ async function downloadTelegramPdf(
 
 /* =========================================================
    PDF TEXT EXTRACTION
+   pdf-parse v2 + Vercel DOMMatrix FIX
 ========================================================= */
-
-/*
-  pdf-parse v2 API
-
-  IMPORTANT:
-  v2 uses:
-
-  const { PDFParse } = await import("pdf-parse");
-
-  const parser = new PDFParse({
-    data: buffer,
-  });
-
-  const result =
-    await parser.getText();
-
-  await parser.destroy();
-*/
 
 async function extractPdfText(
   buffer
@@ -250,6 +234,63 @@ async function extractPdfText(
   let parser = null;
 
   try {
+    /*
+      IMPORTANT:
+
+      pdf-parse v2 uses PDF.js.
+      In Vercel/Next.js server runtime,
+      DOMMatrix/ImageData/Path2D may not
+      exist globally.
+
+      We explicitly load @napi-rs/canvas
+      BEFORE loading pdf-parse.
+    */
+
+    const canvas =
+      await import(
+        "@napi-rs/canvas"
+      );
+
+    /*
+      Make the required browser-like
+      globals available to PDF.js.
+    */
+
+    if (
+      canvas.DOMMatrix &&
+      !globalThis.DOMMatrix
+    ) {
+      globalThis.DOMMatrix =
+        canvas.DOMMatrix;
+    }
+
+    if (
+      canvas.ImageData &&
+      !globalThis.ImageData
+    ) {
+      globalThis.ImageData =
+        canvas.ImageData;
+    }
+
+    if (
+      canvas.Path2D &&
+      !globalThis.Path2D
+    ) {
+      globalThis.Path2D =
+        canvas.Path2D;
+    }
+
+    /*
+      Import worker configuration BEFORE
+      importing PDFParse.
+    */
+
+    const {
+      CanvasFactory,
+    } = await import(
+      "pdf-parse/worker"
+    );
+
     const {
       PDFParse,
     } = await import(
@@ -265,6 +306,8 @@ async function extractPdfText(
     parser =
       new PDFParse({
         data: buffer,
+
+        CanvasFactory,
       });
 
     const result =
@@ -283,6 +326,11 @@ async function extractPdfText(
         "PDF text extraction returned insufficient text"
       );
     }
+
+    console.log(
+      "PDF TEXT EXTRACTION SUCCESS:",
+      text.length
+    );
 
     return text;
   } catch (error) {
@@ -360,13 +408,8 @@ function extractNewspaperDate(
     String(text || "");
 
   /*
-    Common forms:
-
     6 October 2026
-    October 6, 2026
     06 October 2026
-    06/10/2026
-    06-10-2026
   */
 
   let match =
@@ -382,6 +425,10 @@ function extractNewspaperDate(
     );
   }
 
+  /*
+    October 6, 2026
+  */
+
   match =
     source.match(
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12][0-9]|3[01]),?\s+(20\d{2})\b/i
@@ -394,6 +441,11 @@ function extractNewspaperDate(
       match[3]
     );
   }
+
+  /*
+    06/10/2026
+    06-10-2026
+  */
 
   match =
     source.match(
@@ -443,16 +495,6 @@ function verifyPdfDate(
 
   const currentDate =
     todayIST();
-
-  /*
-    We intentionally DO NOT
-    automatically assign today's
-    date when the PDF date is missing.
-
-    This prevents an old newspaper
-    from appearing as today's
-    Current Affairs.
-  */
 
   if (
     detectedDate !==
@@ -618,14 +660,6 @@ function splitIntoCandidateBlocks(
   for (
     const line of lines
   ) {
-    /*
-      Newspaper extraction often
-      gives many short lines.
-
-      We create reasonably sized
-      blocks and later filter them.
-    */
-
     current.push(line);
 
     if (
@@ -1137,14 +1171,6 @@ export async function POST(
 
     const results = [];
 
-    /*
-      Keep a reasonable safety limit.
-
-      The final selection is still
-      controlled by UPSC relevance
-      scoring.
-    */
-
     const selected =
       uniqueCandidates
         .sort(
@@ -1169,12 +1195,6 @@ export async function POST(
         /*
           Every article gets a unique
           source URL.
-
-          This prevents the existing
-          AI route's source_url + date
-          duplicate rule from treating
-          the entire newspaper PDF as
-          one article.
         */
 
         const articleSlug =
