@@ -29,6 +29,35 @@ function isEthicsExample(item) {
   );
 }
 
+function getTodayIST() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function isTodayIST(value) {
+  if (!value) return false;
+
+  const raw = String(value);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw === getTodayIST();
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date) === getTodayIST();
+}
+
 export default function CurrentAffairsPage() {
   const router = useRouter();
 
@@ -271,11 +300,24 @@ export default function CurrentAffairsPage() {
     );
   }, [news, activeSource]);
 
+  const todayNews = useMemo(() => {
+    return news.filter((item) => isTodayIST(item?.date));
+  }, [news]);
+
+  const todaySourceFilteredNews = useMemo(() => {
+    if (activeSource === "all") return todayNews;
+    return todayNews.filter(
+      (item) => getSourceKey(item) === activeSource
+    );
+  }, [todayNews, activeSource]);
+
   const filteredNews = useMemo(() => {
     const base = sourceFilteredNews;
 
     if (active === "Today") {
-      return base.filter((item) => !isEthicsExample(item));
+      return todaySourceFilteredNews.filter(
+        (item) => !isEthicsExample(item)
+      );
     }
 
     if (active === "Prelims") {
@@ -313,7 +355,7 @@ export default function CurrentAffairsPage() {
         item.gs === active ||
         item.paper === active
     );
-  }, [active, sourceFilteredNews, importantIds]);
+  }, [active, sourceFilteredNews, todaySourceFilteredNews, importantIds]);
 
   const sourceTabs = [
     { key: "all", label: "ALL" },
@@ -399,7 +441,14 @@ export default function CurrentAffairsPage() {
 
   function getLatestDate() {
     if (!news.length) return "Loading...";
-    return formatDate(news[0]?.date);
+
+    const latestToday = news.find((item) =>
+      isTodayIST(item?.date)
+    );
+
+    return latestToday
+      ? formatDate(latestToday.date)
+      : formatDate(getTodayIST());
   }
 
   return (
@@ -490,7 +539,7 @@ export default function CurrentAffairsPage() {
 
           <div className="ca-hero-stats">
             <div className="ca-hero-stat">
-              <strong>{news.filter((item) => !isEthicsExample(item)).length}</strong>
+              <strong>{todayNews.filter((item) => !isEthicsExample(item)).length}</strong>
               <span>Daily Updates</span>
             </div>
             <div className="ca-hero-stat">
@@ -679,8 +728,8 @@ export default function CurrentAffairsPage() {
           {sourceTabs.map((tab) => {
             const count =
               tab.key === "all"
-                ? news.filter((item) => !isEthicsExample(item)).length
-                : news.filter((item) => getSourceKey(item) === tab.key).length;
+                ? todayNews.filter((item) => !isEthicsExample(item)).length
+                : todayNews.filter((item) => getSourceKey(item) === tab.key).length;
 
             return (
               <button
