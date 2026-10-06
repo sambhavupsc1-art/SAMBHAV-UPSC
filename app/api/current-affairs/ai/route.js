@@ -670,6 +670,15 @@ function normalizeArticle(
         ""
     ).trim();
 
+  /*
+    ACTUAL NEWSPAPER HEADLINE IMAGE
+  */
+  const headlineImageUrl =
+    String(
+      input?.headline_image_url ||
+        ""
+    ).trim();
+
   const finalTitle =
     isTheHindu
       ? originalHeadline
@@ -725,6 +734,13 @@ function normalizeArticle(
             article.headline_subtitle ||
               ""
           ).trim(),
+
+    /*
+      ACTUAL THE HINDU NEWSPAPER
+      HEADLINE CUTTING IMAGE URL
+    */
+    headline_image_url:
+      headlineImageUrl,
 
     /*
       DATE
@@ -1341,6 +1357,20 @@ async function processArticle(
         input.original_subheadline ||
           ""
       ).trim();
+
+    /*
+      ABSOLUTE HEADLINE IMAGE
+      PROTECTION
+
+      The URL generated from the actual
+      newspaper PDF crop is authoritative.
+    */
+    article.headline_image_url =
+      String(
+        input.headline_image_url ||
+          article.headline_image_url ||
+          ""
+      ).trim();
   }
 
   /*
@@ -1367,6 +1397,19 @@ async function processArticle(
     new Date()
       .toISOString()
       .slice(0, 10);
+
+  /*
+    Keep headline image URL for
+    every article if it was supplied.
+  */
+  if (
+    input.headline_image_url
+  ) {
+    article.headline_image_url =
+      String(
+        input.headline_image_url
+      ).trim();
+  }
 
   /* ---------------------------------------------
      EXACT SOURCE URL + DATE DUPLICATE
