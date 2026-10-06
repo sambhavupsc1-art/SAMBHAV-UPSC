@@ -1,36 +1,69 @@
-"use client";
+import { NextResponse } from "next/server";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+export const runtime = "nodejs";
 
-const filters = [
-  "Today",
-  "GS-I",
-  "GS-II",
-  "GS-III",
-  "GS-IV",
-  "Prelims",
-];
+/* =========================================================
+   ENV
+========================================================= */
 
-function getSourceKey(item) {
-  const source = String(item?.source_name || "").toLowerCase();
+const TELEGRAM_BOT_TOKEN =
+  process.env.TELEGRAM_BOT_TOKEN;
 
-  if (source.includes("press information bureau") || source === "pib")
-    return "pib";
-  if (source.includes("gktoday")) return "gktoday";
-  if (source.startsWith("the hindu")) return "the-hindu";
-  if (source.includes("the better india")) return "better-india";
-  return "other";
+const TELEGRAM_WEBHOOK_SECRET =
+  process.env.TELEGRAM_WEBHOOK_SECRET;
+
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const SAMBHAV_APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://sambhav-upsc.vercel.app";
+
+const THE_HINDU_HEADLINE_BUCKET =
+  "the-hindu-headlines";
+
+const HEADLINE_RENDER_SCALE = 2.2;
+
+/* =========================================================
+   PROCESSING LOCK
+========================================================= */
+
+const THE_HINDU_PROCESSING_LOCK =
+  globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK ||
+  new Set();
+
+globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK =
+  THE_HINDU_PROCESSING_LOCK;
+
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function cleanText(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/\t+/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .trim();
 }
 
-function isEthicsExample(item) {
-  return (
-    item?.report_type === "ethics_example" ||
-    getSourceKey(item) === "better-india"
-  );
+function normalizeWhitespace(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
-function getTodayIST() {
+function todayIST() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -39,3022 +72,2422 @@ function getTodayIST() {
   }).format(new Date());
 }
 
-function isTodayIST(value) {
-  if (!value) return false;
-
-  const raw = String(value);
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    return raw === getTodayIST();
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-
-  return (
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(date) === getTodayIST()
+function escapeSupabase(value) {
+  return encodeURIComponent(
+    String(value || "")
   );
 }
 
-export default function CurrentAffairsPage() {
-  const router = useRouter();
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+}
 
-  const [active, setActive] = useState("Today");
-  const [activeSource, setActiveSource] = useState("all");
-  const [language, setLanguage] = useState("hi");
-  const [news, setNews] = useState([]);
-  const [important, setImportant] = useState([]);
-  const [selected, setSelected] = useState(null);
+/* =========================================================
+   SUPABASE
+========================================================= */
 
-  const [loading, setLoading] = useState(true);
-  const [importantLoading, setImportantLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [notificationLanguage, setNotificationLanguage] = useState("hi");
-  const [notificationTime, setNotificationTime] = useState("10:00");
-  const [notificationSaving, setNotificationSaving] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
-
-  const hi = language === "hi";
-
-  useEffect(() => {
-    loadCurrentAffairs();
-    loadImportant();
-    loadNotificationSettings();
-  }, []);
-
-  function getUserId() {
-    if (typeof window === "undefined") return "";
-
-    let id = localStorage.getItem("sambhav_upsc_notification_user");
-
-    if (!id) {
-      id =
-        "sambhav_" +
-        Math.random().toString(36).slice(2) +
-        "_" +
-        Date.now();
-
-      localStorage.setItem("sambhav_upsc_notification_user", id);
-    }
-
-    return id;
+async function supabaseRequest(
+  path,
+  options = {}
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_ANON_KEY
+  ) {
+    throw new Error(
+      "Supabase environment variables are missing"
+    );
   }
 
-  async function loadCurrentAffairs() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch("/api/current-affairs", {
-        cache: "no-store",
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result?.error || "Current Affairs load nahi ho paye."
-        );
-      }
-
-      setNews(result.data || []);
-    } catch (err) {
-      setError(
-        err.message || "Current Affairs load nahi ho paye."
-      );
-    } finally {
-      setLoading(false);
+  const response = await fetch(
+    `${SUPABASE_URL}${path}`,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization:
+          `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type":
+          "application/json",
+        ...(options.headers || {}),
+      },
     }
-  }
-
-  async function loadImportant() {
-    try {
-      const response = await fetch(
-        "/api/current-affairs?mode=important",
-        {
-          cache: "no-store",
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setImportant(result.data || []);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function loadNotificationSettings() {
-    try {
-      const userId = getUserId();
-
-      if (!userId) return;
-
-      const response = await fetch(
-        `/api/current-affairs/notifications?user_id=${encodeURIComponent(
-          userId
-        )}`,
-        {
-          cache: "no-store",
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok && result.success && result.data) {
-        setNotificationsEnabled(result.data.enabled !== false);
-
-        setNotificationLanguage(
-          result.data.language === "en" ? "en" : "hi"
-        );
-
-        setNotificationTime(
-          result.data.notification_time || "10:00"
-        );
-      }
-    } catch (err) {
-      console.error("Notification settings load error:", err);
-    }
-  }
-
-  async function saveNotificationSettings(overrides = {}) {
-    try {
-      setNotificationSaving(true);
-      setNotificationMessage("");
-
-      const userId = getUserId();
-
-      if (!userId) {
-        throw new Error("User identification unavailable.");
-      }
-
-      const enabled =
-        overrides.enabled !== undefined
-          ? overrides.enabled
-          : notificationsEnabled;
-
-      const selectedLanguage =
-        overrides.language || notificationLanguage;
-
-      const selectedTime =
-        overrides.time || notificationTime;
-
-      const response = await fetch(
-        "/api/current-affairs/notifications",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            enabled,
-            language: selectedLanguage,
-            notification_time: selectedTime,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result?.error || "Notification settings save nahi hui."
-        );
-      }
-
-      setNotificationsEnabled(enabled);
-      setNotificationLanguage(selectedLanguage);
-      setNotificationTime(selectedTime);
-
-      setNotificationMessage(
-        hi
-          ? "Notification settings save हो गईं।"
-          : "Notification settings saved."
-      );
-    } catch (err) {
-      setNotificationMessage(
-        err.message || "Notification settings save nahi hui."
-      );
-    } finally {
-      setNotificationSaving(false);
-    }
-  }
-
-  const importantIds = useMemo(
-    () =>
-      important.map((item) =>
-        Number(item.current_affair_id)
-      ),
-    [important]
   );
 
-  const sourceFilteredNews = useMemo(() => {
-    if (activeSource === "all") return news;
+  const text =
+    await response.text();
 
-    return news.filter(
-      (item) => getSourceKey(item) === activeSource
+  let data = null;
+
+  try {
+    data = text
+      ? JSON.parse(text)
+      : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Supabase ${response.status}: ${
+        typeof data === "string"
+          ? data
+          : JSON.stringify(data)
+      }`
     );
-  }, [news, activeSource]);
+  }
 
-  const todayNews = useMemo(() => {
-    return news.filter((item) => isTodayIST(item?.date));
-  }, [news]);
+  return data;
+}
 
-  const todaySourceFilteredNews = useMemo(() => {
-    if (activeSource === "all") return todayNews;
+/* =========================================================
+   TELEGRAM
+========================================================= */
 
-    return todayNews.filter(
-      (item) => getSourceKey(item) === activeSource
+async function telegramApi(
+  method,
+  body = null
+) {
+  if (!TELEGRAM_BOT_TOKEN) {
+    throw new Error(
+      "TELEGRAM_BOT_TOKEN is missing"
     );
-  }, [todayNews, activeSource]);
+  }
 
-  const filteredNews = useMemo(() => {
-    const base = sourceFilteredNews;
-
-    if (active === "Today") {
-      return todaySourceFilteredNews.filter(
-        (item) => !isEthicsExample(item)
-      );
-    }
-
-    if (active === "Prelims") {
-      return base.filter(
-        (item) =>
-          !isEthicsExample(item) &&
-          (item.prelims ||
-            item.prelims_hi ||
-            item.prelims_en ||
-            item.prelims_mcq ||
-            item.prelims_mcq_hi ||
-            item.prelims_mcq_en)
-      );
-    }
-
-    if (active === "Important") {
-      return base.filter((item) =>
-        importantIds.includes(Number(item.id))
-      );
-    }
-
-    if (active === "Premium") return base;
-
-    if (active === "GS-IV") {
-      return base.filter(
-        (item) =>
-          item.gs === "GS-IV" ||
-          item.paper === "GS-IV" ||
-          isEthicsExample(item)
-      );
-    }
-
-    return base.filter(
-      (item) =>
-        item.gs === active ||
-        item.paper === active
-    );
-  }, [
-    active,
-    sourceFilteredNews,
-    todaySourceFilteredNews,
-    importantIds,
-  ]);
-
-  const sourceTabs = [
-    { key: "all", label: "ALL" },
-    { key: "pib", label: "PIB" },
-    { key: "gktoday", label: "GK TODAY" },
-    { key: "the-hindu", label: "THE HINDU" },
+  const response = await fetch(
+    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
     {
-      key: "better-india",
-      label: "BETTER INDIA",
-      sub: "GS-IV",
-    },
-  ];
+      method: body ? "POST" : "GET",
+      headers: body
+        ? {
+            "Content-Type":
+              "application/json",
+          }
+        : undefined,
+      body: body
+        ? JSON.stringify(body)
+        : undefined,
+    }
+  );
 
-  function selectSource(key) {
-    setActiveSource(key);
+  const data =
+    await response.json();
 
-    if (key === "better-india") {
-      setActive("GS-IV");
-    } else if (
-      active === "Premium" ||
-      active === "Important" ||
-      active === "GS-IV"
+  if (
+    !response.ok ||
+    !data?.ok
+  ) {
+    throw new Error(
+      `Telegram ${method} failed: ${JSON.stringify(
+        data
+      )}`
+    );
+  }
+
+  return data.result;
+}
+
+async function sendTelegramMessage(
+  chatId,
+  text
+) {
+  if (!chatId) return;
+
+  try {
+    await telegramApi(
+      "sendMessage",
+      {
+        chat_id: chatId,
+        text,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "TELEGRAM MESSAGE ERROR:",
+      error
+    );
+  }
+}
+
+/* =========================================================
+   TELEGRAM PDF DOWNLOAD
+========================================================= */
+
+async function downloadTelegramPdf(
+  fileId
+) {
+  const file =
+    await telegramApi(
+      "getFile",
+      {
+        file_id: fileId,
+      }
+    );
+
+  if (!file?.file_path) {
+    throw new Error(
+      "Telegram file_path not returned"
+    );
+  }
+
+  const fileUrl =
+    `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+
+  const response =
+    await fetch(fileUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Telegram PDF download failed: ${response.status}`
+    );
+  }
+
+  const arrayBuffer =
+    await response.arrayBuffer();
+
+  return {
+    buffer:
+      Buffer.from(arrayBuffer),
+    filePath:
+      file.file_path,
+  };
+}
+
+/* =========================================================
+   PDF TEXT EXTRACTION
+========================================================= */
+
+async function extractPdfText(
+  buffer
+) {
+  let parser = null;
+
+  try {
+    const canvas =
+      await import(
+        "@napi-rs/canvas"
+      );
+
+    if (
+      canvas.DOMMatrix &&
+      !globalThis.DOMMatrix
     ) {
-      setActive("Today");
+      globalThis.DOMMatrix =
+        canvas.DOMMatrix;
+    }
+
+    if (
+      canvas.ImageData &&
+      !globalThis.ImageData
+    ) {
+      globalThis.ImageData =
+        canvas.ImageData;
+    }
+
+    if (
+      canvas.Path2D &&
+      !globalThis.Path2D
+    ) {
+      globalThis.Path2D =
+        canvas.Path2D;
+    }
+
+    const {
+      CanvasFactory,
+    } = await import(
+      "pdf-parse/worker"
+    );
+
+    const {
+      PDFParse,
+    } = await import(
+      "pdf-parse"
+    );
+
+    parser =
+      new PDFParse({
+        data: buffer,
+        CanvasFactory,
+      });
+
+    const result =
+      await parser.getText();
+
+    const text =
+      normalizeWhitespace(
+        result?.text || ""
+      );
+
+    if (
+      !text ||
+      text.length < 500
+    ) {
+      throw new Error(
+        "PDF text extraction returned insufficient text"
+      );
+    }
+
+    console.log(
+      "PDF TEXT EXTRACTION SUCCESS:",
+      text.length
+    );
+
+    return text;
+  } catch (error) {
+    console.error(
+      "PDF PARSE ERROR:",
+      error
+    );
+
+    throw new Error(
+      `PDF parsing failed: ${
+        error?.message ||
+        "Unknown PDF parsing error"
+      }`
+    );
+  } finally {
+    if (parser) {
+      try {
+        await parser.destroy();
+      } catch {}
+    }
+  }
+}
+
+/* =========================================================
+   HEADLINE MATCHING
+========================================================= */
+
+function normalizeHeadlineForMatch(
+  value = ""
+) {
+  return String(value)
+    .toLowerCase()
+    .replace(
+      /[“”‘’"'`]/g,
+      ""
+    )
+    .replace(
+      /[^a-z0-9\u0900-\u097f\s]/gi,
+      " "
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function headlineTokens(
+  value = ""
+) {
+  return normalizeHeadlineForMatch(
+    value
+  )
+    .split(" ")
+    .filter(
+      (token) =>
+        token.length >= 2
+    );
+}
+
+function tokenOverlap(
+  a = "",
+  b = ""
+) {
+  const A =
+    new Set(
+      headlineTokens(a)
+    );
+
+  const B =
+    new Set(
+      headlineTokens(b)
+    );
+
+  if (
+    !A.size ||
+    !B.size
+  ) {
+    return 0;
+  }
+
+  let common = 0;
+
+  for (const token of A) {
+    if (B.has(token)) {
+      common++;
     }
   }
 
-  async function toggleImportant(id) {
-    try {
-      setImportantLoading(true);
+  return (
+    common /
+    Math.max(
+      1,
+      Math.min(
+        A.size,
+        B.size
+      )
+    )
+  );
+}
 
-      const already = importantIds.includes(Number(id));
+/* =========================================================
+   PDF TEXT COORDINATES
+========================================================= */
 
-      const response = await fetch(
-        already
-          ? `/api/current-affairs?mode=important&current_affair_id=${id}`
-          : "/api/current-affairs",
-        {
-          method: already ? "DELETE" : "POST",
-          headers: already
-            ? {}
-            : {
-                "Content-Type": "application/json",
-              },
-          body: already
-            ? undefined
-            : JSON.stringify({
-                current_affair_id: id,
-              }),
-        }
+function buildPdfTextLines(
+  pdfjsLib,
+  textContent,
+  viewport,
+  scale
+) {
+  const items =
+    (textContent?.items || [])
+      .filter(
+        (item) =>
+          item &&
+          typeof item.str ===
+            "string" &&
+          item.str.trim()
+      )
+      .map((item) => {
+        const transformed =
+          pdfjsLib.Util.transform(
+            viewport.transform,
+            item.transform
+          );
+
+        const x =
+          transformed[4];
+
+        const y =
+          transformed[5];
+
+        const width =
+          Math.max(
+            1,
+            Math.abs(
+              Number(
+                item.width
+              ) || 0
+            ) * scale
+          );
+
+        const height =
+          Math.max(
+            6,
+            Math.sqrt(
+              transformed[2] *
+                transformed[2] +
+                transformed[3] *
+                  transformed[3]
+            )
+          );
+
+        return {
+          text:
+            String(
+              item.str || ""
+            ).trim(),
+          x,
+          y,
+          width,
+          height,
+        };
+      });
+
+  const lines = [];
+
+  for (const item of items) {
+    let existing = null;
+
+    for (const line of lines) {
+      const tolerance =
+        Math.max(
+          4,
+          Math.min(
+            16,
+            Math.max(
+              line.height || 0,
+              item.height || 0
+            ) * 0.55
+          )
+        );
+
+      if (
+        Math.abs(
+          line.y - item.y
+        ) <= tolerance
+      ) {
+        existing = line;
+        break;
+      }
+    }
+
+    if (existing) {
+      existing.items.push(item);
+
+      existing.x1 =
+        Math.min(
+          existing.x1,
+          item.x
+        );
+
+      existing.x2 =
+        Math.max(
+          existing.x2,
+          item.x +
+            item.width
+        );
+
+      existing.y1 =
+        Math.min(
+          existing.y1,
+          item.y -
+            item.height
+        );
+
+      existing.y2 =
+        Math.max(
+          existing.y2,
+          item.y
+        );
+
+      existing.height =
+        Math.max(
+          existing.height || 0,
+          item.height || 0
+        );
+
+      existing.y =
+        existing.items.reduce(
+          (sum, current) =>
+            sum + current.y,
+          0
+        ) /
+        existing.items.length;
+    } else {
+      lines.push({
+        y: item.y,
+        items: [item],
+        x1: item.x,
+        x2:
+          item.x +
+          item.width,
+        y1:
+          item.y -
+          item.height,
+        y2: item.y,
+        height:
+          item.height,
+      });
+    }
+  }
+
+  for (const line of lines) {
+    line.items.sort(
+      (a, b) =>
+        a.x - b.x
+    );
+
+    line.text =
+      line.items
+        .map(
+          (item) =>
+            item.text
+        )
+        .join(" ")
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim();
+  }
+
+  lines.sort((a, b) => {
+    if (
+      Math.abs(
+        a.y - b.y
+      ) < 2
+    ) {
+      return a.x1 - b.x1;
+    }
+
+    return a.y - b.y;
+  });
+
+  return lines;
+}
+
+/* =========================================================
+   UPLOAD ACTUAL HEADLINE CROP
+========================================================= */
+
+async function uploadHeadlineImage(
+  imageBuffer,
+  fileUniqueId,
+  headline
+) {
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is missing"
+    );
+  }
+
+  const safeId =
+    String(
+      fileUniqueId ||
+        "pdf"
+    ).replace(
+      /[^a-zA-Z0-9_-]/g,
+      ""
+    );
+
+  const headlineSlug =
+    slugify(
+      headline
+    ) ||
+    "headline";
+
+  const filePath =
+    `${safeId}/${headlineSlug}.png`;
+
+  const uploadUrl =
+    `${SUPABASE_URL}/storage/v1/object/` +
+    `${THE_HINDU_HEADLINE_BUCKET}/${filePath}`;
+
+  const response =
+    await fetch(
+      uploadUrl,
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey:
+            SUPABASE_SERVICE_ROLE_KEY,
+          "Content-Type":
+            "image/png",
+          "x-upsert":
+            "true",
+        },
+        body:
+          imageBuffer,
+      }
+    );
+
+  const responseText =
+    await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Headline image upload failed: ${response.status} ${responseText}`
+    );
+  }
+
+  return (
+    `${SUPABASE_URL}/storage/v1/object/public/` +
+    `${THE_HINDU_HEADLINE_BUCKET}/${filePath}`
+  );
+}
+
+/* =========================================================
+   CREATE ACTUAL NEWSPAPER HEADLINE CROP
+========================================================= */
+
+async function createTheHinduHeadlineImage(
+  pdfBuffer,
+  headline,
+  fileUniqueId
+) {
+  if (
+    !headline ||
+    !pdfBuffer
+  ) {
+    return "";
+  }
+
+  let pdf = null;
+
+  try {
+    const pdfjsLib =
+      await import(
+        "pdfjs-dist/legacy/build/pdf.mjs"
       );
 
-      const result = await response.json();
+    const {
+      createCanvas,
+    } = await import(
+      "@napi-rs/canvas"
+    );
 
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result?.error ||
-            (already
-              ? "Important remove nahi hua."
-              : "Important save nahi hua.")
+    const loadingTask =
+      pdfjsLib.getDocument({
+        data:
+          new Uint8Array(
+            pdfBuffer
+          ),
+        disableWorker:
+          true,
+        useSystemFonts:
+          true,
+        isEvalSupported:
+          false,
+      });
+
+    pdf =
+      await loadingTask.promise;
+
+    const wanted =
+      normalizeHeadlineForMatch(
+        headline
+      );
+
+    const wantedTokens =
+      headlineTokens(wanted);
+
+    if (
+      !wanted ||
+      wantedTokens.length < 2
+    ) {
+      return "";
+    }
+
+    let bestMatch = null;
+
+    /* -----------------------------------------
+       SEARCH ALL PDF PAGES
+    ----------------------------------------- */
+
+    for (
+      let pageNumber = 1;
+      pageNumber <=
+        pdf.numPages;
+      pageNumber++
+    ) {
+      const page =
+        await pdf.getPage(
+          pageNumber
         );
+
+      try {
+        const viewport =
+          page.getViewport({
+            scale:
+              HEADLINE_RENDER_SCALE,
+          });
+
+        const textContent =
+          await page.getTextContent({
+            normalizeWhitespace:
+              false,
+            disableCombineTextItems:
+              true,
+          });
+
+        const lines =
+          buildPdfTextLines(
+            pdfjsLib,
+            textContent,
+            viewport,
+            HEADLINE_RENDER_SCALE
+          );
+
+        if (!lines.length) {
+          continue;
+        }
+
+        /*
+         * Newspaper headline can be split
+         * across multiple PDF lines.
+         *
+         * Test 1-4 consecutive lines.
+         */
+
+        for (
+          let start = 0;
+          start < lines.length;
+          start++
+        ) {
+          let combined = "";
+
+          for (
+            let count = 1;
+            count <= 4 &&
+            start + count <=
+              lines.length;
+            count++
+          ) {
+            const current =
+              lines[
+                start + count - 1
+              ];
+
+            if (count > 1) {
+              const previous =
+                lines[
+                  start + count - 2
+                ];
+
+              const gap =
+                Math.abs(
+                  current.y -
+                    previous.y
+                );
+
+              const maxGap =
+                Math.max(
+                  55,
+                  Math.max(
+                    current.height || 0,
+                    previous.height || 0
+                  ) * 2.8
+                );
+
+              if (
+                gap > maxGap
+              ) {
+                break;
+              }
+            }
+
+            combined =
+              `${combined} ${current.text}`
+                .replace(
+                  /\s+/g,
+                  " "
+                )
+                .trim();
+
+            const candidateTokens =
+              headlineTokens(
+                combined
+              );
+
+            if (
+              !candidateTokens.length
+            ) {
+              continue;
+            }
+
+            const candidateSet =
+              new Set(
+                candidateTokens
+              );
+
+            let matched = 0;
+
+            for (
+              const token of
+              wantedTokens
+            ) {
+              if (
+                candidateSet.has(
+                  token
+                )
+              ) {
+                matched++;
+              }
+            }
+
+            const coverage =
+              matched /
+              Math.max(
+                1,
+                wantedTokens.length
+              );
+
+            const overlap =
+              tokenOverlap(
+                wanted,
+                combined
+              );
+
+            const wantedCompact =
+              wanted.replace(
+                /\s+/g,
+                ""
+              );
+
+            const candidateCompact =
+              normalizeHeadlineForMatch(
+                combined
+              ).replace(
+                /\s+/g,
+                ""
+              );
+
+            const exactish =
+              candidateCompact.includes(
+                wantedCompact
+              ) ||
+              wantedCompact.includes(
+                candidateCompact
+              );
+
+            let score =
+              coverage * 0.78 +
+              overlap * 0.17;
+
+            if (exactish) {
+              score += 0.25;
+            }
+
+            const extraTokenPenalty =
+              Math.max(
+                0,
+                candidateTokens.length -
+                  wantedTokens.length
+              ) /
+              Math.max(
+                1,
+                wantedTokens.length
+              );
+
+            score -=
+              Math.min(
+                0.12,
+                extraTokenPenalty *
+                  0.08
+              );
+
+            if (
+              coverage >= 0.55 &&
+              (
+                !bestMatch ||
+                score >
+                  bestMatch.score
+              )
+            ) {
+              bestMatch = {
+                pageNumber,
+                score,
+                coverage,
+                lines:
+                  lines.slice(
+                    start,
+                    start + count
+                  ),
+                text:
+                  combined,
+              };
+            }
+          }
+        }
+      } finally {
+        page.cleanup();
+      }
+    }
+
+    if (
+      !bestMatch ||
+      bestMatch.coverage <
+        0.55
+    ) {
+      console.warn(
+        "THE HINDU HEADLINE NOT LOCATED:",
+        headline
+      );
+
+      return "";
+    }
+
+    /* -----------------------------------------
+       RENDER ONLY MATCHED PAGE
+    ----------------------------------------- */
+
+    const page =
+      await pdf.getPage(
+        bestMatch.pageNumber
+      );
+
+    try {
+      const viewport =
+        page.getViewport({
+          scale:
+            HEADLINE_RENDER_SCALE,
+        });
+
+      const pageCanvas =
+        createCanvas(
+          Math.ceil(
+            viewport.width
+          ),
+          Math.ceil(
+            viewport.height
+          )
+        );
+
+      const pageContext =
+        pageCanvas.getContext(
+          "2d"
+        );
+
+      await page.render({
+        canvasContext:
+          pageContext,
+        viewport,
+      }).promise;
+
+      /* ---------------------------------------
+         CROP ONLY HEADLINE LINES
+      --------------------------------------- */
+
+      let x1 = Infinity;
+      let y1 = Infinity;
+      let x2 = -Infinity;
+      let y2 = -Infinity;
+
+      for (
+        const line of
+        bestMatch.lines
+      ) {
+        x1 =
+          Math.min(
+            x1,
+            line.x1
+          );
+
+        y1 =
+          Math.min(
+            y1,
+            line.y1
+          );
+
+        x2 =
+          Math.max(
+            x2,
+            line.x2
+          );
+
+        y2 =
+          Math.max(
+            y2,
+            line.y2
+          );
       }
 
-      await loadImportant();
-    } catch (err) {
-      alert(
-        err.message ||
-          "Important update nahi ho paya."
+      if (
+        !Number.isFinite(x1) ||
+        !Number.isFinite(y1) ||
+        !Number.isFinite(x2) ||
+        !Number.isFinite(y2) ||
+        x2 <= x1 ||
+        y2 <= y1
+      ) {
+        return "";
+      }
+
+      const paddingX = 20;
+      const paddingY = 16;
+
+      x1 =
+        Math.max(
+          0,
+          Math.floor(
+            x1 - paddingX
+          )
+        );
+
+      y1 =
+        Math.max(
+          0,
+          Math.floor(
+            y1 - paddingY
+          )
+        );
+
+      x2 =
+        Math.min(
+          pageCanvas.width,
+          Math.ceil(
+            x2 + paddingX
+          )
+        );
+
+      y2 =
+        Math.min(
+          pageCanvas.height,
+          Math.ceil(
+            y2 + paddingY
+          )
+        );
+
+      const cropWidth =
+        Math.max(
+          1,
+          x2 - x1
+        );
+
+      const cropHeight =
+        Math.max(
+          1,
+          y2 - y1
+        );
+
+      const cropCanvas =
+        createCanvas(
+          cropWidth,
+          cropHeight
+        );
+
+      const cropContext =
+        cropCanvas.getContext(
+          "2d"
+        );
+
+      cropContext.drawImage(
+        pageCanvas,
+        x1,
+        y1,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        cropWidth,
+        cropHeight
       );
+
+      const imageBuffer =
+        cropCanvas.toBuffer(
+          "image/png"
+        );
+
+      const publicUrl =
+        await uploadHeadlineImage(
+          imageBuffer,
+          fileUniqueId,
+          headline
+        );
+
+      console.log(
+        "THE HINDU HEADLINE IMAGE CREATED:",
+        publicUrl,
+        "PAGE:",
+        bestMatch.pageNumber,
+        "COVERAGE:",
+        bestMatch.coverage,
+        "SCORE:",
+        bestMatch.score
+      );
+
+      return publicUrl;
     } finally {
-      setImportantLoading(false);
+      page.cleanup();
+    }
+  } catch (error) {
+    console.error(
+      "THE HINDU HEADLINE CROP FAILED:",
+      error?.message ||
+        error
+    );
+
+    return "";
+  } finally {
+    if (pdf) {
+      try {
+        await pdf.cleanup();
+      } catch {}
+    }
+  }
+}
+
+/* =========================================================
+   DATE
+========================================================= */
+
+const MONTHS = {
+  january: "01",
+  february: "02",
+  march: "03",
+  april: "04",
+  may: "05",
+  june: "06",
+  july: "07",
+  august: "08",
+  september: "09",
+  october: "10",
+  november: "11",
+  december: "12",
+};
+
+function parseDateCandidate(
+  day,
+  month,
+  year
+) {
+  const monthNumber =
+    MONTHS[
+      String(month).toLowerCase()
+    ];
+
+  if (!monthNumber) {
+    return null;
+  }
+
+  return `${year}-${monthNumber}-${String(
+    day
+  ).padStart(2, "0")}`;
+}
+
+function extractNewspaperDate(
+  text
+) {
+  const source =
+    String(text || "");
+
+  let match =
+    source.match(
+      /\b(0?[1-9]|[12][0-9]|3[01])\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/i
+    );
+
+  if (match) {
+    return parseDateCandidate(
+      match[1],
+      match[2],
+      match[3]
+    );
+  }
+
+  match =
+    source.match(
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12][0-9]|3[01]),?\s+(20\d{2})\b/i
+    );
+
+  if (match) {
+    return parseDateCandidate(
+      match[2],
+      match[1],
+      match[3]
+    );
+  }
+
+  match =
+    source.match(
+      /\b(0?[1-9]|[12][0-9]|3[01])[\/-](0?[1-9]|1[0-2])[\/-](20\d{2})\b/
+    );
+
+  if (match) {
+    return `${match[3]}-${String(
+      match[2]
+    ).padStart(
+      2,
+      "0"
+    )}-${String(
+      match[1]
+    ).padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  return null;
+}
+
+function verifyPdfDate(
+  pdfText
+) {
+  const detectedDate =
+    extractNewspaperDate(
+      pdfText
+    );
+
+  const currentDate =
+    todayIST();
+
+  if (!detectedDate) {
+    return {
+      valid: false,
+      reason:
+        "newspaper-date-not-found",
+      detectedDate: null,
+      currentDate,
+    };
+  }
+
+  if (
+    detectedDate !==
+    currentDate
+  ) {
+    return {
+      valid: false,
+      reason:
+        "pdf-date-does-not-match-today",
+      detectedDate,
+      currentDate,
+    };
+  }
+
+  return {
+    valid: true,
+    detectedDate,
+    currentDate,
+  };
+}
+
+/* =========================================================
+   UPSC FILTER
+========================================================= */
+
+const UPSC_KEYWORDS = [
+  "government",
+  "supreme court",
+  "high court",
+  "parliament",
+  "constitution",
+  "ministry",
+  "policy",
+  "bill",
+  "act",
+  "ordinance",
+  "election",
+  "international",
+  "united nations",
+  "india",
+  "diplomacy",
+  "bilateral",
+  "multilateral",
+  "economy",
+  "inflation",
+  "gdp",
+  "fiscal",
+  "monetary",
+  "rbi",
+  "banking",
+  "agriculture",
+  "farmer",
+  "environment",
+  "climate",
+  "biodiversity",
+  "forest",
+  "wildlife",
+  "pollution",
+  "technology",
+  "science",
+  "space",
+  "isro",
+  "defence",
+  "security",
+  "cyber",
+  "health",
+  "education",
+  "social justice",
+  "tribal",
+  "women",
+  "child",
+  "report",
+  "index",
+  "scheme",
+  "mission",
+  "committee",
+  "commission",
+  "court",
+  "judiciary",
+  "federal",
+  "governance",
+  "disaster",
+];
+
+const LOW_VALUE_KEYWORDS = [
+  "cricket",
+  "football",
+  "match",
+  "celebrity",
+  "movie",
+  "film review",
+  "horoscope",
+  "entertainment",
+  "fashion",
+  "recipe",
+  "lifestyle",
+  "obituary",
+  "stock market tips",
+];
+
+function relevanceScore(
+  text
+) {
+  const lower =
+    String(text || "")
+      .toLowerCase();
+
+  let score = 0;
+
+  for (
+    const keyword of
+    UPSC_KEYWORDS
+  ) {
+    if (
+      lower.includes(
+        keyword
+      )
+    ) {
+      score++;
     }
   }
 
-  function formatDate(value) {
-    if (!value) return "";
+  for (
+    const keyword of
+    LOW_VALUE_KEYWORDS
+  ) {
+    if (
+      lower.includes(
+        keyword
+      )
+    ) {
+      score -= 3;
+    }
+  }
 
-    const date = new Date(value);
+  return score;
+}
 
-    if (Number.isNaN(date.getTime())) {
-      return value;
+/* =========================================================
+   ARTICLE EXTRACTION
+========================================================= */
+
+function splitIntoCandidateBlocks(
+  text
+) {
+  const cleaned =
+    normalizeWhitespace(
+      text
+    );
+
+  const lines =
+    cleaned
+      .split("\n")
+      .map(cleanText)
+      .filter(Boolean);
+
+  const blocks = [];
+
+  let current = [];
+
+  for (
+    const line of lines
+  ) {
+    current.push(line);
+
+    if (
+      current.join(" ")
+        .length >= 900
+    ) {
+      blocks.push(
+        current.join("\n")
+      );
+
+      current = [];
+    }
+  }
+
+  if (current.length) {
+    blocks.push(
+      current.join("\n")
+    );
+  }
+
+  return blocks;
+}
+
+function looksLikeHeadline(
+  line
+) {
+  const value =
+    cleanText(line);
+
+  if (
+    value.length < 20 ||
+    value.length > 250
+  ) {
+    return false;
+  }
+
+  const lower =
+    value.toLowerCase();
+
+  const noise = [
+    "the hindu",
+    "thursday",
+    "wednesday",
+    "tuesday",
+    "monday",
+    "sunday",
+    "saturday",
+    "october 2026",
+    "september 2026",
+    "page ",
+    "opinion",
+    "editorial",
+  ];
+
+  if (
+    noise.some(
+      (word) =>
+        lower.includes(word)
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function extractHeadlineAndDeck(
+  lines
+) {
+  if (!lines.length) {
+    return {
+      headline: "",
+      subheadline: "",
+    };
+  }
+
+  let headlineIndex =
+    -1;
+
+  for (
+    let i = 0;
+    i <
+      Math.min(
+        lines.length,
+        8
+      );
+    i++
+  ) {
+    if (
+      looksLikeHeadline(
+        lines[i]
+      )
+    ) {
+      headlineIndex = i;
+      break;
+    }
+  }
+
+  if (
+    headlineIndex ===
+    -1
+  ) {
+    return {
+      headline:
+        cleanText(
+          lines[0]
+        ),
+      subheadline: "",
+    };
+  }
+
+  const headline =
+    cleanText(
+      lines[
+        headlineIndex
+      ]
+    );
+
+  let subheadline =
+    "";
+
+  const next =
+    cleanText(
+      lines[
+        headlineIndex + 1
+      ] || ""
+    );
+
+  if (
+    next &&
+    next.length >= 30 &&
+    next.length <= 900 &&
+    next !== headline
+  ) {
+    const questionCount =
+      (
+        next.match(
+          /\?/g
+        ) || []
+      ).length;
+
+    const looksLikeDeck =
+      questionCount >= 1 ||
+      next.length >= 100;
+
+    if (
+      looksLikeDeck
+    ) {
+      subheadline =
+        next;
+    }
+  }
+
+  return {
+    headline,
+    subheadline,
+  };
+}
+
+function createArticleCandidates(
+  pdfText
+) {
+  const blocks =
+    splitIntoCandidateBlocks(
+      pdfText
+    );
+
+  const candidates = [];
+
+  for (
+    const block of blocks
+  ) {
+    const text =
+      normalizeWhitespace(
+        block
+      );
+
+    if (
+      text.length < 350
+    ) {
+      continue;
     }
 
-    return date.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
+    const score =
+      relevanceScore(
+        text
+      );
+
+    if (score < 2) {
+      continue;
+    }
+
+    const lines =
+      text
+        .split("\n")
+        .map(cleanText)
+        .filter(Boolean);
+
+    if (!lines.length) {
+      continue;
+    }
+
+    const {
+      headline,
+      subheadline,
+    } =
+      extractHeadlineAndDeck(
+        lines
+      );
+
+    if (
+      headline.length < 20 ||
+      headline.length > 250
+    ) {
+      continue;
+    }
+
+    candidates.push({
+      title:
+        headline,
+
+      original_headline:
+        headline,
+
+      original_subheadline:
+        subheadline,
+
+      content:
+        text.slice(
+          0,
+          14000
+        ),
+
+      relevanceScore:
+        score,
+
+      headline_image_url:
+        "",
     });
   }
 
-  function getLatestDate() {
-    if (!news.length) return "Loading...";
-
-    const latestToday = news.find((item) =>
-      isTodayIST(item?.date)
-    );
-
-    return latestToday
-      ? formatDate(latestToday.date)
-      : formatDate(getTodayIST());
-  }
-
-  return (
-    <main className="ca-page">
-      <button
-        type="button"
-        className="page-back-button"
-        onClick={() => {
-          if (window.history.length > 1) {
-            router.back();
-          } else {
-            router.push("/");
-          }
-        }}
-        aria-label="Go back"
-      >
-        <span aria-hidden="true">←</span>
-        <span>Back</span>
-      </button>
-
-      <section className="ca-premium-hero">
-        <div className="ca-hero-topbar">
-          <div className="ca-hero-brand">
-            <span className="ca-hero-brand-kicker">
-              SAMBHAV UPSC
-            </span>
-            <strong>Current Affairs</strong>
-            <small>
-              UPSC Daily Intelligence • Prelims + Mains
-            </small>
-          </div>
-
-          <div className="ca-hero-actions">
-            <div className="ca-hero-action-card ca-language-card">
-              <span>{hi ? "भाषा" : "Language"}</span>
-
-              <div className="ca-lang-pills">
-                <button
-                  type="button"
-                  className={
-                    hi
-                      ? "ca-lang-pill active"
-                      : "ca-lang-pill"
-                  }
-                  onClick={() => setLanguage("hi")}
-                >
-                  हिन्दी
-                </button>
-
-                <button
-                  type="button"
-                  className={
-                    !hi
-                      ? "ca-lang-pill active"
-                      : "ca-lang-pill"
-                  }
-                  onClick={() => setLanguage("en")}
-                >
-                  English
-                </button>
-              </div>
-            </div>
-
-            <div className="ca-hero-action-card ca-date-card">
-              <span>Latest Update</span>
-              <strong>{getLatestDate()}</strong>
-              <small>Daily update • 10:00 AM</small>
-            </div>
-
-            <button
-              type="button"
-              className="ca-hero-utility-btn magazine"
-              onClick={() =>
-                (window.location.href =
-                  "/current-affairs/magazine")
-              }
-            >
-              <span>▣</span>
-              <b>Monthly Magazine</b>
-            </button>
-
-            <button
-              type="button"
-              className="ca-hero-utility-btn notification"
-              onClick={() =>
-                setNotificationOpen(!notificationOpen)
-              }
-            >
-              <span>◉</span>
-              <b>Notifications</b>
-            </button>
-          </div>
-        </div>
-
-        <div className="ca-hero-divider" />
-
-        <div className="ca-hero-copy">
-          <span className="ca-hero-eyebrow">
-            SAMBHAV UPSC • DAILY INTELLIGENCE
-          </span>
-
-          <h2>
-            {hi
-              ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।"
-              : "Not just news. The right news for UPSC."}
-          </h2>
-
-          <p>
-            {hi
-              ? "PIB, GKToday, The Hindu और Better India को एक structured UPSC view में पढ़ें — Prelims + Mains + Ethics."
-              : "PIB, GKToday, The Hindu and Better India in one structured UPSC view — Prelims + Mains + Ethics."}
-          </p>
-
-          <div className="ca-hero-stats">
-            <div className="ca-hero-stat">
-              <strong>
-                {
-                  todayNews.filter(
-                    (item) => !isEthicsExample(item)
-                  ).length
-                }
-              </strong>
-              <span>Daily Updates</span>
-            </div>
-
-            <div className="ca-hero-stat">
-              <strong>4</strong>
-              <span>Core Sources</span>
-            </div>
-
-            <div className="ca-hero-stat">
-              <strong>GS I–IV</strong>
-              <span>UPSC Mapping</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="ca-hero-seal">
-          <div className="ca-hero-seal-ring">
-            <span>CA</span>
-            <small>2026</small>
-          </div>
-
-          <div className="ca-hero-seal-line" />
-
-          <span className="ca-hero-date">
-            UPDATED • {getLatestDate()}
-          </span>
-        </div>
-      </section>
-
-      {notificationOpen && (
-        <section className="notification-panel">
-          <div className="notification-title">
-            <div>
-              <span className="badge">DAILY</span>
-
-              <h2>🔔 Current Affairs Notification</h2>
-
-              <p>
-                {hi
-                  ? "हर दिन नए UPSC Current Affairs की notification."
-                  : "Get daily notifications for new UPSC Current Affairs."}
-              </p>
-            </div>
-
-            <button
-              className={
-                notificationsEnabled
-                  ? "switch on"
-                  : "switch"
-              }
-              onClick={() => {
-                const next = !notificationsEnabled;
-
-                setNotificationsEnabled(next);
-
-                saveNotificationSettings({
-                  enabled: next,
-                });
-              }}
-              disabled={notificationSaving}
-            >
-              <span />
-            </button>
-          </div>
-
-          <div className="notification-grid">
-            <div className="setting-box">
-              <label>Notification Language</label>
-
-              <div className="setting-buttons">
-                <button
-                  className={
-                    notificationLanguage === "hi"
-                      ? "setting-btn active"
-                      : "setting-btn"
-                  }
-                  onClick={() =>
-                    saveNotificationSettings({
-                      language: "hi",
-                    })
-                  }
-                  disabled={notificationSaving}
-                >
-                  हिन्दी
-                </button>
-
-                <button
-                  className={
-                    notificationLanguage === "en"
-                      ? "setting-btn active"
-                      : "setting-btn"
-                  }
-                  onClick={() =>
-                    saveNotificationSettings({
-                      language: "en",
-                    })
-                  }
-                  disabled={notificationSaving}
-                >
-                  English
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-box">
-              <label>Daily Notification Time</label>
-
-              <input
-                type="time"
-                value={notificationTime}
-                onChange={(e) =>
-                  setNotificationTime(e.target.value)
-                }
-                disabled={notificationSaving}
-              />
-
-              <button
-                className="save-time"
-                onClick={() =>
-                  saveNotificationSettings({
-                    time: notificationTime,
-                  })
-                }
-                disabled={notificationSaving}
-              >
-                {notificationSaving
-                  ? "Saving..."
-                  : "Save Time"}
-              </button>
-            </div>
-          </div>
-
-          <div className="notification-info">
-            <strong>
-              {notificationsEnabled
-                ? "🟢 Notifications ON"
-                : "⚪ Notifications OFF"}
-            </strong>
-
-            <span>
-              {hi
-                ? `Daily ${notificationTime} बजे • ${
-                    notificationLanguage === "hi"
-                      ? "हिन्दी"
-                      : "English"
-                  }`
-                : `Daily at ${notificationTime} • ${
-                    notificationLanguage === "hi"
-                      ? "Hindi"
-                      : "English"
-                  }`}
-            </span>
-          </div>
-
-          {notificationMessage && (
-            <div className="notification-message">
-              {notificationMessage}
-            </div>
-          )}
-        </section>
-      )}
-
-      <section className="source-nav-wrap">
-        <div className="source-nav-head">
-          <div>
-            <span className="source-nav-eyebrow">
-              SOURCES
-            </span>
-            <strong>Current Affairs Sources</strong>
-          </div>
-
-          <span className="source-nav-note">
-            {activeSource === "better-india"
-              ? "Better India → GS-IV Ethics"
-              : "Select a source"}
-          </span>
-        </div>
-
-        <div className="source-nav">
-          {sourceTabs.map((tab) => {
-            const count =
-              tab.key === "all"
-                ? todayNews.filter(
-                    (item) => !isEthicsExample(item)
-                  ).length
-                : todayNews.filter(
-                    (item) =>
-                      getSourceKey(item) === tab.key
-                  ).length;
-
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                className={`source-tab ${
-                  activeSource === tab.key
-                    ? "active"
-                    : ""
-                } ${
-                  tab.key === "better-india"
-                    ? "ethics"
-                    : ""
-                }`}
-                onClick={() =>
-                  selectSource(tab.key)
-                }
-              >
-                <span className="source-tab-main">
-                  {tab.label}
-                </span>
-
-                {tab.sub && (
-                  <span className="source-tab-sub">
-                    {tab.sub}
-                  </span>
-                )}
-
-                <span className="source-tab-count">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <nav className="filter-row">
-        {filters.map((filter) => (
-          <button
-            key={filter}
-            className={
-              active === filter
-                ? "filter active"
-                : "filter"
-            }
-            onClick={() => setActive(filter)}
-          >
-            {filter}
-          </button>
-        ))}
-
-        <button
-          className={
-            active === "Important"
-              ? "filter active important"
-              : "filter important"
-          }
-          onClick={() => setActive("Important")}
-        >
-          ⭐ Important
-        </button>
-
-        <button
-          className={
-            active === "Premium"
-              ? "filter active premium"
-              : "filter premium"
-          }
-          onClick={() => setActive("Premium")}
-        >
-          🔥 Premium Facts
-        </button>
-      </nav>
-            {loading ? (
-        <section className="state-card">
-          <div className="loader" />
-
-          <h2>
-            {hi
-              ? "Current Affairs load हो रहे हैं..."
-              : "Loading Current Affairs..."}
-          </h2>
-
-          <p>
-            {hi
-              ? "Latest updates fetch किए जा रहे हैं।"
-              : "Fetching latest updates."}
-          </p>
-        </section>
-      ) : error ? (
-        <section className="state-card error-card">
-          <h2>
-            {hi
-              ? "Current Affairs load नहीं हो पाए"
-              : "Current Affairs could not be loaded"}
-          </h2>
-
-          <p>{error}</p>
-        </section>
-      ) : active === "Important" ? (
-        <section className="special-section">
-          <div className="section-heading">
-            <div>
-              <span className="badge">SAVED</span>
-
-              <h2>⭐ My Important Current Affairs</h2>
-            </div>
-
-            <p>{filteredNews.length} saved</p>
-          </div>
-
-          {filteredNews.length === 0 ? (
-            <div className="empty">
-              {hi ? (
-                <>
-                  अभी कोई Current Affair Important में नहीं है।
-                  <br />
-                  किसी news पर ⭐ दबाकर save करें।
-                </>
-              ) : (
-                <>
-                  No Current Affairs saved yet.
-                  <br />
-                  Press ⭐ on any article to save it.
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="news-list">
-              {filteredNews.map((item) => (
-                <ArticleCard
-                  key={item.id}
-                  item={item}
-                  important
-                  language={language}
-                  onImportant={toggleImportant}
-                  onOpen={setSelected}
-                  expanded={selected?.id === item.id}
-                  onClose={() => setSelected(null)}
-                  formatDate={formatDate}
-                  disabled={importantLoading}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      ) : active === "Premium" ? (
-        <PremiumFacts
-          news={sourceFilteredNews}
-          language={language}
-          hi={hi}
-        />
-      ) : (
-        <section>
-          <div className="section-heading">
-            <div>
-              <span className="badge">
-                {getLatestDate().toUpperCase()}
-              </span>
-
-              <h2>
-                {active === "Today"
-                  ? hi
-                    ? "आज के UPSC Current Affairs"
-                    : "Today's UPSC Current Affairs"
-                  : active}
-              </h2>
-            </div>
-
-            <p>{filteredNews.length} updates</p>
-          </div>
-
-          {filteredNews.length === 0 ? (
-            <div className="empty">
-              {hi
-                ? "इस category में अभी कोई Current Affair उपलब्ध नहीं है।"
-                : "No Current Affair is available in this category."}
-            </div>
-          ) : (
-            <div className="news-list">
-              {filteredNews.map((item) => (
-                <ArticleCard
-                  key={item.id}
-                  item={item}
-                  important={importantIds.includes(
-                    Number(item.id)
-                  )}
-                  language={language}
-                  onImportant={toggleImportant}
-                  onOpen={setSelected}
-                  expanded={selected?.id === item.id}
-                  onClose={() => setSelected(null)}
-                  formatDate={formatDate}
-                  disabled={importantLoading}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      <style jsx global>{`
-        .page-back-button {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          margin: 0 0 12px;
-          padding: 9px 14px;
-          border: 1px solid #e2e7ef;
-          border-radius: 11px;
-          background: #fff;
-          color: #172033;
-          font-size: 13px;
-          font-weight: 800;
-          cursor: pointer;
-          box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            background 0.16s ease;
-        }
-
-        .page-back-button:hover {
-          background: #f8fafc;
-          transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-        }
-
-        .page-back-button span:first-child {
-          font-size: 18px;
-          line-height: 1;
-        }
-
-        .ca-page {
-          min-height: 100vh;
-          background:
-            radial-gradient(
-              circle at 12% 0%,
-              rgba(195, 161, 90, 0.1),
-              transparent 24%
-            ),
-            radial-gradient(
-              circle at 88% 6%,
-              rgba(15, 23, 42, 0.055),
-              transparent 25%
-            ),
-            linear-gradient(
-              180deg,
-              #f8f6f1 0%,
-              #f3f5f7 48%,
-              #eef1f4 100%
-            );
-          color: #172033;
-          padding: 32px 18px 90px;
-          font-family:
-            Inter,
-            ui-sans-serif,
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
-        }
-
-        .ca-header,
-        .filter-row,
-        .news-list,
-        .special-section,
-        .section-heading,
-        .notification-panel {
-          max-width: 1050px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .ca-premium-hero {
-          position: relative;
-          overflow: hidden;
-          max-width: 1050px;
-          margin: 0 auto 16px;
-          padding: 27px 29px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 28px;
-          color: #fff;
-          border: 1px solid rgba(195, 161, 90, 0.3);
-          border-radius: 25px;
-          background:
-            radial-gradient(
-              circle at 88% 10%,
-              rgba(195, 161, 90, 0.25),
-              transparent 25%
-            ),
-            radial-gradient(
-              circle at 65% 120%,
-              rgba(52, 64, 84, 0.55),
-              transparent 35%
-            ),
-            linear-gradient(
-              145deg,
-              #0d1118 0%,
-              #151b25 62%,
-              #0b0f15 100%
-            );
-          box-shadow: 0 22px 55px rgba(15, 23, 42, 0.15);
-        }
-
-        .ca-premium-hero::before {
-          content: "";
-          position: absolute;
-          width: 230px;
-          height: 230px;
-          right: 75px;
-          bottom: -170px;
-          border: 1px solid rgba(226, 199, 125, 0.16);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-
-        .ca-premium-hero::after {
-          content: "";
-          position: absolute;
-          width: 150px;
-          height: 150px;
-          right: -70px;
-          top: -75px;
-          border: 1px solid rgba(226, 199, 125, 0.13);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-
-        .ca-hero-copy {
-          position: relative;
-          z-index: 1;
-          max-width: 720px;
-        }
-
-        .ca-hero-eyebrow {
-          display: inline-flex;
-          color: #e2c77d;
-          font-size: 9px;
-          line-height: 1;
-          letter-spacing: 0.18em;
-          font-weight: 950;
-        }
-
-        .ca-hero-copy h2 {
-          margin: 10px 0 8px;
-          font-size: clamp(25px, 3.2vw, 38px);
-          line-height: 1.06;
-          letter-spacing: -1.25px;
-          color: #fffdf9;
-          max-width: 650px;
-        }
-
-        .ca-hero-copy p {
-          margin: 0;
-          max-width: 650px;
-          color: #b9c0ca;
-          font-size: 12px;
-          line-height: 1.7;
-        }
-
-        .ca-hero-stats {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 19px;
-        }
-
-        .ca-hero-stat {
-          min-width: 108px;
-          padding: 9px 11px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.055);
-          backdrop-filter: blur(8px);
-        }
-
-        .ca-hero-stat strong {
-          display: block;
-          color: #fff;
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .ca-hero-stat span {
-          display: block;
-          margin-top: 3px;
-          color: #929ba8;
-          font-size: 8px;
-          font-weight: 800;
-          letter-spacing: 0.03em;
-        }
-
-        .ca-hero-seal {
-          position: relative;
-          z-index: 1;
-          flex: 0 0 155px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .ca-hero-seal-ring {
-          width: 112px;
-          height: 112px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid rgba(226, 199, 125, 0.45);
-          outline: 1px solid rgba(226, 199, 125, 0.12);
-          outline-offset: 7px;
-          border-radius: 50%;
-          background:
-            radial-gradient(
-              circle,
-              rgba(226, 199, 125, 0.13),
-              rgba(255, 255, 255, 0.015) 68%
-            );
-        }
-
-        .ca-hero-seal-ring span {
-          color: #e2c77d;
-          font-size: 29px;
-          line-height: 1;
-          font-weight: 950;
-          letter-spacing: -0.06em;
-        }
-
-        .ca-hero-seal-ring small {
-          margin-top: 7px;
-          color: #aeb5bf;
-          font-size: 8px;
-          letter-spacing: 0.2em;
-          font-weight: 900;
-        }
-
-        .ca-hero-seal-line {
-          width: 46px;
-          height: 1px;
-          margin: 18px 0 8px;
-          background: rgba(226, 199, 125, 0.38);
-        }
-
-        .ca-hero-date {
-          color: #8e97a4;
-          font-size: 7px;
-          letter-spacing: 0.13em;
-          font-weight: 900;
-          text-align: center;
-        }
-
-        .source-nav-wrap {
-          max-width: 1050px;
-          margin: 0 auto 14px;
-          padding: 12px;
-          background: rgba(255, 255, 255, 0.88);
-          border: 1px solid #e2e7ef;
-          border-radius: 18px;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-          backdrop-filter: blur(10px);
-        }
-
-        .source-nav-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 2px 4px 10px;
-        }
-
-        .source-nav-eyebrow {
-          display: block;
-          color: #98a2b3;
-          font-size: 9px;
-          font-weight: 950;
-          letter-spacing: 0.14em;
-          margin-bottom: 3px;
-        }
-
-        .source-nav-head strong {
-          font-size: 13px;
-          font-weight: 900;
-        }
-
-        .source-nav-note {
-          color: #667085;
-          font-size: 10px;
-          font-weight: 700;
-          text-align: right;
-        }
-
-        .source-nav {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 7px;
-        }
-
-        .source-tab {
-          min-width: 0;
-          min-height: 46px;
-          border: 1px solid #e1e6ee;
-          background: #fff;
-          color: #344054;
-          border-radius: 12px;
-          padding: 8px 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          cursor: pointer;
-          font-weight: 900;
-        }
-
-        .source-tab.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-          box-shadow: 0 7px 16px rgba(15, 23, 42, 0.14);
-        }
-
-        .source-tab.ethics.active {
-          background: #7a263a;
-          border-color: #7a263a;
-        }
-
-        .source-tab-main {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 11px;
-        }
-
-        .source-tab-sub {
-          font-size: 8px;
-          padding: 3px 5px;
-          border-radius: 999px;
-          background: #f2f4f7;
-          color: #667085;
-        }
-
-        .source-tab.active .source-tab-sub {
-          background: rgba(255, 255, 255, 0.14);
-          color: #fff;
-        }
-
-        .source-tab-count {
-          min-width: 22px;
-          padding: 3px 5px;
-          border-radius: 999px;
-          background: #f2f4f7;
-          color: #475467;
-          font-size: 9px;
-          text-align: center;
-        }
-
-        .source-tab.active .source-tab-count {
-          background: rgba(255, 255, 255, 0.14);
-          color: #fff;
-        }
-
-        .notification-panel {
-          background: #fff;
-          border: 1px solid #dfe5ec;
-          border-radius: 18px;
-          padding: 20px;
-          margin-bottom: 18px;
-          box-shadow: 0 12px 30px rgba(16, 24, 40, 0.055);
-        }
-
-        .notification-title {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .notification-title h2 {
-          margin: 8px 0 5px;
-          font-size: 20px;
-          font-weight: 900;
-        }
-
-        .notification-title p {
-          color: #667085;
-          margin: 0;
-          line-height: 1.55;
-        }
-
-        .switch {
-          width: 54px;
-          height: 30px;
-          border: 0;
-          border-radius: 999px;
-          background: #d0d5dd;
-          padding: 3px;
-          cursor: pointer;
-        }
-
-        .switch span {
-          display: block;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: #fff;
-          transition: transform 0.2s ease;
-        }
-
-        .switch.on {
-          background: #172033;
-        }
-
-        .switch.on span {
-          transform: translateX(24px);
-        }
-
-        .notification-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 13px;
-          margin-top: 18px;
-        }
-
-        .setting-box {
-          border: 1px solid #e4e7ec;
-          border-radius: 13px;
-          padding: 15px;
-          background: #fbfcfd;
-        }
-
-        .setting-box label {
-          display: block;
-          font-size: 11px;
-          color: #667085;
-          font-weight: 800;
-          margin-bottom: 9px;
-        }
-
-        .setting-buttons {
-          display: flex;
-          gap: 7px;
-        }
-
-        .setting-btn,
-        .save-time {
-          border: 1px solid #dfe3e8;
-          background: #fff;
-          color: #344054;
-          border-radius: 9px;
-          padding: 9px 12px;
-          cursor: pointer;
-          font-weight: 800;
-        }
-
-        .setting-btn.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .setting-box input {
-          border: 1px solid #dfe3e8;
-          border-radius: 9px;
-          padding: 9px;
-          font-size: 15px;
-          margin-right: 7px;
-          background: #fff;
-        }
-
-        .save-time {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .notification-info {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          margin-top: 13px;
-          padding: 11px 13px;
-          border-radius: 10px;
-          background: #f6f7f9;
-          font-size: 13px;
-        }
-
-        .notification-info span {
-          color: #667085;
-        }
-
-        .notification-message {
-          margin-top: 10px;
-          font-size: 13px;
-          color: #175cd3;
-          font-weight: 700;
-        }
-
-        .filter-row {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding: 4px 2px 18px;
-          scrollbar-width: none;
-          position: sticky;
-          top: 8px;
-          z-index: 8;
-        }
-
-        .filter-row::-webkit-scrollbar {
-          display: none;
-        }
-
-        .filter {
-          border: 1px solid #dfe5ec;
-          background: rgba(255, 255, 255, 0.96);
-          color: #344054;
-          border-radius: 10px;
-          padding: 10px 15px;
-          min-height: 42px;
-          white-space: nowrap;
-          cursor: pointer;
-          font-weight: 800;
-        }
-
-        .filter.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .filter.important.active {
-          background: #8a5a00;
-          border-color: #8a5a00;
-        }
-
-        .filter.premium.active {
-          background: #7a263a;
-          border-color: #7a263a;
-        }
-
-        .section-heading {
-          display: flex;
-          justify-content: space-between;
-          align-items: end;
-          gap: 15px;
-          margin-bottom: 14px;
-        }
-
-        .section-heading h2 {
-          margin: 8px 0 0;
-          font-size: 24px;
-          font-weight: 900;
-        }
-
-        .section-heading p {
-          color: #667085;
-          margin: 0;
-          font-size: 13px;
-          font-weight: 700;
-        }
-
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          font-size: 10px;
-          font-weight: 900;
-          padding: 6px 9px;
-          border-radius: 999px;
-          background: #eef2f6;
-          color: #475467;
-        }
-
-        .news-list {
-          display: grid;
-          gap: 15px;
-        }
-
-        .news-card {
-          background: #fff;
-          border: 1px solid #e1e6ee;
-          border-radius: 18px;
-          padding: 22px;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-        }
-
-        .topline {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .card-badges {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-
-        .source-chip {
-          display: inline-flex;
-          align-items: center;
-          min-height: 22px;
-          padding: 4px 7px;
-          border-radius: 7px;
-          background: #f2f4f7;
-          color: #475467;
-          font-size: 8px;
-          font-weight: 950;
-        }
-
-        .source-chip.pib {
-          background: #eef4ff;
-          color: #175cd3;
-        }
-
-        .source-chip.gktoday {
-          background: #ecfdf3;
-          color: #027a48;
-        }
-
-        .source-chip.the-hindu {
-          background: #fff1f3;
-          color: #b42318;
-        }
-
-        .source-chip.better-india {
-          background: #fff7e6;
-          color: #9a6700;
-        }
-
-        .meta,
-        .source {
-          color: #667085;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .news-card h3 {
-          margin: 12px 0 8px;
-          font-size: clamp(20px, 2.3vw, 25px);
-          line-height: 1.3;
-          font-weight: 900;
-          color: #172033;
-        }
-
-        .summary {
-          color: #475467;
-          font-size: 13.5px;
-          line-height: 1.78;
-          margin: 0 0 16px;
-          white-space: pre-wrap;
-        }
-
-        .card-actions {
-          display: flex;
-          gap: 9px;
-          align-items: center;
-          flex-wrap: wrap;
-          padding-top: 13px;
-          border-top: 1px solid #edf0f3;
-        }
-
-        .read-button,
-        .important-button {
-          border: 0;
-          border-radius: 11px;
-          padding: 11px 14px;
-          min-height: 44px;
-          cursor: pointer;
-          font-weight: 850;
-        }
-
-        .read-button {
-          background: #172033;
-          color: #fff;
-        }
-
-        .important-button {
-          background: #f3f4f6;
-          color: #344054;
-        }
-
-        .important-button.saved {
-          background: #fff3d6;
-          color: #8a5a00;
-          border: 1px solid #f0d39b;
-        }
-
-        .empty,
-        .state-card {
-          background: #fff;
-          border: 1px dashed #cbd5e1;
-          border-radius: 18px;
-          padding: 38px 20px;
-          text-align: center;
-          color: #667085;
-          margin: 15px auto 0;
-          line-height: 1.7;
-          max-width: 1050px;
-        }
-
-        .state-card {
-          border-style: solid;
-        }
-
-        .state-card h2 {
-          color: #172033;
-          margin: 12px 0 5px;
-          font-weight: 900;
-        }
-
-        .error-card {
-          border-color: #f04438;
-        }
-
-        .loader {
-          width: 32px;
-          height: 32px;
-          margin: auto;
-          border: 4px solid #e4e7ec;
-          border-top-color: #172033;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .premium-facts-wrap {
-          max-width: 1120px;
-          margin: 0 auto;
-        }
-
-        .premium-main-heading {
-          background: linear-gradient(135deg, #fff8f5, #fffdf9);
-          border: 1px solid #eaded8;
-          border-radius: 20px;
-          padding: 24px;
-          margin-bottom: 16px;
-        }
-
-        .premium-main-badge {
-          display: inline-flex;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #f8e8e8;
-          color: #7f1d1d;
-          font-size: 10px;
-          font-weight: 950;
-        }
-
-        .premium-main-heading h2 {
-          margin: 10px 0 5px;
-          color: #172033;
-          font-size: 30px;
-          font-weight: 950;
-        }
-
-        .premium-main-heading p {
-          margin: 0;
-          color: #667085;
-          line-height: 1.55;
-        }
-
-        .premium-tabs {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
-          margin-bottom: 18px;
-        }
-
-        .premium-tab {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          text-align: left;
-          padding: 14px 16px;
-          border: 1px solid #dfe4eb;
-          border-radius: 15px;
-          background: #fff;
-          color: #172033;
-          cursor: pointer;
-        }
-
-        .premium-tab.active {
-          color: #fff;
-          background: #172033;
-          border-color: #172033;
-        }
-
-        .premium-tab-number {
-          font-size: 11px;
-          font-weight: 950;
-        }
-
-        .premium-tab-copy {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-
-        .premium-tab-copy strong {
-          font-size: 13px;
-        }
-
-        .premium-tab-copy small {
-          color: #667085;
-          font-size: 11px;
-        }
-
-        .premium-tab.active .premium-tab-copy small {
-          color: rgba(255, 255, 255, 0.72);
-        }
-
-        .premium-tab b {
-          min-width: 30px;
-          text-align: center;
-          padding: 5px 7px;
-          border-radius: 999px;
-          background: #f2f4f7;
-          color: #344054;
-          font-size: 11px;
-        }
-
-        .premium-tab.active b {
-          background: rgba(255, 255, 255, 0.14);
-          color: #fff;
-        }
-
-        .premium-active-heading {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 16px;
-          margin: 6px 0 14px;
-        }
-
-        .premium-active-label {
-          color: #8b1e2d;
-          font-size: 10px;
-          font-weight: 950;
-        }
-
-        .premium-active-heading h3 {
-          margin: 5px 0 4px;
-          color: #172033;
-          font-size: 20px;
-          font-weight: 900;
-        }
-
-        .premium-active-heading p {
-          margin: 0;
-          color: #667085;
-          font-size: 13px;
-        }
-
-        .premium-active-heading > strong {
-          padding: 8px 10px;
-          border-radius: 10px;
-          background: #f5f6f8;
-          color: #344054;
-          font-size: 12px;
-        }
-
-        .premium-clean-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .premium-clean-card {
-          background: #fff;
-          border: 1px solid #e1e6ee;
-          border-radius: 17px;
-          padding: 18px;
-        }
-
-        .premium-clean-meta,
-        .premium-clean-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-        }
-
-        .premium-type-pill,
-        .premium-gs-pill {
-          display: inline-flex;
-          padding: 5px 8px;
-          border-radius: 8px;
-          font-size: 9px;
-          font-weight: 900;
-        }
-
-        .premium-type-pill {
-          background: #f8e8e8;
-          color: #8b1e2d;
-        }
-
-        .premium-gs-pill {
-          background: #f2f4f7;
-          color: #475467;
-        }
-
-        .premium-clean-card h3 {
-          margin: 14px 0 9px;
-          color: #172033;
-          font-size: 16px;
-          line-height: 1.4;
-          font-weight: 900;
-        }
-
-        .premium-clean-fact {
-          min-height: 68px;
-          margin: 0;
-          color: #475467;
-          font-size: 13.5px;
-          line-height: 1.65;
-        }
-
-        .premium-clean-footer {
-          margin-top: 15px;
-          padding-top: 11px;
-          border-top: 1px solid #edf0f3;
-          color: #98a2b3;
-          font-size: 10px;
-        }
-
-        .premium-clean-footer span:last-child {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 48%;
-        }
-
-        .premium-clean-empty {
-          padding: 32px 18px;
-          border: 1px dashed #d9dee7;
-          border-radius: 16px;
-          background: #fafbfc;
-          color: #667085;
-          text-align: center;
-        }
-
-        .inline-analysis {
-          margin-top: 17px;
-          padding-top: 17px;
-          border-top: 1px solid #e3e8ef;
-        }
-
-        .inline-analysis-card {
-          width: 100%;
-          background: #fbfcfe;
-          border: 1px solid #d9e0e9;
-          border-radius: 16px;
-          padding: 22px;
-        }
-
-        .inline-analysis-card .close {
-          float: right;
-          width: 36px;
-          height: 36px;
-          border: 1px solid #dfe5ec;
-          border-radius: 10px;
-          background: #fff;
-          color: #475467;
-          font-size: 22px;
-          cursor: pointer;
-        }
-
-        .modal h2 {
-          margin: 12px 40px 6px 0;
-          font-size: clamp(23px, 4vw, 30px);
-          line-height: 1.3;
-          font-weight: 950;
-        }
-
-        .modal h3 {
-          margin: 24px 0 9px;
-          padding-bottom: 6px;
-          font-size: 16px;
-          font-weight: 900;
-          color: #172033;
-          border-bottom: 1px solid #edf0f3;
-        }
-
-        .modal p {
-          line-height: 1.7;
-          color: #475467;
-          white-space: pre-wrap;
-        }
-
-        .content-block {
-          white-space: pre-wrap;
-          color: #475467;
-          line-height: 1.7;
-          font-size: 14px;
-        }
-
-        .source-link {
-          display: inline-block;
-          margin-top: 8px;
-          color: #175cd3;
-          font-size: 13px;
-          font-weight: 800;
-          text-decoration: none;
-        }
-
-        .source-link:hover {
-          text-decoration: underline;
-        }
-
-        /* THE HINDU ACTUAL NEWSPAPER CUT */
-
-        .the-hindu-headline-cut {
-          margin: 18px 0 24px;
-          padding: 14px;
-          background: #ffffff;
-          border: 1px solid #dfe3e8;
-          border-radius: 14px;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
-        }
-
-        .the-hindu-headline-label {
-          margin-bottom: 10px;
-          padding-bottom: 7px;
-          border-bottom: 1px solid #222;
-          font-family:
-            Georgia,
-            "Times New Roman",
-            serif;
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 2px;
-          color: #111;
-        }
-
-        .the-hindu-headline-image {
-          display: block;
-          width: 100%;
-          max-width: 100%;
-          height: auto;
-          margin: 0 auto;
-          object-fit: contain;
-          background: #fff;
-        }
-
-        .premium-box {
-          margin: 22px 0;
-          padding: 17px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #fff9eb, #fff4d6);
-          border: 1px solid #f0d39b;
-        }
-
-        .premium-box p {
-          margin-bottom: 0;
-        }
-
-        .modal-important {
-          margin-top: 12px;
-        }
-
-        @media (max-width: 1024px) {
-          .ca-page {
-            padding: 22px 16px 70px;
-          }
-
-          .ca-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 20px;
-            padding: 22px;
-          }
-
-          .header-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-            width: 100%;
-          }
-
-          .source-nav {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
-          .fact-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .premium-clean-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
-        @media (max-width: 900px) {
-          .ca-premium-hero {
-            grid-template-columns: 1fr;
-          }
-
-          .ca-hero-seal {
-            display: none;
-          }
-
-          .ca-hero-topbar {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-
-          .ca-hero-actions {
-            width: 100%;
-            justify-content: flex-start;
-          }
-        }
-
-        @media (max-width: 800px) {
-          .ca-premium-hero {
-            padding: 22px;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .page-back-button {
-            width: 100%;
-            justify-content: center;
-            min-height: 42px;
-            margin-bottom: 10px;
-          }
-
-          .ca-page {
-            width: 100%;
-            max-width: 100%;
-            min-width: 0;
-            padding: 12px 10px 48px;
-            overflow-x: hidden;
-          }
-
-          .ca-premium-hero {
-            display: block;
-            padding: 15px;
-            border-radius: 20px;
-          }
-
-          .ca-hero-topbar {
-            display: block;
-          }
-
-          .ca-hero-brand {
-            margin-bottom: 12px;
-          }
-
-          .ca-hero-brand strong {
-            font-size: 20px;
-          }
-
-          .ca-hero-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 7px;
-          }
-
-          .ca-hero-action-card,
-          .ca-hero-utility-btn {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .ca-language-card,
-          .ca-date-card {
-            min-width: 0;
-          }
-
-          .ca-hero-utility-btn {
-            min-height: 46px;
-          }
-
-          .ca-hero-divider {
-            margin: 13px 0 3px;
-          }
-
-          .ca-hero-copy h2 {
-            font-size: 25px;
-            letter-spacing: -1px;
-          }
-
-          .ca-hero-copy p {
-            font-size: 11.5px;
-          }
-
-          .ca-hero-stats {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
-          .ca-hero-stat {
-            min-width: 0;
-            padding: 8px 7px;
-          }
-
-          .ca-hero-stat strong {
-            font-size: 11px;
-          }
-
-          .ca-hero-stat span {
-            font-size: 6.5px;
-          }
-
-          .source-nav-wrap {
-            border-radius: 17px;
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px;
-          }
-
-          .source-nav-head {
-            align-items: flex-start;
-          }
-
-          .source-nav-note {
-            font-size: 9px;
-            max-width: 45%;
-          }
-
-          .source-nav {
-            display: flex;
-            overflow-x: auto;
-            gap: 6px;
-            scrollbar-width: none;
-          }
-
-          .source-nav::-webkit-scrollbar {
-            display: none;
-          }
-
-          .source-tab {
-            flex: 0 0 auto;
-            min-height: 43px;
-            padding: 7px 10px;
-            border-radius: 12px;
-          }
-
-          .notification-panel {
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            padding: 15px;
-            border-radius: 16px;
-          }
-
-          .notification-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .notification-info {
-            display: block;
-            font-size: 12px;
-          }
-
-          .notification-info span {
-            display: block;
-            margin-top: 5px;
-          }
-
-          .setting-box input {
-            width: 100%;
-            box-sizing: border-box;
-            margin: 0 0 8px;
-          }
-
-          .save-time {
-            width: 100%;
-          }
-
-          .filter-row {
-            width: 100%;
-            max-width: 100%;
-            display: flex;
-            overflow-x: auto;
-            gap: 7px;
-            padding: 3px 1px 13px;
-            scrollbar-width: none;
-          }
-
-          .filter-row::-webkit-scrollbar {
-            display: none;
-          }
-
-          .filter {
-            flex: 0 0 auto;
-            min-height: 40px;
-            padding: 9px 13px;
-            font-size: 12px;
-          }
-
-          .section-heading {
-            width: 100%;
-            max-width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 7px;
-            margin-bottom: 11px;
-          }
-
-          .section-heading h2 {
-            font-size: 20px;
-          }
-
-          .news-list {
-            width: 100%;
-            max-width: 100%;
-            grid-template-columns: 1fr;
-            gap: 11px;
-          }
-
-          .news-card {
-            width: 100%;
-            min-width: 0;
-            box-sizing: border-box;
-            padding: 15px;
-            border-radius: 16px;
-          }
-
-          .topline {
-            align-items: flex-start;
-          }
-
-          .meta {
-            font-size: 10px;
-            text-align: right;
-          }
-
-          .news-card h3 {
-            font-size: 18px;
-            line-height: 1.38;
-            overflow-wrap: anywhere;
-          }
-
-          .summary {
-            font-size: 12.5px;
-            line-height: 1.7;
-          }
-
-          .card-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 7px;
-            align-items: stretch;
-          }
-
-          .read-button,
-          .important-button {
-            width: 100%;
-            min-height: 42px;
-            font-size: 12px;
-          }
-
-          .source {
-            grid-column: 1 / -1;
-            width: 100%;
-            font-size: 10px;
-            overflow-wrap: anywhere;
-          }
-
-          .card-badges {
-            max-width: 70%;
-          }
-
-          .source-chip {
-            font-size: 7px;
-          }
-
-          .inline-analysis {
-            margin-top: 13px;
-            padding-top: 13px;
-          }
-
-          .inline-analysis-card {
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            padding: 15px;
-            border-radius: 14px;
-          }
-
-          .modal h2 {
-            font-size: 21px;
-            line-height: 1.35;
-          }
-
-          .modal p,
-          .content-block {
-            font-size: 13px;
-            line-height: 1.7;
-          }
-
-          .the-hindu-headline-cut {
-            margin: 15px 0 20px;
-            padding: 10px;
-            border-radius: 12px;
-          }
-
-          .the-hindu-headline-label {
-            font-size: 9px;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-          }
-
-          .premium-facts-wrap {
-            width: 100%;
-            max-width: 100%;
-          }
-
-          .premium-main-heading {
-            padding: 17px;
-            border-radius: 17px;
-          }
-
-          .premium-tabs {
-            grid-template-columns: 1fr;
-          }
-
-          .premium-active-heading {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .premium-clean-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .empty,
-          .state-card {
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            padding: 30px 15px;
-          }
-        }
-
-        @media (max-width: 380px) {
-          .ca-page {
-            padding-left: 7px;
-            padding-right: 7px;
-          }
-
-          .ca-header {
-            padding: 14px;
-          }
-
-          .source-nav-head {
-            display: block;
-          }
-
-          .source-nav-note {
-            display: block;
-            max-width: none;
-            text-align: left;
-            margin-top: 4px;
-          }
-
-          .filter {
-            padding: 8px 11px;
-            font-size: 11px;
-          }
-
-          .news-card {
-            padding: 13px;
-          }
-
-          .news-card h3 {
-            font-size: 17px;
-          }
-
-          .card-actions {
-            grid-template-columns: 1fr;
-          }
-
-          .source {
-            grid-column: auto;
-          }
-        }
-
-        html,
-        body {
-          max-width: 100%;
-          overflow-x: hidden;
-        }
-
-        *,
-        *::before,
-        *::after {
-          box-sizing: border-box;
-        }
-
-        button,
-        input,
-        select,
-        textarea {
-          max-width: 100%;
-        }
-
-        img,
-        video,
-        iframe {
-          max-width: 100%;
-          height: auto;
-        }
-      `}</style>
-    </main>
-  );
+  return candidates;
 }
 
-function ArticleCard({
-  item,
-  important,
-  language,
-  onImportant,
-  onOpen,
-  expanded,
-  onClose,
-  formatDate,
-  disabled,
-}) {
-  const hi = language === "hi";
+/* =========================================================
+   DUPLICATES
+========================================================= */
 
-  const title =
-    (hi ? item.title_hi : item.title_en) ||
-    item.title ||
-    (hi ? item.title_en : item.title_hi) ||
-    "Current Affair";
+const STOPWORDS =
+  new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "from",
+    "by",
+    "is",
+    "are",
+    "as",
+    "at",
+    "after",
+    "over",
+    "new",
+    "india",
+  ]);
 
-  const summary =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
-    item.why_in_news ||
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
-    item.background ||
-    item.key_facts ||
-    "";
-
-  return (
-    <article className="news-card">
-      <div className="topline">
-        <div className="card-badges">
-          <span className="badge">
-            {isEthicsExample(item)
-              ? "GS-IV • ETHICS"
-              : item.gs || item.paper || "UPSC"}
-          </span>
-
-          <span
-            className={`source-chip ${getSourceKey(item)}`}
-          >
-            {getSourceKey(item) === "pib"
-              ? "PIB"
-              : getSourceKey(item) === "gktoday"
-              ? "GK TODAY"
-              : getSourceKey(item) === "the-hindu"
-              ? "THE HINDU"
-              : getSourceKey(item) ===
-                "better-india"
-              ? "BETTER INDIA"
-              : "SOURCE"}
-          </span>
-        </div>
-
-        <span className="meta">
-          {item.subject || "UPSC Current Affairs"} •{" "}
-          {formatDate(item.date)}
-        </span>
-      </div>
-
-      <h3>{title}</h3>
-
-      <p className="summary">{summary}</p>
-
-      <div className="card-actions">
-        <button
-          className="read-button"
-          onClick={() =>
-            expanded ? onClose() : onOpen(item)
-          }
-        >
-          {expanded
-            ? hi
-              ? "Analysis बंद करें"
-              : "Close Analysis"
-            : hi
-            ? "पूरा Analysis पढ़ें"
-            : "Read Full Analysis"}
-        </button>
-
-        <button
-          className={
-            important
-              ? "important-button saved"
-              : "important-button"
-          }
-          disabled={disabled}
-          onClick={() => onImportant(item.id)}
-        >
-          {important ? "★ Saved" : "⭐ Important"}
-        </button>
-
-        <span className="source">
-          Source: {item.source_name || "Not specified"}
-        </span>
-      </div>
-
-      {expanded && (
-        <ArticleModal
-          item={item}
-          language={language}
-          important={important}
-          importantLoading={disabled}
-          onImportant={onImportant}
-          onClose={onClose}
-          inline
-        />
-      )}
-    </article>
-  );
-}
-
-function PremiumFacts({ news, language, hi }) {
-  const [tab, setTab] = useState("prelims");
-
-  const getText = (item, base, fallback = "") =>
-    (hi
-      ? item[`${base}_hi`] || item[`${base}_en`]
-      : item[`${base}_en`] || item[`${base}_hi`]) ||
-    item[base] ||
-    fallback;
-
-  const prelimsFacts = news.filter((item) => {
-    const fact = getText(item, "prelims");
-    return Boolean(fact);
-  });
-
-  const mainsFacts = news.filter((item) => {
-    const fact = getText(item, "premium_fact");
-    return Boolean(fact);
-  });
-
-  const facts =
-    tab === "prelims" ? prelimsFacts : mainsFacts;
-
-  function cleanText(value) {
-    return String(value || "")
-      .replace(/\s+/g, " ")
-      .replace(/^[-•*]\s*/, "")
-      .trim();
-  }
-
-  function getPrelimsFact(item) {
-    const raw = cleanText(getText(item, "prelims"));
-    if (!raw) return "";
-
-    const firstSentence =
-      raw.split(/(?<=[.!?।])\s+/)[0].trim() ||
-      raw;
-
-    return firstSentence.length > 190
-      ? `${firstSentence.slice(0, 187).trim()}...`
-      : firstSentence;
-  }
-
-  function getMainsFact(item) {
-    return cleanText(getText(item, "premium_fact"));
-  }
-
-  const renderFact = (item) => {
-    const fact =
-      tab === "prelims"
-        ? getPrelimsFact(item)
-        : getMainsFact(item);
-
-    const title = getText(
-      item,
-      "title",
-      "Current Affair"
-    );
-
-    return (
-      <article
-        className="premium-clean-card"
-        key={`${tab}-${item.id}`}
-      >
-        <div className="premium-clean-meta">
-          <span className="premium-type-pill">
-            {tab === "prelims"
-              ? "PRELIMS FACT"
-              : "MAINS FACT"}
-          </span>
-
-          <span className="premium-gs-pill">
-            {item.gs || item.paper || "UPSC"}
-          </span>
-        </div>
-
-        <h3>{title}</h3>
-
-        <p className="premium-clean-fact">
-          {fact}
-        </p>
-
-        <div className="premium-clean-footer">
-          <span>
-            {tab === "prelims"
-              ? hi
-                ? "त्वरित पुनरावृत्ति"
-                : "Quick Revision"
-              : hi
-              ? "Mains Answer Use"
-              : "Mains Answer Use"}
-          </span>
-
-          <span>
-            {item.source_name || "Official Source"}
-          </span>
-        </div>
-      </article>
-    );
-  };
-
-  return (
-    <section className="premium-facts-wrap">
-      <div className="premium-main-heading">
-        <div>
-          <span className="premium-main-badge">
-            PREMIUM
-          </span>
-
-          <h2>🔥 Premium Facts</h2>
-
-          <p>
-            {hi
-              ? "UPSC-relevant, सीधे exam में इस्तेमाल होने वाले high-value facts."
-              : "UPSC-relevant high-value facts for direct exam use."}
-          </p>
-        </div>
-      </div>
-
-      <div
-        className="premium-tabs"
-        role="tablist"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "prelims"}
-          className={
-            tab === "prelims"
-              ? "premium-tab active"
-              : "premium-tab"
-          }
-          onClick={() => setTab("prelims")}
-        >
-          <span className="premium-tab-number">
-            01
-          </span>
-
-          <span className="premium-tab-copy">
-            <strong>PRELIMS</strong>
-
-            <small>
-              {hi
-                ? "एक-लाइन factual revision"
-                : "One-line factual revision"}
-            </small>
-          </span>
-
-          <b>{prelimsFacts.length}</b>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "mains"}
-          className={
-            tab === "mains"
-              ? "premium-tab active"
-              : "premium-tab"
-          }
-          onClick={() => setTab("mains")}
-        >
-          <span className="premium-tab-number">
-            02
-          </span>
-
-          <span className="premium-tab-copy">
-            <strong>MAINS</strong>
-
-            <small>
-              {hi
-                ? "Answer-ready points"
-                : "Answer-ready points"}
-            </small>
-          </span>
-
-          <b>{mainsFacts.length}</b>
-        </button>
-      </div>
-
-      <div className="premium-active-heading">
-        <div>
-          <span className="premium-active-label">
-            {tab === "prelims"
-              ? "PRELIMS CURRENT FACTS"
-              : "MAINS CURRENT FACTS"}
-          </span>
-
-          <h3>
-            {tab === "prelims"
-              ? hi
-                ? "Prelims के लिए Current Facts"
-                : "Current Facts for Prelims"
-              : hi
-              ? "Mains के लिए Current Facts"
-              : "Current Facts for Mains"}
-          </h3>
-
-          <p>
-            {tab === "prelims"
-              ? hi
-                ? "एक नज़र में याद रखने योग्य factual points."
-                : "Factual points for quick revision."
-              : hi
-              ? "Mains answers को मजबूत करने वाले high-value points."
-              : "High-value points to strengthen Mains answers."}
-          </p>
-        </div>
-
-        <strong>{facts.length}</strong>
-      </div>
-
-      {facts.length === 0 ? (
-        <div className="premium-clean-empty">
-          {tab === "prelims"
-            ? hi
-              ? "अभी कोई Prelims Premium Fact उपलब्ध नहीं है।"
-              : "No Prelims Premium Facts available yet."
-            : hi
-            ? "अभी कोई Mains Premium Fact उपलब्ध नहीं है।"
-            : "No Mains Premium Facts available yet."}
-        </div>
-      ) : (
-        <div className="premium-clean-grid">
-          {facts.map(renderFact)}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function ArticleModal({
-  item,
-  language,
-  important,
-  importantLoading,
-  onImportant,
-  onClose,
-  inline = false,
-}) {
-  const hi = language === "hi";
-
-  const title =
-    (hi ? item.title_hi : item.title_en) ||
-    item.title ||
-    (hi ? item.title_en : item.title_hi);
-
-  const why =
-    (hi
-      ? item.why_in_news_hi
-      : item.why_in_news_en) ||
-    item.why_in_news;
-
-  const background =
-    (hi
-      ? item.background_hi
-      : item.background_en) ||
-    item.background;
-
-  const facts =
-    (hi
-      ? item.key_facts_hi
-      : item.key_facts_en) ||
-    item.key_facts;
-
-  const prelims =
-    (hi ? item.prelims_hi : item.prelims_en) ||
-    item.prelims;
-
-  const mains =
-    (hi
-      ? item.mains_analysis_hi
-      : item.mains_analysis_en) ||
-    item.mains_analysis;
-
-  const premium =
-    (hi
-      ? item.premium_fact_hi
-      : item.premium_fact_en) ||
-    item.premium_fact;
-
-  const pyqs =
-    (hi
-      ? item.related_pyqs_hi
-      : item.related_pyqs_en) ||
-    item.related_pyqs;
-
-  const mcq =
-    (hi
-      ? item.prelims_mcq_hi
-      : item.prelims_mcq_en) ||
-    item.prelims_mcq;
-
-  const mainsQuestion =
-    (hi
-      ? item.mains_question_hi
-      : item.mains_question_en) ||
-    item.mains_question;
-
-  const ethics =
-    (hi
-      ? item.ethics_angle_hi
-      : item.ethics_angle_en) ||
-    "";
-
-  const isTheHindu =
-    String(item?.source_name || "")
+function duplicateTokens(
+  text
+) {
+  return new Set(
+    String(text || "")
       .toLowerCase()
-      .includes("the hindu");
+      .replace(
+        /[^a-z0-9\s]/g,
+        " "
+      )
+      .split(/\s+/)
+      .filter(
+        (token) =>
+          token.length > 2 &&
+          !STOPWORDS.has(
+            token
+          )
+      )
+  );
+}
+
+function titleSimilarity(
+  a,
+  b
+) {
+  const left =
+    duplicateTokens(a);
+
+  const right =
+    duplicateTokens(b);
+
+  if (
+    !left.size ||
+    !right.size
+  ) {
+    return 0;
+  }
+
+  let intersection = 0;
+
+  for (
+    const token of left
+  ) {
+    if (
+      right.has(token)
+    ) {
+      intersection++;
+    }
+  }
+
+  const union =
+    new Set([
+      ...left,
+      ...right,
+    ]).size;
+
+  return union
+    ? intersection / union
+    : 0;
+}
+
+async function findExistingDuplicate(
+  title,
+  date
+) {
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&limit=200`
+    );
+
+  if (
+    !Array.isArray(rows)
+  ) {
+    return null;
+  }
+
+  for (
+    const row of rows
+  ) {
+    const similarity =
+      titleSimilarity(
+        title,
+        row.title
+      );
+
+    if (
+      similarity >= 0.78
+    ) {
+      return {
+        ...row,
+        similarity,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function sourceUrlExists(
+  sourceUrl,
+  date
+) {
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&source_url=eq.${escapeSupabase(
+        sourceUrl
+      )}&date=eq.${escapeSupabase(
+        date
+      )}&limit=5`
+    );
 
   return (
-    <div
-      className={
-        inline
-          ? "inline-analysis"
-          : "modal-backdrop"
-      }
-    >
-      <article
-        className={
-          inline
-            ? "modal inline-analysis-card"
-            : "modal"
-        }
-      >
-        <button
-          className="close"
-          onClick={onClose}
-          aria-label="Close analysis"
-        >
-          ×
-        </button>
-
-        <span className="badge">
-          {item.gs || item.paper || "UPSC"}
-        </span>
-
-        <h2>{title}</h2>
-
-        <p className="source">
-          Source: {item.source_name || "Not specified"}
-        </p>
-
-        {isTheHindu &&
-          item.headline_image_url && (
-            <div className="the-hindu-headline-cut">
-              <div className="the-hindu-headline-label">
-                THE HINDU
-              </div>
-
-              <img
-                src={item.headline_image_url}
-                alt="The Hindu newspaper headline"
-                className="the-hindu-headline-image"
-                loading="lazy"
-              />
-            </div>
-          )}
-
-        {item.source_url && (
-          <a
-            className="source-link"
-            href={item.source_url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {hi
-              ? "Original Source देखें"
-              : "View Original Source"}
-          </a>
-        )}
-
-        {why && (
-          <>
-            <h3>Why in News</h3>
-            <p>{why}</p>
-          </>
-        )}
-
-        {background && (
-          <>
-            <h3>Background</h3>
-            <p>{background}</p>
-          </>
-        )}
-
-        {facts && (
-          <>
-            <h3>Key Facts</h3>
-            <div className="content-block">
-              {facts}
-            </div>
-          </>
-        )}
-
-        {prelims && (
-          <>
-            <h3>Prelims Focus</h3>
-            <div className="content-block">
-              {prelims}
-            </div>
-          </>
-        )}
-
-        {mains && (
-          <>
-            <h3>Mains Analysis</h3>
-            <div className="content-block">
-              {mains}
-            </div>
-          </>
-        )}
-
-        {item.static_link && (
-          <>
-            <h3>Static Link</h3>
-            <p>{item.static_link}</p>
-          </>
-        )}
-
-        {pyqs && (
-          <>
-            <h3>Related PYQs</h3>
-            <div className="content-block">
-              {pyqs}
-            </div>
-          </>
-        )}
-
-        {mcq && (
-          <>
-            <h3>Possible Prelims MCQ</h3>
-            <div className="content-block">
-              {mcq}
-            </div>
-          </>
-        )}
-
-        {mainsQuestion && (
-          <>
-            <h3>Possible Mains Question</h3>
-
-            <div className="content-block">
-              {mainsQuestion}
-            </div>
-          </>
-        )}
-
-        {ethics && (
-          <>
-            <h3>GS-IV Ethics</h3>
-
-            <div className="content-block">
-              {ethics}
-            </div>
-          </>
-        )}
-
-        {premium && (
-          <div className="premium-box">
-            <strong>🔥 Premium Fact</strong>
-
-            <p>{premium}</p>
-          </div>
-        )}
-
-        <button
-          className="important-button modal-important"
-          disabled={importantLoading}
-          onClick={() => onImportant(item.id)}
-        >
-          {important
-            ? "★ Remove from Important"
-            : "⭐ Add to Important"}
-        </button>
-      </article>
-    </div>
+    Array.isArray(rows) &&
+    rows.length > 0
   );
+}
+
+/* =========================================================
+   PDF DUPLICATE
+========================================================= */
+
+async function findExistingPdfArticles(
+  fileUniqueId,
+  date
+) {
+  if (!fileUniqueId) {
+    return [];
+  }
+
+  const marker =
+    `/the-hindu/${fileUniqueId}#`;
+
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&source_url=ilike.*${encodeURIComponent(
+        marker
+      )}*&limit=200`
+    );
+
+  if (
+    !Array.isArray(rows)
+  ) {
+    return [];
+  }
+
+  return rows.filter(
+    (row) =>
+      String(
+        row?.source_url ||
+          ""
+      ).includes(marker)
+  );
+}
+
+/* =========================================================
+   AI
+========================================================= */
+
+async function processThroughExistingAI(
+  candidate,
+  date,
+  sourceUrl
+) {
+  const response =
+    await fetch(
+      `${SAMBHAV_APP_URL.replace(
+        /\/$/,
+        ""
+      )}/api/current-affairs/ai`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            items: [
+              {
+                title:
+                  candidate.original_headline,
+
+                original_headline:
+                  candidate.original_headline,
+
+                original_subheadline:
+                  candidate.original_subheadline,
+
+                headline_image_url:
+                  candidate.headline_image_url ||
+                  "",
+
+                date,
+
+                source_name:
+                  "The Hindu",
+
+                source_url:
+                  sourceUrl,
+
+                content:
+                  candidate.content,
+
+                report_type:
+                  "the_hindu_pdf",
+              },
+            ],
+          }),
+      }
+    );
+
+  const text =
+    await response.text();
+
+  let data = null;
+
+  try {
+    data = text
+      ? JSON.parse(text)
+      : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `AI route failed: ${response.status} ${text.slice(
+        0,
+        2000
+      )}`
+    );
+  }
+
+  return data;
+}
+
+/* =========================================================
+   POST
+========================================================= */
+
+export async function POST(
+  request
+) {
+  let telegramChatId =
+    null;
+
+  let fileUniqueId =
+    null;
+
+  let lockAcquired =
+    false;
+
+  try {
+    const internalSecret =
+      request.headers.get(
+        "x-sambhav-internal-secret"
+      );
+
+    if (
+      !TELEGRAM_WEBHOOK_SECRET ||
+      internalSecret !==
+        TELEGRAM_WEBHOOK_SECRET
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const body =
+      await request.json();
+
+    telegramChatId =
+      body?.telegram_chat_id ||
+      null;
+
+    const fileId =
+      body?.file_id;
+
+    fileUniqueId =
+      body?.file_unique_id ||
+      fileId;
+
+    if (!fileId) {
+      return NextResponse.json(
+        {
+          error:
+            "file_id is required",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* -----------------------------------------
+       LOCK
+    ----------------------------------------- */
+
+    if (
+      THE_HINDU_PROCESSING_LOCK.has(
+        fileUniqueId
+      )
+    ) {
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "♻️ <b>The Hindu PDF Already Processing</b>",
+          "",
+          "Same PDF ka duplicate request receive hua.",
+          "",
+          "Current processing ko duplicate nahi kiya gaya.",
+        ].join("\n")
+      );
+
+      return NextResponse.json({
+        ok: true,
+        duplicatePdf: true,
+        reason:
+          "pdf-already-processing",
+      });
+    }
+
+    THE_HINDU_PROCESSING_LOCK.add(
+      fileUniqueId
+    );
+
+    lockAcquired = true;
+
+    /* -----------------------------------------
+       DOWNLOAD
+    ----------------------------------------- */
+
+    const downloaded =
+      await downloadTelegramPdf(
+        fileId
+      );
+
+    /* -----------------------------------------
+       EXTRACT TEXT
+    ----------------------------------------- */
+
+    const pdfText =
+      await extractPdfText(
+        downloaded.buffer
+      );
+
+    /* -----------------------------------------
+       DATE
+    ----------------------------------------- */
+
+    const dateCheck =
+      verifyPdfDate(
+        pdfText
+      );
+
+    if (
+      !dateCheck.valid
+    ) {
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "❌ <b>The Hindu PDF Rejected</b>",
+          "",
+          `📄 PDF date: <b>${
+            dateCheck.detectedDate ||
+            "Not found"
+          }</b>`,
+          `📅 Today: <b>${
+            dateCheck.currentDate
+          }</b>`,
+          "",
+          "Old/invalid newspaper PDF ko save nahi kiya gaya.",
+        ].join("\n")
+      );
+
+      return NextResponse.json({
+        ok: false,
+        processed: false,
+        reason:
+          dateCheck.reason,
+        detectedDate:
+          dateCheck.detectedDate,
+        currentDate:
+          dateCheck.currentDate,
+      });
+    }
+
+    const verifiedDate =
+      dateCheck.detectedDate;
+
+    /* -----------------------------------------
+       PDF DUPLICATE
+    ----------------------------------------- */
+
+    const existingPdfArticles =
+      await findExistingPdfArticles(
+        fileUniqueId,
+        verifiedDate
+      );
+
+    if (
+      existingPdfArticles.length >
+      0
+    ) {
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "♻️ <b>The Hindu PDF Already Processed</b>",
+          "",
+          `📅 Date: <b>${verifiedDate}</b>`,
+          "",
+          `📰 Existing articles: <b>${existingPdfArticles.length}</b>`,
+          "✅ New articles add nahi kiye gaye.",
+        ].join("\n")
+      );
+
+      return NextResponse.json({
+        ok: true,
+        processed: false,
+        duplicatePdf: true,
+        reason:
+          "pdf-already-processed",
+        date:
+          verifiedDate,
+        existingArticles:
+          existingPdfArticles.length,
+      });
+    }
+
+    /* -----------------------------------------
+       CANDIDATES
+    ----------------------------------------- */
+
+    const candidates =
+      createArticleCandidates(
+        pdfText
+      );
+
+    /* -----------------------------------------
+       SAME PDF DUPLICATES
+    ----------------------------------------- */
+
+    const uniqueCandidates =
+      [];
+
+    for (
+      const candidate of
+      candidates
+    ) {
+      const duplicate =
+        uniqueCandidates.some(
+          (existing) =>
+            titleSimilarity(
+              candidate.original_headline,
+              existing.original_headline
+            ) >= 0.78
+        );
+
+      if (!duplicate) {
+        uniqueCandidates.push(
+          candidate
+        );
+      }
+    }
+
+    /* -----------------------------------------
+       TOP 20
+    ----------------------------------------- */
+
+    const selected =
+      uniqueCandidates
+        .sort(
+          (a, b) =>
+            b.relevanceScore -
+            a.relevanceScore
+        )
+        .slice(0, 20);
+
+    const results = [];
+
+    /* -----------------------------------------
+       PROCESS ARTICLES
+    ----------------------------------------- */
+
+    for (
+      let index = 0;
+      index <
+        selected.length;
+      index++
+    ) {
+      const candidate =
+        selected[index];
+
+      try {
+        const articleSlug =
+          slugify(
+            candidate.original_headline
+          ) ||
+          `article-${index + 1}`;
+
+        const sourceUrl =
+          `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
+
+        /* SOURCE URL DUPLICATE */
+
+        if (
+          await sourceUrlExists(
+            sourceUrl,
+            verifiedDate
+          )
+        ) {
+          results.push({
+            title:
+              candidate.original_headline,
+            status:
+              "skipped",
+            reason:
+              "source-url-duplicate",
+          });
+
+          continue;
+        }
+
+        /* SAME EVENT */
+
+        const existing =
+          await findExistingDuplicate(
+            candidate.original_headline,
+            verifiedDate
+          );
+
+        if (existing) {
+          results.push({
+            title:
+              candidate.original_headline,
+            status:
+              "skipped",
+            reason:
+              "same-event-already-exists",
+            existingTitle:
+              existing.title,
+            existingSource:
+              existing.source_name,
+            similarity:
+              existing.similarity,
+          });
+
+          continue;
+        }
+
+        /* -------------------------------------
+           ACTUAL THE HINDU HEADLINE CROP
+        ------------------------------------- */
+
+        candidate.headline_image_url =
+          await createTheHinduHeadlineImage(
+            downloaded.buffer,
+            candidate.original_headline,
+            fileUniqueId
+          );
+
+        if (
+          !candidate.headline_image_url
+        ) {
+          console.warn(
+            "Headline image unavailable:",
+            candidate.original_headline
+          );
+        }
+
+        /* -------------------------------------
+           AI
+        ------------------------------------- */
+
+        const aiResult =
+          await processThroughExistingAI(
+            candidate,
+            verifiedDate,
+            sourceUrl
+          );
+
+        results.push({
+          title:
+            candidate.original_headline,
+
+          status:
+            "processed",
+
+          headline_image_url:
+            candidate.headline_image_url ||
+            "",
+
+          ai:
+            aiResult,
+        });
+      } catch (error) {
+        console.error(
+          "THE HINDU ARTICLE ERROR:",
+          candidate.original_headline,
+          error
+        );
+
+        results.push({
+          title:
+            candidate.original_headline,
+
+          status:
+            "failed",
+
+          error:
+            error?.message ||
+            "Unknown article error",
+        });
+      }
+    }
+
+    const processed =
+      results.filter(
+        (x) =>
+          x.status ===
+          "processed"
+      ).length;
+
+    const skipped =
+      results.filter(
+        (x) =>
+          x.status ===
+          "skipped"
+      ).length;
+
+    const failed =
+      results.filter(
+        (x) =>
+          x.status ===
+          "failed"
+      ).length;
+
+    /* -----------------------------------------
+       TELEGRAM COMPLETE
+    ----------------------------------------- */
+
+    await sendTelegramMessage(
+      telegramChatId,
+      [
+        "✅ <b>The Hindu Processing Complete</b>",
+        "",
+        `📅 Date: <b>${verifiedDate}</b>`,
+        "",
+        `📰 Articles found: <b>${candidates.length}</b>`,
+        `📌 Selected: <b>${selected.length}</b>`,
+        `✅ Processed: <b>${processed}</b>`,
+        `♻️ Duplicates skipped: <b>${skipped}</b>`,
+        `❌ Failed: <b>${failed}</b>`,
+        "",
+        "📰 Actual newspaper headline cutting bhi generate/upload ki gayi.",
+        "",
+        "📚 Supabase/App update complete.",
+      ].join("\n")
+    );
+
+    return NextResponse.json({
+      ok: true,
+      processed: true,
+      source:
+        "The Hindu",
+      date:
+        verifiedDate,
+      candidates:
+        candidates.length,
+      selected:
+        selected.length,
+      processed,
+      skipped,
+      failed,
+      results,
+    });
+  } catch (error) {
+    console.error(
+      "THE HINDU PIPELINE FATAL ERROR:",
+      error
+    );
+
+    await sendTelegramMessage(
+      telegramChatId,
+      [
+        "❌ <b>The Hindu Processing Failed</b>",
+        "",
+        `Error: <code>${
+          error?.message ||
+          "Unknown error"
+        }</code>`,
+        "",
+        "PDF process complete nahi ho paya.",
+      ].join("\n")
+    );
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error?.message ||
+          "The Hindu pipeline failed",
+      },
+      {
+        status: 500,
+      }
+    );
+  } finally {
+    if (
+      lockAcquired &&
+      fileUniqueId
+    ) {
+      THE_HINDU_PROCESSING_LOCK.delete(
+        fileUniqueId
+      );
+    }
+  }
+}
+
+/* =========================================================
+   HEALTH
+========================================================= */
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    service:
+      "SAMBHAV UPSC The Hindu PDF Pipeline",
+    date:
+      todayIST(),
+  });
 }
