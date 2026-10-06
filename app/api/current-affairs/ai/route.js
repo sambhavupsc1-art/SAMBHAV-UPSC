@@ -14,7 +14,6 @@ const GEMINI_MODELS = [
   "gemini-3.8-flash",
 ];
 
-// IMPORTANT:
 // One article per AI request.
 // This prevents one Gemini failure from killing a whole batch.
 const BATCH_SIZE = 1;
@@ -35,6 +34,10 @@ async function supabaseRequest(path, options = {}) {
     cache: "no-store",
   });
 }
+
+/* --------------------------------------------------
+   JSON CLEANER
+-------------------------------------------------- */
 
 function cleanJson(text) {
   if (!text) {
@@ -60,22 +63,43 @@ function cleanJson(text) {
   try {
     return JSON.parse(cleaned);
   } catch (error) {
-    console.error("JSON PARSE FAILED:", cleaned.slice(0, 3000));
+    console.error(
+      "JSON PARSE FAILED:",
+      cleaned.slice(0, 3000)
+    );
+
     throw new Error(
-      `Gemini JSON parse failed: ${error?.message || "invalid JSON"}`
+      `Gemini JSON parse failed: ${
+        error?.message || "invalid JSON"
+      }`
     );
   }
 }
 
+/* --------------------------------------------------
+   GEMINI PROMPT
+-------------------------------------------------- */
+
 function buildPrompt(item) {
   const input = {
     index: 0,
-    title: String(item.title || "").slice(0, 500),
+
+    title: String(
+      item.title || ""
+    ).slice(0, 500),
+
     date: item.date || "",
+
     source_name:
-      item.source_name || "Press Information Bureau (PIB)",
-    source_url: item.source_url || "",
-    content: String(item.content || "").slice(0, 14000),
+      item.source_name ||
+      "Press Information Bureau (PIB)",
+
+    source_url:
+      item.source_url || "",
+
+    content: String(
+      item.content || ""
+    ).slice(0, 14000),
   };
 
   return `
@@ -130,6 +154,15 @@ Do not force GS-IV.
 Do not force a scheme.
 Do not force a report.
 Do not fabricate PYQs.
+
+IMPORTANT DATE RULE:
+
+The supplied input date is the authoritative publication/current-affairs date.
+
+Return the SAME date supplied in the input.
+
+Do not change it.
+Do not use today's date if the input date is different.
 
 Required JSON:
 
@@ -191,19 +224,24 @@ Required JSON:
 }
 
 PRELIMS MCQ:
+
 Create exactly one UPSC-style MCQ based ONLY on facts in the article.
 
 RELATED PYQ:
+
 Only provide a genuine PYQ if confidently supported.
 Otherwise return empty string.
 
 PREMIUM FACT:
+
 Give one useful UPSC fact supported by the article.
 
 STATIC LINK:
+
 Mention the relevant static UPSC topic.
 
 MAINS ANALYSIS:
+
 Where supported, cover:
 - Significance
 - Implications
@@ -217,15 +255,29 @@ ${JSON.stringify(input)}
 `;
 }
 
-async function generateWithGemini(prompt, articleNumber) {
+/* --------------------------------------------------
+   GEMINI GENERATION
+-------------------------------------------------- */
+
+async function generateWithGemini(
+  prompt,
+  articleNumber
+) {
   if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY environment variable missing.");
+    throw new Error(
+      "GEMINI_API_KEY environment variable missing."
+    );
   }
 
-  let lastError = "Unknown Gemini error.";
+  let lastError =
+    "Unknown Gemini error.";
 
   for (const model of GEMINI_MODELS) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
       try {
         console.log(
           "GEMINI TRY:",
@@ -241,9 +293,12 @@ async function generateWithGemini(prompt, articleNumber) {
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
           {
             method: "POST",
+
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type":
+                "application/json",
             },
+
             body: JSON.stringify({
               contents: [
                 {
@@ -254,16 +309,19 @@ async function generateWithGemini(prompt, articleNumber) {
                   ],
                 },
               ],
+
               generationConfig: {
                 temperature: 0.1,
-                responseMimeType: "application/json",
+                responseMimeType:
+                  "application/json",
                 maxOutputTokens: 12000,
               },
             }),
           }
         );
 
-        const result = await response.json();
+        const result =
+          await response.json();
 
         if (!response.ok) {
           lastError =
@@ -290,10 +348,18 @@ async function generateWithGemini(prompt, articleNumber) {
             response.status === 503 ||
             response.status === 504;
 
-          if (retryable && attempt < 3) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, 1500 * attempt)
+          if (
+            retryable &&
+            attempt < 3
+          ) {
+            await new Promise(
+              (resolve) =>
+                setTimeout(
+                  resolve,
+                  1500 * attempt
+                )
             );
+
             continue;
           }
 
@@ -301,8 +367,12 @@ async function generateWithGemini(prompt, articleNumber) {
         }
 
         const text =
-          result?.candidates?.[0]?.content?.parts
-            ?.map((part) => part.text || "")
+          result?.candidates?.[0]
+            ?.content?.parts
+            ?.map(
+              (part) =>
+                part.text || ""
+            )
             .join("") || "";
 
         console.log(
@@ -313,15 +383,22 @@ async function generateWithGemini(prompt, articleNumber) {
           text.length
         );
 
-        const parsed = cleanJson(text);
+        const parsed =
+          cleanJson(text);
 
-        if (!Array.isArray(parsed?.articles)) {
+        if (
+          !Array.isArray(
+            parsed?.articles
+          )
+        ) {
           throw new Error(
             "Gemini response does not contain articles array."
           );
         }
 
-        if (parsed.articles.length !== 1) {
+        if (
+          parsed.articles.length !== 1
+        ) {
           throw new Error(
             `Gemini returned ${parsed.articles.length} articles instead of 1.`
           );
@@ -340,7 +417,8 @@ async function generateWithGemini(prompt, articleNumber) {
         return parsed;
       } catch (error) {
         lastError =
-          error?.message || "Unknown Gemini error.";
+          error?.message ||
+          "Unknown Gemini error.";
 
         console.error(
           "GEMINI MODEL ERROR:",
@@ -353,9 +431,15 @@ async function generateWithGemini(prompt, articleNumber) {
           lastError
         );
 
-        if (attempt < 3) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1500 * attempt)
+        if (
+          attempt < 3
+        ) {
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                1500 * attempt
+              )
           );
         }
       }
@@ -367,7 +451,14 @@ async function generateWithGemini(prompt, articleNumber) {
   );
 }
 
-function normalizeArticle(article, input) {
+/* --------------------------------------------------
+   ARTICLE NORMALIZATION
+-------------------------------------------------- */
+
+function normalizeArticle(
+  article,
+  input
+) {
   return {
     title:
       article.title_hi ||
@@ -387,12 +478,18 @@ function normalizeArticle(article, input) {
         ""
     ).trim(),
 
+    // IMPORTANT:
+    // Input date is authoritative.
     date:
-      article.date ||
       input.date ||
-      new Date().toISOString().slice(0, 10),
+      article.date ||
+      new Date()
+        .toISOString()
+        .slice(0, 10),
 
-    gs: String(article.gs || "").trim(),
+    gs: String(
+      article.gs || ""
+    ).trim(),
 
     subject: String(
       article.subject || ""
@@ -417,114 +514,463 @@ function normalizeArticle(article, input) {
     ).trim(),
 
     why_in_news_hi: String(
-      article.why_in_news_hi || ""
+      article.why_in_news_hi ||
+        ""
     ).trim(),
 
     why_in_news_en: String(
-      article.why_in_news_en || ""
+      article.why_in_news_en ||
+        ""
     ).trim(),
 
     background_hi: String(
-      article.background_hi || ""
+      article.background_hi ||
+        ""
     ).trim(),
 
     background_en: String(
-      article.background_en || ""
+      article.background_en ||
+        ""
     ).trim(),
 
     key_facts_hi: String(
-      article.key_facts_hi || ""
+      article.key_facts_hi ||
+        ""
     ).trim(),
 
     key_facts_en: String(
-      article.key_facts_en || ""
+      article.key_facts_en ||
+        ""
     ).trim(),
 
     prelims_hi: String(
-      article.prelims_hi || ""
+      article.prelims_hi ||
+        ""
     ).trim(),
 
     prelims_en: String(
-      article.prelims_en || ""
+      article.prelims_en ||
+        ""
     ).trim(),
 
-    mains_analysis_hi: String(
-      article.mains_analysis_hi || ""
-    ).trim(),
+    mains_analysis_hi:
+      String(
+        article.mains_analysis_hi ||
+          ""
+      ).trim(),
 
-    mains_analysis_en: String(
-      article.mains_analysis_en || ""
-    ).trim(),
+    mains_analysis_en:
+      String(
+        article.mains_analysis_en ||
+          ""
+      ).trim(),
 
     static_link: String(
-      article.static_link || ""
+      article.static_link ||
+        ""
     ).trim(),
 
-    premium_fact_hi: String(
-      article.premium_fact_hi || ""
-    ).trim(),
+    premium_fact_hi:
+      String(
+        article.premium_fact_hi ||
+          ""
+      ).trim(),
 
-    premium_fact_en: String(
-      article.premium_fact_en || ""
-    ).trim(),
+    premium_fact_en:
+      String(
+        article.premium_fact_en ||
+          ""
+      ).trim(),
 
-    related_pyqs_hi: String(
-      article.related_pyqs_hi || ""
-    ).trim(),
+    related_pyqs_hi:
+      String(
+        article.related_pyqs_hi ||
+          ""
+      ).trim(),
 
-    related_pyqs_en: String(
-      article.related_pyqs_en || ""
-    ).trim(),
+    related_pyqs_en:
+      String(
+        article.related_pyqs_en ||
+          ""
+      ).trim(),
 
-    prelims_mcq_hi: String(
-      article.prelims_mcq_hi || ""
-    ).trim(),
+    prelims_mcq_hi:
+      String(
+        article.prelims_mcq_hi ||
+          ""
+      ).trim(),
 
-    prelims_mcq_en: String(
-      article.prelims_mcq_en || ""
-    ).trim(),
+    prelims_mcq_en:
+      String(
+        article.prelims_mcq_en ||
+          ""
+      ).trim(),
 
-    mains_question_hi: String(
-      article.mains_question_hi || ""
-    ).trim(),
+    mains_question_hi:
+      String(
+        article.mains_question_hi ||
+          ""
+      ).trim(),
 
-    mains_question_en: String(
-      article.mains_question_en || ""
-    ).trim(),
+    mains_question_en:
+      String(
+        article.mains_question_en ||
+          ""
+      ).trim(),
 
     report_type: String(
-      article.report_type || ""
+      article.report_type ||
+        ""
     ).trim(),
 
     tags: String(
       article.tags || ""
     ).trim(),
 
-    important_place: String(
-      article.important_place || ""
-    ).trim(),
+    important_place:
+      String(
+        article.important_place ||
+          ""
+      ).trim(),
 
-    personalities: String(
-      article.personalities || ""
-    ).trim(),
+    personalities:
+      String(
+        article.personalities ||
+          ""
+      ).trim(),
 
-    government_scheme: String(
-      article.government_scheme || ""
-    ).trim(),
+    government_scheme:
+      String(
+        article.government_scheme ||
+          ""
+      ).trim(),
 
-    ethics_angle_hi: String(
-      article.ethics_angle_hi || ""
-    ).trim(),
+    ethics_angle_hi:
+      String(
+        article.ethics_angle_hi ||
+          ""
+      ).trim(),
 
-    ethics_angle_en: String(
-      article.ethics_angle_en || ""
-    ).trim(),
+    ethics_angle_en:
+      String(
+        article.ethics_angle_en ||
+          ""
+      ).trim(),
 
     is_important: false,
   };
 }
 
-async function saveArticle(article, articleNumber) {
+/* --------------------------------------------------
+   DUPLICATE / SAME-EVENT DETECTION
+-------------------------------------------------- */
+
+const DUPLICATE_STOPWORDS = new Set([
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "of",
+  "to",
+  "in",
+  "on",
+  "for",
+  "with",
+  "from",
+  "by",
+  "at",
+  "is",
+  "are",
+  "was",
+  "were",
+  "as",
+  "new",
+  "india",
+  "indian",
+
+  "का",
+  "के",
+  "की",
+  "और",
+  "या",
+  "में",
+  "से",
+  "को",
+  "पर",
+  "एक",
+  "है",
+  "हैं",
+  "ने",
+  "द्वारा",
+  "लिए",
+  "यह",
+  "इस",
+]);
+
+function normalizeTitleForDuplicate(
+  value
+) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /https?:\/\/\S+/g,
+      " "
+    )
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+}
+
+function duplicateTokens(value) {
+  return new Set(
+    normalizeTitleForDuplicate(
+      value
+    )
+      .split(" ")
+      .filter(
+        (token) =>
+          token.length >= 3 &&
+          !DUPLICATE_STOPWORDS.has(
+            token
+          )
+      )
+  );
+}
+
+function titleSimilarity(
+  first,
+  second
+) {
+  const a =
+    duplicateTokens(first);
+
+  const b =
+    duplicateTokens(second);
+
+  if (
+    a.size === 0 ||
+    b.size === 0
+  ) {
+    return 0;
+  }
+
+  let intersection = 0;
+
+  for (const token of a) {
+    if (b.has(token)) {
+      intersection++;
+    }
+  }
+
+  if (
+    intersection === 0
+  ) {
+    return 0;
+  }
+
+  const containment =
+    intersection /
+    Math.min(a.size, b.size);
+
+  const union =
+    new Set([
+      ...a,
+      ...b,
+    ]).size;
+
+  const jaccard =
+    intersection / union;
+
+  // Containment is more useful here because
+  // one source may use a longer headline.
+  return Math.max(
+    containment,
+    jaccard
+  );
+}
+
+function sourcePriority(
+  source
+) {
+  const value =
+    String(
+      source || ""
+    ).toLowerCase();
+
+  if (
+    value.includes(
+      "press information bureau"
+    ) ||
+    value === "pib"
+  ) {
+    return 100;
+  }
+
+  if (
+    value.includes(
+      "the hindu"
+    )
+  ) {
+    return 90;
+  }
+
+  if (
+    value.includes(
+      "gktoday"
+    )
+  ) {
+    return 80;
+  }
+
+  if (
+    value.includes(
+      "better india"
+    )
+  ) {
+    return 60;
+  }
+
+  return 50;
+}
+
+function isSameEvent(
+  incomingTitle,
+  existingTitle
+) {
+  const normalizedIncoming =
+    normalizeTitleForDuplicate(
+      incomingTitle
+    );
+
+  const normalizedExisting =
+    normalizeTitleForDuplicate(
+      existingTitle
+    );
+
+  if (
+    normalizedIncoming &&
+    normalizedExisting &&
+    normalizedIncoming ===
+      normalizedExisting
+  ) {
+    return true;
+  }
+
+  const similarity =
+    titleSimilarity(
+      incomingTitle,
+      existingTitle
+    );
+
+  // High threshold to avoid unrelated
+  // current affairs being incorrectly removed.
+  return similarity >= 0.78;
+}
+
+/* --------------------------------------------------
+   CROSS-SOURCE DUPLICATE CHECK
+-------------------------------------------------- */
+
+async function findSameEventDuplicate(
+  article,
+  input
+) {
+  if (!article.date) {
+    return null;
+  }
+
+  const encodedDate =
+    encodeURIComponent(
+      article.date
+    );
+
+  const response =
+    await supabaseRequest(
+      `current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodedDate}&limit=100`,
+      {
+        method: "GET",
+      }
+    );
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `Cross-source duplicate check failed: ${errorText}`
+    );
+  }
+
+  const existing =
+    await response.json();
+
+  if (
+    !Array.isArray(existing) ||
+    existing.length === 0
+  ) {
+    return null;
+  }
+
+  const incomingTitles = [
+    input?.title || "",
+    article?.title || "",
+    article?.title_hi || "",
+    article?.title_en || "",
+  ].filter(Boolean);
+
+  for (
+    const row of existing
+  ) {
+    const existingTitle =
+      row?.title || "";
+
+    for (
+      const incomingTitle of
+        incomingTitles
+    ) {
+      if (
+        isSameEvent(
+          incomingTitle,
+          existingTitle
+        )
+      ) {
+        return {
+          id: row.id,
+          title: existingTitle,
+          source_name:
+            row.source_name || "",
+          source_url:
+            row.source_url || "",
+          date:
+            row.date || "",
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/* --------------------------------------------------
+   SUPABASE SAVE
+-------------------------------------------------- */
+
+async function saveArticle(
+  article,
+  articleNumber
+) {
   console.log(
     "SUPABASE SAVE START:",
     "ARTICLE",
@@ -532,18 +978,25 @@ async function saveArticle(article, articleNumber) {
     article.title_en
   );
 
-  const response = await supabaseRequest(
-    "current_affairs",
-    {
-      method: "POST",
-      headers: {
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(article),
-    }
-  );
+  const response =
+    await supabaseRequest(
+      "current_affairs",
+      {
+        method: "POST",
 
-  const text = await response.text();
+        headers: {
+          Prefer:
+            "return=representation",
+        },
+
+        body: JSON.stringify(
+          article
+        ),
+      }
+    );
+
+  const text =
+    await response.text();
 
   if (!response.ok) {
     console.error(
@@ -568,19 +1021,28 @@ async function saveArticle(article, articleNumber) {
   return JSON.parse(text);
 }
 
-async function processArticle(input, articleNumber) {
+/* --------------------------------------------------
+   PROCESS ONE ARTICLE
+-------------------------------------------------- */
+
+async function processArticle(
+  input,
+  articleNumber
+) {
   console.log(
     "ARTICLE PROCESS START:",
     articleNumber,
     input.title
   );
 
-  const generated = await generateWithGemini(
-    buildPrompt(input),
-    articleNumber
-  );
+  const generated =
+    await generateWithGemini(
+      buildPrompt(input),
+      articleNumber
+    );
 
-  const aiArticle = generated.articles[0];
+  const aiArticle =
+    generated.articles[0];
 
   if (!aiArticle) {
     throw new Error(
@@ -588,29 +1050,53 @@ async function processArticle(input, articleNumber) {
     );
   }
 
-  const article = normalizeArticle(
-    aiArticle,
-    input
-  );
+  const article =
+    normalizeArticle(
+      aiArticle,
+      input
+    );
 
-  if (!article.title_hi && !article.title_en) {
+  if (
+    !article.title_hi &&
+    !article.title_en
+  ) {
     throw new Error(
       `AI returned empty title for article ${articleNumber}.`
     );
   }
 
-  // Always preserve original PIB URL.
+  /*
+   * IMPORTANT:
+   * Always preserve original source metadata.
+   */
+
   article.source_url =
     input.source_url ||
     article.source_url ||
     "";
 
+  article.source_name =
+    input.source_name ||
+    article.source_name ||
+    "";
+
+  /*
+   * IMPORTANT:
+   * Input date is authoritative.
+   * AI cannot move the article to another date.
+   */
+
   article.date =
     input.date ||
     article.date ||
-    new Date().toISOString().slice(0, 10);
+    new Date()
+      .toISOString()
+      .slice(0, 10);
 
-  // Same source URL + same date = duplicate.
+  /* ---------------------------------------------
+     1. EXACT SOURCE URL + DATE DUPLICATE CHECK
+  --------------------------------------------- */
+
   if (
     article.source_url &&
     article.date
@@ -626,7 +1112,7 @@ async function processArticle(input, articleNumber) {
       );
 
     console.log(
-      "DUPLICATE CHECK:",
+      "SOURCE DUPLICATE CHECK:",
       articleNumber,
       article.source_url,
       article.date
@@ -640,7 +1126,9 @@ async function processArticle(input, articleNumber) {
         }
       );
 
-    if (!duplicateResponse.ok) {
+    if (
+      !duplicateResponse.ok
+    ) {
       const errorText =
         await duplicateResponse.text();
 
@@ -653,11 +1141,13 @@ async function processArticle(input, articleNumber) {
       await duplicateResponse.json();
 
     if (
-      Array.isArray(duplicates) &&
+      Array.isArray(
+        duplicates
+      ) &&
       duplicates.length > 0
     ) {
       console.log(
-        "DUPLICATE SKIPPED:",
+        "SOURCE DUPLICATE SKIPPED:",
         articleNumber,
         article.title_en
       );
@@ -665,9 +1155,58 @@ async function processArticle(input, articleNumber) {
       return {
         created: 0,
         skipped: 1,
+        reason:
+          "same-source-url-and-date",
       };
     }
   }
+
+  /* ---------------------------------------------
+     2. CROSS-SOURCE SAME-EVENT CHECK
+     
+     Example:
+     PIB:
+     "India launches XYZ mission"
+
+     GKToday:
+     "India launches XYZ Mission"
+
+     Only ONE record will remain.
+  --------------------------------------------- */
+
+  const sameEvent =
+    await findSameEventDuplicate(
+      article,
+      input
+    );
+
+  if (sameEvent) {
+    console.log(
+      "CROSS-SOURCE DUPLICATE SKIPPED:",
+      articleNumber,
+      "| NEW:",
+      article.title_en,
+      "| EXISTING:",
+      sameEvent.title,
+      "| EXISTING SOURCE:",
+      sameEvent.source_name
+    );
+
+    return {
+      created: 0,
+      skipped: 1,
+      reason:
+        "same-event-cross-source",
+      duplicate_id:
+        sameEvent.id,
+      duplicate_source:
+        sameEvent.source_name,
+    };
+  }
+
+  /* ---------------------------------------------
+     3. SAVE
+  --------------------------------------------- */
 
   await saveArticle(
     article,
@@ -677,10 +1216,17 @@ async function processArticle(input, articleNumber) {
   return {
     created: 1,
     skipped: 0,
+    reason: "created",
   };
 }
 
-export async function POST(request) {
+/* --------------------------------------------------
+   POST
+-------------------------------------------------- */
+
+export async function POST(
+  request
+) {
   console.log(
     "CURRENT AFFAIRS AI REQUEST START"
   );
@@ -690,12 +1236,15 @@ export async function POST(request) {
       await request.json();
 
     if (
-      !Array.isArray(body?.items)
+      !Array.isArray(
+        body?.items
+      )
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "items array required.",
+          error:
+            "items array required.",
         },
         {
           status: 400,
@@ -703,7 +1252,8 @@ export async function POST(request) {
       );
     }
 
-    const items = body.items;
+    const items =
+      body.items;
 
     console.log(
       "CURRENT AFFAIRS AI REQUEST VALIDATED:",
@@ -711,13 +1261,20 @@ export async function POST(request) {
       "articles"
     );
 
-    if (items.length === 0) {
+    if (
+      items.length === 0
+    ) {
       return NextResponse.json({
         success: true,
+
         articles_received: 0,
+
         articles_created: 0,
+
         articles_skipped: 0,
+
         articles_processed: 0,
+
         failed_batches: 0,
       });
     }
@@ -725,6 +1282,7 @@ export async function POST(request) {
     let created = 0;
     let skipped = 0;
     let failed = 0;
+
     const errors = [];
 
     for (
@@ -732,18 +1290,22 @@ export async function POST(request) {
       i < items.length;
       i += BATCH_SIZE
     ) {
-      const batch = items.slice(
-        i,
-        i + BATCH_SIZE
-      );
+      const batch =
+        items.slice(
+          i,
+          i + BATCH_SIZE
+        );
 
       for (
         let j = 0;
         j < batch.length;
         j++
       ) {
-        const input = batch[j];
-        const articleNumber = i + j + 1;
+        const input =
+          batch[j];
+
+        const articleNumber =
+          i + j + 1;
 
         try {
           const result =
@@ -752,8 +1314,11 @@ export async function POST(request) {
               articleNumber
             );
 
-          created += result.created;
-          skipped += result.skipped;
+          created +=
+            result.created;
+
+          skipped +=
+            result.skipped;
 
           console.log(
             "ARTICLE COMPLETE:",
@@ -761,7 +1326,9 @@ export async function POST(request) {
             "| CREATED:",
             result.created,
             "| SKIPPED:",
-            result.skipped
+            result.skipped,
+            "| REASON:",
+            result.reason
           );
         } catch (error) {
           failed++;
@@ -771,20 +1338,25 @@ export async function POST(request) {
             String(error);
 
           errors.push({
-            article: articleNumber,
+            article:
+              articleNumber,
+
             title:
-              input?.title || "",
-            error: message,
+              input?.title ||
+              "",
+
+            error:
+              message,
           });
 
           console.error(
             "ARTICLE FAILED:",
             articleNumber,
-            input?.title || "",
+            input?.title ||
+              "",
             message
           );
 
-          // IMPORTANT:
           // Continue with next article.
           continue;
         }
@@ -797,18 +1369,28 @@ export async function POST(request) {
     console.log(
       "CURRENT AFFAIRS AI FINAL:",
       {
-        received: items.length,
+        received:
+          items.length,
+
         created,
+
         skipped,
+
         processed,
+
         failed,
       }
     );
 
-    // If at least one article was processed,
-    // return success so one bad article doesn't
-    // block the whole daily feed.
-    if (processed > 0) {
+    /*
+     * If at least one article was processed,
+     * return success so one bad article does
+     * not block the whole daily feed.
+     */
+
+    if (
+      processed > 0
+    ) {
       return NextResponse.json({
         success: true,
 
@@ -870,11 +1452,17 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: false,
+
         articles_received: 0,
+
         articles_created: 0,
+
         articles_skipped: 0,
+
         articles_processed: 0,
+
         failed_batches: 1,
+
         error:
           error?.message ||
           "Current Affairs AI generation failed.",
