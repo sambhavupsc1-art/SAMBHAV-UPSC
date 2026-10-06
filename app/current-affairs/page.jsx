@@ -15,7 +15,8 @@ const filters = [
 function getSourceKey(item) {
   const source = String(item?.source_name || "").toLowerCase();
 
-  if (source.includes("press information bureau") || source === "pib") return "pib";
+  if (source.includes("press information bureau") || source === "pib")
+    return "pib";
   if (source.includes("gktoday")) return "gktoday";
   if (source.startsWith("the hindu")) return "the-hindu";
   if (source.includes("the better india")) return "better-india";
@@ -50,12 +51,14 @@ function isTodayIST(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return false;
 
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date) === getTodayIST();
+  return (
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date) === getTodayIST()
+  );
 }
 
 export default function CurrentAffairsPage() {
@@ -69,22 +72,15 @@ export default function CurrentAffairsPage() {
   const [selected, setSelected] = useState(null);
 
   const [loading, setLoading] = useState(true);
-  const [importantLoading, setImportantLoading] =
-    useState(false);
+  const [importantLoading, setImportantLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [notificationOpen, setNotificationOpen] =
-    useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] =
-    useState(true);
-  const [notificationLanguage, setNotificationLanguage] =
-    useState("hi");
-  const [notificationTime, setNotificationTime] =
-    useState("10:00");
-  const [notificationSaving, setNotificationSaving] =
-    useState(false);
-  const [notificationMessage, setNotificationMessage] =
-    useState("");
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationLanguage, setNotificationLanguage] = useState("hi");
+  const [notificationTime, setNotificationTime] = useState("10:00");
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
 
   const hi = language === "hi";
 
@@ -97,9 +93,7 @@ export default function CurrentAffairsPage() {
   function getUserId() {
     if (typeof window === "undefined") return "";
 
-    let id = localStorage.getItem(
-      "sambhav_upsc_notification_user"
-    );
+    let id = localStorage.getItem("sambhav_upsc_notification_user");
 
     if (!id) {
       id =
@@ -108,10 +102,7 @@ export default function CurrentAffairsPage() {
         "_" +
         Date.now();
 
-      localStorage.setItem(
-        "sambhav_upsc_notification_user",
-        id
-      );
+      localStorage.setItem("sambhav_upsc_notification_user", id);
     }
 
     return id;
@@ -122,27 +113,22 @@ export default function CurrentAffairsPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        "/api/current-affairs",
-        {
-          cache: "no-store",
-        }
-      );
+      const response = await fetch("/api/current-affairs", {
+        cache: "no-store",
+      });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result?.error ||
-            "Current Affairs load nahi ho paye."
+          result?.error || "Current Affairs load nahi ho paye."
         );
       }
 
       setNews(result.data || []);
     } catch (err) {
       setError(
-        err.message ||
-          "Current Affairs load nahi ho paye."
+        err.message || "Current Affairs load nahi ho paye."
       );
     } finally {
       setLoading(false);
@@ -185,37 +171,23 @@ export default function CurrentAffairsPage() {
 
       const result = await response.json();
 
-      if (
-        response.ok &&
-        result.success &&
-        result.data
-      ) {
-        setNotificationsEnabled(
-          result.data.enabled !== false
-        );
+      if (response.ok && result.success && result.data) {
+        setNotificationsEnabled(result.data.enabled !== false);
 
         setNotificationLanguage(
-          result.data.language === "en"
-            ? "en"
-            : "hi"
+          result.data.language === "en" ? "en" : "hi"
         );
 
         setNotificationTime(
-          result.data.notification_time ||
-            "10:00"
+          result.data.notification_time || "10:00"
         );
       }
     } catch (err) {
-      console.error(
-        "Notification settings load error:",
-        err
-      );
+      console.error("Notification settings load error:", err);
     }
   }
 
-  async function saveNotificationSettings(
-    overrides = {}
-  ) {
+  async function saveNotificationSettings(overrides = {}) {
     try {
       setNotificationSaving(true);
       setNotificationMessage("");
@@ -223,9 +195,7 @@ export default function CurrentAffairsPage() {
       const userId = getUserId();
 
       if (!userId) {
-        throw new Error(
-          "User identification unavailable."
-        );
+        throw new Error("User identification unavailable.");
       }
 
       const enabled =
@@ -234,12 +204,10 @@ export default function CurrentAffairsPage() {
           : notificationsEnabled;
 
       const selectedLanguage =
-        overrides.language ||
-        notificationLanguage;
+        overrides.language || notificationLanguage;
 
       const selectedTime =
-        overrides.time ||
-        notificationTime;
+        overrides.time || notificationTime;
 
       const response = await fetch(
         "/api/current-affairs/notifications",
@@ -261,8 +229,7 @@ export default function CurrentAffairsPage() {
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result?.error ||
-            "Notification settings save nahi hui."
+          result?.error || "Notification settings save nahi hui."
         );
       }
 
@@ -277,8 +244,7 @@ export default function CurrentAffairsPage() {
       );
     } catch (err) {
       setNotificationMessage(
-        err.message ||
-          "Notification settings save nahi hui."
+        err.message || "Notification settings save nahi hui."
       );
     } finally {
       setNotificationSaving(false);
@@ -295,6 +261,7 @@ export default function CurrentAffairsPage() {
 
   const sourceFilteredNews = useMemo(() => {
     if (activeSource === "all") return news;
+
     return news.filter(
       (item) => getSourceKey(item) === activeSource
     );
@@ -306,6 +273,7 @@ export default function CurrentAffairsPage() {
 
   const todaySourceFilteredNews = useMemo(() => {
     if (activeSource === "all") return todayNews;
+
     return todayNews.filter(
       (item) => getSourceKey(item) === activeSource
     );
@@ -355,21 +323,35 @@ export default function CurrentAffairsPage() {
         item.gs === active ||
         item.paper === active
     );
-  }, [active, sourceFilteredNews, todaySourceFilteredNews, importantIds]);
+  }, [
+    active,
+    sourceFilteredNews,
+    todaySourceFilteredNews,
+    importantIds,
+  ]);
 
   const sourceTabs = [
     { key: "all", label: "ALL" },
     { key: "pib", label: "PIB" },
     { key: "gktoday", label: "GK TODAY" },
     { key: "the-hindu", label: "THE HINDU" },
-    { key: "better-india", label: "BETTER INDIA", sub: "GS-IV" },
+    {
+      key: "better-india",
+      label: "BETTER INDIA",
+      sub: "GS-IV",
+    },
   ];
 
   function selectSource(key) {
     setActiveSource(key);
+
     if (key === "better-india") {
       setActive("GS-IV");
-    } else if (active === "Premium" || active === "Important" || active === "GS-IV") {
+    } else if (
+      active === "Premium" ||
+      active === "Important" ||
+      active === "GS-IV"
+    ) {
       setActive("Today");
     }
   }
@@ -378,8 +360,7 @@ export default function CurrentAffairsPage() {
     try {
       setImportantLoading(true);
 
-      const already =
-        importantIds.includes(Number(id));
+      const already = importantIds.includes(Number(id));
 
       const response = await fetch(
         already
@@ -390,8 +371,7 @@ export default function CurrentAffairsPage() {
           headers: already
             ? {}
             : {
-                "Content-Type":
-                  "application/json",
+                "Content-Type": "application/json",
               },
           body: already
             ? undefined
@@ -472,25 +452,39 @@ export default function CurrentAffairsPage() {
       <section className="ca-premium-hero">
         <div className="ca-hero-topbar">
           <div className="ca-hero-brand">
-            <span className="ca-hero-brand-kicker">SAMBHAV UPSC</span>
+            <span className="ca-hero-brand-kicker">
+              SAMBHAV UPSC
+            </span>
             <strong>Current Affairs</strong>
-            <small>UPSC Daily Intelligence • Prelims + Mains</small>
+            <small>
+              UPSC Daily Intelligence • Prelims + Mains
+            </small>
           </div>
 
           <div className="ca-hero-actions">
             <div className="ca-hero-action-card ca-language-card">
               <span>{hi ? "भाषा" : "Language"}</span>
+
               <div className="ca-lang-pills">
                 <button
                   type="button"
-                  className={hi ? "ca-lang-pill active" : "ca-lang-pill"}
+                  className={
+                    hi
+                      ? "ca-lang-pill active"
+                      : "ca-lang-pill"
+                  }
                   onClick={() => setLanguage("hi")}
                 >
                   हिन्दी
                 </button>
+
                 <button
                   type="button"
-                  className={!hi ? "ca-lang-pill active" : "ca-lang-pill"}
+                  className={
+                    !hi
+                      ? "ca-lang-pill active"
+                      : "ca-lang-pill"
+                  }
                   onClick={() => setLanguage("en")}
                 >
                   English
@@ -507,7 +501,10 @@ export default function CurrentAffairsPage() {
             <button
               type="button"
               className="ca-hero-utility-btn magazine"
-              onClick={() => (window.location.href = "/current-affairs/magazine")}
+              onClick={() =>
+                (window.location.href =
+                  "/current-affairs/magazine")
+              }
             >
               <span>▣</span>
               <b>Monthly Magazine</b>
@@ -516,7 +513,9 @@ export default function CurrentAffairsPage() {
             <button
               type="button"
               className="ca-hero-utility-btn notification"
-              onClick={() => setNotificationOpen(!notificationOpen)}
+              onClick={() =>
+                setNotificationOpen(!notificationOpen)
+              }
             >
               <span>◉</span>
               <b>Notifications</b>
@@ -527,10 +526,16 @@ export default function CurrentAffairsPage() {
         <div className="ca-hero-divider" />
 
         <div className="ca-hero-copy">
-          <span className="ca-hero-eyebrow">SAMBHAV UPSC • DAILY INTELLIGENCE</span>
+          <span className="ca-hero-eyebrow">
+            SAMBHAV UPSC • DAILY INTELLIGENCE
+          </span>
+
           <h2>
-            {hi ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।" : "Not just news. The right news for UPSC."}
+            {hi
+              ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।"
+              : "Not just news. The right news for UPSC."}
           </h2>
+
           <p>
             {hi
               ? "PIB, GKToday, The Hindu और Better India को एक structured UPSC view में पढ़ें — Prelims + Mains + Ethics."
@@ -539,13 +544,21 @@ export default function CurrentAffairsPage() {
 
           <div className="ca-hero-stats">
             <div className="ca-hero-stat">
-              <strong>{todayNews.filter((item) => !isEthicsExample(item)).length}</strong>
+              <strong>
+                {
+                  todayNews.filter(
+                    (item) => !isEthicsExample(item)
+                  ).length
+                }
+              </strong>
               <span>Daily Updates</span>
             </div>
+
             <div className="ca-hero-stat">
               <strong>4</strong>
               <span>Core Sources</span>
             </div>
+
             <div className="ca-hero-stat">
               <strong>GS I–IV</strong>
               <span>UPSC Mapping</span>
@@ -558,8 +571,12 @@ export default function CurrentAffairsPage() {
             <span>CA</span>
             <small>2026</small>
           </div>
+
           <div className="ca-hero-seal-line" />
-          <span className="ca-hero-date">UPDATED • {getLatestDate()}</span>
+
+          <span className="ca-hero-date">
+            UPDATED • {getLatestDate()}
+          </span>
         </div>
       </section>
 
@@ -567,13 +584,9 @@ export default function CurrentAffairsPage() {
         <section className="notification-panel">
           <div className="notification-title">
             <div>
-              <span className="badge">
-                DAILY
-              </span>
+              <span className="badge">DAILY</span>
 
-              <h2>
-                🔔 Current Affairs Notification
-              </h2>
+              <h2>🔔 Current Affairs Notification</h2>
 
               <p>
                 {hi
@@ -589,8 +602,7 @@ export default function CurrentAffairsPage() {
                   : "switch"
               }
               onClick={() => {
-                const next =
-                  !notificationsEnabled;
+                const next = !notificationsEnabled;
 
                 setNotificationsEnabled(next);
 
@@ -606,15 +618,12 @@ export default function CurrentAffairsPage() {
 
           <div className="notification-grid">
             <div className="setting-box">
-              <label>
-                Notification Language
-              </label>
+              <label>Notification Language</label>
 
               <div className="setting-buttons">
                 <button
                   className={
-                    notificationLanguage ===
-                    "hi"
+                    notificationLanguage === "hi"
                       ? "setting-btn active"
                       : "setting-btn"
                   }
@@ -630,8 +639,7 @@ export default function CurrentAffairsPage() {
 
                 <button
                   className={
-                    notificationLanguage ===
-                    "en"
+                    notificationLanguage === "en"
                       ? "setting-btn active"
                       : "setting-btn"
                   }
@@ -648,21 +656,15 @@ export default function CurrentAffairsPage() {
             </div>
 
             <div className="setting-box">
-              <label>
-                Daily Notification Time
-              </label>
+              <label>Daily Notification Time</label>
 
               <input
                 type="time"
                 value={notificationTime}
                 onChange={(e) =>
-                  setNotificationTime(
-                    e.target.value
-                  )
+                  setNotificationTime(e.target.value)
                 }
-                disabled={
-                  notificationSaving
-                }
+                disabled={notificationSaving}
               />
 
               <button
@@ -691,14 +693,12 @@ export default function CurrentAffairsPage() {
             <span>
               {hi
                 ? `Daily ${notificationTime} बजे • ${
-                    notificationLanguage ===
-                    "hi"
+                    notificationLanguage === "hi"
                       ? "हिन्दी"
                       : "English"
                   }`
                 : `Daily at ${notificationTime} • ${
-                    notificationLanguage ===
-                    "hi"
+                    notificationLanguage === "hi"
                       ? "Hindi"
                       : "English"
                   }`}
@@ -716,11 +716,16 @@ export default function CurrentAffairsPage() {
       <section className="source-nav-wrap">
         <div className="source-nav-head">
           <div>
-            <span className="source-nav-eyebrow">SOURCES</span>
+            <span className="source-nav-eyebrow">
+              SOURCES
+            </span>
             <strong>Current Affairs Sources</strong>
           </div>
+
           <span className="source-nav-note">
-            {activeSource === "better-india" ? "Better India → GS-IV Ethics" : "Select a source"}
+            {activeSource === "better-india"
+              ? "Better India → GS-IV Ethics"
+              : "Select a source"}
           </span>
         </div>
 
@@ -728,21 +733,44 @@ export default function CurrentAffairsPage() {
           {sourceTabs.map((tab) => {
             const count =
               tab.key === "all"
-                ? todayNews.filter((item) => !isEthicsExample(item)).length
-                : todayNews.filter((item) => getSourceKey(item) === tab.key).length;
+                ? todayNews.filter(
+                    (item) => !isEthicsExample(item)
+                  ).length
+                : todayNews.filter(
+                    (item) =>
+                      getSourceKey(item) === tab.key
+                  ).length;
 
             return (
               <button
                 key={tab.key}
                 type="button"
                 className={`source-tab ${
-                  activeSource === tab.key ? "active" : ""
-                } ${tab.key === "better-india" ? "ethics" : ""}`}
-                onClick={() => selectSource(tab.key)}
+                  activeSource === tab.key
+                    ? "active"
+                    : ""
+                } ${
+                  tab.key === "better-india"
+                    ? "ethics"
+                    : ""
+                }`}
+                onClick={() =>
+                  selectSource(tab.key)
+                }
               >
-                <span className="source-tab-main">{tab.label}</span>
-                {tab.sub && <span className="source-tab-sub">{tab.sub}</span>}
-                <span className="source-tab-count">{count}</span>
+                <span className="source-tab-main">
+                  {tab.label}
+                </span>
+
+                {tab.sub && (
+                  <span className="source-tab-sub">
+                    {tab.sub}
+                  </span>
+                )}
+
+                <span className="source-tab-count">
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -758,9 +786,7 @@ export default function CurrentAffairsPage() {
                 ? "filter active"
                 : "filter"
             }
-            onClick={() =>
-              setActive(filter)
-            }
+            onClick={() => setActive(filter)}
           >
             {filter}
           </button>
@@ -772,9 +798,7 @@ export default function CurrentAffairsPage() {
               ? "filter active important"
               : "filter important"
           }
-          onClick={() =>
-            setActive("Important")
-          }
+          onClick={() => setActive("Important")}
         >
           ⭐ Important
         </button>
@@ -785,9 +809,7 @@ export default function CurrentAffairsPage() {
               ? "filter active premium"
               : "filter premium"
           }
-          onClick={() =>
-            setActive("Premium")
-          }
+          onClick={() => setActive("Premium")}
         >
           🔥 Premium Facts
         </button>
@@ -823,36 +845,27 @@ export default function CurrentAffairsPage() {
         <section className="special-section">
           <div className="section-heading">
             <div>
-              <span className="badge">
-                SAVED
-              </span>
+              <span className="badge">SAVED</span>
 
-              <h2>
-                ⭐ My Important Current Affairs
-              </h2>
+              <h2>⭐ My Important Current Affairs</h2>
             </div>
 
-            <p>
-              {filteredNews.length} saved
-            </p>
+            <p>{filteredNews.length} saved</p>
           </div>
 
           {filteredNews.length === 0 ? (
             <div className="empty">
               {hi ? (
                 <>
-                  अभी कोई Current Affair
-                  Important में नहीं है।
+                  अभी कोई Current Affair Important में नहीं है।
                   <br />
-                  किसी news पर ⭐ दबाकर
-                  save करें।
+                  किसी news पर ⭐ दबाकर save करें।
                 </>
               ) : (
                 <>
                   No Current Affairs saved yet.
                   <br />
-                  Press ⭐ on any article to
-                  save it.
+                  Press ⭐ on any article to save it.
                 </>
               )}
             </div>
@@ -864,20 +877,12 @@ export default function CurrentAffairsPage() {
                   item={item}
                   important
                   language={language}
-                  onImportant={
-                    toggleImportant
-                  }
+                  onImportant={toggleImportant}
                   onOpen={setSelected}
-                  expanded={
-                    selected?.id === item.id
-                  }
-                  onClose={() =>
-                    setSelected(null)
-                  }
+                  expanded={selected?.id === item.id}
+                  onClose={() => setSelected(null)}
                   formatDate={formatDate}
-                  disabled={
-                    importantLoading
-                  }
+                  disabled={importantLoading}
                 />
               ))}
             </div>
@@ -906,9 +911,7 @@ export default function CurrentAffairsPage() {
               </h2>
             </div>
 
-            <p>
-              {filteredNews.length} updates
-            </p>
+            <p>{filteredNews.length} updates</p>
           </div>
 
           {filteredNews.length === 0 ? (
@@ -927,20 +930,12 @@ export default function CurrentAffairsPage() {
                     Number(item.id)
                   )}
                   language={language}
-                  onImportant={
-                    toggleImportant
-                  }
+                  onImportant={toggleImportant}
                   onOpen={setSelected}
-                  expanded={
-                    selected?.id === item.id
-                  }
-                  onClose={() =>
-                    setSelected(null)
-                  }
+                  expanded={selected?.id === item.id}
+                  onClose={() => setSelected(null)}
                   formatDate={formatDate}
-                  disabled={
-                    importantLoading
-                  }
+                  disabled={importantLoading}
                 />
               ))}
             </div>
@@ -950,40 +945,56 @@ export default function CurrentAffairsPage() {
 
       <style jsx global>{`
         /* ---------- PAGE BACK BUTTON ---------- */
-.page-back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
-  padding: 9px 14px;
-  border: 1px solid #e2e7ef;
-  border-radius: 11px;
-  background: #fff;
-  color: #172033;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
-  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
-}
+        .page-back-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 12px;
+          padding: 9px 14px;
+          border: 1px solid #e2e7ef;
+          border-radius: 11px;
+          background: #fff;
+          color: #172033;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            background 0.16s ease;
+        }
 
-.page-back-button:hover {
-  background: #f8fafc;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-}
+        .page-back-button:hover {
+          background: #f8fafc;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
 
-.page-back-button span:first-child {
-  font-size: 18px;
-  line-height: 1;
-}
+        .page-back-button span:first-child {
+          font-size: 18px;
+          line-height: 1;
+        }
 
-.ca-page {
+        .ca-page {
           min-height: 100vh;
           background:
-            radial-gradient(circle at 12% 0%, rgba(195,161,90,.10), transparent 24%),
-            radial-gradient(circle at 88% 6%, rgba(15,23,42,.055), transparent 25%),
-            linear-gradient(180deg,#f8f6f1 0%,#f3f5f7 48%,#eef1f4 100%);
+            radial-gradient(
+              circle at 12% 0%,
+              rgba(195, 161, 90, 0.1),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 88% 6%,
+              rgba(15, 23, 42, 0.055),
+              transparent 25%
+            ),
+            linear-gradient(
+              180deg,
+              #f8f6f1 0%,
+              #f3f5f7 48%,
+              #eef1f4 100%
+            );
           color: #172033;
           padding: 32px 18px 90px;
           font-family:
@@ -1019,13 +1030,26 @@ export default function CurrentAffairsPage() {
           justify-content: space-between;
           gap: 28px;
           color: #fff;
-          border: 1px solid rgba(195,161,90,.30);
+          border: 1px solid rgba(195, 161, 90, 0.3);
           border-radius: 25px;
           background:
-            radial-gradient(circle at 88% 10%, rgba(195,161,90,.25), transparent 25%),
-            radial-gradient(circle at 65% 120%, rgba(52,64,84,.55), transparent 35%),
-            linear-gradient(145deg, #0d1118 0%, #151b25 62%, #0b0f15 100%);
-          box-shadow: 0 22px 55px rgba(15,23,42,.15);
+            radial-gradient(
+              circle at 88% 10%,
+              rgba(195, 161, 90, 0.25),
+              transparent 25%
+            ),
+            radial-gradient(
+              circle at 65% 120%,
+              rgba(52, 64, 84, 0.55),
+              transparent 35%
+            ),
+            linear-gradient(
+              145deg,
+              #0d1118 0%,
+              #151b25 62%,
+              #0b0f15 100%
+            );
+          box-shadow: 0 22px 55px rgba(15, 23, 42, 0.15);
         }
 
         .ca-premium-hero::before {
@@ -1035,7 +1059,7 @@ export default function CurrentAffairsPage() {
           height: 230px;
           right: 75px;
           bottom: -170px;
-          border: 1px solid rgba(226,199,125,.16);
+          border: 1px solid rgba(226, 199, 125, 0.16);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -1047,7 +1071,7 @@ export default function CurrentAffairsPage() {
           height: 150px;
           right: -70px;
           top: -75px;
-          border: 1px solid rgba(226,199,125,.13);
+          border: 1px solid rgba(226, 199, 125, 0.13);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -1063,7 +1087,7 @@ export default function CurrentAffairsPage() {
           color: #e2c77d;
           font-size: 9px;
           line-height: 1;
-          letter-spacing: .18em;
+          letter-spacing: 0.18em;
           font-weight: 950;
         }
 
@@ -1094,9 +1118,9 @@ export default function CurrentAffairsPage() {
         .ca-hero-stat {
           min-width: 108px;
           padding: 9px 11px;
-          border: 1px solid rgba(255,255,255,.09);
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 12px;
-          background: rgba(255,255,255,.055);
+          background: rgba(255, 255, 255, 0.055);
           backdrop-filter: blur(8px);
         }
 
@@ -1113,7 +1137,7 @@ export default function CurrentAffairsPage() {
           color: #929ba8;
           font-size: 8px;
           font-weight: 800;
-          letter-spacing: .03em;
+          letter-spacing: 0.03em;
         }
 
         .ca-hero-seal {
@@ -1133,11 +1157,16 @@ export default function CurrentAffairsPage() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(226,199,125,.45);
-          outline: 1px solid rgba(226,199,125,.12);
+          border: 1px solid rgba(226, 199, 125, 0.45);
+          outline: 1px solid rgba(226, 199, 125, 0.12);
           outline-offset: 7px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(226,199,125,.13), rgba(255,255,255,.015) 68%);
+          background:
+            radial-gradient(
+              circle,
+              rgba(226, 199, 125, 0.13),
+              rgba(255, 255, 255, 0.015) 68%
+            );
         }
 
         .ca-hero-seal-ring span {
@@ -1145,14 +1174,14 @@ export default function CurrentAffairsPage() {
           font-size: 29px;
           line-height: 1;
           font-weight: 950;
-          letter-spacing: -.06em;
+          letter-spacing: -0.06em;
         }
 
         .ca-hero-seal-ring small {
           margin-top: 7px;
           color: #aeb5bf;
           font-size: 8px;
-          letter-spacing: .2em;
+          letter-spacing: 0.2em;
           font-weight: 900;
         }
 
@@ -1160,13 +1189,13 @@ export default function CurrentAffairsPage() {
           width: 46px;
           height: 1px;
           margin: 18px 0 8px;
-          background: rgba(226,199,125,.38);
+          background: rgba(226, 199, 125, 0.38);
         }
 
         .ca-hero-date {
           color: #8e97a4;
           font-size: 7px;
-          letter-spacing: .13em;
+          letter-spacing: 0.13em;
           font-weight: 900;
           text-align: center;
         }
@@ -1175,115 +1204,119 @@ export default function CurrentAffairsPage() {
           max-width: 1050px;
           margin: 0 auto 14px;
           padding: 12px;
-          background: rgba(255,255,255,.88);
+          background: rgba(255, 255, 255, 0.88);
           border: 1px solid #e2e7ef;
           border-radius: 18px;
-          box-shadow: 0 8px 24px rgba(15,23,42,.045);
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
           backdrop-filter: blur(10px);
         }
 
         .source-nav-head {
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
           padding: 2px 4px 10px;
         }
 
         .source-nav-eyebrow {
-          display:block;
-          color:#98a2b3;
-          font-size:9px;
-          font-weight:950;
-          letter-spacing:.14em;
-          margin-bottom:3px;
+          display: block;
+          color: #98a2b3;
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: 0.14em;
+          margin-bottom: 3px;
         }
 
         .source-nav-head strong {
-          font-size:13px;
-          font-weight:900;
+          font-size: 13px;
+          font-weight: 900;
         }
 
         .source-nav-note {
-          color:#667085;
-          font-size:10px;
-          font-weight:700;
-          text-align:right;
+          color: #667085;
+          font-size: 10px;
+          font-weight: 700;
+          text-align: right;
         }
 
         .source-nav {
-          display:grid;
-          grid-template-columns: repeat(5, minmax(0,1fr));
-          gap:7px;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 7px;
         }
 
         .source-tab {
-          min-width:0;
-          min-height:46px;
-          border:1px solid #e1e6ee;
-          background:#fff;
-          color:#344054;
-          border-radius:12px;
-          padding:8px 10px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:7px;
-          cursor:pointer;
-          font-weight:900;
-          transition:transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+          min-width: 0;
+          min-height: 46px;
+          border: 1px solid #e1e6ee;
+          background: #fff;
+          color: #344054;
+          border-radius: 12px;
+          padding: 8px 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          cursor: pointer;
+          font-weight: 900;
+          transition:
+            transform 0.16s ease,
+            background 0.16s ease,
+            border-color 0.16s ease,
+            box-shadow 0.16s ease;
         }
 
         .source-tab:hover {
-          transform:translateY(-1px);
-          box-shadow:0 6px 14px rgba(15,23,42,.06);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
         }
 
         .source-tab.active {
-          background:#172033;
-          color:#fff;
-          border-color:#172033;
-          box-shadow:0 7px 16px rgba(15,23,42,.14);
+          background: #172033;
+          color: #fff;
+          border-color: #172033;
+          box-shadow: 0 7px 16px rgba(15, 23, 42, 0.14);
         }
 
         .source-tab.ethics.active {
-          background:#7a263a;
-          border-color:#7a263a;
+          background: #7a263a;
+          border-color: #7a263a;
         }
 
         .source-tab-main {
-          overflow:hidden;
-          text-overflow:ellipsis;
-          white-space:nowrap;
-          font-size:11px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 11px;
         }
 
         .source-tab-sub {
-          font-size:8px;
-          padding:3px 5px;
-          border-radius:999px;
-          background:#f2f4f7;
-          color:#667085;
+          font-size: 8px;
+          padding: 3px 5px;
+          border-radius: 999px;
+          background: #f2f4f7;
+          color: #667085;
         }
 
         .source-tab.active .source-tab-sub {
-          background:rgba(255,255,255,.14);
-          color:#fff;
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
         }
 
         .source-tab-count {
-          min-width:22px;
-          padding:3px 5px;
-          border-radius:999px;
-          background:#f2f4f7;
-          color:#475467;
-          font-size:9px;
-          text-align:center;
+          min-width: 22px;
+          padding: 3px 5px;
+          border-radius: 999px;
+          background: #f2f4f7;
+          color: #475467;
+          font-size: 9px;
+          text-align: center;
         }
 
         .source-tab.active .source-tab-count {
-          background:rgba(255,255,255,.14);
-          color:#fff;
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
         }
 
         .ca-header {
@@ -1307,7 +1340,7 @@ export default function CurrentAffairsPage() {
           flex-wrap: wrap;
         }
 
-.language-box,
+        .language-box,
         .date-card,
         .notification-button,
         .magazine-button {
@@ -1340,7 +1373,9 @@ export default function CurrentAffairsPage() {
           padding: 7px 10px;
           cursor: pointer;
           font-weight: 800;
-          transition: transform 0.16s ease, background 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            background 0.16s ease;
         }
 
         .lang.active {
@@ -1349,7 +1384,7 @@ export default function CurrentAffairsPage() {
           border-color: #172033;
         }
 
-.magazine-button {
+        .magazine-button {
           cursor: pointer;
           font-weight: 850;
           color: #fff;
@@ -1364,7 +1399,10 @@ export default function CurrentAffairsPage() {
           min-height: 44px;
           box-shadow: 0 4px 14px rgba(16, 24, 40, 0.035);
           white-space: nowrap;
-          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            background 0.16s ease;
         }
 
         .magazine-button:hover {
@@ -1382,7 +1420,9 @@ export default function CurrentAffairsPage() {
           align-items: center;
           justify-content: center;
           min-height: 44px;
-          transition: transform 0.16s ease, box-shadow 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease;
         }
 
         .eyebrow {
@@ -1521,7 +1561,9 @@ export default function CurrentAffairsPage() {
           padding: 9px 12px;
           cursor: pointer;
           font-weight: 800;
-          transition: transform 0.16s ease, box-shadow 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease;
         }
 
         .setting-btn.active {
@@ -1593,7 +1635,10 @@ export default function CurrentAffairsPage() {
           cursor: pointer;
           font-weight: 800;
           box-shadow: 0 2px 7px rgba(15, 23, 42, 0.025);
-          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            background 0.16s ease;
         }
 
         .filter.active {
@@ -1658,7 +1703,10 @@ export default function CurrentAffairsPage() {
           border-radius: 18px;
           padding: 22px;
           box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease;
         }
 
         .news-card:hover {
@@ -1675,30 +1723,45 @@ export default function CurrentAffairsPage() {
         }
 
         .card-badges {
-          display:flex;
-          align-items:center;
-          gap:6px;
-          flex-wrap:wrap;
-          min-width:0;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          min-width: 0;
         }
 
         .source-chip {
-          display:inline-flex;
-          align-items:center;
-          min-height:22px;
-          padding:4px 7px;
-          border-radius:7px;
-          background:#f2f4f7;
-          color:#475467;
-          font-size:8px;
-          font-weight:950;
-          letter-spacing:.05em;
+          display: inline-flex;
+          align-items: center;
+          min-height: 22px;
+          padding: 4px 7px;
+          border-radius: 7px;
+          background: #f2f4f7;
+          color: #475467;
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.05em;
         }
 
-        .source-chip.pib { background:#eef4ff; color:#175cd3; }
-        .source-chip.gktoday { background:#ecfdf3; color:#027a48; }
-        .source-chip.the-hindu { background:#fff1f3; color:#b42318; }
-        .source-chip.better-india { background:#fff7e6; color:#9a6700; }
+        .source-chip.pib {
+          background: #eef4ff;
+          color: #175cd3;
+        }
+
+        .source-chip.gktoday {
+          background: #ecfdf3;
+          color: #027a48;
+        }
+
+        .source-chip.the-hindu {
+          background: #fff1f3;
+          color: #b42318;
+        }
+
+        .source-chip.better-india {
+          background: #fff7e6;
+          color: #9a6700;
+        }
 
         .meta,
         .source {
@@ -1741,7 +1804,10 @@ export default function CurrentAffairsPage() {
           min-height: 44px;
           cursor: pointer;
           font-weight: 850;
-          transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            background 0.16s ease;
         }
 
         .read-button {
@@ -1844,7 +1910,7 @@ export default function CurrentAffairsPage() {
           color: #7f1d1d;
           font-size: 10px;
           font-weight: 950;
-          letter-spacing: .1em;
+          letter-spacing: 0.1em;
         }
 
         .premium-main-heading h2 {
@@ -1879,25 +1945,29 @@ export default function CurrentAffairsPage() {
           background: #fff;
           color: #172033;
           cursor: pointer;
-          transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease,
+            border-color 0.16s ease,
+            background 0.16s ease;
         }
 
         .premium-tab:hover {
           transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
         }
 
         .premium-tab.active {
           color: #fff;
           background: #172033;
           border-color: #172033;
-          box-shadow: 0 10px 24px rgba(23, 32, 51, .16);
+          box-shadow: 0 10px 24px rgba(23, 32, 51, 0.16);
         }
 
         .premium-tab-number {
           font-size: 11px;
           font-weight: 950;
-          opacity: .65;
+          opacity: 0.65;
         }
 
         .premium-tab-copy {
@@ -1910,7 +1980,7 @@ export default function CurrentAffairsPage() {
 
         .premium-tab-copy strong {
           font-size: 13px;
-          letter-spacing: .04em;
+          letter-spacing: 0.04em;
         }
 
         .premium-tab-copy small {
@@ -1920,7 +1990,7 @@ export default function CurrentAffairsPage() {
         }
 
         .premium-tab.active .premium-tab-copy small {
-          color: rgba(255,255,255,.72);
+          color: rgba(255, 255, 255, 0.72);
         }
 
         .premium-tab b {
@@ -1934,7 +2004,7 @@ export default function CurrentAffairsPage() {
         }
 
         .premium-tab.active b {
-          background: rgba(255,255,255,.14);
+          background: rgba(255, 255, 255, 0.14);
           color: #fff;
         }
 
@@ -1950,7 +2020,7 @@ export default function CurrentAffairsPage() {
           color: #8b1e2d;
           font-size: 10px;
           font-weight: 950;
-          letter-spacing: .1em;
+          letter-spacing: 0.1em;
         }
 
         .premium-active-heading h3 {
@@ -1987,14 +2057,17 @@ export default function CurrentAffairsPage() {
           border: 1px solid #e1e6ee;
           border-radius: 17px;
           padding: 18px;
-          box-shadow: 0 8px 22px rgba(15,23,42,.045);
-          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease;
         }
 
         .premium-clean-card:hover {
           transform: translateY(-2px);
           border-color: #d5dbe4;
-          box-shadow: 0 13px 28px rgba(15,23,42,.07);
+          box-shadow: 0 13px 28px rgba(15, 23, 42, 0.07);
         }
 
         .premium-clean-meta,
@@ -2013,7 +2086,7 @@ export default function CurrentAffairsPage() {
           border-radius: 8px;
           font-size: 9px;
           font-weight: 900;
-          letter-spacing: .06em;
+          letter-spacing: 0.06em;
         }
 
         .premium-type-pill {
@@ -2080,7 +2153,9 @@ export default function CurrentAffairsPage() {
           border-radius: 17px;
           padding: 19px;
           box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease;
         }
 
         .fact-card:hover {
@@ -2144,7 +2219,9 @@ export default function CurrentAffairsPage() {
           font-size: 22px;
           line-height: 1;
           cursor: pointer;
-          transition: transform 0.16s ease, box-shadow 0.16s ease;
+          transition:
+            transform 0.16s ease,
+            box-shadow 0.16s ease;
         }
 
         .inline-analysis-card .close:hover {
@@ -2194,6 +2271,43 @@ export default function CurrentAffairsPage() {
           text-decoration: underline;
         }
 
+        /* =========================================================
+           THE HINDU ACTUAL NEWSPAPER HEADLINE CUT
+           ========================================================= */
+
+        .the-hindu-headline-cut {
+          margin: 18px 0 24px;
+          padding: 14px;
+          background: #ffffff;
+          border: 1px solid #dfe3e8;
+          border-radius: 14px;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+        }
+
+        .the-hindu-headline-label {
+          margin-bottom: 10px;
+          padding-bottom: 7px;
+          border-bottom: 1px solid #222;
+          font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 2px;
+          color: #111;
+        }
+
+        .the-hindu-headline-image {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          margin: 0 auto;
+          object-fit: contain;
+          background: #fff;
+        }
+
         .premium-box {
           margin: 22px 0;
           padding: 17px;
@@ -2232,45 +2346,134 @@ export default function CurrentAffairsPage() {
 
         /* =========================================================
            RESPONSIVE SYSTEM
-           Mobile + Tablet + Laptop + Desktop
            ========================================================= */
 
         @media (min-width: 1400px) {
-          .ca-page { padding-left:32px; padding-right:32px; }
-          .ca-header, .source-nav-wrap, .notification-panel, .filter-row,
-          .section-heading, .news-list, .special-section { max-width:1180px; }
-          .ca-header { padding:30px; }
+          .ca-page {
+            padding-left: 32px;
+            padding-right: 32px;
+          }
+
+          .ca-header,
+          .source-nav-wrap,
+          .notification-panel,
+          .filter-row,
+          .section-heading,
+          .news-list,
+          .special-section {
+            max-width: 1180px;
+          }
+
+          .ca-header {
+            padding: 30px;
+          }
         }
 
         @media (min-width: 1025px) and (max-width: 1399px) {
-          .ca-page { padding:28px 20px 80px; }
-          .ca-header, .source-nav-wrap, .notification-panel, .filter-row,
-          .section-heading, .news-list, .special-section { max-width:1100px; }
-          .ca-header { align-items:flex-start; }
-          .header-actions { max-width:560px; justify-content:flex-end; }
+          .ca-page {
+            padding: 28px 20px 80px;
+          }
+
+          .ca-header,
+          .source-nav-wrap,
+          .notification-panel,
+          .filter-row,
+          .section-heading,
+          .news-list,
+          .special-section {
+            max-width: 1100px;
+          }
+
+          .ca-header {
+            align-items: flex-start;
+          }
+
+          .header-actions {
+            max-width: 560px;
+            justify-content: flex-end;
+          }
         }
 
         @media (min-width: 601px) and (max-width: 1024px) {
-          .ca-page { padding:22px 16px 70px; }
-          .ca-header { display:flex; flex-direction:column; align-items:stretch; gap:20px; padding:22px; }
-          .header-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; }
-          .language-box, .date-card, .notification-button, .magazine-button { width:100%; min-width:0; }
-          .source-nav { grid-template-columns:repeat(3,minmax(0,1fr)); }
-          .source-nav-wrap { width:100%; }
-          .filter-row { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-          .filter { flex:0 0 auto; }
-          .news-card { padding:20px; }
-          .fact-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-          .premium-clean-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .ca-page {
+            padding: 22px 16px 70px;
+          }
+
+          .ca-header {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 20px;
+            padding: 22px;
+          }
+
+          .header-actions {
+            display: grid;
+            grid-template-columns: repeat(
+              2,
+              minmax(0, 1fr)
+            );
+            gap: 10px;
+            width: 100%;
+          }
+
+          .language-box,
+          .date-card,
+          .notification-button,
+          .magazine-button {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .source-nav {
+            grid-template-columns: repeat(
+              3,
+              minmax(0, 1fr)
+            );
+          }
+
+          .source-nav-wrap {
+            width: 100%;
+          }
+
+          .filter-row {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .filter {
+            flex: 0 0 auto;
+          }
+
+          .news-card {
+            padding: 20px;
+          }
+
+          .fact-grid {
+            grid-template-columns: repeat(
+              2,
+              minmax(0, 1fr)
+            );
+          }
+
+          .premium-clean-grid {
+            grid-template-columns: repeat(
+              2,
+              minmax(0, 1fr)
+            );
+          }
         }
 
         @media (max-width: 800px) {
           .ca-premium-hero {
             padding: 22px;
           }
+
           .ca-hero-seal {
             flex-basis: 125px;
           }
+
           .ca-hero-seal-ring {
             width: 94px;
             height: 94px;
@@ -2278,396 +2481,892 @@ export default function CurrentAffairsPage() {
         }
 
         @media (max-width: 600px) {
-  .page-back-button {
-    width: 100%;
-    justify-content: center;
-    min-height: 42px;
-    margin-bottom: 10px;
-  }
-          .ca-page { width:100%; max-width:100%; min-width:0; padding:12px 10px 48px; overflow-x:hidden; }
-          .ca-premium-hero { display:block; padding:19px; border-radius:19px; }
-          .ca-hero-copy h2 { font-size:26px; line-height:1.1; margin-top:9px; }
-          .ca-hero-copy p { font-size:11.5px; line-height:1.65; }
-          .ca-hero-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:15px; }
-          .ca-hero-stat { min-width:0; padding:8px 7px; border-radius:10px; }
-          .ca-hero-stat strong { font-size:11px; }
-          .ca-hero-stat span { font-size:7px; }
-          .ca-hero-seal { display:none; }
-          .ca-header { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:17px; padding:17px; border-radius:18px; }
-          h1 { font-size:clamp(29px,9vw,38px); }
-          .sub { font-size:12.5px; }
-          .header-actions { width:100%; display:grid; grid-template-columns:1fr; gap:8px; }
-          .language-box, .date-card, .notification-button, .magazine-button { width:100%; min-width:0; box-sizing:border-box; }
-          .lang { flex:1; min-height:40px; }
+          .page-back-button {
+            width: 100%;
+            justify-content: center;
+            min-height: 42px;
+            margin-bottom: 10px;
+          }
 
-          .source-nav-wrap { width:100%; max-width:100%; box-sizing:border-box; padding:10px; margin-bottom:10px; border-radius:15px; }
-          .source-nav-head { align-items:flex-start; }
-          .source-nav-note { font-size:9px; max-width:45%; }
-          .source-nav { display:flex; overflow-x:auto; gap:6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
-          .source-nav::-webkit-scrollbar { display:none; }
-          .source-tab { flex:0 0 auto; min-height:40px; padding:7px 10px; }
+          .ca-page {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            padding: 12px 10px 48px;
+            overflow-x: hidden;
+          }
 
-          .notification-panel { width:100%; max-width:100%; box-sizing:border-box; padding:15px; border-radius:16px; }
-          .notification-grid { grid-template-columns:1fr; }
-          .notification-info { display:block; font-size:12px; }
-          .notification-info span { display:block; margin-top:5px; }
-          .setting-box input { width:100%; box-sizing:border-box; margin:0 0 8px; }
-          .save-time { width:100%; }
+          .ca-premium-hero {
+            display: block;
+            padding: 19px;
+            border-radius: 19px;
+          }
 
-          .filter-row { width:100%; max-width:100%; display:flex; overflow-x:auto; gap:7px; padding:3px 1px 13px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
-          .filter-row::-webkit-scrollbar { display:none; }
-          .filter { flex:0 0 auto; min-height:40px; padding:9px 13px; font-size:12px; }
+          .ca-hero-copy h2 {
+            font-size: 26px;
+            line-height: 1.1;
+            margin-top: 9px;
+          }
 
-          .section-heading { width:100%; max-width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:7px; margin-bottom:11px; }
-          .section-heading h2 { font-size:20px; }
-          .news-list { width:100%; max-width:100%; grid-template-columns:1fr; gap:11px; }
-          .news-card { width:100%; min-width:0; box-sizing:border-box; padding:15px; border-radius:16px; }
-          .topline { align-items:flex-start; }
-          .meta { font-size:10px; text-align:right; }
-          .news-card h3 { font-size:18px; line-height:1.38; overflow-wrap:anywhere; }
-          .summary { font-size:12.5px; line-height:1.7; }
-          .card-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; align-items:stretch; }
-          .read-button, .important-button { width:100%; min-height:42px; font-size:12px; }
-          .source { grid-column:1 / -1; width:100%; font-size:10px; overflow-wrap:anywhere; }
-          .card-badges { max-width:70%; }
-          .source-chip { font-size:7px; }
+          .ca-hero-copy p {
+            font-size: 11.5px;
+            line-height: 1.65;
+          }
 
-          .inline-analysis { margin-top:13px; padding-top:13px; }
-          .inline-analysis-card { width:100%; max-width:100%; box-sizing:border-box; padding:15px; border-radius:14px; }
-          .modal h2 { font-size:21px; line-height:1.35; }
-          .modal p, .content-block { font-size:13px; line-height:1.7; }
+          .ca-hero-stats {
+            display: grid;
+            grid-template-columns: repeat(
+              3,
+              minmax(0, 1fr)
+            );
+            gap: 6px;
+            margin-top: 15px;
+          }
 
-          .premium-facts-wrap { width:100%; max-width:100%; }
-          .premium-main-heading { padding:17px; border-radius:17px; }
-          .premium-tabs { grid-template-columns:1fr; }
-          .premium-active-heading { display:flex; flex-direction:column; align-items:flex-start; }
-          .premium-clean-grid { grid-template-columns:1fr; }
-          .fact-grid { width:100%; grid-template-columns:1fr; }
-          .empty, .state-card { width:100%; max-width:100%; box-sizing:border-box; padding:30px 15px; }
+          .ca-hero-stat {
+            min-width: 0;
+            padding: 8px 7px;
+            border-radius: 10px;
+          }
+
+          .ca-hero-stat strong {
+            font-size: 11px;
+          }
+
+          .ca-hero-stat span {
+            font-size: 7px;
+          }
+
+          .ca-hero-seal {
+            display: none;
+          }
+
+          .ca-header {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 17px;
+            padding: 17px;
+            border-radius: 18px;
+          }
+
+          h1 {
+            font-size: clamp(29px, 9vw, 38px);
+          }
+
+          .sub {
+            font-size: 12.5px;
+          }
+
+          .header-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+
+          .language-box,
+          .date-card,
+          .notification-button,
+          .magazine-button {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+
+          .lang {
+            flex: 1;
+            min-height: 40px;
+          }
+
+          .source-nav-wrap {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+          }
+
+          .source-nav-head {
+            align-items: flex-start;
+          }
+
+          .source-nav-note {
+            font-size: 9px;
+            max-width: 45%;
+          }
+
+          .source-nav {
+            display: flex;
+            overflow-x: auto;
+            gap: 6px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .source-nav::-webkit-scrollbar {
+            display: none;
+          }
+
+          .source-tab {
+            flex: 0 0 auto;
+            min-height: 40px;
+            padding: 7px 10px;
+          }
+
+          .notification-panel {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border-radius: 16px;
+          }
+
+          .notification-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .notification-info {
+            display: block;
+            font-size: 12px;
+          }
+
+          .notification-info span {
+            display: block;
+            margin-top: 5px;
+          }
+
+          .setting-box input {
+            width: 100%;
+            box-sizing: border-box;
+            margin: 0 0 8px;
+          }
+
+          .save-time {
+            width: 100%;
+          }
+
+          .filter-row {
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            overflow-x: auto;
+            gap: 7px;
+            padding: 3px 1px 13px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .filter-row::-webkit-scrollbar {
+            display: none;
+          }
+
+          .filter {
+            flex: 0 0 auto;
+            min-height: 40px;
+            padding: 9px 13px;
+            font-size: 12px;
+          }
+
+          .section-heading {
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 7px;
+            margin-bottom: 11px;
+          }
+
+          .section-heading h2 {
+            font-size: 20px;
+          }
+
+          .news-list {
+            width: 100%;
+            max-width: 100%;
+            grid-template-columns: 1fr;
+            gap: 11px;
+          }
+
+          .news-card {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 15px;
+            border-radius: 16px;
+          }
+
+          .topline {
+            align-items: flex-start;
+          }
+
+          .meta {
+            font-size: 10px;
+            text-align: right;
+          }
+
+          .news-card h3 {
+            font-size: 18px;
+            line-height: 1.38;
+            overflow-wrap: anywhere;
+          }
+
+          .summary {
+            font-size: 12.5px;
+            line-height: 1.7;
+          }
+
+          .card-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
+            align-items: stretch;
+          }
+
+          .read-button,
+          .important-button {
+            width: 100%;
+            min-height: 42px;
+            font-size: 12px;
+          }
+
+          .source {
+            grid-column: 1 / -1;
+            width: 100%;
+            font-size: 10px;
+            overflow-wrap: anywhere;
+          }
+
+          .card-badges {
+            max-width: 70%;
+          }
+
+          .source-chip {
+            font-size: 7px;
+          }
+
+          .inline-analysis {
+            margin-top: 13px;
+            padding-top: 13px;
+          }
+
+          .inline-analysis-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border-radius: 14px;
+          }
+
+          .modal h2 {
+            font-size: 21px;
+            line-height: 1.35;
+          }
+
+          .modal p,
+          .content-block {
+            font-size: 13px;
+            line-height: 1.7;
+          }
+
+          .the-hindu-headline-cut {
+            margin: 15px 0 20px;
+            padding: 10px;
+            border-radius: 12px;
+          }
+
+          .the-hindu-headline-label {
+            font-size: 9px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+          }
+
+          .premium-facts-wrap {
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .premium-main-heading {
+            padding: 17px;
+            border-radius: 17px;
+          }
+
+          .premium-tabs {
+            grid-template-columns: 1fr;
+          }
+
+          .premium-active-heading {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .premium-clean-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .fact-grid {
+            width: 100%;
+            grid-template-columns: 1fr;
+          }
+
+          .empty,
+          .state-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 30px 15px;
+          }
         }
 
         @media (max-width: 380px) {
-          .ca-page { padding-left:7px; padding-right:7px; }
-          .ca-header { padding:14px; }
-          h1 { font-size:28px; }
-          .source-nav-head { display:block; }
-          .source-nav-note { display:block; max-width:none; text-align:left; margin-top:4px; }
-          .filter { padding:8px 11px; font-size:11px; }
-          .news-card { padding:13px; }
-          .news-card h3 { font-size:17px; }
-          .card-actions { grid-template-columns:1fr; }
-          .source { grid-column:auto; }
+          .ca-page {
+            padding-left: 7px;
+            padding-right: 7px;
+          }
+
+          .ca-header {
+            padding: 14px;
+          }
+
+          h1 {
+            font-size: 28px;
+          }
+
+          .source-nav-head {
+            display: block;
+          }
+
+          .source-nav-note {
+            display: block;
+            max-width: none;
+            text-align: left;
+            margin-top: 4px;
+          }
+
+          .filter {
+            padding: 8px 11px;
+            font-size: 11px;
+          }
+
+          .news-card {
+            padding: 13px;
+          }
+
+          .news-card h3 {
+            font-size: 17px;
+          }
+
+          .card-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .source {
+            grid-column: auto;
+          }
         }
 
         /* =========================================================
            SAMBHAV PREMIUM CA POLISH
-           Single-card hero: brand + language + update + actions
            ========================================================= */
+
         .ca-premium-hero {
-          display:grid;
-          grid-template-columns:minmax(0,1fr) 165px;
-          gap:24px;
-          align-items:center;
-          padding:18px 20px 23px;
-          border-radius:26px;
-          border:1px solid rgba(195,161,90,.34);
-          box-shadow:0 24px 60px rgba(15,23,42,.17);
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 165px;
+          gap: 24px;
+          align-items: center;
+          padding: 18px 20px 23px;
+          border-radius: 26px;
+          border: 1px solid rgba(195, 161, 90, 0.34);
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.17);
         }
 
         .ca-hero-topbar {
-          grid-column:1 / -1;
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:18px;
-          position:relative;
-          z-index:2;
+          grid-column: 1 / -1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          position: relative;
+          z-index: 2;
         }
 
         .ca-hero-brand {
-          min-width:185px;
+          min-width: 185px;
         }
+
         .ca-hero-brand-kicker {
-          display:block;
-          color:#d9bd72;
-          font-size:8px;
-          letter-spacing:.18em;
-          font-weight:950;
-          text-transform:uppercase;
-          margin-bottom:5px;
+          display: block;
+          color: #d9bd72;
+          font-size: 8px;
+          letter-spacing: 0.18em;
+          font-weight: 950;
+          text-transform: uppercase;
+          margin-bottom: 5px;
         }
+
         .ca-hero-brand strong {
-          display:block;
-          color:#fffdf9;
-          font-size:21px;
-          line-height:1.05;
-          letter-spacing:-.6px;
+          display: block;
+          color: #fffdf9;
+          font-size: 21px;
+          line-height: 1.05;
+          letter-spacing: -0.6px;
         }
+
         .ca-hero-brand small {
-          display:block;
-          color:#8f98a5;
-          font-size:9px;
-          line-height:1.4;
-          margin-top:5px;
+          display: block;
+          color: #8f98a5;
+          font-size: 9px;
+          line-height: 1.4;
+          margin-top: 5px;
         }
 
         .ca-hero-actions {
-          display:flex;
-          align-items:stretch;
-          justify-content:flex-end;
-          gap:7px;
-          flex-wrap:wrap;
+          display: flex;
+          align-items: stretch;
+          justify-content: flex-end;
+          gap: 7px;
+          flex-wrap: wrap;
         }
 
         .ca-hero-action-card,
         .ca-hero-utility-btn {
-          min-height:52px;
-          border-radius:14px;
-          border:1px solid rgba(255,255,255,.10);
-          background:rgba(255,255,255,.055);
-          color:#fff;
-          backdrop-filter:blur(10px);
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+          min-height: 52px;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.055);
+          color: #fff;
+          backdrop-filter: blur(10px);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
         }
 
         .ca-hero-action-card {
-          padding:8px 10px;
+          padding: 8px 10px;
         }
-        .ca-language-card { min-width:148px; }
-        .ca-date-card { min-width:138px; }
+
+        .ca-language-card {
+          min-width: 148px;
+        }
+
+        .ca-date-card {
+          min-width: 138px;
+        }
+
         .ca-hero-action-card > span {
-          display:block;
-          color:#8e97a4;
-          font-size:7px;
-          font-weight:850;
-          letter-spacing:.08em;
-          text-transform:uppercase;
-          margin-bottom:5px;
+          display: block;
+          color: #8e97a4;
+          font-size: 7px;
+          font-weight: 850;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 5px;
         }
+
         .ca-date-card strong {
-          display:block;
-          color:#fffdf9;
-          font-size:11px;
-          line-height:1;
+          display: block;
+          color: #fffdf9;
+          font-size: 11px;
+          line-height: 1;
         }
+
         .ca-date-card small {
-          display:block;
-          color:#7f8996;
-          font-size:7px;
-          margin-top:5px;
+          display: block;
+          color: #7f8996;
+          font-size: 7px;
+          margin-top: 5px;
         }
-        .ca-lang-pills { display:flex; gap:4px; }
+
+        .ca-lang-pills {
+          display: flex;
+          gap: 4px;
+        }
+
         .ca-lang-pill {
-          border:1px solid rgba(255,255,255,.10);
-          background:rgba(255,255,255,.05);
-          color:#aeb5bf;
-          border-radius:8px;
-          padding:6px 8px;
-          font-size:9px;
-          font-weight:900;
-          cursor:pointer;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.05);
+          color: #aeb5bf;
+          border-radius: 8px;
+          padding: 6px 8px;
+          font-size: 9px;
+          font-weight: 900;
+          cursor: pointer;
         }
+
         .ca-lang-pill.active {
-          background:#f7f1df;
-          color:#111827;
-          border-color:#f7f1df;
-          box-shadow:0 4px 12px rgba(0,0,0,.14);
+          background: #f7f1df;
+          color: #111827;
+          border-color: #f7f1df;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
         }
 
         .ca-hero-utility-btn {
-          min-width:126px;
-          padding:0 12px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:6px;
-          cursor:pointer;
-          font-size:9px;
-          transition:transform .16s ease, background .16s ease, border-color .16s ease;
+          min-width: 126px;
+          padding: 0 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          font-size: 9px;
+          transition:
+            transform 0.16s ease,
+            background 0.16s ease,
+            border-color 0.16s ease;
         }
+
         .ca-hero-utility-btn span {
-          color:#e2c77d;
-          font-size:12px;
+          color: #e2c77d;
+          font-size: 12px;
         }
+
         .ca-hero-utility-btn:hover {
-          transform:translateY(-1px);
-          background:rgba(255,255,255,.09);
-          border-color:rgba(226,199,125,.28);
+          transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.09);
+          border-color: rgba(226, 199, 125, 0.28);
         }
+
         .ca-hero-utility-btn.notification {
-          background:#f7f1df;
-          color:#172033;
-          border-color:#f7f1df;
+          background: #f7f1df;
+          color: #172033;
+          border-color: #f7f1df;
         }
-        .ca-hero-utility-btn.notification span { color:#8d6a22; }
+
+        .ca-hero-utility-btn.notification span {
+          color: #8d6a22;
+        }
 
         .ca-hero-divider {
-          grid-column:1 / -1;
-          height:1px;
-          background:linear-gradient(90deg,transparent,rgba(226,199,125,.25),transparent);
-          margin:0 0 -4px;
+          grid-column: 1 / -1;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(226, 199, 125, 0.25),
+            transparent
+          );
+          margin: 0 0 -4px;
         }
 
-        .ca-hero-copy { min-width:0; }
+        .ca-hero-copy {
+          min-width: 0;
+        }
+
         .ca-hero-copy h2 {
-          font-size:clamp(24px,3vw,37px);
-          line-height:1.08;
-          letter-spacing:-1.45px;
-          max-width:720px;
-          margin:7px 0 9px;
+          font-size: clamp(24px, 3vw, 37px);
+          line-height: 1.08;
+          letter-spacing: -1.45px;
+          max-width: 720px;
+          margin: 7px 0 9px;
         }
+
         .ca-hero-copy p {
-          max-width:700px;
-          font-size:12px;
-          line-height:1.75;
-          color:#aeb6c1;
+          max-width: 700px;
+          font-size: 12px;
+          line-height: 1.75;
+          color: #aeb6c1;
         }
-        .ca-hero-stats { margin-top:18px; gap:8px; }
+
+        .ca-hero-stats {
+          margin-top: 18px;
+          gap: 8px;
+        }
+
         .ca-hero-stat {
-          min-width:112px;
-          padding:10px 12px;
-          border-radius:13px;
-          background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
-          border-color:rgba(255,255,255,.10);
+          min-width: 112px;
+          padding: 10px 12px;
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.075),
+              rgba(255, 255, 255, 0.035)
+            );
+          border-color: rgba(255, 255, 255, 0.1);
         }
-        .ca-hero-stat strong { font-size:14px; letter-spacing:-.2px; }
-        .ca-hero-stat span { font-size:8px; text-transform:uppercase; letter-spacing:.07em; }
+
+        .ca-hero-stat strong {
+          font-size: 14px;
+          letter-spacing: -0.2px;
+        }
+
+        .ca-hero-stat span {
+          font-size: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
 
         .source-nav-wrap {
-          padding:14px;
-          border-radius:20px;
-          background:rgba(255,255,255,.94);
-          border-color:#e1e5eb;
-          box-shadow:0 12px 32px rgba(15,23,42,.055);
+          padding: 14px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.94);
+          border-color: #e1e5eb;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.055);
         }
-        .source-nav-head { padding:1px 3px 11px; }
-        .source-nav-head strong { font-size:14px; letter-spacing:-.25px; }
+
+        .source-nav-head {
+          padding: 1px 3px 11px;
+        }
+
+        .source-nav-head strong {
+          font-size: 14px;
+          letter-spacing: -0.25px;
+        }
+
         .source-tab {
-          min-height:48px;
-          border-radius:14px;
-          background:linear-gradient(180deg,#fff,#fafbfc);
-          box-shadow:0 2px 5px rgba(15,23,42,.025);
+          min-height: 48px;
+          border-radius: 14px;
+          background: linear-gradient(180deg, #fff, #fafbfc);
+          box-shadow: 0 2px 5px rgba(15, 23, 42, 0.025);
         }
+
         .source-tab.active {
-          background:linear-gradient(145deg,#1a2232,#111827);
-          box-shadow:0 9px 20px rgba(15,23,42,.15);
+          background: linear-gradient(
+            145deg,
+            #1a2232,
+            #111827
+          );
+          box-shadow: 0 9px 20px rgba(15, 23, 42, 0.15);
         }
+
         .source-tab.ethics.active {
-          background:linear-gradient(145deg,#8b3046,#682235);
+          background: linear-gradient(
+            145deg,
+            #8b3046,
+            #682235
+          );
         }
 
         .filter-row {
-          gap:8px;
-          padding:4px 0 15px;
+          gap: 8px;
+          padding: 4px 0 15px;
         }
+
         .filter {
-          min-height:43px;
-          padding:10px 15px;
-          border-radius:13px;
-          border:1px solid #e1e6ed;
-          background:linear-gradient(180deg,#fff,#f8fafc);
-          color:#344054;
-          font-size:11px;
-          font-weight:900;
-          letter-spacing:-.05px;
-          box-shadow:0 4px 12px rgba(15,23,42,.035);
+          min-height: 43px;
+          padding: 10px 15px;
+          border-radius: 13px;
+          border: 1px solid #e1e6ed;
+          background: linear-gradient(
+            180deg,
+            #fff,
+            #f8fafc
+          );
+          color: #344054;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: -0.05px;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.035);
         }
+
         .filter:hover {
-          transform:translateY(-1px);
-          box-shadow:0 8px 18px rgba(15,23,42,.07);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
         }
+
         .filter.active {
-          background:#172033;
-          border-color:#172033;
-          color:#fff;
-          box-shadow:0 9px 20px rgba(15,23,42,.14);
+          background: #172033;
+          border-color: #172033;
+          color: #fff;
+          box-shadow: 0 9px 20px rgba(15, 23, 42, 0.14);
         }
-        .filter.important.active { background:#8d6a22; border-color:#8d6a22; }
+
+        .filter.important.active {
+          background: #8d6a22;
+          border-color: #8d6a22;
+        }
 
         .section-heading {
-          padding:15px 18px;
-          margin-bottom:12px;
-          border:1px solid #e3e7ed;
-          border-radius:17px;
-          background:rgba(255,255,255,.82);
-          box-shadow:0 7px 22px rgba(15,23,42,.04);
+          padding: 15px 18px;
+          margin-bottom: 12px;
+          border: 1px solid #e3e7ed;
+          border-radius: 17px;
+          background: rgba(255, 255, 255, 0.82);
+          box-shadow: 0 7px 22px rgba(15, 23, 42, 0.04);
         }
+
         .section-heading h2 {
-          font-size:22px;
-          letter-spacing:-.7px;
+          font-size: 22px;
+          letter-spacing: -0.7px;
         }
-        .section-heading p { color:#7d8794; }
+
+        .section-heading p {
+          color: #7d8794;
+        }
 
         .news-card {
-          border-radius:19px;
-          border-color:#e2e7ee;
-          box-shadow:0 10px 28px rgba(15,23,42,.055);
-          transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          border-radius: 19px;
+          border-color: #e2e7ee;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            border-color 0.18s ease;
         }
+
         .news-card:hover {
-          transform:translateY(-2px);
-          border-color:#d5dce5;
-          box-shadow:0 17px 35px rgba(15,23,42,.085);
+          transform: translateY(-2px);
+          border-color: #d5dce5;
+          box-shadow: 0 17px 35px rgba(15, 23, 42, 0.085);
         }
+
         .news-card h3 {
-          font-size:19px;
-          line-height:1.42;
-          letter-spacing:-.35px;
+          font-size: 19px;
+          line-height: 1.42;
+          letter-spacing: -0.35px;
         }
-        .summary { color:#5f6b79; line-height:1.75; }
+
+        .summary {
+          color: #5f6b79;
+          line-height: 1.75;
+        }
+
         .read-button,
         .important-button {
-          border-radius:11px;
-          min-height:40px;
-          font-weight:900;
+          border-radius: 11px;
+          min-height: 40px;
+          font-weight: 900;
         }
 
         .premium-facts-wrap,
         .special-section {
-          border-radius:21px;
+          border-radius: 21px;
         }
 
         @media (max-width: 900px) {
-          .ca-premium-hero { grid-template-columns:1fr; }
-          .ca-hero-seal { display:none; }
-          .ca-hero-topbar { align-items:flex-start; flex-direction:column; }
-          .ca-hero-actions { width:100%; justify-content:flex-start; }
+          .ca-premium-hero {
+            grid-template-columns: 1fr;
+          }
+
+          .ca-hero-seal {
+            display: none;
+          }
+
+          .ca-hero-topbar {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .ca-hero-actions {
+            width: 100%;
+            justify-content: flex-start;
+          }
         }
 
         @media (max-width: 600px) {
           .ca-premium-hero {
-            display:block;
-            padding:15px;
-            border-radius:20px;
+            display: block;
+            padding: 15px;
+            border-radius: 20px;
           }
-          .ca-hero-topbar { display:block; }
-          .ca-hero-brand { margin-bottom:12px; }
-          .ca-hero-brand strong { font-size:20px; }
+
+          .ca-hero-topbar {
+            display: block;
+          }
+
+          .ca-hero-brand {
+            margin-bottom: 12px;
+          }
+
+          .ca-hero-brand strong {
+            font-size: 20px;
+          }
+
           .ca-hero-actions {
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:7px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
           }
+
           .ca-hero-action-card,
-          .ca-hero-utility-btn { width:100%; min-width:0; }
-          .ca-language-card, .ca-date-card { min-width:0; }
-          .ca-hero-utility-btn { min-height:46px; }
-          .ca-hero-divider { margin:13px 0 3px; }
-          .ca-hero-copy h2 { font-size:25px; letter-spacing:-1px; }
-          .ca-hero-copy p { font-size:11.5px; }
-          .ca-hero-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
-          .ca-hero-stat { min-width:0; padding:8px 7px; }
-          .ca-hero-stat strong { font-size:11px; }
-          .ca-hero-stat span { font-size:6.5px; }
-          .source-nav-wrap { border-radius:17px; }
-          .source-tab { min-height:43px; border-radius:12px; }
-          .filter { border-radius:12px; }
+          .ca-hero-utility-btn {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .ca-language-card,
+          .ca-date-card {
+            min-width: 0;
+          }
+
+          .ca-hero-utility-btn {
+            min-height: 46px;
+          }
+
+          .ca-hero-divider {
+            margin: 13px 0 3px;
+          }
+
+          .ca-hero-copy h2 {
+            font-size: 25px;
+            letter-spacing: -1px;
+          }
+
+          .ca-hero-copy p {
+            font-size: 11.5px;
+          }
+
+          .ca-hero-stats {
+            grid-template-columns: repeat(
+              3,
+              minmax(0, 1fr)
+            );
+          }
+
+          .ca-hero-stat {
+            min-width: 0;
+            padding: 8px 7px;
+          }
+
+          .ca-hero-stat strong {
+            font-size: 11px;
+          }
+
+          .ca-hero-stat span {
+            font-size: 6.5px;
+          }
+
+          .source-nav-wrap {
+            border-radius: 17px;
+          }
+
+          .source-tab {
+            min-height: 43px;
+            border-radius: 12px;
+          }
+
+          .filter {
+            border-radius: 12px;
+          }
         }
 
-        html, body { max-width:100%; overflow-x:hidden; }
-        *, *::before, *::after { box-sizing:border-box; }
-        button, input, select, textarea { max-width:100%; }
-        img, video, iframe { max-width:100%; height:auto; }
+        html,
+        body {
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+          max-width: 100%;
+        }
+
+        img,
+        video,
+        iframe {
+          max-width: 100%;
+          height: auto;
+        }
       `}</style>
     </main>
   );
@@ -2687,13 +3386,9 @@ function ArticleCard({
   const hi = language === "hi";
 
   const title =
-    (hi
-      ? item.title_hi
-      : item.title_en) ||
+    (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi) ||
+    (hi ? item.title_en : item.title_hi) ||
     "Current Affair";
 
   const summary =
@@ -2718,39 +3413,37 @@ function ArticleCard({
               : item.gs || item.paper || "UPSC"}
           </span>
 
-          <span className={`source-chip ${getSourceKey(item)}`}>
+          <span
+            className={`source-chip ${getSourceKey(item)}`}
+          >
             {getSourceKey(item) === "pib"
               ? "PIB"
               : getSourceKey(item) === "gktoday"
-                ? "GK TODAY"
-                : getSourceKey(item) === "the-hindu"
-                  ? "THE HINDU"
-                  : getSourceKey(item) === "better-india"
-                    ? "BETTER INDIA"
-                    : "SOURCE"}
+              ? "GK TODAY"
+              : getSourceKey(item) === "the-hindu"
+              ? "THE HINDU"
+              : getSourceKey(item) ===
+                "better-india"
+              ? "BETTER INDIA"
+              : "SOURCE"}
           </span>
         </div>
 
         <span className="meta">
-          {item.subject ||
-            "UPSC Current Affairs"}{" "}
-          • {formatDate(item.date)}
+          {item.subject || "UPSC Current Affairs"} •{" "}
+          {formatDate(item.date)}
         </span>
       </div>
 
       <h3>{title}</h3>
 
-      <p className="summary">
-        {summary}
-      </p>
+      <p className="summary">{summary}</p>
 
       <div className="card-actions">
         <button
           className="read-button"
           onClick={() =>
-            expanded
-              ? onClose()
-              : onOpen(item)
+            expanded ? onClose() : onOpen(item)
           }
         >
           {expanded
@@ -2758,8 +3451,8 @@ function ArticleCard({
               ? "Analysis बंद करें"
               : "Close Analysis"
             : hi
-              ? "पूरा Analysis पढ़ें"
-              : "Read Full Analysis"}
+            ? "पूरा Analysis पढ़ें"
+            : "Read Full Analysis"}
         </button>
 
         <button
@@ -2769,19 +3462,13 @@ function ArticleCard({
               : "important-button"
           }
           disabled={disabled}
-          onClick={() =>
-            onImportant(item.id)
-          }
+          onClick={() => onImportant(item.id)}
         >
-          {important
-            ? "★ Saved"
-            : "⭐ Important"}
+          {important ? "★ Saved" : "⭐ Important"}
         </button>
 
         <span className="source">
-          Source:{" "}
-          {item.source_name ||
-            "Not specified"}
+          Source: {item.source_name || "Not specified"}
         </span>
       </div>
 
@@ -2800,11 +3487,7 @@ function ArticleCard({
   );
 }
 
-function PremiumFacts({
-  news,
-  language,
-  hi,
-}) {
+function PremiumFacts({ news, language, hi }) {
   const [tab, setTab] = useState("prelims");
 
   const getText = (item, base, fallback = "") =>
@@ -2824,7 +3507,8 @@ function PremiumFacts({
     return Boolean(fact);
   });
 
-  const facts = tab === "prelims" ? prelimsFacts : mainsFacts;
+  const facts =
+    tab === "prelims" ? prelimsFacts : mainsFacts;
 
   function cleanText(value) {
     return String(value || "")
@@ -2838,7 +3522,8 @@ function PremiumFacts({
     if (!raw) return "";
 
     const firstSentence =
-      raw.split(/(?<=[.!?।])\s+/)[0].trim() || raw;
+      raw.split(/(?<=[.!?।])\s+/)[0].trim() ||
+      raw;
 
     return firstSentence.length > 190
       ? `${firstSentence.slice(0, 187).trim()}...`
@@ -2855,7 +3540,11 @@ function PremiumFacts({
         ? getPrelimsFact(item)
         : getMainsFact(item);
 
-    const title = getText(item, "title", "Current Affair");
+    const title = getText(
+      item,
+      "title",
+      "Current Affair"
+    );
 
     return (
       <article
@@ -2868,13 +3557,17 @@ function PremiumFacts({
               ? "PRELIMS FACT"
               : "MAINS FACT"}
           </span>
+
           <span className="premium-gs-pill">
             {item.gs || item.paper || "UPSC"}
           </span>
         </div>
 
         <h3>{title}</h3>
-        <p className="premium-clean-fact">{fact}</p>
+
+        <p className="premium-clean-fact">
+          {fact}
+        </p>
 
         <div className="premium-clean-footer">
           <span>
@@ -2886,6 +3579,7 @@ function PremiumFacts({
               ? "Mains Answer Use"
               : "Mains Answer Use"}
           </span>
+
           <span>
             {item.source_name || "Official Source"}
           </span>
@@ -2898,8 +3592,12 @@ function PremiumFacts({
     <section className="premium-facts-wrap">
       <div className="premium-main-heading">
         <div>
-          <span className="premium-main-badge">PREMIUM</span>
+          <span className="premium-main-badge">
+            PREMIUM
+          </span>
+
           <h2>🔥 Premium Facts</h2>
+
           <p>
             {hi
               ? "UPSC-relevant, सीधे exam में इस्तेमाल होने वाले high-value facts."
@@ -2908,7 +3606,10 @@ function PremiumFacts({
         </div>
       </div>
 
-      <div className="premium-tabs" role="tablist">
+      <div
+        className="premium-tabs"
+        role="tablist"
+      >
         <button
           type="button"
           role="tab"
@@ -2920,15 +3621,20 @@ function PremiumFacts({
           }
           onClick={() => setTab("prelims")}
         >
-          <span className="premium-tab-number">01</span>
+          <span className="premium-tab-number">
+            01
+          </span>
+
           <span className="premium-tab-copy">
             <strong>PRELIMS</strong>
+
             <small>
               {hi
                 ? "एक-लाइन factual revision"
                 : "One-line factual revision"}
             </small>
           </span>
+
           <b>{prelimsFacts.length}</b>
         </button>
 
@@ -2943,15 +3649,20 @@ function PremiumFacts({
           }
           onClick={() => setTab("mains")}
         >
-          <span className="premium-tab-number">02</span>
+          <span className="premium-tab-number">
+            02
+          </span>
+
           <span className="premium-tab-copy">
             <strong>MAINS</strong>
+
             <small>
               {hi
                 ? "Answer-ready points"
                 : "Answer-ready points"}
             </small>
           </span>
+
           <b>{mainsFacts.length}</b>
         </button>
       </div>
@@ -2963,6 +3674,7 @@ function PremiumFacts({
               ? "PRELIMS CURRENT FACTS"
               : "MAINS CURRENT FACTS"}
           </span>
+
           <h3>
             {tab === "prelims"
               ? hi
@@ -2972,16 +3684,18 @@ function PremiumFacts({
               ? "Mains के लिए Current Facts"
               : "Current Facts for Mains"}
           </h3>
+
           <p>
             {tab === "prelims"
               ? hi
                 ? "एक नज़र में याद रखने योग्य factual points."
-                : "Factual points for quick revision." 
+                : "Factual points for quick revision."
               : hi
               ? "Mains answers को मजबूत करने वाले high-value points."
               : "High-value points to strengthen Mains answers."}
           </p>
         </div>
+
         <strong>{facts.length}</strong>
       </div>
 
@@ -3016,13 +3730,9 @@ function ArticleModal({
   const hi = language === "hi";
 
   const title =
-    (hi
-      ? item.title_hi
-      : item.title_en) ||
+    (hi ? item.title_hi : item.title_en) ||
     item.title ||
-    (hi
-      ? item.title_en
-      : item.title_hi);
+    (hi ? item.title_en : item.title_hi);
 
   const why =
     (hi
@@ -3043,9 +3753,7 @@ function ArticleModal({
     item.key_facts;
 
   const prelims =
-    (hi
-      ? item.prelims_hi
-      : item.prelims_en) ||
+    (hi ? item.prelims_hi : item.prelims_en) ||
     item.prelims;
 
   const mains =
@@ -3084,6 +3792,11 @@ function ArticleModal({
       : item.ethics_angle_en) ||
     "";
 
+  const isTheHindu =
+    String(item?.source_name || "")
+      .toLowerCase()
+      .includes("the hindu");
+
   return (
     <div
       className={
@@ -3108,18 +3821,29 @@ function ArticleModal({
         </button>
 
         <span className="badge">
-          {item.gs ||
-            item.paper ||
-            "UPSC"}
+          {item.gs || item.paper || "UPSC"}
         </span>
 
         <h2>{title}</h2>
 
         <p className="source">
-          Source:{" "}
-          {item.source_name ||
-            "Not specified"}
+          Source: {item.source_name || "Not specified"}
         </p>
+
+        {isTheHindu && item.headline_image_url && (
+          <div className="the-hindu-headline-cut">
+            <div className="the-hindu-headline-label">
+              THE HINDU
+            </div>
+
+            <img
+              src={item.headline_image_url}
+              alt="The Hindu newspaper headline"
+              className="the-hindu-headline-image"
+              loading="lazy"
+            />
+          </div>
+        )}
 
         {item.source_url && (
           <a
@@ -3202,9 +3926,7 @@ function ArticleModal({
 
         {mainsQuestion && (
           <>
-            <h3>
-              Possible Mains Question
-            </h3>
+            <h3>Possible Mains Question</h3>
 
             <div className="content-block">
               {mainsQuestion}
@@ -3224,9 +3946,7 @@ function ArticleModal({
 
         {premium && (
           <div className="premium-box">
-            <strong>
-              🔥 Premium Fact
-            </strong>
+            <strong>🔥 Premium Fact</strong>
 
             <p>{premium}</p>
           </div>
@@ -3235,9 +3955,7 @@ function ArticleModal({
         <button
           className="important-button modal-important"
           disabled={importantLoading}
-          onClick={() =>
-            onImportant(item.id)
-          }
+          onClick={() => onImportant(item.id)}
         >
           {important
             ? "★ Remove from Important"
