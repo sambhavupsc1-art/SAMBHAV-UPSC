@@ -22,7 +22,6 @@ const SAMBHAV_APP_URL =
 
 /* =========================================================
    PDF PROCESSING LOCK
-   Same PDF ke simultaneous Telegram requests ko rokta hai.
 ========================================================= */
 
 const THE_HINDU_PROCESSING_LOCK =
@@ -96,17 +95,12 @@ async function supabaseRequest(
     `${SUPABASE_URL}${path}`,
     {
       ...options,
-
       headers: {
-        apikey:
-          SUPABASE_ANON_KEY,
-
+        apikey: SUPABASE_ANON_KEY,
         Authorization:
           `Bearer ${SUPABASE_ANON_KEY}`,
-
         "Content-Type":
           "application/json",
-
         ...(options.headers || {}),
       },
     }
@@ -139,7 +133,7 @@ async function supabaseRequest(
 }
 
 /* =========================================================
-   TELEGRAM API
+   TELEGRAM
 ========================================================= */
 
 async function telegramApi(
@@ -159,14 +153,12 @@ async function telegramApi(
         method: body
           ? "POST"
           : "GET",
-
         headers: body
           ? {
               "Content-Type":
                 "application/json",
             }
           : undefined,
-
         body: body
           ? JSON.stringify(body)
           : undefined,
@@ -190,19 +182,14 @@ async function telegramApi(
   return data.result;
 }
 
-/* =========================================================
-   TELEGRAM MESSAGE
-========================================================= */
-
 async function sendTelegramMessage(
   chatId,
   text
 ) {
   if (!chatId) {
     console.log(
-      "No Telegram chat ID available for completion message"
+      "No Telegram chat ID available."
     );
-
     return;
   }
 
@@ -211,29 +198,21 @@ async function sendTelegramMessage(
       "sendMessage",
       {
         chat_id: chatId,
-
         text,
-
         parse_mode: "HTML",
-
         disable_web_page_preview: true,
       }
     );
   } catch (error) {
-    /*
-      Telegram notification failure must
-      NOT make PDF pipeline fail.
-    */
-
     console.error(
-      "TELEGRAM COMPLETION MESSAGE ERROR:",
+      "TELEGRAM MESSAGE ERROR:",
       error
     );
   }
 }
 
 /* =========================================================
-   DOWNLOAD TELEGRAM PDF
+   DOWNLOAD PDF
 ========================================================= */
 
 async function downloadTelegramPdf(
@@ -271,7 +250,6 @@ async function downloadTelegramPdf(
   return {
     buffer:
       Buffer.from(arrayBuffer),
-
     filePath:
       file.file_path,
   };
@@ -279,7 +257,6 @@ async function downloadTelegramPdf(
 
 /* =========================================================
    PDF TEXT EXTRACTION
-   pdf-parse v2 + DOMMatrix FIX
 ========================================================= */
 
 async function extractPdfText(
@@ -288,19 +265,10 @@ async function extractPdfText(
   let parser = null;
 
   try {
-    /*
-      Load native canvas BEFORE pdf-parse.
-    */
-
     const canvas =
       await import(
         "@napi-rs/canvas"
       );
-
-    /*
-      PDF.js expects browser globals
-      in some environments.
-    */
 
     if (
       canvas.DOMMatrix &&
@@ -326,19 +294,11 @@ async function extractPdfText(
         canvas.Path2D;
     }
 
-    /*
-      Load CanvasFactory.
-    */
-
     const {
       CanvasFactory,
     } = await import(
       "pdf-parse/worker"
     );
-
-    /*
-      pdf-parse v2 API.
-    */
 
     const {
       PDFParse,
@@ -346,16 +306,9 @@ async function extractPdfText(
       "pdf-parse"
     );
 
-    if (!PDFParse) {
-      throw new Error(
-        "PDFParse is not available from pdf-parse"
-      );
-    }
-
     parser =
       new PDFParse({
         data: buffer,
-
         CanvasFactory,
       });
 
@@ -398,18 +351,13 @@ async function extractPdfText(
     if (parser) {
       try {
         await parser.destroy();
-      } catch (destroyError) {
-        console.error(
-          "PDF PARSER DESTROY ERROR:",
-          destroyError
-        );
-      }
+      } catch {}
     }
   }
 }
 
 /* =========================================================
-   DATE EXTRACTION
+   DATE
 ========================================================= */
 
 const MONTHS = {
@@ -441,13 +389,9 @@ function parseDateCandidate(
     return null;
   }
 
-  const d =
-    String(day).padStart(
-      2,
-      "0"
-    );
-
-  return `${year}-${monthNumber}-${d}`;
+  return `${year}-${monthNumber}-${String(
+    day
+  ).padStart(2, "0")}`;
 }
 
 function extractNewspaperDate(
@@ -455,11 +399,6 @@ function extractNewspaperDate(
 ) {
   const source =
     String(text || "");
-
-  /*
-    6 October 2026
-    06 October 2026
-  */
 
   let match =
     source.match(
@@ -474,10 +413,6 @@ function extractNewspaperDate(
     );
   }
 
-  /*
-    October 6, 2026
-  */
-
   match =
     source.match(
       /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(0?[1-9]|[12][0-9]|3[01]),?\s+(20\d{2})\b/i
@@ -490,11 +425,6 @@ function extractNewspaperDate(
       match[3]
     );
   }
-
-  /*
-    06/10/2026
-    06-10-2026
-  */
 
   match =
     source.match(
@@ -518,10 +448,6 @@ function extractNewspaperDate(
   return null;
 }
 
-/* =========================================================
-   DATE VERIFICATION
-========================================================= */
-
 function verifyPdfDate(
   pdfText
 ) {
@@ -530,23 +456,18 @@ function verifyPdfDate(
       pdfText
     );
 
+  const currentDate =
+    todayIST();
+
   if (!detectedDate) {
     return {
       valid: false,
-
       reason:
         "newspaper-date-not-found",
-
-      detectedDate:
-        null,
-
-      currentDate:
-        todayIST(),
+      detectedDate: null,
+      currentDate,
     };
   }
-
-  const currentDate =
-    todayIST();
 
   if (
     detectedDate !==
@@ -554,27 +475,22 @@ function verifyPdfDate(
   ) {
     return {
       valid: false,
-
       reason:
         "pdf-date-does-not-match-today",
-
       detectedDate,
-
       currentDate,
     };
   }
 
   return {
     valid: true,
-
     detectedDate,
-
     currentDate,
   };
 }
 
 /* =========================================================
-   UPSC RELEVANCE
+   UPSC FILTER
 ========================================================= */
 
 const UPSC_KEYWORDS = [
@@ -669,7 +585,7 @@ function relevanceScore(
     if (
       lower.includes(keyword)
     ) {
-      score += 1;
+      score++;
     }
   }
 
@@ -688,7 +604,8 @@ function relevanceScore(
 }
 
 /* =========================================================
-   ARTICLE BLOCK EXTRACTION
+   ARTICLE EXTRACTION
+   HEADLINE + ORIGINAL SUBHEADLINE/DECK
 ========================================================= */
 
 function splitIntoCandidateBlocks(
@@ -700,9 +617,7 @@ function splitIntoCandidateBlocks(
   const lines =
     cleaned
       .split("\n")
-      .map((line) =>
-        cleanText(line)
-      )
+      .map(cleanText)
       .filter(Boolean);
 
   const blocks = [];
@@ -735,9 +650,138 @@ function splitIntoCandidateBlocks(
   return blocks;
 }
 
-/* =========================================================
-   ARTICLE CANDIDATE CREATION
-========================================================= */
+function looksLikeHeadline(
+  line
+) {
+  const value =
+    cleanText(line);
+
+  if (
+    value.length < 20 ||
+    value.length > 250
+  ) {
+    return false;
+  }
+
+  const lower =
+    value.toLowerCase();
+
+  const noise = [
+    "the hindu",
+    "thursday",
+    "wednesday",
+    "tuesday",
+    "monday",
+    "sunday",
+    "saturday",
+    "october 2026",
+    "september 2026",
+    "page ",
+    "opinion",
+    "editorial",
+  ];
+
+  if (
+    noise.some(
+      (word) =>
+        lower.includes(word)
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function extractHeadlineAndDeck(
+  lines
+) {
+  if (!lines.length) {
+    return {
+      headline: "",
+      subheadline: "",
+    };
+  }
+
+  let headlineIndex = -1;
+
+  for (
+    let i = 0;
+    i < Math.min(lines.length, 8);
+    i++
+  ) {
+    if (
+      looksLikeHeadline(
+        lines[i]
+      )
+    ) {
+      headlineIndex = i;
+      break;
+    }
+  }
+
+  if (
+    headlineIndex === -1
+  ) {
+    return {
+      headline:
+        cleanText(lines[0]),
+      subheadline: "",
+    };
+  }
+
+  const headline =
+    cleanText(
+      lines[headlineIndex]
+    );
+
+  /*
+    The line immediately after the
+    headline is treated as the
+    original The Hindu deck/subheadline
+    only when it looks like a
+    question/description rather than
+    normal article body.
+  */
+
+  let subheadline = "";
+
+  const next =
+    cleanText(
+      lines[headlineIndex + 1] ||
+        ""
+    );
+
+  if (
+    next &&
+    next.length >= 30 &&
+    next.length <= 900 &&
+    next !== headline
+  ) {
+    /*
+      The Hindu decks commonly contain
+      multiple questions separated by ?.
+    */
+
+    const questionCount =
+      (
+        next.match(/\?/g) || []
+      ).length;
+
+    const looksLikeDeck =
+      questionCount >= 1 ||
+      next.length >= 100;
+
+    if (looksLikeDeck) {
+      subheadline = next;
+    }
+  }
+
+  return {
+    headline,
+    subheadline,
+  };
+}
 
 function createArticleCandidates(
   pdfText
@@ -780,31 +824,30 @@ function createArticleCandidates(
       continue;
     }
 
-    let title =
-      lines
-        .slice(0, 3)
-        .find(
-          (line) =>
-            line.length >= 25 &&
-            line.length <= 220
-        ) || "";
-
-    if (!title) {
-      title = lines[0];
-    }
-
-    title =
-      cleanText(title);
+    const {
+      headline,
+      subheadline,
+    } =
+      extractHeadlineAndDeck(
+        lines
+      );
 
     if (
-      title.length < 20 ||
-      title.length > 250
+      headline.length < 20 ||
+      headline.length > 250
     ) {
       continue;
     }
 
     candidates.push({
-      title,
+      title:
+        headline,
+
+      original_headline:
+        headline,
+
+      original_subheadline:
+        subheadline,
 
       content:
         text.slice(
@@ -821,7 +864,7 @@ function createArticleCandidates(
 }
 
 /* =========================================================
-   DUPLICATE NORMALIZATION
+   DUPLICATE HELPERS
 ========================================================= */
 
 const STOPWORDS =
@@ -893,7 +936,7 @@ function titleSimilarity(
     if (
       right.has(token)
     ) {
-      intersection += 1;
+      intersection++;
     }
   }
 
@@ -908,20 +951,15 @@ function titleSimilarity(
     : 0;
 }
 
-/* =========================================================
-   EXISTING DB SAME-EVENT DUPLICATE CHECK
-========================================================= */
-
 async function findExistingDuplicate(
   title,
   date
 ) {
-  const encodedDate =
-    escapeSupabase(date);
-
   const rows =
     await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodedDate}&limit=200`
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&limit=200`
     );
 
   if (
@@ -944,7 +982,6 @@ async function findExistingDuplicate(
     ) {
       return {
         ...row,
-
         similarity,
       };
     }
@@ -953,25 +990,17 @@ async function findExistingDuplicate(
   return null;
 }
 
-/* =========================================================
-   SOURCE URL DUPLICATE
-========================================================= */
-
 async function sourceUrlExists(
   sourceUrl,
   date
 ) {
-  const url =
-    escapeSupabase(
-      sourceUrl
-    );
-
-  const encodedDate =
-    escapeSupabase(date);
-
   const rows =
     await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&source_url=eq.${url}&date=eq.${encodedDate}&limit=5`
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&source_url=eq.${escapeSupabase(
+        sourceUrl
+      )}&date=eq.${escapeSupabase(
+        date
+      )}&limit=5`
     );
 
   return (
@@ -981,8 +1010,7 @@ async function sourceUrlExists(
 }
 
 /* =========================================================
-   PDF-LEVEL DUPLICATE CHECK
-   Same Telegram PDF ko dobara process hone se rokta hai.
+   PDF-LEVEL DUPLICATE
 ========================================================= */
 
 async function findExistingPdfArticles(
@@ -993,16 +1021,15 @@ async function findExistingPdfArticles(
     return [];
   }
 
-  const encodedDate =
-    escapeSupabase(date);
-
-  const pdfMarker =
+  const marker =
     `/the-hindu/${fileUniqueId}#`;
 
   const rows =
     await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodedDate}&source_url=ilike.*${encodeURIComponent(
-        pdfMarker
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&source_url=ilike.*${encodeURIComponent(
+        marker
       )}*&limit=200`
     );
 
@@ -1016,12 +1043,12 @@ async function findExistingPdfArticles(
     (row) =>
       String(
         row?.source_url || ""
-      ).includes(pdfMarker)
+      ).includes(marker)
   );
 }
 
 /* =========================================================
-   SEND ARTICLE TO EXISTING AI ROUTE
+   AI
 ========================================================= */
 
 async function processThroughExistingAI(
@@ -1048,7 +1075,13 @@ async function processThroughExistingAI(
             items: [
               {
                 title:
-                  candidate.title,
+                  candidate.original_headline,
+
+                original_headline:
+                  candidate.original_headline,
+
+                original_subheadline:
+                  candidate.original_subheadline,
 
                 date,
 
@@ -1102,22 +1135,10 @@ export async function POST(
   request
 ) {
   let telegramChatId = null;
-
-  /*
-    Important:
-    fileUniqueId ko outer scope me rakha gaya hai
-    taaki finally me lock release ho sake.
-  */
-
   let fileUniqueId = null;
-
   let lockAcquired = false;
 
   try {
-    /* -----------------------------------------
-       SECURITY
-    ----------------------------------------- */
-
     const internalSecret =
       request.headers.get(
         "x-sambhav-internal-secret"
@@ -1141,10 +1162,6 @@ export async function POST(
 
     const body =
       await request.json();
-
-    /* -----------------------------------------
-       TELEGRAM INFORMATION
-    ----------------------------------------- */
 
     telegramChatId =
       body?.telegram_chat_id ||
@@ -1174,7 +1191,7 @@ export async function POST(
     }
 
     /* -----------------------------------------
-       CONCURRENT PDF LOCK
+       CONCURRENT LOCK
     ----------------------------------------- */
 
     if (
@@ -1182,17 +1199,12 @@ export async function POST(
         fileUniqueId
       )
     ) {
-      console.log(
-        "THE HINDU PDF ALREADY PROCESSING:",
-        fileUniqueId
-      );
-
       await sendTelegramMessage(
         telegramChatId,
         [
           "♻️ <b>The Hindu PDF Already Processing</b>",
           "",
-          "Same PDF ka duplicate Telegram request receive hua.",
+          "Same PDF ka duplicate request receive hua.",
           "",
           "Current processing ko duplicate nahi kiya gaya.",
         ].join("\n")
@@ -1200,9 +1212,7 @@ export async function POST(
 
       return NextResponse.json({
         ok: true,
-
         duplicatePdf: true,
-
         reason:
           "pdf-already-processing",
       });
@@ -1214,17 +1224,8 @@ export async function POST(
 
     lockAcquired = true;
 
-    console.log(
-      "THE HINDU PIPELINE STARTED:",
-      {
-        fileName,
-        fileUniqueId,
-        telegramChatId,
-      }
-    );
-
     /* -----------------------------------------
-       1. DOWNLOAD PDF
+       DOWNLOAD
     ----------------------------------------- */
 
     const downloaded =
@@ -1233,7 +1234,7 @@ export async function POST(
       );
 
     /* -----------------------------------------
-       2. EXTRACT PDF TEXT
+       EXTRACT
     ----------------------------------------- */
 
     const pdfText =
@@ -1241,13 +1242,8 @@ export async function POST(
         downloaded.buffer
       );
 
-    console.log(
-      "THE HINDU PDF TEXT LENGTH:",
-      pdfText.length
-    );
-
     /* -----------------------------------------
-       3. VERIFY NEWSPAPER DATE
+       DATE
     ----------------------------------------- */
 
     const dateCheck =
@@ -1258,11 +1254,6 @@ export async function POST(
     if (
       !dateCheck.valid
     ) {
-      console.error(
-        "THE HINDU DATE VERIFICATION FAILED:",
-        dateCheck
-      );
-
       await sendTelegramMessage(
         telegramChatId,
         [
@@ -1273,25 +1264,20 @@ export async function POST(
             "Not found"
           }</b>`,
           `📅 Today: <b>${
-            dateCheck.currentDate ||
-            todayIST()
+            dateCheck.currentDate
           }</b>`,
           "",
-          "Old/invalid newspaper PDF ko Current Affairs me save nahi kiya gaya.",
+          "Old/invalid newspaper PDF ko save nahi kiya gaya.",
         ].join("\n")
       );
 
       return NextResponse.json({
         ok: false,
-
         processed: false,
-
         reason:
           dateCheck.reason,
-
         detectedDate:
           dateCheck.detectedDate,
-
         currentDate:
           dateCheck.currentDate,
       });
@@ -1301,8 +1287,7 @@ export async function POST(
       dateCheck.detectedDate;
 
     /* -----------------------------------------
-       3.5 PDF-LEVEL DUPLICATE CHECK
-       Same PDF dobara aaye to AI call nahi hoga.
+       PDF DUPLICATE
     ----------------------------------------- */
 
     const existingPdfArticles =
@@ -1314,16 +1299,6 @@ export async function POST(
     if (
       existingPdfArticles.length > 0
     ) {
-      console.log(
-        "THE HINDU PDF ALREADY PROCESSED:",
-        {
-          fileUniqueId,
-
-          existingArticles:
-            existingPdfArticles.length,
-        }
-      );
-
       await sendTelegramMessage(
         telegramChatId,
         [
@@ -1333,34 +1308,24 @@ export async function POST(
           "",
           `📰 Existing articles: <b>${existingPdfArticles.length}</b>`,
           "✅ New articles add nahi kiye gaye.",
-          "",
-          "Same PDF ko dobara process hone se rok diya gaya.",
         ].join("\n")
       );
 
       return NextResponse.json({
         ok: true,
-
         processed: false,
-
         duplicatePdf: true,
-
         reason:
           "pdf-already-processed",
-
         date:
           verifiedDate,
-
         existingArticles:
           existingPdfArticles.length,
-
-        message:
-          "This The Hindu PDF was already processed.",
       });
     }
 
     /* -----------------------------------------
-       4. EXTRACT ARTICLE CANDIDATES
+       CANDIDATES
     ----------------------------------------- */
 
     const candidates =
@@ -1368,13 +1333,8 @@ export async function POST(
         pdfText
       );
 
-    console.log(
-      "THE HINDU CANDIDATES:",
-      candidates.length
-    );
-
     /* -----------------------------------------
-       5. REMOVE SAME-PDF ARTICLE DUPLICATES
+       SAME-PDF DUPLICATES
     ----------------------------------------- */
 
     const uniqueCandidates =
@@ -1388,8 +1348,8 @@ export async function POST(
         uniqueCandidates.some(
           (existing) =>
             titleSimilarity(
-              candidate.title,
-              existing.title
+              candidate.original_headline,
+              existing.original_headline
             ) >= 0.78
         );
 
@@ -1401,7 +1361,7 @@ export async function POST(
     }
 
     /* -----------------------------------------
-       6. SELECT TOP UPSC ARTICLES
+       TOP 20
     ----------------------------------------- */
 
     const selected =
@@ -1411,15 +1371,12 @@ export async function POST(
             b.relevanceScore -
             a.relevanceScore
         )
-        .slice(
-          0,
-          20
-        );
+        .slice(0, 20);
 
     const results = [];
 
     /* -----------------------------------------
-       7. PROCESS ARTICLES
+       PROCESS
     ----------------------------------------- */
 
     for (
@@ -1431,22 +1388,16 @@ export async function POST(
         selected[index];
 
       try {
-        /*
-          Unique source URL per article.
-        */
-
         const articleSlug =
           slugify(
-            candidate.title
+            candidate.original_headline
           ) ||
           `article-${index + 1}`;
 
         const sourceUrl =
           `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
 
-        /* ---------------------------------------
-           EXACT SOURCE URL DUPLICATE
-        --------------------------------------- */
+        /* SOURCE URL DUPLICATE */
 
         if (
           await sourceUrlExists(
@@ -1456,11 +1407,9 @@ export async function POST(
         ) {
           results.push({
             title:
-              candidate.title,
-
+              candidate.original_headline,
             status:
               "skipped",
-
             reason:
               "source-url-duplicate",
           });
@@ -1468,33 +1417,26 @@ export async function POST(
           continue;
         }
 
-        /* ---------------------------------------
-           SAME EVENT DUPLICATE
-        --------------------------------------- */
+        /* SAME EVENT */
 
         const existing =
           await findExistingDuplicate(
-            candidate.title,
+            candidate.original_headline,
             verifiedDate
           );
 
         if (existing) {
           results.push({
             title:
-              candidate.title,
-
+              candidate.original_headline,
             status:
               "skipped",
-
             reason:
               "same-event-already-exists",
-
             existingTitle:
               existing.title,
-
             existingSource:
               existing.source_name,
-
             similarity:
               existing.similarity,
           });
@@ -1502,9 +1444,7 @@ export async function POST(
           continue;
         }
 
-        /* ---------------------------------------
-           EXISTING AI PIPELINE
-        --------------------------------------- */
+        /* AI */
 
         const aiResult =
           await processThroughExistingAI(
@@ -1515,83 +1455,54 @@ export async function POST(
 
         results.push({
           title:
-            candidate.title,
-
+            candidate.original_headline,
           status:
             "processed",
-
           ai:
             aiResult,
         });
-      } catch (
-        articleError
-      ) {
+      } catch (error) {
         console.error(
           "THE HINDU ARTICLE ERROR:",
-          candidate.title,
-          articleError
+          candidate.original_headline,
+          error
         );
 
         results.push({
           title:
-            candidate.title,
-
+            candidate.original_headline,
           status:
             "failed",
-
           error:
-            articleError?.message ||
+            error?.message ||
             "Unknown article error",
         });
       }
     }
 
-    /* -----------------------------------------
-       8. FINAL COUNTS
-    ----------------------------------------- */
-
     const processed =
       results.filter(
-        (item) =>
-          item.status ===
+        (x) =>
+          x.status ===
           "processed"
       ).length;
 
     const skipped =
       results.filter(
-        (item) =>
-          item.status ===
+        (x) =>
+          x.status ===
           "skipped"
       ).length;
 
     const failed =
       results.filter(
-        (item) =>
-          item.status ===
+        (x) =>
+          x.status ===
           "failed"
       ).length;
 
-    console.log(
-      "THE HINDU PIPELINE COMPLETE:",
-      {
-        verifiedDate,
-
-        candidates:
-          candidates.length,
-
-        selected:
-          selected.length,
-
-        processed,
-
-        skipped,
-
-        failed,
-      }
-    );
-
     /* -----------------------------------------
-       9. TELEGRAM COMPLETION NOTIFICATION
+       TELEGRAM COMPLETE
     ----------------------------------------- */
 
     await sendTelegramMessage(
@@ -1611,33 +1522,20 @@ export async function POST(
       ].join("\n")
     );
 
-    /* -----------------------------------------
-       10. RESPONSE
-    ----------------------------------------- */
-
     return NextResponse.json({
       ok: true,
-
       processed: true,
-
       source:
         "The Hindu",
-
       date:
         verifiedDate,
-
       candidates:
         candidates.length,
-
       selected:
         selected.length,
-
       processed,
-
       skipped,
-
       failed,
-
       results,
     });
   } catch (error) {
@@ -1645,10 +1543,6 @@ export async function POST(
       "THE HINDU PIPELINE FATAL ERROR:",
       error
     );
-
-    /* -----------------------------------------
-       FATAL ERROR TELEGRAM NOTIFICATION
-    ----------------------------------------- */
 
     await sendTelegramMessage(
       telegramChatId,
@@ -1667,7 +1561,6 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
-
         error:
           error?.message ||
           "The Hindu pipeline failed",
@@ -1677,10 +1570,6 @@ export async function POST(
       }
     );
   } finally {
-    /* -----------------------------------------
-       RELEASE PDF LOCK
-    ----------------------------------------- */
-
     if (
       lockAcquired &&
       fileUniqueId
@@ -1688,26 +1577,19 @@ export async function POST(
       THE_HINDU_PROCESSING_LOCK.delete(
         fileUniqueId
       );
-
-      console.log(
-        "THE HINDU PDF PROCESSING LOCK RELEASED:",
-        fileUniqueId
-      );
     }
   }
 }
 
 /* =========================================================
-   GET HEALTH CHECK
+   HEALTH
 ========================================================= */
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
-
     service:
       "SAMBHAV UPSC The Hindu PDF Pipeline",
-
     date:
       todayIST(),
   });
