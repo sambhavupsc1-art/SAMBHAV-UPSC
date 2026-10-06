@@ -411,8 +411,7 @@ async function extractPdfText(
         data:
           buffer,
 
-        canvasFactory:
-          CanvasFactory,
+        CanvasFactory,
       });
 
     const result =
@@ -1569,8 +1568,7 @@ async function renderAndUploadHeadline(
   createCanvas,
   match,
   fileUniqueId,
-  headline,
-  CanvasFactory
+  headline
 ) {
   if (
     !match ||
@@ -1630,9 +1628,6 @@ async function renderAndUploadHeadline(
         pageContext,
 
       viewport,
-
-      canvasFactory:
-        CanvasFactory,
     }).promise;
 
     let x1 =
@@ -1882,83 +1877,16 @@ async function createTheHinduHeadlineImage(
     null;
 
   try {
-    const canvasModule =
+    const pdfjsLib =
       await import(
-        "@napi-rs/canvas"
+        "pdfjs-dist/legacy/build/pdf.mjs"
       );
 
     const {
       createCanvas,
-      DOMMatrix,
-      ImageData,
-      Path2D,
-    } = canvasModule;
-
-    if (DOMMatrix) {
-      globalThis.DOMMatrix =
-        DOMMatrix;
-    }
-
-    if (ImageData) {
-      globalThis.ImageData =
-        ImageData;
-    }
-
-    if (Path2D) {
-      globalThis.Path2D =
-        Path2D;
-    }
-
-    class HeadlineCanvasFactory {
-      create(width, height) {
-        const canvas =
-          createCanvas(
-            Math.ceil(width),
-            Math.ceil(height)
-          );
-
-        const context =
-          canvas.getContext("2d");
-
-        return {
-          canvas,
-          context,
-        };
-      }
-
-      reset(canvasAndContext, width, height) {
-        if (!canvasAndContext?.canvas) {
-          return;
-        }
-
-        canvasAndContext.canvas.width =
-          Math.ceil(width);
-
-        canvasAndContext.canvas.height =
-          Math.ceil(height);
-
-        canvasAndContext.context =
-          canvasAndContext.canvas.getContext("2d");
-      }
-
-      destroy(canvasAndContext) {
-        if (!canvasAndContext?.canvas) {
-          return;
-        }
-
-        canvasAndContext.canvas.width = 0;
-        canvasAndContext.canvas.height = 0;
-        canvasAndContext.canvas = null;
-        canvasAndContext.context = null;
-      }
-    }
-
-    const CanvasFactory =
-      HeadlineCanvasFactory;
-
-    const pdfjsLib =
+    } =
       await import(
-        "pdfjs-dist/legacy/build/pdf.mjs"
+        "@napi-rs/canvas"
       );
 
     const loadingTask =
@@ -1976,14 +1904,6 @@ async function createTheHinduHeadlineImage(
 
         isEvalSupported:
           false,
-
-        isOffscreenCanvasSupported:
-          false,
-
-        isImageDecoderSupported:
-          false,
-
-        CanvasFactory,
       });
 
     pdf =
@@ -2170,8 +2090,7 @@ async function createTheHinduHeadlineImage(
       createCanvas,
       bestMatch,
       fileUniqueId,
-      headline,
-      CanvasFactory
+      headline
     );
   } catch (error) {
     console.error(
@@ -2182,10 +2101,6 @@ async function createTheHinduHeadlineImage(
         error:
           error?.message ||
           error,
-
-        stack:
-          error?.stack ||
-          "",
       }
     );
 
@@ -2385,51 +2300,30 @@ function verifyPdfDate(
   const currentDate =
     todayIST();
 
-  if (
-    !detectedDate
-  ) {
+  /*
+   * Historical-date restriction intentionally removed.
+   * Any valid The Hindu newspaper date is allowed.
+   * This supports uploading PDFs one-by-one from
+   * 1 Oct onward without changing the pipeline again.
+   */
+
+  if (!detectedDate) {
     return {
-      valid:
-        false,
+      valid: false,
 
       reason:
         "newspaper-date-not-found",
 
-      detectedDate:
-        null,
+      detectedDate: null,
 
       currentDate,
 
-      dateSource:
-        "none",
-    };
-  }
-
-  if (
-    detectedDate !==
-    currentDate
-  ) {
-    return {
-      valid:
-        false,
-
-      reason:
-        "pdf-date-does-not-match-today",
-
-      detectedDate,
-
-      currentDate,
-
-      dateSource:
-        filenameDate
-          ? "filename"
-          : "pdf-text",
+      dateSource: "none",
     };
   }
 
   return {
-    valid:
-      true,
+    valid: true,
 
     detectedDate,
 
@@ -2439,6 +2333,9 @@ function verifyPdfDate(
       filenameDate
         ? "filename"
         : "pdf-text",
+
+    historical:
+      detectedDate !== currentDate,
   };
 }
 
@@ -3575,9 +3472,12 @@ export async function POST(
      * IMPORTANT:
      *
      * Same PDF already exists.
-     * Never re-run article generation,
-     * AI processing, or headline-image
-     * backfill from the webhook.
+     *
+     * Do NOT create new articles.
+     *
+     * Instead:
+     * generate missing headline images
+     * for the existing articles.
      */
 
     if (
@@ -3595,6 +3495,15 @@ export async function POST(
         }
       );
 
+      const backfill =
+        await backfillExistingPdfHeadlineImages(
+          downloaded.buffer,
+
+          fileUniqueId,
+
+          existingPdfArticles
+        );
+
       await sendTelegramMessage(
         telegramChatId,
 
@@ -3608,11 +3517,21 @@ export async function POST(
 
           "",
 
-          "🚫 Duplicate PDF ko dobara process nahi kiya gaya.",
+          "🖼 <b>Headline image backfill:</b>",
 
-          "🚫 Headline-image backfill automatically run nahi hua.",
+          `🔎 Processed: <b>${backfill.processed}</b>`,
 
-          "🚫 AI/crop processing repeat nahi hui.",
+          `✅ Images added: <b>${backfill.updated}</b>`,
+
+          `⏭ Skipped: <b>${backfill.skipped}</b>`,
+
+          `❌ Failed: <b>${backfill.failed}</b>`,
+
+          "",
+
+          "✅ Existing articles update kiye gaye.",
+
+          "🚫 New duplicate articles create nahi hue.",
         ].join(
           "\n"
         )
@@ -3623,19 +3542,21 @@ export async function POST(
           true,
 
         processed:
-          false,
+          true,
 
         duplicatePdf:
           true,
 
         reason:
-          "pdf-already-processed",
+          "pdf-headline-image-backfill",
 
         date:
           verifiedDate,
 
         existingArticles:
           existingPdfArticles.length,
+
+        backfill,
       });
     }
 
