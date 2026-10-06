@@ -814,8 +814,7 @@ export default function CurrentAffairsPage() {
           🔥 Premium Facts
         </button>
       </nav>
-
-      {loading ? (
+            {loading ? (
         <section className="state-card">
           <div className="loader" />
 
@@ -944,7 +943,6 @@ export default function CurrentAffairsPage() {
       )}
 
       <style jsx global>{`
-        /* ---------- PAGE BACK BUTTON ---------- */
         .page-back-button {
           display: inline-flex;
           align-items: center;
@@ -1018,7 +1016,6 @@ export default function CurrentAffairsPage() {
           margin-right: auto;
         }
 
-        /* ---------- PREMIUM UPSC HERO ---------- */
         .ca-premium-hero {
           position: relative;
           overflow: hidden;
@@ -1260,16 +1257,6 @@ export default function CurrentAffairsPage() {
           gap: 7px;
           cursor: pointer;
           font-weight: 900;
-          transition:
-            transform 0.16s ease,
-            background 0.16s ease,
-            border-color 0.16s ease,
-            box-shadow 0.16s ease;
-        }
-
-        .source-tab:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
         }
 
         .source-tab.active {
@@ -1319,155 +1306,6 @@ export default function CurrentAffairsPage() {
           color: #fff;
         }
 
-        .ca-header {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
-          margin-bottom: 20px;
-          padding: 26px;
-          background: rgba(255, 255, 255, 0.94);
-          border: 1px solid #e2e7ef;
-          border-radius: 22px;
-          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.065);
-          backdrop-filter: blur(10px);
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 10px;
-          align-items: stretch;
-          flex-wrap: wrap;
-        }
-
-        .language-box,
-        .date-card,
-        .notification-button,
-        .magazine-button {
-          background: #fff;
-          border: 1px solid #dfe5ec;
-          border-radius: 14px;
-          padding: 12px 14px;
-          box-shadow: 0 4px 14px rgba(16, 24, 40, 0.035);
-        }
-
-        .language-box > span {
-          display: block;
-          color: #667085;
-          font-size: 11px;
-          margin-bottom: 7px;
-          font-weight: 800;
-          letter-spacing: 0.02em;
-        }
-
-        .language-buttons {
-          display: flex;
-          gap: 5px;
-        }
-
-        .lang {
-          border: 1px solid #dfe3e8;
-          background: #fff;
-          color: #344054;
-          border-radius: 8px;
-          padding: 7px 10px;
-          cursor: pointer;
-          font-weight: 800;
-          transition:
-            transform 0.16s ease,
-            background 0.16s ease;
-        }
-
-        .lang.active {
-          background: #172033;
-          color: #fff;
-          border-color: #172033;
-        }
-
-        .magazine-button {
-          cursor: pointer;
-          font-weight: 850;
-          color: #fff;
-          background: #172033;
-          border: 1px solid #172033;
-          border-radius: 14px;
-          padding: 12px 15px;
-          display: flex;
-          gap: 7px;
-          align-items: center;
-          justify-content: center;
-          min-height: 44px;
-          box-shadow: 0 4px 14px rgba(16, 24, 40, 0.035);
-          white-space: nowrap;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            background 0.16s ease;
-        }
-
-        .magazine-button:hover {
-          background: #25304a;
-          border-color: #25304a;
-          transform: translateY(-1px);
-        }
-
-        .notification-button {
-          cursor: pointer;
-          font-weight: 850;
-          color: #172033;
-          display: flex;
-          gap: 7px;
-          align-items: center;
-          justify-content: center;
-          min-height: 44px;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease;
-        }
-
-        .eyebrow {
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 0.16em;
-          margin: 0 0 8px;
-          color: #667085;
-        }
-
-        h1 {
-          margin: 0;
-          font-size: clamp(32px, 5vw, 46px);
-          line-height: 1.02;
-          letter-spacing: -0.04em;
-          font-weight: 950;
-        }
-
-        .sub {
-          color: #667085;
-          margin: 11px 0 0;
-          font-size: 14px;
-          line-height: 1.55;
-          max-width: 620px;
-        }
-
-        .date-card {
-          min-width: 190px;
-        }
-
-        .date-card span,
-        .date-card small {
-          display: block;
-          color: #667085;
-          font-size: 11px;
-        }
-
-        .date-card strong {
-          display: block;
-          margin: 5px 0;
-          font-size: 15px;
-          font-weight: 900;
-          color: #172033;
-        }
-
         .notification-panel {
           background: #fff;
           border: 1px solid #dfe5ec;
@@ -1488,7 +1326,6 @@ export default function CurrentAffairsPage() {
           margin: 8px 0 5px;
           font-size: 20px;
           font-weight: 900;
-          letter-spacing: -0.02em;
         }
 
         .notification-title p {
@@ -1505,7 +1342,6 @@ export default function CurrentAffairsPage() {
           background: #d0d5dd;
           padding: 3px;
           cursor: pointer;
-          flex-shrink: 0;
         }
 
         .switch span {
@@ -1561,9 +1397,6 @@ export default function CurrentAffairsPage() {
           padding: 9px 12px;
           cursor: pointer;
           font-weight: 800;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease;
         }
 
         .setting-btn.active {
@@ -1634,18 +1467,12 @@ export default function CurrentAffairsPage() {
           white-space: nowrap;
           cursor: pointer;
           font-weight: 800;
-          box-shadow: 0 2px 7px rgba(15, 23, 42, 0.025);
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            background 0.16s ease;
         }
 
         .filter.active {
           background: #172033;
           color: #fff;
           border-color: #172033;
-          box-shadow: 0 5px 12px rgba(15, 23, 42, 0.13);
         }
 
         .filter.important.active {
@@ -1669,7 +1496,6 @@ export default function CurrentAffairsPage() {
         .section-heading h2 {
           margin: 8px 0 0;
           font-size: 24px;
-          letter-spacing: -0.025em;
           font-weight: 900;
         }
 
@@ -1685,7 +1511,6 @@ export default function CurrentAffairsPage() {
           align-items: center;
           font-size: 10px;
           font-weight: 900;
-          letter-spacing: 0.07em;
           padding: 6px 9px;
           border-radius: 999px;
           background: #eef2f6;
@@ -1703,16 +1528,6 @@ export default function CurrentAffairsPage() {
           border-radius: 18px;
           padding: 22px;
           box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease;
-        }
-
-        .news-card:hover {
-          transform: translateY(-2px);
-          border-color: #d5dce6;
-          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.07);
         }
 
         .topline {
@@ -1727,7 +1542,6 @@ export default function CurrentAffairsPage() {
           align-items: center;
           gap: 6px;
           flex-wrap: wrap;
-          min-width: 0;
         }
 
         .source-chip {
@@ -1740,7 +1554,6 @@ export default function CurrentAffairsPage() {
           color: #475467;
           font-size: 8px;
           font-weight: 950;
-          letter-spacing: 0.05em;
         }
 
         .source-chip.pib {
@@ -1774,7 +1587,6 @@ export default function CurrentAffairsPage() {
           margin: 12px 0 8px;
           font-size: clamp(20px, 2.3vw, 25px);
           line-height: 1.3;
-          letter-spacing: -0.02em;
           font-weight: 900;
           color: #172033;
         }
@@ -1804,21 +1616,11 @@ export default function CurrentAffairsPage() {
           min-height: 44px;
           cursor: pointer;
           font-weight: 850;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            background 0.16s ease;
         }
 
         .read-button {
           background: #172033;
           color: #fff;
-          box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
-        }
-
-        .read-button:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 7px 16px rgba(15, 23, 42, 0.16);
         }
 
         .important-button {
@@ -1826,21 +1628,10 @@ export default function CurrentAffairsPage() {
           color: #344054;
         }
 
-        .important-button:hover {
-          transform: translateY(-1px);
-        }
-
         .important-button.saved {
           background: #fff3d6;
           color: #8a5a00;
           border: 1px solid #f0d39b;
-        }
-
-        .important-button:disabled,
-        .setting-btn:disabled,
-        .save-time:disabled {
-          opacity: 0.6;
-          cursor: wait;
         }
 
         .empty,
@@ -1858,7 +1649,6 @@ export default function CurrentAffairsPage() {
 
         .state-card {
           border-style: solid;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
         }
 
         .state-card h2 {
@@ -1898,25 +1688,22 @@ export default function CurrentAffairsPage() {
           border-radius: 20px;
           padding: 24px;
           margin-bottom: 16px;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
         }
 
         .premium-main-badge {
           display: inline-flex;
-          align-items: center;
           padding: 6px 10px;
           border-radius: 999px;
           background: #f8e8e8;
           color: #7f1d1d;
           font-size: 10px;
           font-weight: 950;
-          letter-spacing: 0.1em;
         }
 
         .premium-main-heading h2 {
           margin: 10px 0 5px;
           color: #172033;
-          font-size: clamp(22px, 4vw, 30px);
+          font-size: 30px;
           font-weight: 950;
         }
 
@@ -1934,7 +1721,6 @@ export default function CurrentAffairsPage() {
         }
 
         .premium-tab {
-          min-width: 0;
           display: flex;
           align-items: center;
           gap: 12px;
@@ -1945,33 +1731,20 @@ export default function CurrentAffairsPage() {
           background: #fff;
           color: #172033;
           cursor: pointer;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            border-color 0.16s ease,
-            background 0.16s ease;
-        }
-
-        .premium-tab:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
         }
 
         .premium-tab.active {
           color: #fff;
           background: #172033;
           border-color: #172033;
-          box-shadow: 0 10px 24px rgba(23, 32, 51, 0.16);
         }
 
         .premium-tab-number {
           font-size: 11px;
           font-weight: 950;
-          opacity: 0.65;
         }
 
         .premium-tab-copy {
-          min-width: 0;
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -1980,13 +1753,11 @@ export default function CurrentAffairsPage() {
 
         .premium-tab-copy strong {
           font-size: 13px;
-          letter-spacing: 0.04em;
         }
 
         .premium-tab-copy small {
           color: #667085;
           font-size: 11px;
-          line-height: 1.35;
         }
 
         .premium-tab.active .premium-tab-copy small {
@@ -2020,7 +1791,6 @@ export default function CurrentAffairsPage() {
           color: #8b1e2d;
           font-size: 10px;
           font-weight: 950;
-          letter-spacing: 0.1em;
         }
 
         .premium-active-heading h3 {
@@ -2037,8 +1807,6 @@ export default function CurrentAffairsPage() {
         }
 
         .premium-active-heading > strong {
-          min-width: 42px;
-          text-align: center;
           padding: 8px 10px;
           border-radius: 10px;
           background: #f5f6f8;
@@ -2057,17 +1825,6 @@ export default function CurrentAffairsPage() {
           border: 1px solid #e1e6ee;
           border-radius: 17px;
           padding: 18px;
-          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease;
-        }
-
-        .premium-clean-card:hover {
-          transform: translateY(-2px);
-          border-color: #d5dbe4;
-          box-shadow: 0 13px 28px rgba(15, 23, 42, 0.07);
         }
 
         .premium-clean-meta,
@@ -2081,12 +1838,10 @@ export default function CurrentAffairsPage() {
         .premium-type-pill,
         .premium-gs-pill {
           display: inline-flex;
-          align-items: center;
           padding: 5px 8px;
           border-radius: 8px;
           font-size: 9px;
           font-weight: 900;
-          letter-spacing: 0.06em;
         }
 
         .premium-type-pill {
@@ -2139,56 +1894,6 @@ export default function CurrentAffairsPage() {
           text-align: center;
         }
 
-        .fact-grid {
-          max-width: 1050px;
-          margin: auto;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 15px;
-        }
-
-        .fact-card {
-          background: #fff;
-          border: 1px solid #e1e6ee;
-          border-radius: 17px;
-          padding: 19px;
-          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease;
-        }
-
-        .fact-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 13px 28px rgba(15, 23, 42, 0.065);
-        }
-
-        .fact-card > span {
-          font-size: 10px;
-          color: #667085;
-          font-weight: 900;
-          letter-spacing: 0.08em;
-        }
-
-        .fact-card h3 {
-          font-size: 17px;
-          margin: 10px 0;
-          line-height: 1.35;
-          font-weight: 900;
-        }
-
-        .fact-card p {
-          color: #475467;
-          line-height: 1.65;
-          font-size: 13.5px;
-          white-space: pre-wrap;
-        }
-
-        .fact-card small {
-          color: #667085;
-          font-size: 11px;
-        }
-
         .inline-analysis {
           margin-top: 17px;
           padding-top: 17px;
@@ -2197,15 +1902,10 @@ export default function CurrentAffairsPage() {
 
         .inline-analysis-card {
           width: 100%;
-          max-height: none;
-          overflow: visible;
           background: #fbfcfe;
           border: 1px solid #d9e0e9;
           border-radius: 16px;
           padding: 22px;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.8),
-            0 10px 28px rgba(15, 23, 42, 0.055);
         }
 
         .inline-analysis-card .close {
@@ -2217,16 +1917,7 @@ export default function CurrentAffairsPage() {
           background: #fff;
           color: #475467;
           font-size: 22px;
-          line-height: 1;
           cursor: pointer;
-          transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease;
-        }
-
-        .inline-analysis-card .close:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
         }
 
         .modal h2 {
@@ -2271,9 +1962,7 @@ export default function CurrentAffairsPage() {
           text-decoration: underline;
         }
 
-        /* =========================================================
-           THE HINDU ACTUAL NEWSPAPER HEADLINE CUT
-           ========================================================= */
+        /* THE HINDU ACTUAL NEWSPAPER CUT */
 
         .the-hindu-headline-cut {
           margin: 18px 0 24px;
@@ -2324,83 +2013,12 @@ export default function CurrentAffairsPage() {
           margin-top: 12px;
         }
 
-        .filter:hover,
-        .lang:hover,
-        .setting-btn:hover,
-        .setting-btn.active:hover,
-        .notification-button:hover {
-          transform: translateY(-1px);
-        }
-
-        .filter:focus-visible,
-        .read-button:focus-visible,
-        .important-button:focus-visible,
-        .lang:focus-visible,
-        .setting-btn:focus-visible,
-        .notification-button:focus-visible,
-        .magazine-button:focus-visible,
-        .close:focus-visible {
-          outline: 3px solid rgba(37, 99, 235, 0.18);
-          outline-offset: 2px;
-        }
-
-        /* =========================================================
-           RESPONSIVE SYSTEM
-           ========================================================= */
-
-        @media (min-width: 1400px) {
-          .ca-page {
-            padding-left: 32px;
-            padding-right: 32px;
-          }
-
-          .ca-header,
-          .source-nav-wrap,
-          .notification-panel,
-          .filter-row,
-          .section-heading,
-          .news-list,
-          .special-section {
-            max-width: 1180px;
-          }
-
-          .ca-header {
-            padding: 30px;
-          }
-        }
-
-        @media (min-width: 1025px) and (max-width: 1399px) {
-          .ca-page {
-            padding: 28px 20px 80px;
-          }
-
-          .ca-header,
-          .source-nav-wrap,
-          .notification-panel,
-          .filter-row,
-          .section-heading,
-          .news-list,
-          .special-section {
-            max-width: 1100px;
-          }
-
-          .ca-header {
-            align-items: flex-start;
-          }
-
-          .header-actions {
-            max-width: 560px;
-            justify-content: flex-end;
-          }
-        }
-
-        @media (min-width: 601px) and (max-width: 1024px) {
+        @media (max-width: 1024px) {
           .ca-page {
             padding: 22px 16px 70px;
           }
 
           .ca-header {
-            display: flex;
             flex-direction: column;
             align-items: stretch;
             gap: 20px;
@@ -2409,74 +2027,47 @@ export default function CurrentAffairsPage() {
 
           .header-actions {
             display: grid;
-            grid-template-columns: repeat(
-              2,
-              minmax(0, 1fr)
-            );
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
             width: 100%;
           }
 
-          .language-box,
-          .date-card,
-          .notification-button,
-          .magazine-button {
-            width: 100%;
-            min-width: 0;
-          }
-
           .source-nav {
-            grid-template-columns: repeat(
-              3,
-              minmax(0, 1fr)
-            );
-          }
-
-          .source-nav-wrap {
-            width: 100%;
-          }
-
-          .filter-row {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-
-          .filter {
-            flex: 0 0 auto;
-          }
-
-          .news-card {
-            padding: 20px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
           .fact-grid {
-            grid-template-columns: repeat(
-              2,
-              minmax(0, 1fr)
-            );
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
           .premium-clean-grid {
-            grid-template-columns: repeat(
-              2,
-              minmax(0, 1fr)
-            );
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 900px) {
+          .ca-premium-hero {
+            grid-template-columns: 1fr;
+          }
+
+          .ca-hero-seal {
+            display: none;
+          }
+
+          .ca-hero-topbar {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .ca-hero-actions {
+            width: 100%;
+            justify-content: flex-start;
           }
         }
 
         @media (max-width: 800px) {
           .ca-premium-hero {
             padding: 22px;
-          }
-
-          .ca-hero-seal {
-            flex-basis: 125px;
-          }
-
-          .ca-hero-seal-ring {
-            width: 94px;
-            height: 94px;
           }
         }
 
@@ -2498,35 +2089,64 @@ export default function CurrentAffairsPage() {
 
           .ca-premium-hero {
             display: block;
-            padding: 19px;
-            border-radius: 19px;
+            padding: 15px;
+            border-radius: 20px;
+          }
+
+          .ca-hero-topbar {
+            display: block;
+          }
+
+          .ca-hero-brand {
+            margin-bottom: 12px;
+          }
+
+          .ca-hero-brand strong {
+            font-size: 20px;
+          }
+
+          .ca-hero-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
+          }
+
+          .ca-hero-action-card,
+          .ca-hero-utility-btn {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .ca-language-card,
+          .ca-date-card {
+            min-width: 0;
+          }
+
+          .ca-hero-utility-btn {
+            min-height: 46px;
+          }
+
+          .ca-hero-divider {
+            margin: 13px 0 3px;
           }
 
           .ca-hero-copy h2 {
-            font-size: 26px;
-            line-height: 1.1;
-            margin-top: 9px;
+            font-size: 25px;
+            letter-spacing: -1px;
           }
 
           .ca-hero-copy p {
             font-size: 11.5px;
-            line-height: 1.65;
           }
 
           .ca-hero-stats {
             display: grid;
-            grid-template-columns: repeat(
-              3,
-              minmax(0, 1fr)
-            );
-            gap: 6px;
-            margin-top: 15px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
           .ca-hero-stat {
             min-width: 0;
             padding: 8px 7px;
-            border-radius: 10px;
           }
 
           .ca-hero-stat strong {
@@ -2534,59 +2154,14 @@ export default function CurrentAffairsPage() {
           }
 
           .ca-hero-stat span {
-            font-size: 7px;
-          }
-
-          .ca-hero-seal {
-            display: none;
-          }
-
-          .ca-header {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 17px;
-            padding: 17px;
-            border-radius: 18px;
-          }
-
-          h1 {
-            font-size: clamp(29px, 9vw, 38px);
-          }
-
-          .sub {
-            font-size: 12.5px;
-          }
-
-          .header-actions {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-          }
-
-          .language-box,
-          .date-card,
-          .notification-button,
-          .magazine-button {
-            width: 100%;
-            min-width: 0;
-            box-sizing: border-box;
-          }
-
-          .lang {
-            flex: 1;
-            min-height: 40px;
+            font-size: 6.5px;
           }
 
           .source-nav-wrap {
+            border-radius: 17px;
             width: 100%;
-            max-width: 100%;
             box-sizing: border-box;
             padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 15px;
           }
 
           .source-nav-head {
@@ -2603,7 +2178,6 @@ export default function CurrentAffairsPage() {
             overflow-x: auto;
             gap: 6px;
             scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
           }
 
           .source-nav::-webkit-scrollbar {
@@ -2612,8 +2186,9 @@ export default function CurrentAffairsPage() {
 
           .source-tab {
             flex: 0 0 auto;
-            min-height: 40px;
+            min-height: 43px;
             padding: 7px 10px;
+            border-radius: 12px;
           }
 
           .notification-panel {
@@ -2656,7 +2231,6 @@ export default function CurrentAffairsPage() {
             gap: 7px;
             padding: 3px 1px 13px;
             scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
           }
 
           .filter-row::-webkit-scrollbar {
@@ -2808,11 +2382,6 @@ export default function CurrentAffairsPage() {
             grid-template-columns: 1fr;
           }
 
-          .fact-grid {
-            width: 100%;
-            grid-template-columns: 1fr;
-          }
-
           .empty,
           .state-card {
             width: 100%;
@@ -2830,10 +2399,6 @@ export default function CurrentAffairsPage() {
 
           .ca-header {
             padding: 14px;
-          }
-
-          h1 {
-            font-size: 28px;
           }
 
           .source-nav-head {
@@ -2866,479 +2431,6 @@ export default function CurrentAffairsPage() {
 
           .source {
             grid-column: auto;
-          }
-        }
-
-        /* =========================================================
-           SAMBHAV PREMIUM CA POLISH
-           ========================================================= */
-
-        .ca-premium-hero {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 165px;
-          gap: 24px;
-          align-items: center;
-          padding: 18px 20px 23px;
-          border-radius: 26px;
-          border: 1px solid rgba(195, 161, 90, 0.34);
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.17);
-        }
-
-        .ca-hero-topbar {
-          grid-column: 1 / -1;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 18px;
-          position: relative;
-          z-index: 2;
-        }
-
-        .ca-hero-brand {
-          min-width: 185px;
-        }
-
-        .ca-hero-brand-kicker {
-          display: block;
-          color: #d9bd72;
-          font-size: 8px;
-          letter-spacing: 0.18em;
-          font-weight: 950;
-          text-transform: uppercase;
-          margin-bottom: 5px;
-        }
-
-        .ca-hero-brand strong {
-          display: block;
-          color: #fffdf9;
-          font-size: 21px;
-          line-height: 1.05;
-          letter-spacing: -0.6px;
-        }
-
-        .ca-hero-brand small {
-          display: block;
-          color: #8f98a5;
-          font-size: 9px;
-          line-height: 1.4;
-          margin-top: 5px;
-        }
-
-        .ca-hero-actions {
-          display: flex;
-          align-items: stretch;
-          justify-content: flex-end;
-          gap: 7px;
-          flex-wrap: wrap;
-        }
-
-        .ca-hero-action-card,
-        .ca-hero-utility-btn {
-          min-height: 52px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.055);
-          color: #fff;
-          backdrop-filter: blur(10px);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-        }
-
-        .ca-hero-action-card {
-          padding: 8px 10px;
-        }
-
-        .ca-language-card {
-          min-width: 148px;
-        }
-
-        .ca-date-card {
-          min-width: 138px;
-        }
-
-        .ca-hero-action-card > span {
-          display: block;
-          color: #8e97a4;
-          font-size: 7px;
-          font-weight: 850;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          margin-bottom: 5px;
-        }
-
-        .ca-date-card strong {
-          display: block;
-          color: #fffdf9;
-          font-size: 11px;
-          line-height: 1;
-        }
-
-        .ca-date-card small {
-          display: block;
-          color: #7f8996;
-          font-size: 7px;
-          margin-top: 5px;
-        }
-
-        .ca-lang-pills {
-          display: flex;
-          gap: 4px;
-        }
-
-        .ca-lang-pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
-          color: #aeb5bf;
-          border-radius: 8px;
-          padding: 6px 8px;
-          font-size: 9px;
-          font-weight: 900;
-          cursor: pointer;
-        }
-
-        .ca-lang-pill.active {
-          background: #f7f1df;
-          color: #111827;
-          border-color: #f7f1df;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
-        }
-
-        .ca-hero-utility-btn {
-          min-width: 126px;
-          padding: 0 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          cursor: pointer;
-          font-size: 9px;
-          transition:
-            transform 0.16s ease,
-            background 0.16s ease,
-            border-color 0.16s ease;
-        }
-
-        .ca-hero-utility-btn span {
-          color: #e2c77d;
-          font-size: 12px;
-        }
-
-        .ca-hero-utility-btn:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.09);
-          border-color: rgba(226, 199, 125, 0.28);
-        }
-
-        .ca-hero-utility-btn.notification {
-          background: #f7f1df;
-          color: #172033;
-          border-color: #f7f1df;
-        }
-
-        .ca-hero-utility-btn.notification span {
-          color: #8d6a22;
-        }
-
-        .ca-hero-divider {
-          grid-column: 1 / -1;
-          height: 1px;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(226, 199, 125, 0.25),
-            transparent
-          );
-          margin: 0 0 -4px;
-        }
-
-        .ca-hero-copy {
-          min-width: 0;
-        }
-
-        .ca-hero-copy h2 {
-          font-size: clamp(24px, 3vw, 37px);
-          line-height: 1.08;
-          letter-spacing: -1.45px;
-          max-width: 720px;
-          margin: 7px 0 9px;
-        }
-
-        .ca-hero-copy p {
-          max-width: 700px;
-          font-size: 12px;
-          line-height: 1.75;
-          color: #aeb6c1;
-        }
-
-        .ca-hero-stats {
-          margin-top: 18px;
-          gap: 8px;
-        }
-
-        .ca-hero-stat {
-          min-width: 112px;
-          padding: 10px 12px;
-          border-radius: 13px;
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.075),
-              rgba(255, 255, 255, 0.035)
-            );
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .ca-hero-stat strong {
-          font-size: 14px;
-          letter-spacing: -0.2px;
-        }
-
-        .ca-hero-stat span {
-          font-size: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-        }
-
-        .source-nav-wrap {
-          padding: 14px;
-          border-radius: 20px;
-          background: rgba(255, 255, 255, 0.94);
-          border-color: #e1e5eb;
-          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.055);
-        }
-
-        .source-nav-head {
-          padding: 1px 3px 11px;
-        }
-
-        .source-nav-head strong {
-          font-size: 14px;
-          letter-spacing: -0.25px;
-        }
-
-        .source-tab {
-          min-height: 48px;
-          border-radius: 14px;
-          background: linear-gradient(180deg, #fff, #fafbfc);
-          box-shadow: 0 2px 5px rgba(15, 23, 42, 0.025);
-        }
-
-        .source-tab.active {
-          background: linear-gradient(
-            145deg,
-            #1a2232,
-            #111827
-          );
-          box-shadow: 0 9px 20px rgba(15, 23, 42, 0.15);
-        }
-
-        .source-tab.ethics.active {
-          background: linear-gradient(
-            145deg,
-            #8b3046,
-            #682235
-          );
-        }
-
-        .filter-row {
-          gap: 8px;
-          padding: 4px 0 15px;
-        }
-
-        .filter {
-          min-height: 43px;
-          padding: 10px 15px;
-          border-radius: 13px;
-          border: 1px solid #e1e6ed;
-          background: linear-gradient(
-            180deg,
-            #fff,
-            #f8fafc
-          );
-          color: #344054;
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: -0.05px;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.035);
-        }
-
-        .filter:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
-        }
-
-        .filter.active {
-          background: #172033;
-          border-color: #172033;
-          color: #fff;
-          box-shadow: 0 9px 20px rgba(15, 23, 42, 0.14);
-        }
-
-        .filter.important.active {
-          background: #8d6a22;
-          border-color: #8d6a22;
-        }
-
-        .section-heading {
-          padding: 15px 18px;
-          margin-bottom: 12px;
-          border: 1px solid #e3e7ed;
-          border-radius: 17px;
-          background: rgba(255, 255, 255, 0.82);
-          box-shadow: 0 7px 22px rgba(15, 23, 42, 0.04);
-        }
-
-        .section-heading h2 {
-          font-size: 22px;
-          letter-spacing: -0.7px;
-        }
-
-        .section-heading p {
-          color: #7d8794;
-        }
-
-        .news-card {
-          border-radius: 19px;
-          border-color: #e2e7ee;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
-          transition:
-            transform 0.18s ease,
-            box-shadow 0.18s ease,
-            border-color 0.18s ease;
-        }
-
-        .news-card:hover {
-          transform: translateY(-2px);
-          border-color: #d5dce5;
-          box-shadow: 0 17px 35px rgba(15, 23, 42, 0.085);
-        }
-
-        .news-card h3 {
-          font-size: 19px;
-          line-height: 1.42;
-          letter-spacing: -0.35px;
-        }
-
-        .summary {
-          color: #5f6b79;
-          line-height: 1.75;
-        }
-
-        .read-button,
-        .important-button {
-          border-radius: 11px;
-          min-height: 40px;
-          font-weight: 900;
-        }
-
-        .premium-facts-wrap,
-        .special-section {
-          border-radius: 21px;
-        }
-
-        @media (max-width: 900px) {
-          .ca-premium-hero {
-            grid-template-columns: 1fr;
-          }
-
-          .ca-hero-seal {
-            display: none;
-          }
-
-          .ca-hero-topbar {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-
-          .ca-hero-actions {
-            width: 100%;
-            justify-content: flex-start;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .ca-premium-hero {
-            display: block;
-            padding: 15px;
-            border-radius: 20px;
-          }
-
-          .ca-hero-topbar {
-            display: block;
-          }
-
-          .ca-hero-brand {
-            margin-bottom: 12px;
-          }
-
-          .ca-hero-brand strong {
-            font-size: 20px;
-          }
-
-          .ca-hero-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 7px;
-          }
-
-          .ca-hero-action-card,
-          .ca-hero-utility-btn {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .ca-language-card,
-          .ca-date-card {
-            min-width: 0;
-          }
-
-          .ca-hero-utility-btn {
-            min-height: 46px;
-          }
-
-          .ca-hero-divider {
-            margin: 13px 0 3px;
-          }
-
-          .ca-hero-copy h2 {
-            font-size: 25px;
-            letter-spacing: -1px;
-          }
-
-          .ca-hero-copy p {
-            font-size: 11.5px;
-          }
-
-          .ca-hero-stats {
-            grid-template-columns: repeat(
-              3,
-              minmax(0, 1fr)
-            );
-          }
-
-          .ca-hero-stat {
-            min-width: 0;
-            padding: 8px 7px;
-          }
-
-          .ca-hero-stat strong {
-            font-size: 11px;
-          }
-
-          .ca-hero-stat span {
-            font-size: 6.5px;
-          }
-
-          .source-nav-wrap {
-            border-radius: 17px;
-          }
-
-          .source-tab {
-            min-height: 43px;
-            border-radius: 12px;
-          }
-
-          .filter {
-            border-radius: 12px;
           }
         }
 
@@ -3830,20 +2922,21 @@ function ArticleModal({
           Source: {item.source_name || "Not specified"}
         </p>
 
-        {isTheHindu && item.headline_image_url && (
-          <div className="the-hindu-headline-cut">
-            <div className="the-hindu-headline-label">
-              THE HINDU
-            </div>
+        {isTheHindu &&
+          item.headline_image_url && (
+            <div className="the-hindu-headline-cut">
+              <div className="the-hindu-headline-label">
+                THE HINDU
+              </div>
 
-            <img
-              src={item.headline_image_url}
-              alt="The Hindu newspaper headline"
-              className="the-hindu-headline-image"
-              loading="lazy"
-            />
-          </div>
-        )}
+              <img
+                src={item.headline_image_url}
+                alt="The Hindu newspaper headline"
+                className="the-hindu-headline-image"
+                loading="lazy"
+              />
+            </div>
+          )}
 
         {item.source_url && (
           <a
