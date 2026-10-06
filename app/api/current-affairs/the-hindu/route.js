@@ -2612,6 +2612,31 @@ async function findExistingPdfArticles(
 }
 
 /* =========================================================
+   RECOVER ORIGINAL HEADLINE FROM SOURCE URL
+========================================================= */
+
+function extractHeadlineFromSourceUrl(sourceUrl) {
+  const value = String(sourceUrl || '').trim();
+  const hash = value.indexOf('#');
+  if (hash === -1) return '';
+
+  const fragment = value.slice(hash + 1).trim();
+  if (!fragment) return '';
+
+  try {
+    return decodeURIComponent(fragment)
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch {
+    return fragment
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+}
+
+/* =========================================================
    BACKFILL EXISTING ARTICLES
 ========================================================= */
 
@@ -2620,168 +2645,81 @@ async function backfillExistingPdfHeadlineImages(
   fileUniqueId,
   existingArticles
 ) {
-  if (
-    !pdfBuffer ||
-    !fileUniqueId ||
-    !Array.isArray(
-      existingArticles
-    ) ||
-    existingArticles.length ===
-      0
-  ) {
-    return {
-      processed:
-        0,
-
-      updated:
-        0,
-
-      skipped:
-        0,
-
-      failed:
-        0,
-    };
+  if (!pdfBuffer || !fileUniqueId || !Array.isArray(existingArticles) || existingArticles.length === 0) {
+    return { processed: 0, updated: 0, skipped: 0, failed: 0 };
   }
 
-  let processed =
-    0;
+  let processed = 0;
+  let updated = 0;
+  let skipped = 0;
+  let failed = 0;
 
-  let updated =
-    0;
-
-  let skipped =
-    0;
-
-  let failed =
-    0;
-
-  for (
-    const row of
-    existingArticles
-  ) {
+  for (const row of existingArticles) {
     processed++;
 
-    const articleId =
-      row?.id;
+    const articleId = row?.id;
+    const dbTitle = String(row?.title || '').trim();
+    const sourceHeadline = extractHeadlineFromSourceUrl(row?.source_url);
+    const cropHeadline = sourceHeadline || dbTitle;
 
-    const headline =
-      String(
-        row?.title ||
-          ""
-      ).trim();
-
-    if (
-      !articleId ||
-      !headline
-    ) {
+    if (!articleId || !cropHeadline) {
       skipped++;
-
       continue;
     }
 
-    /*
-     * If already available,
-     * don't regenerate.
-     */
-
-    if (
-      String(
-        row?.headline_image_url ||
-          ""
-      ).trim()
-    ) {
+    if (String(row?.headline_image_url || '').trim()) {
       skipped++;
-
       continue;
     }
 
     try {
-      console.log(
-        "THE HINDU BACKFILL START:",
-        {
-          articleId,
+      console.log('THE HINDU BACKFILL START:', {
+        articleId,
+        dbTitle,
+        cropHeadline,
+        headlineSource: sourceHeadline ? 'source_url_slug' : 'database_title',
+      });
 
-          headline,
-        }
+      const headlineImageUrl = await createTheHinduHeadlineImage(
+        pdfBuffer,
+        cropHeadline,
+        fileUniqueId
       );
 
-      const headlineImageUrl =
-        await createTheHinduHeadlineImage(
-          pdfBuffer,
-
-          headline,
-
-          fileUniqueId
-        );
-
-      if (
-        !headlineImageUrl
-      ) {
-        console.warn(
-          "THE HINDU BACKFILL CROP NOT FOUND:",
-          {
-            articleId,
-
-            headline,
-          }
-        );
-
+      if (!headlineImageUrl) {
+        console.warn('THE HINDU BACKFILL CROP NOT FOUND:', {
+          articleId,
+          dbTitle,
+          cropHeadline,
+        });
         failed++;
-
         continue;
       }
 
-      await updateCurrentAffairsRow(
-        articleId,
-
-        {
-          headline_image_url:
-            headlineImageUrl,
-        }
-      );
+      await updateCurrentAffairsRow(articleId, {
+        headline_image_url: headlineImageUrl,
+      });
 
       updated++;
 
-      console.log(
-        "THE HINDU BACKFILL SUCCESS:",
-        {
-          articleId,
-
-          headline,
-
-          headlineImageUrl,
-        }
-      );
-    } catch (
-      error
-    ) {
+      console.log('THE HINDU BACKFILL SUCCESS:', {
+        articleId,
+        dbTitle,
+        cropHeadline,
+        headlineImageUrl,
+      });
+    } catch (error) {
       failed++;
-
-      console.error(
-        "THE HINDU BACKFILL FAILED:",
-        {
-          articleId,
-
-          headline,
-
-          error:
-            error?.message ||
-            error,
-        }
-      );
+      console.error('THE HINDU BACKFILL FAILED:', {
+        articleId,
+        dbTitle,
+        cropHeadline,
+        error: error?.message || error,
+      });
     }
   }
 
-  return {
-    processed,
-
-    updated,
-
-    skipped,
-
-    failed,
-  };
+  return { processed, updated, skipped, failed };
 }
 
 /* =========================================================
