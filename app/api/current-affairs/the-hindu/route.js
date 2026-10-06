@@ -21,6 +21,18 @@ const SAMBHAV_APP_URL =
   "https://sambhav-upsc.vercel.app";
 
 /* =========================================================
+   PDF PROCESSING LOCK
+   Same PDF ke simultaneous Telegram requests ko rokta hai.
+========================================================= */
+
+const THE_HINDU_PROCESSING_LOCK =
+  globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK ||
+  new Set();
+
+globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK =
+  THE_HINDU_PROCESSING_LOCK;
+
+/* =========================================================
    HELPERS
 ========================================================= */
 
@@ -179,7 +191,7 @@ async function telegramApi(
 }
 
 /* =========================================================
-   TELEGRAM COMPLETION MESSAGE
+   TELEGRAM MESSAGE
 ========================================================= */
 
 async function sendTelegramMessage(
@@ -210,7 +222,7 @@ async function sendTelegramMessage(
   } catch (error) {
     /*
       Telegram notification failure must
-      NOT make the whole PDF pipeline fail.
+      NOT make PDF pipeline fail.
     */
 
     console.error(
@@ -286,8 +298,8 @@ async function extractPdfText(
       );
 
     /*
-      PDF.js expects these browser
-      globals in some environments.
+      PDF.js expects browser globals
+      in some environments.
     */
 
     if (
@@ -897,7 +909,7 @@ function titleSimilarity(
 }
 
 /* =========================================================
-   EXISTING DB DUPLICATE CHECK
+   EXISTING DB SAME-EVENT DUPLICATE CHECK
 ========================================================= */
 
 async function findExistingDuplicate(
@@ -965,6 +977,46 @@ async function sourceUrlExists(
   return (
     Array.isArray(rows) &&
     rows.length > 0
+  );
+}
+
+/* =========================================================
+   PDF-LEVEL DUPLICATE CHECK
+   Same Telegram PDF ko dobara process hone se rokta hai.
+========================================================= */
+
+async function findExistingPdfArticles(
+  fileUniqueId,
+  date
+) {
+  if (!fileUniqueId) {
+    return [];
+  }
+
+  const encodedDate =
+    escapeSupabase(date);
+
+  const pdfMarker =
+    `/the-hindu/${fileUniqueId}#`;
+
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodedDate}&source_url=ilike.*${encodeURIComponent(
+        pdfMarker
+      )}*&limit=200`
+    );
+
+  if (
+    !Array.isArray(rows)
+  ) {
+    return [];
+  }
+
+  return rows.filter(
+    (row) =>
+      String(
+        row?.source_url || ""
+      ).includes(pdfMarker)
   );
 }
 
@@ -1051,6 +1103,16 @@ export async function POST(
 ) {
   let telegramChatId = null;
 
+  /*
+    Important:
+    fileUniqueId ko outer scope me rakha gaya hai
+    taaki finally me lock release ho sake.
+  */
+
+  let fileUniqueId = null;
+
+  let lockAcquired = false;
+
   try {
     /* -----------------------------------------
        SECURITY
@@ -1091,7 +1153,7 @@ export async function POST(
     const fileId =
       body?.file_id;
 
-    const fileUniqueId =
+    fileUniqueId =
       body?.file_unique_id ||
       fileId;
 
@@ -1110,6 +1172,47 @@ export async function POST(
         }
       );
     }
+
+    /* -----------------------------------------
+       CONCURRENT PDF LOCK
+    ----------------------------------------- */
+
+    if (
+      THE_HINDU_PROCESSING_LOCK.has(
+        fileUniqueId
+      )
+    ) {
+      console.log(
+        "THE HINDU PDF ALREADY PROCESSING:",
+        fileUniqueId
+      );
+
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "♻️ <b>The Hindu PDF Already Processing</b>",
+          "",
+          "Same PDF ka duplicate Telegram request receive hua.",
+          "",
+          "Current processing ko duplicate nahi kiya gaya.",
+        ].join("\n")
+      );
+
+      return NextResponse.json({
+        ok: true,
+
+        duplicatePdf: true,
+
+        reason:
+          "pdf-already-processing",
+      });
+    }
+
+    THE_HINDU_PROCESSING_LOCK.add(
+      fileUniqueId
+    );
+
+    lockAcquired = true;
 
     console.log(
       "THE HINDU PIPELINE STARTED:",
@@ -1160,11 +1263,6 @@ export async function POST(
         dateCheck
       );
 
-      /*
-        Notify Telegram immediately
-        if old/invalid PDF.
-      */
-
       await sendTelegramMessage(
         telegramChatId,
         [
@@ -1203,6 +1301,65 @@ export async function POST(
       dateCheck.detectedDate;
 
     /* -----------------------------------------
+       3.5 PDF-LEVEL DUPLICATE CHECK
+       Same PDF dobara aaye to AI call nahi hoga.
+    ----------------------------------------- */
+
+    const existingPdfArticles =
+      await findExistingPdfArticles(
+        fileUniqueId,
+        verifiedDate
+      );
+
+    if (
+      existingPdfArticles.length > 0
+    ) {
+      console.log(
+        "THE HINDU PDF ALREADY PROCESSED:",
+        {
+          fileUniqueId,
+
+          existingArticles:
+            existingPdfArticles.length,
+        }
+      );
+
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "♻️ <b>The Hindu PDF Already Processed</b>",
+          "",
+          `📅 Date: <b>${verifiedDate}</b>`,
+          "",
+          `📰 Existing articles: <b>${existingPdfArticles.length}</b>`,
+          "✅ New articles add nahi kiye gaye.",
+          "",
+          "Same PDF ko dobara process hone se rok diya gaya.",
+        ].join("\n")
+      );
+
+      return NextResponse.json({
+        ok: true,
+
+        processed: false,
+
+        duplicatePdf: true,
+
+        reason:
+          "pdf-already-processed",
+
+        date:
+          verifiedDate,
+
+        existingArticles:
+          existingPdfArticles.length,
+
+        message:
+          "This The Hindu PDF was already processed.",
+      });
+    }
+
+    /* -----------------------------------------
        4. EXTRACT ARTICLE CANDIDATES
     ----------------------------------------- */
 
@@ -1217,7 +1374,7 @@ export async function POST(
     );
 
     /* -----------------------------------------
-       5. REMOVE SAME-PDF DUPLICATES
+       5. REMOVE SAME-PDF ARTICLE DUPLICATES
     ----------------------------------------- */
 
     const uniqueCandidates =
@@ -1489,9 +1646,9 @@ export async function POST(
       error
     );
 
-    /*
-      Fatal error notification.
-    */
+    /* -----------------------------------------
+       FATAL ERROR TELEGRAM NOTIFICATION
+    ----------------------------------------- */
 
     await sendTelegramMessage(
       telegramChatId,
@@ -1519,6 +1676,24 @@ export async function POST(
         status: 500,
       }
     );
+  } finally {
+    /* -----------------------------------------
+       RELEASE PDF LOCK
+    ----------------------------------------- */
+
+    if (
+      lockAcquired &&
+      fileUniqueId
+    ) {
+      THE_HINDU_PROCESSING_LOCK.delete(
+        fileUniqueId
+      );
+
+      console.log(
+        "THE HINDU PDF PROCESSING LOCK RELEASED:",
+        fileUniqueId
+      );
+    }
   }
 }
 
