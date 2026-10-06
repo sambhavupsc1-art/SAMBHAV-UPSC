@@ -1129,88 +1129,59 @@ function findBestHeadlineOnPage(
     return null;
   }
 
-  let best =
-    null;
+  const matches = [];
 
   /*
-   * Search 1 through 10 consecutive
-   * visual lines.
+   * Search short visual windows first.
+   * The goal is the MAIN HEADLINE only,
+   * not the headline + subtitle/deck.
    */
-
   for (
     let start = 0;
-    start <
-      lines.length;
+    start < lines.length;
     start++
   ) {
-    let combined =
-      "";
+    let combined = "";
 
     for (
       let count = 1;
-      count <=
-        MAX_HEADLINE_LINES &&
-      start + count <=
-        lines.length;
+      count <= MAX_HEADLINE_LINES &&
+      start + count <= lines.length;
       count++
     ) {
       const current =
-        lines[
-          start +
-            count -
-            1
-        ];
+        lines[start + count - 1];
 
-      if (
-        !current?.text
-      ) {
+      if (!current?.text) {
         continue;
       }
 
-      if (
-        count > 1
-      ) {
+      if (count > 1) {
         const previous =
-          lines[
-            start +
-              count -
-              2
-          ];
+          lines[start + count - 2];
 
-        const gap =
-          Math.abs(
-            current.y -
-              previous.y
-          );
+        const gap = Math.abs(
+          current.y - previous.y
+        );
 
-        const maxGap =
+        const maxGap = Math.max(
+          55,
           Math.max(
-            75,
-            Math.max(
-              current.height ||
-                0,
+            current.height || 0,
+            previous.height || 0
+          ) * 2.6
+        );
 
-              previous.height ||
-                0
-            ) *
-              4
-          );
-
-        if (
-          gap >
-          maxGap
-        ) {
+        /* A large vertical gap normally means
+           the next block is subtitle/body text. */
+        if (gap > maxGap) {
           break;
         }
       }
 
-      combined =
-        `${combined} ${current.text}`
-          .replace(
-            /\s+/g,
-            " "
-          )
-          .trim();
+      combined = `${combined} ${current.text}`
+        .replace(/\s+/g, " ")
+        .trim();
 
       const metrics =
         scoreHeadlineWindow(
@@ -1218,47 +1189,69 @@ function findBestHeadlineOnPage(
           combined
         );
 
-      if (
-        !best ||
-        metrics.score >
-          best.score
-      ) {
-        best = {
-          ...metrics,
-
+      matches.push({
+        ...metrics,
+        start,
+        count,
+        lines: lines.slice(
           start,
-
-          count,
-
-          lines:
-            lines.slice(
-              start,
-              start +
-                count
-            ),
-
-          text:
-            combined,
-        };
-      }
-
-      /*
-       * If exact match found,
-       * don't unnecessarily extend
-       * the window.
-       */
-
-      if (
-        metrics.exact &&
-        metrics.coverage >=
-          0.85
-      ) {
-        break;
-      }
+          start + count
+        ),
+        allLines: lines,
+        text: combined,
+      });
     }
   }
 
-  return best;
+  if (!matches.length) {
+    return null;
+  }
+
+  /*
+   * First preference:
+   * an exact/high-coverage match using
+   * the FEWEST visual lines.
+   * This is the key protection against
+   * accidentally cropping the subtitle.
+   */
+  const exactMatches = matches.filter(
+    (item) =>
+      item.exact &&
+      item.coverage >= 0.85
+  );
+
+  if (exactMatches.length) {
+    exactMatches.sort((a, b) => {
+      if (a.count !== b.count) {
+        return a.count - b.count;
+      }
+      return b.score - a.score;
+    });
+
+    return exactMatches[0];
+  }
+
+  const strongMatches = matches.filter(
+    (item) =>
+      item.coverage >= 0.85
+  );
+
+  if (strongMatches.length) {
+    strongMatches.sort((a, b) => {
+      if (a.count !== b.count) {
+        return a.count - b.count;
+      }
+      return b.score - a.score;
+    });
+
+    return strongMatches[0];
+  }
+
+  matches.sort(
+    (a, b) => b.score - a.score
+  );
+
+  return matches[0];
 }
 
 /* =========================================================
@@ -1622,9 +1615,7 @@ async function renderAndUploadHeadline(
   if (
     !match ||
     !match.pageNumber ||
-    !Array.isArray(
-      match.lines
-    ) ||
+    !Array.isArray(match.lines) ||
     !match.lines.length
   ) {
     return "";
@@ -1644,23 +1635,12 @@ async function renderAndUploadHeadline(
 
     const pageCanvas =
       createCanvas(
-        Math.ceil(
-          viewport.width
-        ),
-
-        Math.ceil(
-          viewport.height
-        )
+        Math.ceil(viewport.width),
+        Math.ceil(viewport.height)
       );
 
     const pageContext =
-      pageCanvas.getContext(
-        "2d"
-      );
-
-    /*
-     * White background.
-     */
+      pageCanvas.getContext("2d");
 
     pageContext.fillStyle =
       "#ffffff";
@@ -1677,151 +1657,200 @@ async function renderAndUploadHeadline(
         createCanvas
       );
 
+    console.log(
+      "THE HINDU HEADLINE RENDER START:",
+      {
+        headline,
+        page: match.pageNumber,
+        matchText: match.text,
+        lines: match.lines.length,
+      }
+    );
+
     await page.render({
       canvasContext:
         pageContext,
-
       viewport,
-
       canvasFactory,
     }).promise;
 
-    let x1 =
-      Infinity;
+    /*
+     * Start with the exact matched headline lines.
+     * If the headline itself wraps to another visual
+     * line, include only nearby lines with a similar
+     * font height. Smaller deck/subtitle text is ignored.
+     */
+    let headlineLines = [
+      ...match.lines,
+    ];
 
-    let y1 =
-      Infinity;
+    const allLines =
+      Array.isArray(match.allLines)
+        ? match.allLines
+        : [];
 
-    let x2 =
-      -Infinity;
+    if (allLines.length) {
+      const baseHeight =
+        Math.max(
+          1,
+          ...match.lines.map(
+            (line) =>
+              Number(line?.height) || 0
+          )
+        );
 
-    let y2 =
-      -Infinity;
+      let lastIndex =
+        match.start +
+        match.count - 1;
 
-    for (
-      const line of
-      match.lines
-    ) {
-      if (!line) {
-        continue;
+      for (
+        let i = lastIndex + 1;
+        i < allLines.length && i <= lastIndex + 3;
+        i++
+      ) {
+        const next = allLines[i];
+        const previous =
+          allLines[i - 1];
+
+        if (!next?.text) {
+          continue;
+        }
+
+        const gap = Math.abs(
+          next.y - previous.y
+        );
+
+        const nextHeight =
+          Number(next.height) || 0;
+
+        const sameHeadlineSize =
+          nextHeight >=
+          baseHeight * 0.72;
+
+        const closeEnough =
+          gap <=
+          Math.max(
+            55,
+            baseHeight * 2.6
+          );
+
+        if (
+          !sameHeadlineSize ||
+          !closeEnough
+        ) {
+          break;
+        }
+
+        /* Only append a continuation line when it
+           actually improves the requested headline match. */
+        const currentText =
+          headlineLines
+            .map((line) => line.text)
+            .join(" ");
+
+        const extendedText =
+          `${currentText} ${next.text}`
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const currentScore =
+          scoreHeadlineWindow(
+            headline,
+            currentText
+          );
+
+        const extendedScore =
+          scoreHeadlineWindow(
+            headline,
+            extendedText
+          );
+
+        if (
+          extendedScore.coverage >=
+            currentScore.coverage
+        ) {
+          headlineLines.push(next);
+          lastIndex = i;
+        } else {
+          break;
+        }
       }
+    }
 
-      x1 =
-        Math.min(
-          x1,
-          line.x1
-        );
+    let x1 = Infinity;
+    let y1 = Infinity;
+    let x2 = -Infinity;
+    let y2 = -Infinity;
 
-      y1 =
-        Math.min(
-          y1,
-          line.y1
-        );
+    for (const line of headlineLines) {
+      if (!line) continue;
 
-      x2 =
-        Math.max(
-          x2,
-          line.x2
-        );
+      x1 = Math.min(
+        x1,
+        Number(line.x1) || 0
+      );
 
-      y2 =
-        Math.max(
-          y2,
-          line.y2
-        );
+      y1 = Math.min(
+        y1,
+        Number(line.y1) || 0
+      );
+
+      x2 = Math.max(
+        x2,
+        Number(line.x2) || 0
+      );
+
+      y2 = Math.max(
+        y2,
+        Number(line.y2) || 0
+      );
     }
 
     if (
-      !Number.isFinite(
-        x1
-      ) ||
-      !Number.isFinite(
-        y1
-      ) ||
-      !Number.isFinite(
-        x2
-      ) ||
-      !Number.isFinite(
-        y2
-      ) ||
+      !Number.isFinite(x1) ||
+      !Number.isFinite(y1) ||
+      !Number.isFinite(x2) ||
+      !Number.isFinite(y2) ||
       x2 <= x1 ||
       y2 <= y1
     ) {
       return "";
     }
 
-    /*
-     * Headline crop padding.
-     */
+    /* Tight crop: headline only, with a small
+       newspaper margin around it. */
+    const paddingX = 18;
+    const paddingY = 14;
 
-    const paddingX =
-      28;
+    x1 = Math.max(
+      0,
+      Math.floor(x1 - paddingX)
+    );
 
-    const paddingY =
-      22;
+    y1 = Math.max(
+      0,
+      Math.floor(y1 - paddingY)
+    );
 
-    x1 =
-      Math.max(
-        0,
-        Math.floor(
-          x1 -
-            paddingX
-        )
-      );
+    x2 = Math.min(
+      pageCanvas.width,
+      Math.ceil(x2 + paddingX)
+    );
 
-    y1 =
-      Math.max(
-        0,
-        Math.floor(
-          y1 -
-            paddingY
-        )
-      );
-
-    x2 =
-      Math.min(
-        pageCanvas.width,
-
-        Math.ceil(
-          x2 +
-            paddingX
-        )
-      );
-
-    y2 =
-      Math.min(
-        pageCanvas.height,
-
-        Math.ceil(
-          y2 +
-            paddingY
-        )
-      );
+    y2 = Math.min(
+      pageCanvas.height,
+      Math.ceil(y2 + paddingY)
+    );
 
     const cropWidth =
-      Math.max(
-        1,
-        x2 -
-          x1
-      );
+      Math.max(1, x2 - x1);
 
     const cropHeight =
-      Math.max(
-        1,
-        y2 -
-          y1
-      );
-
-    /*
-     * Safety:
-     * never upload a gigantic body-text crop.
-     */
+      Math.max(1, y2 - y1);
 
     if (
-      cropWidth >
-        pageCanvas.width ||
-      cropHeight >
-        pageCanvas.height
+      cropWidth > pageCanvas.width ||
+      cropHeight > pageCanvas.height
     ) {
       return "";
     }
@@ -1833,9 +1862,7 @@ async function renderAndUploadHeadline(
       );
 
     const cropContext =
-      cropCanvas.getContext(
-        "2d"
-      );
+      cropCanvas.getContext("2d");
 
     cropContext.fillStyle =
       "#ffffff";
@@ -1849,16 +1876,12 @@ async function renderAndUploadHeadline(
 
     cropContext.drawImage(
       pageCanvas,
-
       x1,
       y1,
-
       cropWidth,
       cropHeight,
-
       0,
       0,
-
       cropWidth,
       cropHeight
     );
@@ -1871,39 +1894,27 @@ async function renderAndUploadHeadline(
     const publicUrl =
       await uploadHeadlineImage(
         imageBuffer,
-
         fileUniqueId,
-
         headline
       );
 
     console.log(
-      "THE HINDU HEADLINE IMAGE CREATED:",
+      "THE HINDU HEADLINE RENDER SUCCESS:",
       {
         headline,
-        page:
-          match.pageNumber,
-
-        score:
-          match.score,
-
-        coverage:
-          match.coverage,
-
-        overlap:
-          match.overlap,
-
-        sequence:
-          match.sequence,
-
-        exact:
-          match.exact,
-
-        text:
-          match.text,
-
-        url:
-          publicUrl,
+        page: match.pageNumber,
+        matchedText: match.text,
+        finalLines:
+          headlineLines.length,
+        crop: {
+          x1,
+          y1,
+          x2,
+          y2,
+          width: cropWidth,
+          height: cropHeight,
+        },
+        url: publicUrl,
       }
     );
 
