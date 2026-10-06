@@ -179,6 +179,48 @@ async function telegramApi(
 }
 
 /* =========================================================
+   TELEGRAM COMPLETION MESSAGE
+========================================================= */
+
+async function sendTelegramMessage(
+  chatId,
+  text
+) {
+  if (!chatId) {
+    console.log(
+      "No Telegram chat ID available for completion message"
+    );
+
+    return;
+  }
+
+  try {
+    await telegramApi(
+      "sendMessage",
+      {
+        chat_id: chatId,
+
+        text,
+
+        parse_mode: "HTML",
+
+        disable_web_page_preview: true,
+      }
+    );
+  } catch (error) {
+    /*
+      Telegram notification failure must
+      NOT make the whole PDF pipeline fail.
+    */
+
+    console.error(
+      "TELEGRAM COMPLETION MESSAGE ERROR:",
+      error
+    );
+  }
+}
+
+/* =========================================================
    DOWNLOAD TELEGRAM PDF
 ========================================================= */
 
@@ -225,7 +267,7 @@ async function downloadTelegramPdf(
 
 /* =========================================================
    PDF TEXT EXTRACTION
-   pdf-parse v2 + Vercel DOMMatrix FIX
+   pdf-parse v2 + DOMMatrix FIX
 ========================================================= */
 
 async function extractPdfText(
@@ -235,15 +277,7 @@ async function extractPdfText(
 
   try {
     /*
-      IMPORTANT:
-
-      pdf-parse v2 uses PDF.js.
-      In Vercel/Next.js server runtime,
-      DOMMatrix/ImageData/Path2D may not
-      exist globally.
-
-      We explicitly load @napi-rs/canvas
-      BEFORE loading pdf-parse.
+      Load native canvas BEFORE pdf-parse.
     */
 
     const canvas =
@@ -252,8 +286,8 @@ async function extractPdfText(
       );
 
     /*
-      Make the required browser-like
-      globals available to PDF.js.
+      PDF.js expects these browser
+      globals in some environments.
     */
 
     if (
@@ -281,8 +315,7 @@ async function extractPdfText(
     }
 
     /*
-      Import worker configuration BEFORE
-      importing PDFParse.
+      Load CanvasFactory.
     */
 
     const {
@@ -290,6 +323,10 @@ async function extractPdfText(
     } = await import(
       "pdf-parse/worker"
     );
+
+    /*
+      pdf-parse v2 API.
+    */
 
     const {
       PDFParse,
@@ -490,6 +527,9 @@ function verifyPdfDate(
 
       detectedDate:
         null,
+
+      currentDate:
+        todayIST(),
     };
   }
 
@@ -902,7 +942,7 @@ async function findExistingDuplicate(
 }
 
 /* =========================================================
-   EXISTING SOURCE URL DUPLICATE
+   SOURCE URL DUPLICATE
 ========================================================= */
 
 async function sourceUrlExists(
@@ -1009,7 +1049,13 @@ async function processThroughExistingAI(
 export async function POST(
   request
 ) {
+  let telegramChatId = null;
+
   try {
+    /* -----------------------------------------
+       SECURITY
+    ----------------------------------------- */
+
     const internalSecret =
       request.headers.get(
         "x-sambhav-internal-secret"
@@ -1033,6 +1079,14 @@ export async function POST(
 
     const body =
       await request.json();
+
+    /* -----------------------------------------
+       TELEGRAM INFORMATION
+    ----------------------------------------- */
+
+    telegramChatId =
+      body?.telegram_chat_id ||
+      null;
 
     const fileId =
       body?.file_id;
@@ -1062,11 +1116,12 @@ export async function POST(
       {
         fileName,
         fileUniqueId,
+        telegramChatId,
       }
     );
 
     /* -----------------------------------------
-       1. Download PDF
+       1. DOWNLOAD PDF
     ----------------------------------------- */
 
     const downloaded =
@@ -1075,7 +1130,7 @@ export async function POST(
       );
 
     /* -----------------------------------------
-       2. Extract PDF text
+       2. EXTRACT PDF TEXT
     ----------------------------------------- */
 
     const pdfText =
@@ -1089,7 +1144,7 @@ export async function POST(
     );
 
     /* -----------------------------------------
-       3. Verify newspaper date
+       3. VERIFY NEWSPAPER DATE
     ----------------------------------------- */
 
     const dateCheck =
@@ -1103,6 +1158,29 @@ export async function POST(
       console.error(
         "THE HINDU DATE VERIFICATION FAILED:",
         dateCheck
+      );
+
+      /*
+        Notify Telegram immediately
+        if old/invalid PDF.
+      */
+
+      await sendTelegramMessage(
+        telegramChatId,
+        [
+          "❌ <b>The Hindu PDF Rejected</b>",
+          "",
+          `📄 PDF date: <b>${
+            dateCheck.detectedDate ||
+            "Not found"
+          }</b>`,
+          `📅 Today: <b>${
+            dateCheck.currentDate ||
+            todayIST()
+          }</b>`,
+          "",
+          "Old/invalid newspaper PDF ko Current Affairs me save nahi kiya gaya.",
+        ].join("\n")
       );
 
       return NextResponse.json({
@@ -1125,7 +1203,7 @@ export async function POST(
       dateCheck.detectedDate;
 
     /* -----------------------------------------
-       4. Extract candidates
+       4. EXTRACT ARTICLE CANDIDATES
     ----------------------------------------- */
 
     const candidates =
@@ -1139,7 +1217,7 @@ export async function POST(
     );
 
     /* -----------------------------------------
-       5. Remove same-PDF duplicates
+       5. REMOVE SAME-PDF DUPLICATES
     ----------------------------------------- */
 
     const uniqueCandidates =
@@ -1166,10 +1244,8 @@ export async function POST(
     }
 
     /* -----------------------------------------
-       6. Process articles
+       6. SELECT TOP UPSC ARTICLES
     ----------------------------------------- */
-
-    const results = [];
 
     const selected =
       uniqueCandidates
@@ -1183,6 +1259,12 @@ export async function POST(
           20
         );
 
+    const results = [];
+
+    /* -----------------------------------------
+       7. PROCESS ARTICLES
+    ----------------------------------------- */
+
     for (
       let index = 0;
       index < selected.length;
@@ -1193,8 +1275,7 @@ export async function POST(
 
       try {
         /*
-          Every article gets a unique
-          source URL.
+          Unique source URL per article.
         */
 
         const articleSlug =
@@ -1207,7 +1288,7 @@ export async function POST(
           `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
 
         /* ---------------------------------------
-           Exact URL duplicate
+           EXACT SOURCE URL DUPLICATE
         --------------------------------------- */
 
         if (
@@ -1231,7 +1312,7 @@ export async function POST(
         }
 
         /* ---------------------------------------
-           Cross-source event duplicate
+           SAME EVENT DUPLICATE
         --------------------------------------- */
 
         const existing =
@@ -1265,7 +1346,7 @@ export async function POST(
         }
 
         /* ---------------------------------------
-           Existing AI pipeline
+           EXISTING AI PIPELINE
         --------------------------------------- */
 
         const aiResult =
@@ -1308,6 +1389,10 @@ export async function POST(
       }
     }
 
+    /* -----------------------------------------
+       8. FINAL COUNTS
+    ----------------------------------------- */
+
     const processed =
       results.filter(
         (item) =>
@@ -1348,6 +1433,31 @@ export async function POST(
       }
     );
 
+    /* -----------------------------------------
+       9. TELEGRAM COMPLETION NOTIFICATION
+    ----------------------------------------- */
+
+    await sendTelegramMessage(
+      telegramChatId,
+      [
+        "✅ <b>The Hindu Processing Complete</b>",
+        "",
+        `📅 Date: <b>${verifiedDate}</b>`,
+        "",
+        `📰 Articles found: <b>${candidates.length}</b>`,
+        `📌 Selected: <b>${selected.length}</b>`,
+        `✅ Processed: <b>${processed}</b>`,
+        `♻️ Duplicates skipped: <b>${skipped}</b>`,
+        `❌ Failed: <b>${failed}</b>`,
+        "",
+        "📚 Supabase/App update complete.",
+      ].join("\n")
+    );
+
+    /* -----------------------------------------
+       10. RESPONSE
+    ----------------------------------------- */
+
     return NextResponse.json({
       ok: true,
 
@@ -1377,6 +1487,24 @@ export async function POST(
     console.error(
       "THE HINDU PIPELINE FATAL ERROR:",
       error
+    );
+
+    /*
+      Fatal error notification.
+    */
+
+    await sendTelegramMessage(
+      telegramChatId,
+      [
+        "❌ <b>The Hindu Processing Failed</b>",
+        "",
+        `Error: <code>${
+          error?.message ||
+          "Unknown error"
+        }</code>`,
+        "",
+        "PDF process complete nahi ho paya.",
+      ].join("\n")
     );
 
     return NextResponse.json(
