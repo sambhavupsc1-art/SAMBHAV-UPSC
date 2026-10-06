@@ -1,5 +1,5 @@
 {
-  "name": "sambhav-upsc",
+  "name": "sambhavupsc",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -14,7 +14,7 @@
     "react-dom": "19.1.1",
     "@supabase/supabase-js": "^2.57.4",
     "pdf-parse": "^2.4.5",
-    "@napi-rs/canvas": "0.1.80"
+    "@napi-rs/canvas": "0.1.80",
     "pdfjs-dist": "5.4.296"
   }
 }
