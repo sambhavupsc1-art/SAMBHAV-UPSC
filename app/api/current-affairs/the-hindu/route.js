@@ -4,6 +4,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
+/* =========================================================
+   ENV
+========================================================= */
+
 const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN;
 
@@ -29,7 +33,7 @@ const THE_HINDU_HEADLINE_BUCKET =
 const HEADLINE_RENDER_SCALE = 2.2;
 
 /* =========================================================
-   PDF PROCESSING LOCK
+   PROCESSING LOCK
 ========================================================= */
 
 const THE_HINDU_PROCESSING_LOCK =
@@ -40,7 +44,7 @@ globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK =
   THE_HINDU_PROCESSING_LOCK;
 
 /* =========================================================
-   HELPERS
+   BASIC HELPERS
 ========================================================= */
 
 function cleanText(value) {
@@ -154,24 +158,21 @@ async function telegramApi(
     );
   }
 
-  const response =
-    await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
-      {
-        method: body
-          ? "POST"
-          : "GET",
-        headers: body
-          ? {
-              "Content-Type":
-                "application/json",
-            }
-          : undefined,
-        body: body
-          ? JSON.stringify(body)
-          : undefined,
-      }
-    );
+  const response = await fetch(
+    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
+    {
+      method: body ? "POST" : "GET",
+      headers: body
+        ? {
+            "Content-Type":
+              "application/json",
+          }
+        : undefined,
+      body: body
+        ? JSON.stringify(body)
+        : undefined,
+    }
+  );
 
   const data =
     await response.json();
@@ -194,12 +195,7 @@ async function sendTelegramMessage(
   chatId,
   text
 ) {
-  if (!chatId) {
-    console.log(
-      "No Telegram chat ID available."
-    );
-    return;
-  }
+  if (!chatId) return;
 
   try {
     await telegramApi(
@@ -220,7 +216,7 @@ async function sendTelegramMessage(
 }
 
 /* =========================================================
-   DOWNLOAD PDF
+   TELEGRAM PDF DOWNLOAD
 ========================================================= */
 
 async function downloadTelegramPdf(
@@ -365,8 +361,7 @@ async function extractPdfText(
 }
 
 /* =========================================================
-   THE HINDU HEADLINE IMAGE
-   ACTUAL PDF HEADLINE CROP
+   HEADLINE MATCHING
 ========================================================= */
 
 function normalizeHeadlineForMatch(
@@ -422,12 +417,8 @@ function tokenOverlap(
 
   let common = 0;
 
-  for (
-    const token of A
-  ) {
-    if (
-      B.has(token)
-    ) {
+  for (const token of A) {
+    if (B.has(token)) {
       common++;
     }
   }
@@ -443,6 +434,10 @@ function tokenOverlap(
     )
   );
 }
+
+/* =========================================================
+   PDF TEXT COORDINATES
+========================================================= */
 
 function buildPdfTextLines(
   pdfjsLib,
@@ -476,7 +471,9 @@ function buildPdfTextLines(
           Math.max(
             1,
             Math.abs(
-              item.width
+              Number(
+                item.width
+              ) || 0
             ) * scale
           );
 
@@ -492,7 +489,10 @@ function buildPdfTextLines(
           );
 
         return {
-          text: item.str,
+          text:
+            String(
+              item.str || ""
+            ).trim(),
           x,
           y,
           width,
@@ -502,25 +502,34 @@ function buildPdfTextLines(
 
   const lines = [];
 
-  for (
-    const item of items
-  ) {
-    const existing =
-      lines.find(
-        (line) =>
-          Math.abs(
-            line.y - item.y
-          ) <
-          Math.max(
-            5,
-            item.height * 0.65
+  for (const item of items) {
+    let existing = null;
+
+    for (const line of lines) {
+      const tolerance =
+        Math.max(
+          4,
+          Math.min(
+            16,
+            Math.max(
+              line.height || 0,
+              item.height || 0
+            ) * 0.55
           )
-      );
+        );
+
+      if (
+        Math.abs(
+          line.y - item.y
+        ) <= tolerance
+      ) {
+        existing = line;
+        break;
+      }
+    }
 
     if (existing) {
-      existing.items.push(
-        item
-      );
+      existing.items.push(item);
 
       existing.x1 =
         Math.min(
@@ -550,10 +559,17 @@ function buildPdfTextLines(
 
       existing.height =
         Math.max(
-          existing.height ||
-            0,
-          item.height
+          existing.height || 0,
+          item.height || 0
         );
+
+      existing.y =
+        existing.items.reduce(
+          (sum, current) =>
+            sum + current.y,
+          0
+        ) /
+        existing.items.length;
     } else {
       lines.push({
         y: item.y,
@@ -572,9 +588,7 @@ function buildPdfTextLines(
     }
   }
 
-  for (
-    const line of lines
-  ) {
+  for (const line of lines) {
     line.items.sort(
       (a, b) =>
         a.x - b.x
@@ -594,8 +608,24 @@ function buildPdfTextLines(
         .trim();
   }
 
+  lines.sort((a, b) => {
+    if (
+      Math.abs(
+        a.y - b.y
+      ) < 2
+    ) {
+      return a.x1 - b.x1;
+    }
+
+    return a.y - b.y;
+  });
+
   return lines;
 }
+
+/* =========================================================
+   UPLOAD ACTUAL HEADLINE CROP
+========================================================= */
 
 async function uploadHeadlineImage(
   imageBuffer,
@@ -638,21 +668,16 @@ async function uploadHeadlineImage(
       uploadUrl,
       {
         method: "POST",
-
         headers: {
           Authorization:
             `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
           apikey:
             SUPABASE_SERVICE_ROLE_KEY,
-
           "Content-Type":
             "image/png",
-
           "x-upsert":
             "true",
         },
-
         body:
           imageBuffer,
       }
@@ -672,6 +697,10 @@ async function uploadHeadlineImage(
     `${THE_HINDU_HEADLINE_BUCKET}/${filePath}`
   );
 }
+
+/* =========================================================
+   CREATE ACTUAL NEWSPAPER HEADLINE CROP
+========================================================= */
 
 async function createTheHinduHeadlineImage(
   pdfBuffer,
@@ -705,13 +734,10 @@ async function createTheHinduHeadlineImage(
           new Uint8Array(
             pdfBuffer
           ),
-
         disableWorker:
           true,
-
         useSystemFonts:
           true,
-
         isEvalSupported:
           false,
       });
@@ -724,18 +750,22 @@ async function createTheHinduHeadlineImage(
         headline
       );
 
-    if (!wanted) {
+    const wantedTokens =
+      headlineTokens(wanted);
+
+    if (
+      !wanted ||
+      wantedTokens.length < 2
+    ) {
       return "";
     }
 
-    let bestMatch =
-      null;
+    let bestMatch = null;
 
-    /*
-     * Locate the actual headline
-     * inside the PDF using text
-     * coordinates.
-     */
+    /* -----------------------------------------
+       SEARCH ALL PDF PAGES
+    ----------------------------------------- */
+
     for (
       let pageNumber = 1;
       pageNumber <=
@@ -747,64 +777,220 @@ async function createTheHinduHeadlineImage(
           pageNumber
         );
 
-      const viewport =
-        page.getViewport({
-          scale:
-            HEADLINE_RENDER_SCALE,
-        });
+      try {
+        const viewport =
+          page.getViewport({
+            scale:
+              HEADLINE_RENDER_SCALE,
+          });
 
-      const textContent =
-        await page.getTextContent({
-          normalizeWhitespace:
-            false,
+        const textContent =
+          await page.getTextContent({
+            normalizeWhitespace:
+              false,
+            disableCombineTextItems:
+              true,
+          });
 
-          disableCombineTextItems:
-            true,
-        });
-
-      const lines =
-        buildPdfTextLines(
-          pdfjsLib,
-          textContent,
-          viewport,
-          HEADLINE_RENDER_SCALE
-        );
-
-      for (
-        const line of lines
-      ) {
-        const score =
-          tokenOverlap(
-            wanted,
-            line.text
+        const lines =
+          buildPdfTextLines(
+            pdfjsLib,
+            textContent,
+            viewport,
+            HEADLINE_RENDER_SCALE
           );
 
-        /*
-         * We deliberately require
-         * a reasonable overlap so
-         * article-body sentences
-         * are not selected.
-         */
-        if (
-          score >= 0.55 &&
-          (
-            !bestMatch ||
-            score >
-              bestMatch.score
-          )
-        ) {
-          bestMatch = {
-            pageNumber,
-            score,
-            line,
-          };
+        if (!lines.length) {
+          continue;
         }
-      }
 
-      page.cleanup();
+        /*
+         * Newspaper headline can be split
+         * across multiple PDF lines.
+         *
+         * Test 1-4 consecutive lines.
+         */
+
+        for (
+          let start = 0;
+          start < lines.length;
+          start++
+        ) {
+          let combined = "";
+
+          for (
+            let count = 1;
+            count <= 4 &&
+            start + count <=
+              lines.length;
+            count++
+          ) {
+            const current =
+              lines[
+                start + count - 1
+              ];
+
+            if (count > 1) {
+              const previous =
+                lines[
+                  start + count - 2
+                ];
+
+              const gap =
+                Math.abs(
+                  current.y -
+                    previous.y
+                );
+
+              const maxGap =
+                Math.max(
+                  55,
+                  Math.max(
+                    current.height || 0,
+                    previous.height || 0
+                  ) * 2.8
+                );
+
+              if (
+                gap > maxGap
+              ) {
+                break;
+              }
+            }
+
+            combined =
+              `${combined} ${current.text}`
+                .replace(
+                  /\s+/g,
+                  " "
+                )
+                .trim();
+
+            const candidateTokens =
+              headlineTokens(
+                combined
+              );
+
+            if (
+              !candidateTokens.length
+            ) {
+              continue;
+            }
+
+            const candidateSet =
+              new Set(
+                candidateTokens
+              );
+
+            let matched = 0;
+
+            for (
+              const token of
+              wantedTokens
+            ) {
+              if (
+                candidateSet.has(
+                  token
+                )
+              ) {
+                matched++;
+              }
+            }
+
+            const coverage =
+              matched /
+              Math.max(
+                1,
+                wantedTokens.length
+              );
+
+            const overlap =
+              tokenOverlap(
+                wanted,
+                combined
+              );
+
+            const wantedCompact =
+              wanted.replace(
+                /\s+/g,
+                ""
+              );
+
+            const candidateCompact =
+              normalizeHeadlineForMatch(
+                combined
+              ).replace(
+                /\s+/g,
+                ""
+              );
+
+            const exactish =
+              candidateCompact.includes(
+                wantedCompact
+              ) ||
+              wantedCompact.includes(
+                candidateCompact
+              );
+
+            let score =
+              coverage * 0.78 +
+              overlap * 0.17;
+
+            if (exactish) {
+              score += 0.25;
+            }
+
+            const extraTokenPenalty =
+              Math.max(
+                0,
+                candidateTokens.length -
+                  wantedTokens.length
+              ) /
+              Math.max(
+                1,
+                wantedTokens.length
+              );
+
+            score -=
+              Math.min(
+                0.12,
+                extraTokenPenalty *
+                  0.08
+              );
+
+            if (
+              coverage >= 0.55 &&
+              (
+                !bestMatch ||
+                score >
+                  bestMatch.score
+              )
+            ) {
+              bestMatch = {
+                pageNumber,
+                score,
+                coverage,
+                lines:
+                  lines.slice(
+                    start,
+                    start + count
+                  ),
+                text:
+                  combined,
+              };
+            }
+          }
+        }
+      } finally {
+        page.cleanup();
+      }
     }
 
-    if (!bestMatch) {
+    if (
+      !bestMatch ||
+      bestMatch.coverage <
+        0.55
+    ) {
       console.warn(
         "THE HINDU HEADLINE NOT LOCATED:",
         headline
@@ -813,342 +999,189 @@ async function createTheHinduHeadlineImage(
       return "";
     }
 
-    /*
-     * Render only the page containing
-     * the matching headline.
-     */
+    /* -----------------------------------------
+       RENDER ONLY MATCHED PAGE
+    ----------------------------------------- */
+
     const page =
       await pdf.getPage(
         bestMatch.pageNumber
       );
 
-    const viewport =
-      page.getViewport({
-        scale:
-          HEADLINE_RENDER_SCALE,
-      });
+    try {
+      const viewport =
+        page.getViewport({
+          scale:
+            HEADLINE_RENDER_SCALE,
+        });
 
-    const pageCanvas =
-      createCanvas(
-        Math.ceil(
-          viewport.width
-        ),
-        Math.ceil(
-          viewport.height
-        )
-      );
+      const pageCanvas =
+        createCanvas(
+          Math.ceil(
+            viewport.width
+          ),
+          Math.ceil(
+            viewport.height
+          )
+        );
 
-    const pageContext =
-      pageCanvas.getContext(
-        "2d"
-      );
+      const pageContext =
+        pageCanvas.getContext(
+          "2d"
+        );
 
-    await page.render({
-      canvasContext:
-        pageContext,
-
-      viewport,
-    }).promise;
-
-    /*
-     * Get all text lines again on
-     * the selected page.
-     */
-    const textContent =
-      await page.getTextContent({
-        normalizeWhitespace:
-          false,
-
-        disableCombineTextItems:
-          true,
-      });
-
-    const lines =
-      buildPdfTextLines(
-        pdfjsLib,
-        textContent,
+      await page.render({
+        canvasContext:
+          pageContext,
         viewport,
-        HEADLINE_RENDER_SCALE
-      );
+      }).promise;
 
-    /*
-     * Find the main headline line.
-     */
-    const targetIndex =
-      lines.reduce(
-        (
-          best,
-          line,
-          index
-        ) => {
-          const score =
-            tokenOverlap(
-              wanted,
-              line.text
-            );
+      /* ---------------------------------------
+         CROP ONLY HEADLINE LINES
+      --------------------------------------- */
 
-          if (
-            !best ||
-            score >
-              best.score
-          ) {
-            return {
-              index,
-              score,
-            };
-          }
+      let x1 = Infinity;
+      let y1 = Infinity;
+      let x2 = -Infinity;
+      let y2 = -Infinity;
 
-          return best;
-        },
-        null
-      );
+      for (
+        const line of
+        bestMatch.lines
+      ) {
+        x1 =
+          Math.min(
+            x1,
+            line.x1
+          );
 
-    if (
-      !targetIndex ||
-      targetIndex.score <
-        0.55
-    ) {
-      page.cleanup();
-      return "";
-    }
+        y1 =
+          Math.min(
+            y1,
+            line.y1
+          );
 
-    /*
-     * Include adjacent lines only
-     * when they are clearly part of
-     * the same headline.
-     *
-     * This handles newspaper
-     * headlines spanning 2-3 lines.
-     */
-    const selectedLines = [
-      lines[targetIndex.index],
-    ];
+        x2 =
+          Math.max(
+            x2,
+            line.x2
+          );
 
-    const target =
-      lines[targetIndex.index];
-
-    for (
-      let i =
-        targetIndex.index - 1;
-      i >= 0;
-      i--
-    ) {
-      const line =
-        lines[i];
-
-      const distance =
-        Math.abs(
-          line.y -
-            target.y
-        );
-
-      const score =
-        tokenOverlap(
-          wanted,
-          line.text
-        );
+        y2 =
+          Math.max(
+            y2,
+            line.y2
+          );
+      }
 
       if (
-        distance <=
-          Math.max(
-            90,
-            target.height *
-              3
-          ) &&
-        score >= 0.20
+        !Number.isFinite(x1) ||
+        !Number.isFinite(y1) ||
+        !Number.isFinite(x2) ||
+        !Number.isFinite(y2) ||
+        x2 <= x1 ||
+        y2 <= y1
       ) {
-        selectedLines.unshift(
-          line
-        );
-      } else {
-        break;
+        return "";
       }
-    }
 
-    for (
-      let i =
-        targetIndex.index + 1;
-      i <
-        lines.length;
-      i++
-    ) {
-      const line =
-        lines[i];
+      const paddingX = 20;
+      const paddingY = 16;
 
-      const distance =
-        Math.abs(
-          line.y -
-            target.y
-        );
-
-      const score =
-        tokenOverlap(
-          wanted,
-          line.text
-        );
-
-      if (
-        distance <=
-          Math.max(
-            90,
-            target.height *
-              3
-          ) &&
-        score >= 0.20
-      ) {
-        selectedLines.push(
-          line
-        );
-      } else {
-        break;
-      }
-    }
-
-    /*
-     * Bounding box of the actual
-     * headline.
-     */
-    let x1 = Infinity;
-    let y1 = Infinity;
-    let x2 = -Infinity;
-    let y2 = -Infinity;
-
-    for (
-      const line of selectedLines
-    ) {
       x1 =
-        Math.min(
-          x1,
-          line.x1
+        Math.max(
+          0,
+          Math.floor(
+            x1 - paddingX
+          )
         );
 
       y1 =
-        Math.min(
-          y1,
-          line.y1
+        Math.max(
+          0,
+          Math.floor(
+            y1 - paddingY
+          )
         );
 
       x2 =
-        Math.max(
-          x2,
-          line.x2
+        Math.min(
+          pageCanvas.width,
+          Math.ceil(
+            x2 + paddingX
+          )
         );
 
       y2 =
-        Math.max(
-          y2,
-          line.y2
+        Math.min(
+          pageCanvas.height,
+          Math.ceil(
+            y2 + paddingY
+          )
         );
-    }
 
-    if (
-      !Number.isFinite(x1) ||
-      !Number.isFinite(y1) ||
-      !Number.isFinite(x2) ||
-      !Number.isFinite(y2)
-    ) {
-      page.cleanup();
-      return "";
-    }
+      const cropWidth =
+        Math.max(
+          1,
+          x2 - x1
+        );
 
-    /*
-     * Small padding around the
-     * newspaper headline.
-     */
-    const paddingX = 18;
-    const paddingY = 14;
+      const cropHeight =
+        Math.max(
+          1,
+          y2 - y1
+        );
 
-    x1 =
-      Math.max(
+      const cropCanvas =
+        createCanvas(
+          cropWidth,
+          cropHeight
+        );
+
+      const cropContext =
+        cropCanvas.getContext(
+          "2d"
+        );
+
+      cropContext.drawImage(
+        pageCanvas,
+        x1,
+        y1,
+        cropWidth,
+        cropHeight,
         0,
-        Math.floor(
-          x1 - paddingX
-        )
-      );
-
-    y1 =
-      Math.max(
         0,
-        Math.floor(
-          y1 - paddingY
-        )
-      );
-
-    x2 =
-      Math.min(
-        pageCanvas.width,
-        Math.ceil(
-          x2 + paddingX
-        )
-      );
-
-    y2 =
-      Math.min(
-        pageCanvas.height,
-        Math.ceil(
-          y2 + paddingY
-        )
-      );
-
-    const cropWidth =
-      Math.max(
-        1,
-        x2 - x1
-      );
-
-    const cropHeight =
-      Math.max(
-        1,
-        y2 - y1
-      );
-
-    const cropCanvas =
-      createCanvas(
         cropWidth,
         cropHeight
       );
 
-    const cropContext =
-      cropCanvas.getContext(
-        "2d"
+      const imageBuffer =
+        cropCanvas.toBuffer(
+          "image/png"
+        );
+
+      const publicUrl =
+        await uploadHeadlineImage(
+          imageBuffer,
+          fileUniqueId,
+          headline
+        );
+
+      console.log(
+        "THE HINDU HEADLINE IMAGE CREATED:",
+        publicUrl,
+        "PAGE:",
+        bestMatch.pageNumber,
+        "COVERAGE:",
+        bestMatch.coverage,
+        "SCORE:",
+        bestMatch.score
       );
 
-    /*
-     * Preserve the original
-     * newspaper appearance.
-     */
-    cropContext.drawImage(
-      pageCanvas,
-      x1,
-      y1,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-
-    const imageBuffer =
-      cropCanvas.toBuffer(
-        "image/png"
-      );
-
-    const publicUrl =
-      await uploadHeadlineImage(
-        imageBuffer,
-        fileUniqueId,
-        headline
-      );
-
-    console.log(
-      "THE HINDU HEADLINE IMAGE CREATED:",
-      publicUrl
-    );
-
-    page.cleanup();
-
-    return publicUrl;
+      return publicUrl;
+    } finally {
+      page.cleanup();
+    }
   } catch (error) {
     console.error(
       "THE HINDU HEADLINE CROP FAILED:",
@@ -1160,7 +1193,7 @@ async function createTheHinduHeadlineImage(
   } finally {
     if (pdf) {
       try {
-        await pdf.destroy();
+        await pdf.cleanup();
       } catch {}
     }
   }
@@ -1201,10 +1234,7 @@ function parseDateCandidate(
 
   return `${year}-${monthNumber}-${String(
     day
-  ).padStart(
-    2,
-    "0"
-  )}`;
+  ).padStart(2, "0")}`;
 }
 
 function extractNewspaperDate(
@@ -1277,8 +1307,7 @@ function verifyPdfDate(
       valid: false,
       reason:
         "newspaper-date-not-found",
-      detectedDate:
-        null,
+      detectedDate: null,
       currentDate,
     };
   }
@@ -1690,7 +1719,7 @@ function createArticleCandidates(
 }
 
 /* =========================================================
-   DUPLICATE HELPERS
+   DUPLICATES
 ========================================================= */
 
 const STOPWORDS =
@@ -1756,8 +1785,7 @@ function titleSimilarity(
     return 0;
   }
 
-  let intersection =
-    0;
+  let intersection = 0;
 
   for (
     const token of left
@@ -1839,7 +1867,7 @@ async function sourceUrlExists(
 }
 
 /* =========================================================
-   PDF-LEVEL DUPLICATE
+   PDF DUPLICATE
 ========================================================= */
 
 async function findExistingPdfArticles(
@@ -2026,7 +2054,7 @@ export async function POST(
     }
 
     /* -----------------------------------------
-       CONCURRENT LOCK
+       LOCK
     ----------------------------------------- */
 
     if (
@@ -2047,8 +2075,7 @@ export async function POST(
 
       return NextResponse.json({
         ok: true,
-        duplicatePdf:
-          true,
+        duplicatePdf: true,
         reason:
           "pdf-already-processing",
       });
@@ -2151,8 +2178,7 @@ export async function POST(
       return NextResponse.json({
         ok: true,
         processed: false,
-        duplicatePdf:
-          true,
+        duplicatePdf: true,
         reason:
           "pdf-already-processed",
         date:
@@ -2172,7 +2198,7 @@ export async function POST(
       );
 
     /* -----------------------------------------
-       SAME-PDF DUPLICATES
+       SAME PDF DUPLICATES
     ----------------------------------------- */
 
     const uniqueCandidates =
@@ -2214,7 +2240,7 @@ export async function POST(
     const results = [];
 
     /* -----------------------------------------
-       PROCESS
+       PROCESS ARTICLES
     ----------------------------------------- */
 
     for (
@@ -2247,10 +2273,8 @@ export async function POST(
           results.push({
             title:
               candidate.original_headline,
-
             status:
               "skipped",
-
             reason:
               "source-url-duplicate",
           });
@@ -2270,19 +2294,14 @@ export async function POST(
           results.push({
             title:
               candidate.original_headline,
-
             status:
               "skipped",
-
             reason:
               "same-event-already-exists",
-
             existingTitle:
               existing.title,
-
             existingSource:
               existing.source_name,
-
             similarity:
               existing.similarity,
           });
@@ -2291,24 +2310,15 @@ export async function POST(
         }
 
         /* -------------------------------------
-           ACTUAL NEWSPAPER HEADLINE CROP
+           ACTUAL THE HINDU HEADLINE CROP
         ------------------------------------- */
 
         candidate.headline_image_url =
           await createTheHinduHeadlineImage(
             downloaded.buffer,
-
             candidate.original_headline,
-
             fileUniqueId
           );
-
-        /*
-         * Headline image failure should NOT
-         * stop the complete article pipeline.
-         *
-         * AI article processing continues.
-         */
 
         if (
           !candidate.headline_image_url
@@ -2411,28 +2421,18 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-
-      processed:
-        true,
-
+      processed: true,
       source:
         "The Hindu",
-
       date:
         verifiedDate,
-
       candidates:
         candidates.length,
-
       selected:
         selected.length,
-
       processed,
-
       skipped,
-
       failed,
-
       results,
     });
   } catch (error) {
@@ -2458,7 +2458,6 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
-
         error:
           error?.message ||
           "The Hindu pipeline failed",
@@ -2486,10 +2485,8 @@ export async function POST(
 export async function GET() {
   return NextResponse.json({
     ok: true,
-
     service:
       "SAMBHAV UPSC The Hindu PDF Pipeline",
-
     date:
       todayIST(),
   });
