@@ -804,13 +804,6 @@ async function createTheHinduHeadlineImage(
           continue;
         }
 
-        /*
-         * Newspaper headline can be split
-         * across multiple PDF lines.
-         *
-         * Test 1-4 consecutive lines.
-         */
-
         for (
           let start = 0;
           start < lines.length;
@@ -1883,7 +1876,7 @@ async function findExistingPdfArticles(
 
   const rows =
     await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date,headline_image_url&date=eq.${escapeSupabase(
         date
       )}&source_url=ilike.*${encodeURIComponent(
         marker
@@ -1903,6 +1896,182 @@ async function findExistingPdfArticles(
           ""
       ).includes(marker)
   );
+}
+
+/* =========================================================
+   BACKFILL EXISTING PDF ARTICLES
+   ONLY ADDS HEADLINE IMAGE URL
+   DOES NOT CREATE DUPLICATE ARTICLES
+========================================================= */
+
+async function backfillExistingPdfHeadlineImages(
+  pdfBuffer,
+  fileUniqueId,
+  existingArticles
+) {
+  if (
+    !pdfBuffer ||
+    !fileUniqueId ||
+    !Array.isArray(
+      existingArticles
+    ) ||
+    existingArticles.length === 0
+  ) {
+    return {
+      processed: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+    };
+  }
+
+  let processed = 0;
+  let updated = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (
+    const row of existingArticles
+  ) {
+    processed++;
+
+    const articleId =
+      row?.id;
+
+    const headline =
+      String(
+        row?.title || ""
+      ).trim();
+
+    if (
+      !articleId ||
+      !headline
+    ) {
+      skipped++;
+      continue;
+    }
+
+    /*
+      Already has image:
+      do not generate again.
+    */
+    if (
+      String(
+        row?.headline_image_url ||
+          ""
+      ).trim()
+    ) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      console.log(
+        "THE HINDU BACKFILL START:",
+        articleId,
+        headline
+      );
+
+      const headlineImageUrl =
+        await createTheHinduHeadlineImage(
+          pdfBuffer,
+          headline,
+          fileUniqueId
+        );
+
+      if (
+        !headlineImageUrl
+      ) {
+        console.warn(
+          "THE HINDU BACKFILL CROP NOT FOUND:",
+          articleId,
+          headline
+        );
+
+        failed++;
+        continue;
+      }
+
+      if (
+        !SUPABASE_URL ||
+        !SUPABASE_SERVICE_ROLE_KEY
+      ) {
+        throw new Error(
+          "SUPABASE_SERVICE_ROLE_KEY is missing"
+        );
+      }
+
+      const updateUrl =
+        `${SUPABASE_URL}/rest/v1/current_affairs` +
+        `?id=eq.${encodeURIComponent(
+          String(articleId)
+        )}`;
+
+      const updateResponse =
+        await fetch(
+          updateUrl,
+          {
+            method: "PATCH",
+
+            headers: {
+              apikey:
+                SUPABASE_SERVICE_ROLE_KEY,
+
+              Authorization:
+                `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+
+              "Content-Type":
+                "application/json",
+
+              Prefer:
+                "return=minimal",
+            },
+
+            body:
+              JSON.stringify({
+                headline_image_url:
+                  headlineImageUrl,
+              }),
+          }
+        );
+
+      const updateText =
+        await updateResponse.text();
+
+      if (
+        !updateResponse.ok
+      ) {
+        throw new Error(
+          `Supabase headline_image_url update failed: ${updateResponse.status} ${updateText}`
+        );
+      }
+
+      updated++;
+
+      console.log(
+        "THE HINDU BACKFILL SUCCESS:",
+        articleId,
+        headlineImageUrl
+      );
+    } catch (error) {
+      failed++;
+
+      console.error(
+        "THE HINDU BACKFILL FAILED:",
+        articleId,
+        headline,
+        error?.message ||
+          error
+      );
+    }
+  }
+
+  return {
+    processed,
+    updated,
+    skipped,
+    failed,
+  };
 }
 
 /* =========================================================
@@ -2159,32 +2328,73 @@ export async function POST(
         verifiedDate
       );
 
+    /*
+      IMPORTANT:
+
+      If this PDF was already processed,
+      DO NOT create new articles.
+
+      Instead:
+      - download already done
+      - find existing articles
+      - generate missing newspaper crops
+      - upload them
+      - update headline_image_url
+    */
+
     if (
       existingPdfArticles.length >
       0
     ) {
+      console.log(
+        "THE HINDU PDF DUPLICATE DETECTED - STARTING HEADLINE IMAGE BACKFILL:",
+        verifiedDate,
+        existingPdfArticles.length
+      );
+
+      const backfill =
+        await backfillExistingPdfHeadlineImages(
+          downloaded.buffer,
+          fileUniqueId,
+          existingPdfArticles
+        );
+
       await sendTelegramMessage(
         telegramChatId,
         [
           "♻️ <b>The Hindu PDF Already Processed</b>",
           "",
           `📅 Date: <b>${verifiedDate}</b>`,
-          "",
           `📰 Existing articles: <b>${existingPdfArticles.length}</b>`,
-          "✅ New articles add nahi kiye gaye.",
+          "",
+          "🖼 <b>Headline image backfill:</b>",
+          `🔎 Processed: <b>${backfill.processed}</b>`,
+          `✅ Images added: <b>${backfill.updated}</b>`,
+          `⏭ Skipped: <b>${backfill.skipped}</b>`,
+          `❌ Failed: <b>${backfill.failed}</b>`,
+          "",
+          "✅ Existing articles update kiye gaye.",
+          "🚫 New duplicate articles create nahi hue.",
         ].join("\n")
       );
 
       return NextResponse.json({
         ok: true,
-        processed: false,
+
+        processed: true,
+
         duplicatePdf: true,
+
         reason:
-          "pdf-already-processed",
+          "pdf-headline-image-backfill",
+
         date:
           verifiedDate,
+
         existingArticles:
           existingPdfArticles.length,
+
+        backfill,
       });
     }
 
