@@ -460,6 +460,55 @@ async function extractPdfText(
 }
 
 /* =========================================================
+   PDF CANVAS FACTORY
+========================================================= */
+
+function createPdfCanvasFactory(
+  createCanvas
+) {
+  return {
+    create(width, height) {
+      const canvas =
+        createCanvas(
+          Math.ceil(width),
+          Math.ceil(height)
+        );
+
+      const context =
+        canvas.getContext("2d");
+
+      return {
+        canvas,
+        context,
+      };
+    },
+
+    reset(
+      canvasAndContext,
+      width,
+      height
+    ) {
+      canvasAndContext.canvas.width =
+        Math.ceil(width);
+
+      canvasAndContext.canvas.height =
+        Math.ceil(height);
+    },
+
+    destroy(
+      canvasAndContext
+    ) {
+      if (!canvasAndContext?.canvas) {
+        return;
+      }
+
+      canvasAndContext.canvas.width = 0;
+      canvasAndContext.canvas.height = 0;
+    },
+  };
+}
+
+/* =========================================================
    HEADLINE NORMALIZATION
 ========================================================= */
 
@@ -1623,11 +1672,18 @@ async function renderAndUploadHeadline(
       pageCanvas.height
     );
 
+    const canvasFactory =
+      createPdfCanvasFactory(
+        createCanvas
+      );
+
     await page.render({
       canvasContext:
         pageContext,
 
       viewport,
+
+      canvasFactory,
     }).promise;
 
     let x1 =
@@ -1889,6 +1945,11 @@ async function createTheHinduHeadlineImage(
         "@napi-rs/canvas"
       );
 
+    const canvasFactory =
+      createPdfCanvasFactory(
+        createCanvas
+      );
+
     const loadingTask =
       pdfjsLib.getDocument({
         data:
@@ -1904,6 +1965,8 @@ async function createTheHinduHeadlineImage(
 
         isEvalSupported:
           false,
+
+        canvasFactory,
       });
 
     pdf =
@@ -2248,10 +2311,7 @@ function extractNewspaperDateFromFileName(
   fileName
 ) {
   const source =
-    String(
-      fileName ||
-      ""
-    );
+    String(fileName || "");
 
   let match =
     source.match(
@@ -2293,47 +2353,35 @@ function verifyPdfDate(
 
   const detectedDate =
     filenameDate ||
-    extractNewspaperDate(
-      pdfText
-    );
+    extractNewspaperDate(pdfText);
 
   const currentDate =
     todayIST();
 
   /*
-   * Historical-date restriction intentionally removed.
-   * Any valid The Hindu newspaper date is allowed.
-   * This supports uploading PDFs one-by-one from
-   * 1 Oct onward without changing the pipeline again.
+   * Historical-date restriction intentionally
+   * removed. Any valid The Hindu newspaper
+   * date is allowed so PDFs can be uploaded
+   * one-by-one from 1 October onward.
    */
-
   if (!detectedDate) {
     return {
       valid: false,
-
       reason:
         "newspaper-date-not-found",
-
       detectedDate: null,
-
       currentDate,
-
       dateSource: "none",
     };
   }
 
   return {
     valid: true,
-
     detectedDate,
-
     currentDate,
-
-    dateSource:
-      filenameDate
-        ? "filename"
-        : "pdf-text",
-
+    dateSource: filenameDate
+      ? "filename"
+      : "pdf-text",
     historical:
       detectedDate !== currentDate,
   };
@@ -2965,43 +3013,91 @@ async function findExistingPdfArticles(
   fileUniqueId,
   date
 ) {
-  if (
-    !fileUniqueId
-  ) {
-    return [];
+  /*
+   * First try the original PDF marker.
+   */
+  if (fileUniqueId) {
+    const marker =
+      `/the-hindu/${fileUniqueId}#`;
+
+    const markerRows =
+      await supabaseRequest(
+        `/rest/v1/current_affairs?select=id,title,source_name,source_url,date,headline_image_url&date=eq.${escapeSupabase(
+          date
+        )}&source_url=ilike.*${encodeURIComponent(
+          marker
+        )}*&limit=200`
+      );
+
+    if (
+      Array.isArray(markerRows) &&
+      markerRows.length > 0
+    ) {
+      const matched =
+        markerRows.filter(
+          (row) =>
+            String(
+              row?.source_url ||
+                ""
+            ).includes(marker)
+        );
+
+      if (matched.length > 0) {
+        console.log(
+          "THE HINDU EXISTING ARTICLES FOUND BY PDF MARKER:",
+          {
+            date,
+            count: matched.length,
+          }
+        );
+
+        return matched;
+      }
+    }
   }
 
-  const marker =
-    `/the-hindu/${fileUniqueId}#`;
-
-  const rows =
+  /*
+   * FALLBACK FOR EXISTING ARTICLES:
+   *
+   * Older The Hindu records can have a
+   * different Telegram fileUniqueId.
+   * For headline-image backfill we can
+   * safely identify them by newspaper date
+   * + The Hindu source.
+   */
+  const allRows =
     await supabaseRequest(
       `/rest/v1/current_affairs?select=id,title,source_name,source_url,date,headline_image_url&date=eq.${escapeSupabase(
         date
-      )}&source_url=ilike.*${encodeURIComponent(
-        marker
-      )}*&limit=200`
+      )}&limit=200`
     );
 
-  if (
-    !Array.isArray(
-      rows
-    )
-  ) {
+  if (!Array.isArray(allRows)) {
     return [];
   }
 
-  return rows.filter(
-    (
-      row
-    ) =>
-      String(
-        row?.source_url ||
-          ""
-      ).includes(
-        marker
-      )
+  const theHinduRows =
+    allRows.filter((row) => {
+      const source =
+        String(
+          row?.source_name ||
+            ""
+        ).toLowerCase();
+
+      return source.includes(
+        "the hindu"
+      );
+    });
+
+  console.log(
+    "THE HINDU EXISTING ARTICLES FOUND BY DATE/SOURCE FALLBACK:",
+    {
+      date,
+      count: theHinduRows.length,
+    }
   );
+
+  return theHinduRows;
 }
 
 /* =========================================================
@@ -3404,8 +3500,7 @@ export async function POST(
     const dateCheck =
       verifyPdfDate(
         pdfText,
-        body?.file_name ||
-          ""
+        body?.file_name || ""
       );
 
     if (
