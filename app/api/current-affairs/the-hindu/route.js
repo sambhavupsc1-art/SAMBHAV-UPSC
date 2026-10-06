@@ -1,4 +1,4 @@
-1.import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -411,7 +411,8 @@ async function extractPdfText(
         data:
           buffer,
 
-        CanvasFactory,
+        canvasFactory:
+          CanvasFactory,
       });
 
     const result =
@@ -1568,7 +1569,8 @@ async function renderAndUploadHeadline(
   createCanvas,
   match,
   fileUniqueId,
-  headline
+  headline,
+  CanvasFactory
 ) {
   if (
     !match ||
@@ -1628,6 +1630,9 @@ async function renderAndUploadHeadline(
         pageContext,
 
       viewport,
+
+      canvasFactory:
+        CanvasFactory,
     }).promise;
 
     let x1 =
@@ -1877,16 +1882,83 @@ async function createTheHinduHeadlineImage(
     null;
 
   try {
-    const pdfjsLib =
+    const canvasModule =
       await import(
-        "pdfjs-dist/legacy/build/pdf.mjs"
+        "@napi-rs/canvas"
       );
 
     const {
       createCanvas,
-    } =
+      DOMMatrix,
+      ImageData,
+      Path2D,
+    } = canvasModule;
+
+    if (DOMMatrix) {
+      globalThis.DOMMatrix =
+        DOMMatrix;
+    }
+
+    if (ImageData) {
+      globalThis.ImageData =
+        ImageData;
+    }
+
+    if (Path2D) {
+      globalThis.Path2D =
+        Path2D;
+    }
+
+    class HeadlineCanvasFactory {
+      create(width, height) {
+        const canvas =
+          createCanvas(
+            Math.ceil(width),
+            Math.ceil(height)
+          );
+
+        const context =
+          canvas.getContext("2d");
+
+        return {
+          canvas,
+          context,
+        };
+      }
+
+      reset(canvasAndContext, width, height) {
+        if (!canvasAndContext?.canvas) {
+          return;
+        }
+
+        canvasAndContext.canvas.width =
+          Math.ceil(width);
+
+        canvasAndContext.canvas.height =
+          Math.ceil(height);
+
+        canvasAndContext.context =
+          canvasAndContext.canvas.getContext("2d");
+      }
+
+      destroy(canvasAndContext) {
+        if (!canvasAndContext?.canvas) {
+          return;
+        }
+
+        canvasAndContext.canvas.width = 0;
+        canvasAndContext.canvas.height = 0;
+        canvasAndContext.canvas = null;
+        canvasAndContext.context = null;
+      }
+    }
+
+    const CanvasFactory =
+      HeadlineCanvasFactory;
+
+    const pdfjsLib =
       await import(
-        "@napi-rs/canvas"
+        "pdfjs-dist/legacy/build/pdf.mjs"
       );
 
     const loadingTask =
@@ -1904,6 +1976,14 @@ async function createTheHinduHeadlineImage(
 
         isEvalSupported:
           false,
+
+        isOffscreenCanvasSupported:
+          false,
+
+        isImageDecoderSupported:
+          false,
+
+        CanvasFactory,
       });
 
     pdf =
@@ -2090,7 +2170,8 @@ async function createTheHinduHeadlineImage(
       createCanvas,
       bestMatch,
       fileUniqueId,
-      headline
+      headline,
+      CanvasFactory
     );
   } catch (error) {
     console.error(
@@ -2101,6 +2182,10 @@ async function createTheHinduHeadlineImage(
         error:
           error?.message ||
           error,
+
+        stack:
+          error?.stack ||
+          "",
       }
     );
 
@@ -2244,10 +2329,55 @@ function extractNewspaperDate(
   return null;
 }
 
-function verifyPdfDate(
-  pdfText
+function extractNewspaperDateFromFileName(
+  fileName
 ) {
+  const source =
+    String(
+      fileName ||
+      ""
+    );
+
+  let match =
+    source.match(
+      /\b(0?[1-9]|[12][0-9]|3[01])[\/_-](0?[1-9]|1[0-2])[\/_-](20\d{2})\b/
+    );
+
+  if (match) {
+    return `${match[3]}-${String(
+      match[2]
+    ).padStart(2, "0")}-${String(
+      match[1]
+    ).padStart(2, "0")}`;
+  }
+
+  match =
+    source.match(
+      /\b(20\d{2})[\/_-](0?[1-9]|1[0-2])[\/_-](0?[1-9]|[12][0-9]|3[01])\b/
+    );
+
+  if (match) {
+    return `${match[1]}-${String(
+      match[2]
+    ).padStart(2, "0")}-${String(
+      match[3]
+    ).padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
+function verifyPdfDate(
+  pdfText,
+  fileName = ""
+) {
+  const filenameDate =
+    extractNewspaperDateFromFileName(
+      fileName
+    );
+
   const detectedDate =
+    filenameDate ||
     extractNewspaperDate(
       pdfText
     );
@@ -2269,6 +2399,9 @@ function verifyPdfDate(
         null,
 
       currentDate,
+
+      dateSource:
+        "none",
     };
   }
 
@@ -2286,6 +2419,11 @@ function verifyPdfDate(
       detectedDate,
 
       currentDate,
+
+      dateSource:
+        filenameDate
+          ? "filename"
+          : "pdf-text",
     };
   }
 
@@ -2296,6 +2434,11 @@ function verifyPdfDate(
     detectedDate,
 
     currentDate,
+
+    dateSource:
+      filenameDate
+        ? "filename"
+        : "pdf-text",
   };
 }
 
@@ -3363,7 +3506,9 @@ export async function POST(
 
     const dateCheck =
       verifyPdfDate(
-        pdfText
+        pdfText,
+        body?.file_name ||
+          ""
       );
 
     if (
@@ -3430,12 +3575,9 @@ export async function POST(
      * IMPORTANT:
      *
      * Same PDF already exists.
-     *
-     * Do NOT create new articles.
-     *
-     * Instead:
-     * generate missing headline images
-     * for the existing articles.
+     * Never re-run article generation,
+     * AI processing, or headline-image
+     * backfill from the webhook.
      */
 
     if (
@@ -3453,15 +3595,6 @@ export async function POST(
         }
       );
 
-      const backfill =
-        await backfillExistingPdfHeadlineImages(
-          downloaded.buffer,
-
-          fileUniqueId,
-
-          existingPdfArticles
-        );
-
       await sendTelegramMessage(
         telegramChatId,
 
@@ -3475,21 +3608,11 @@ export async function POST(
 
           "",
 
-          "🖼 <b>Headline image backfill:</b>",
+          "🚫 Duplicate PDF ko dobara process nahi kiya gaya.",
 
-          `🔎 Processed: <b>${backfill.processed}</b>`,
+          "🚫 Headline-image backfill automatically run nahi hua.",
 
-          `✅ Images added: <b>${backfill.updated}</b>`,
-
-          `⏭ Skipped: <b>${backfill.skipped}</b>`,
-
-          `❌ Failed: <b>${backfill.failed}</b>`,
-
-          "",
-
-          "✅ Existing articles update kiye gaye.",
-
-          "🚫 New duplicate articles create nahi hue.",
+          "🚫 AI/crop processing repeat nahi hui.",
         ].join(
           "\n"
         )
@@ -3500,21 +3623,19 @@ export async function POST(
           true,
 
         processed:
-          true,
+          false,
 
         duplicatePdf:
           true,
 
         reason:
-          "pdf-headline-image-backfill",
+          "pdf-already-processed",
 
         date:
           verifiedDate,
 
         existingArticles:
           existingPdfArticles.length,
-
-        backfill,
       });
     }
 
