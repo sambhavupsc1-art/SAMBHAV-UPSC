@@ -22,28 +22,22 @@ const PIB_URL =
 const GKTODAY_URL =
   "https://www.gktoday.in/current-affairs/";
 
-const THE_HINDU_FEEDS = [
-  {
-    name: "The Hindu - National",
-    url: "https://www.thehindu.com/news/national/feeder/default.rss",
-  },
-  {
-    name: "The Hindu - International",
-    url: "https://www.thehindu.com/news/international/feeder/default.rss",
-  },
-  {
-    name: "The Hindu - Business",
-    url: "https://www.thehindu.com/business/feeder/default.rss",
-  },
-  {
-    name: "The Hindu - Science & Technology",
-    url: "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
-  },
-  {
-    name: "The Hindu - Opinion",
-    url: "https://www.thehindu.com/opinion/feeder/default.rss",
-  },
-];
+/*
+ * THE HINDU RSS IS INTENTIONALLY DISABLED.
+ *
+ * The Hindu will later be processed through:
+ *
+ * Telegram PDF
+ * → PDF extraction
+ * → article/date verification
+ * → UPSC relevance filter
+ * → duplicate check
+ * → Hindi + English AI analysis
+ * → Supabase
+ *
+ * Do NOT re-enable RSS here.
+ */
+const THE_HINDU_FEEDS = [];
 
 const BETTER_INDIA_FEEDS = [
   {
@@ -104,6 +98,73 @@ function todayIST() {
 }
 
 /* ---------------------------------------
+   DATE HELPERS
+--------------------------------------- */
+
+function normalizeDateOnly(value = "") {
+  if (!value) {
+    return "";
+  }
+
+  const text =
+    String(value)
+      .trim();
+
+  if (
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      text
+    )
+  ) {
+    return text;
+  }
+
+  const parsed =
+    new Date(text);
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone:
+        "Asia/Kolkata",
+      year:
+        "numeric",
+      month:
+        "2-digit",
+      day:
+        "2-digit",
+    }
+  ).format(parsed);
+}
+
+/*
+ * IMPORTANT:
+ * Never assign today's date merely because
+ * a source date is unknown.
+ *
+ * Unknown date = reject from today's feed.
+ */
+function isTodayIST(
+  value
+) {
+  const normalized =
+    normalizeDateOnly(value);
+
+  return (
+    normalized !== "" &&
+    normalized ===
+      todayIST()
+  );
+}
+
+/* ---------------------------------------
    HTML / TEXT HELPERS
 --------------------------------------- */
 
@@ -113,13 +174,34 @@ function decodeHtml(value = "") {
       /<!\[CDATA\[([\s\S]*?)\]\]>/gi,
       "$1"
     )
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&apos;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
+    .replace(
+      /&nbsp;/gi,
+      " "
+    )
+    .replace(
+      /&amp;/gi,
+      "&"
+    )
+    .replace(
+      /&quot;/gi,
+      '"'
+    )
+    .replace(
+      /&#39;/gi,
+      "'"
+    )
+    .replace(
+      /&apos;/gi,
+      "'"
+    )
+    .replace(
+      /&lt;/gi,
+      "<"
+    )
+    .replace(
+      /&gt;/gi,
+      ">"
+    )
     .replace(
       /&#(\d+);/g,
       (_, n) => {
@@ -134,7 +216,9 @@ function decodeHtml(value = "") {
     );
 }
 
-function stripHtml(value = "") {
+function stripHtml(
+  value = ""
+) {
   return decodeHtml(value)
     .replace(
       /<script[\s\S]*?<\/script>/gi,
@@ -155,11 +239,19 @@ function stripHtml(value = "") {
     .trim();
 }
 
-function normalizeText(value = "") {
+function normalizeText(
+  value = ""
+) {
   return stripHtml(value)
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
     .trim();
 }
 
@@ -167,25 +259,43 @@ function normalizeText(value = "") {
    URL NORMALIZATION
 --------------------------------------- */
 
-function normalizeUrl(value = "", base = "") {
-  let url = decodeHtml(value)
-    .replace(/&amp;/gi, "&")
-    .replace(/^['"]|['"]$/g, "")
-    .trim();
+function normalizeUrl(
+  value = "",
+  base = ""
+) {
+  let url =
+    decodeHtml(value)
+      .replace(
+        /&amp;/gi,
+        "&"
+      )
+      .replace(
+        /^['"]|['"]$/g,
+        ""
+      )
+      .trim();
 
   if (!url) {
     return "";
   }
 
-  if (/^https?:\/\//i.test(url)) {
+  if (
+    /^https?:\/\//i.test(
+      url
+    )
+  ) {
     return url;
   }
 
-  if (url.startsWith("//")) {
+  if (
+    url.startsWith("//")
+  ) {
     return `https:${url}`;
   }
 
-  if (url.startsWith("/")) {
+  if (
+    url.startsWith("/")
+  ) {
     if (base) {
       try {
         return new URL(
@@ -459,7 +569,9 @@ function relevanceScore(
     const [keyword, points]
     of Object.entries(keywords)
   ) {
-    if (text.includes(keyword)) {
+    if (
+      text.includes(keyword)
+    ) {
       score += points;
     }
   }
@@ -570,7 +682,9 @@ function extractReleaseLinks(
       return;
     }
 
-    if (seen.has(cleanUrl)) {
+    if (
+      seen.has(cleanUrl)
+    ) {
       return;
     }
 
@@ -578,7 +692,8 @@ function extractReleaseLinks(
 
     results.push({
       url: cleanUrl,
-      title: stripHtml(title),
+      title:
+        stripHtml(title),
     });
   }
 
@@ -749,6 +864,100 @@ async function fetchReleaseContent(
 }
 
 /* ---------------------------------------
+   PIB DATE EXTRACTION
+--------------------------------------- */
+
+function extractPIBDate(
+  content = ""
+) {
+  const text =
+    stripHtml(content);
+
+  const patterns = [
+    /\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/,
+    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/i,
+  ];
+
+  for (
+    const pattern of patterns
+  ) {
+    const match =
+      text.match(pattern);
+
+    if (!match) {
+      continue;
+    }
+
+    try {
+      let date;
+
+      if (
+        /^\d{1,2}$/.test(
+          match[1]
+        )
+      ) {
+        if (
+          /^\d{4}$/.test(
+            match[3]
+          )
+        ) {
+          date =
+            new Date(
+              Number(match[3]),
+              Number(match[2]) - 1,
+              Number(match[1])
+            );
+        }
+      } else if (
+        /^\d{4}$/.test(
+          match[3]
+        )
+      ) {
+        date =
+          new Date(
+            `${match[1]} ${match[2]}, ${match[3]}`
+          );
+      } else if (
+        /^\d{4}$/.test(
+          match[3]
+        )
+      ) {
+        date =
+          new Date(
+            `${match[1]} ${match[2]}, ${match[3]}`
+          );
+      }
+
+      if (
+        date &&
+        !Number.isNaN(
+          date.getTime()
+        )
+      ) {
+        return new Intl.DateTimeFormat(
+          "en-CA",
+          {
+            timeZone:
+              "Asia/Kolkata",
+            year:
+              "numeric",
+            month:
+              "2-digit",
+            day:
+              "2-digit",
+          }
+        ).format(date);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return "";
+}
+
+/* ---------------------------------------
    GKToday ARTICLE LINKS
 --------------------------------------- */
 
@@ -833,7 +1042,9 @@ function extractGKTodayLinks(
     const key =
       href.split("#")[0];
 
-    if (seen.has(key)) {
+    if (
+      seen.has(key)
+    ) {
       continue;
     }
 
@@ -916,7 +1127,86 @@ async function fetchGKTodayArticle(
 }
 
 /* ---------------------------------------
+   GKToday DATE EXTRACTION
+--------------------------------------- */
+
+function extractGKTodayDate(
+  content = ""
+) {
+  const text =
+    stripHtml(content);
+
+  const patterns = [
+    /\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/,
+    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/i,
+  ];
+
+  for (
+    const pattern of patterns
+  ) {
+    const match =
+      text.match(pattern);
+
+    if (!match) {
+      continue;
+    }
+
+    try {
+      let date;
+
+      if (
+        /^\d{1,2}$/.test(
+          match[1]
+        ) &&
+        /^\d{4}$/.test(
+          match[3]
+        )
+      ) {
+        date =
+          new Date(
+            Number(match[3]),
+            Number(match[2]) - 1,
+            Number(match[1])
+          );
+      } else {
+        date =
+          new Date(
+            `${match[1]} ${match[2]}, ${match[3]}`
+          );
+      }
+
+      if (
+        date &&
+        !Number.isNaN(
+          date.getTime()
+        )
+      ) {
+        return new Intl.DateTimeFormat(
+          "en-CA",
+          {
+            timeZone:
+              "Asia/Kolkata",
+            year:
+              "numeric",
+            month:
+              "2-digit",
+            day:
+              "2-digit",
+          }
+        ).format(date);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return "";
+}
+
+/* ---------------------------------------
    THE HINDU RSS
+   DISABLED
 --------------------------------------- */
 
 function extractRSSItems(
@@ -961,22 +1251,26 @@ function extractRSSItems(
 
     const title =
       stripHtml(
-        titleMatch?.[1] || ""
+        titleMatch?.[1] ||
+          ""
       );
 
     const link =
       normalizeUrl(
-        linkMatch?.[1] || ""
+        linkMatch?.[1] ||
+          ""
       );
 
     const description =
       stripHtml(
-        descriptionMatch?.[1] || ""
+        descriptionMatch?.[1] ||
+          ""
       );
 
     const publishedAt =
       stripHtml(
-        dateMatch?.[1] || ""
+        dateMatch?.[1] ||
+          ""
       );
 
     if (
@@ -1009,47 +1303,27 @@ async function fetchTheHinduFeed(
       await fetch(
         feed.url,
         {
-          headers: {
-            ...browserHeaders(),
-            Accept:
-              "application/rss+xml, application/xml, text/xml, */*",
-          },
+          headers:
+            browserHeaders(),
           cache:
             "no-store",
         }
       );
 
     if (!response.ok) {
-      console.log(
-        "THE HINDU FEED HTTP:",
-        response.status,
-        feed.name
-      );
-
       return [];
     }
 
     const xml =
       await response.text();
 
-    const items =
-      extractRSSItems(
-        xml,
-        feed.name
-      );
-
-    console.log(
-      "THE HINDU FEED:",
-      feed.name,
-      "| ITEMS:",
-      items.length
+    return extractRSSItems(
+      xml,
+      feed.name
     );
-
-    return items;
   } catch (error) {
     console.error(
-      "The Hindu feed failed:",
-      feed.name,
+      "The Hindu RSS failed:",
       error.message
     );
 
@@ -1057,80 +1331,73 @@ async function fetchTheHinduFeed(
   }
 }
 
-/* ---------------------------------------
-   THE HINDU IMPORTANCE FILTER
---------------------------------------- */
-
 function isImportantTheHinduArticle(
-  item
+  title = "",
+  description = ""
 ) {
-  const text =
-    `${item.title} ${item.description}`.toLowerCase();
-
   const score =
     relevanceScore(
-      item.title,
-      item.description
-    );
-
-  const importantTerms = [
-    "supreme court",
-    "parliament",
-    "constitution",
-    "government",
-    "policy",
-    "rbi",
-    "sebi",
-    "economy",
-    "gdp",
-    "inflation",
-    "climate",
-    "environment",
-    "biodiversity",
-    "international",
-    "foreign policy",
-    "china",
-    "united states",
-    "russia",
-    "india",
-    "united nations",
-    "security",
-    "defence",
-    "technology",
-    "artificial intelligence",
-    "semiconductor",
-    "agriculture",
-    "farmer",
-    "health",
-    "education",
-    "social justice",
-    "women",
-    "report",
-    "index",
-    "governance",
-    "federalism",
-    "judiciary",
-    "election",
-    "diplomacy",
-    "geopolitics",
-  ];
-
-  const hasImportantTerm =
-    importantTerms.some(
-      (term) =>
-        text.includes(term)
+      title,
+      description
     );
 
   return (
-    score >= 5 ||
-    (hasImportantTerm &&
-      score >= 3)
+    score >= 6 &&
+    !isLowValueNoise(
+      title,
+      description
+    )
   );
 }
 
+async function collectTheHindu() {
+  console.log(
+    "THE HINDU RSS DISABLED: Telegram PDF pipeline will be used."
+  );
+
+  return [];
+}
+
 /* ---------------------------------------
-   BETTER INDIA ETHICS LINKS
+   BETTER INDIA
 --------------------------------------- */
+
+function isEthicsExample(
+  title = "",
+  content = ""
+) {
+  const text =
+    `${title} ${content}`.toLowerCase();
+
+  const keywords = [
+    "civic sense",
+    "ethics",
+    "integrity",
+    "compassion",
+    "empathy",
+    "volunteer",
+    "volunteering",
+    "social responsibility",
+    "public service",
+    "altruism",
+    "kindness",
+    "leadership",
+    "honesty",
+    "courage",
+    "changemaker",
+    "change maker",
+    "community",
+    "helped",
+    "helping",
+    "served",
+    "service",
+  ];
+
+  return keywords.some(
+    (keyword) =>
+      text.includes(keyword)
+  );
+}
 
 function extractBetterIndiaLinks(
   html,
@@ -1163,8 +1430,7 @@ function extractBetterIndiaLinks(
 
     if (
       !href ||
-      !title ||
-      title.length < 20
+      !title
     ) {
       continue;
     }
@@ -1179,7 +1445,7 @@ function extractBetterIndiaLinks(
     }
 
     if (
-      !parsed.hostname.includes(
+      !parsed.hostname.endsWith(
         "thebetterindia.com"
       )
     ) {
@@ -1206,78 +1472,6 @@ function extractBetterIndiaLinks(
   return results;
 }
 
-/* ---------------------------------------
-   BETTER INDIA ETHICS FILTER
---------------------------------------- */
-
-function isEthicsExample(
-  title = "",
-  content = ""
-) {
-  const text =
-    `${title} ${content}`.toLowerCase();
-
-  const ethicsKeywords = [
-    "civic sense",
-    "civic responsibility",
-    "changemaker",
-    "compassion",
-    "empathy",
-    "integrity",
-    "honesty",
-    "kindness",
-    "volunteer",
-    "volunteering",
-    "social worker",
-    "social responsibility",
-    "community",
-    "public service",
-    "citizen",
-    "citizens",
-    "helped",
-    "helping",
-    "saved",
-    "rescue",
-    "cleaned",
-    "cleaning",
-    "restored",
-    "restoration",
-    "education",
-    "empower",
-    "empowered",
-    "women empowerment",
-    "equality",
-    "courage",
-    "leadership",
-    "sacrifice",
-    "environmental responsibility",
-    "wildlife conservation",
-    "water conservation",
-    "justice",
-  ];
-
-  let hits = 0;
-
-  for (
-    const keyword
-    of ethicsKeywords
-  ) {
-    if (
-      text.includes(
-        keyword
-      )
-    ) {
-      hits++;
-    }
-  }
-
-  return hits >= 2;
-}
-
-/* ---------------------------------------
-   FETCH BETTER INDIA PAGE
---------------------------------------- */
-
 async function fetchBetterIndiaPage(
   feed
 ) {
@@ -1294,45 +1488,25 @@ async function fetchBetterIndiaPage(
       );
 
     if (!response.ok) {
-      console.log(
-        "BETTER INDIA HTTP:",
-        response.status,
-        feed.url
-      );
-
       return [];
     }
 
     const html =
       await response.text();
 
-    const links =
-      extractBetterIndiaLinks(
-        html,
-        feed.url
-      );
-
-    console.log(
-      "BETTER INDIA LINKS:",
-      feed.name,
-      links.length
+    return extractBetterIndiaLinks(
+      html,
+      feed.url
     );
-
-    return links;
   } catch (error) {
     console.error(
       "Better India page failed:",
-      feed.name,
       error.message
     );
 
     return [];
   }
 }
-
-/* ---------------------------------------
-   FETCH BETTER INDIA ARTICLE
---------------------------------------- */
 
 async function fetchBetterIndiaArticle(
   url
@@ -1360,11 +1534,11 @@ async function fetchBetterIndiaArticle(
       html
     ).slice(
       0,
-      20000
+      25000
     );
   } catch (error) {
     console.error(
-      "Better India article fetch failed:",
+      "Better India article failed:",
       error.message
     );
 
@@ -1373,72 +1547,340 @@ async function fetchBetterIndiaArticle(
 }
 
 /* ---------------------------------------
-   DUPLICATE REMOVAL
+   EXACT DUPLICATE REMOVAL
 --------------------------------------- */
 
 function removeDuplicates(
-  items
+  items = []
 ) {
-  const seenTitles =
+  const seen =
     new Set();
 
-  const seenUrls =
-    new Set();
+  const unique = [];
 
-  return items.filter(
-    (item) => {
-      const normalizedTitle =
-        normalizeText(
-          item.title
-        );
+  for (
+    const item
+    of items
+  ) {
+    const title =
+      normalizeText(
+        item.title
+      );
 
-      const normalizedUrl =
-        normalizeText(
-          item.source_url ||
-            item.url ||
-            ""
-        );
+    const url =
+      normalizeUrl(
+        item.source_url ||
+          item.url ||
+          ""
+      );
 
-      if (
-        !normalizedTitle &&
-        !normalizedUrl
-      ) {
-        return false;
-      }
+    const key =
+      `${title}|${url}`;
 
-      if (
-        normalizedUrl &&
-        seenUrls.has(
-          normalizedUrl
-        )
-      ) {
-        return false;
-      }
-
-      if (
-        normalizedTitle &&
-        seenTitles.has(
-          normalizedTitle
-        )
-      ) {
-        return false;
-      }
-
-      if (normalizedUrl) {
-        seenUrls.add(
-          normalizedUrl
-        );
-      }
-
-      if (normalizedTitle) {
-        seenTitles.add(
-          normalizedTitle
-        );
-      }
-
-      return true;
+    if (
+      seen.has(key)
+    ) {
+      continue;
     }
+
+    seen.add(key);
+    unique.push(item);
+  }
+
+  return unique;
+}
+
+/* ---------------------------------------
+   CROSS-SOURCE EVENT DEDUPLICATION
+--------------------------------------- */
+
+const DUPLICATE_STOPWORDS =
+  new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "from",
+    "at",
+    "by",
+    "as",
+    "is",
+    "are",
+    "was",
+    "were",
+    "has",
+    "have",
+    "had",
+    "india",
+    "indian",
+    "government",
+    "govt",
+    "today",
+    "new",
+    "news",
+    "official",
+    "says",
+    "said",
+    "amid",
+    "over",
+    "after",
+    "before",
+  ]);
+
+function duplicateTokens(
+  value = ""
+) {
+  return normalizeText(
+    value
+  )
+    .split(/\s+/)
+    .filter(
+      (token) =>
+        token.length >= 3 &&
+        !DUPLICATE_STOPWORDS.has(
+          token
+        )
+    );
+}
+
+function tokenSimilarity(
+  a = "",
+  b = ""
+) {
+  const aSet =
+    new Set(
+      duplicateTokens(a)
+    );
+
+  const bSet =
+    new Set(
+      duplicateTokens(b)
+    );
+
+  if (
+    aSet.size === 0 ||
+    bSet.size === 0
+  ) {
+    return 0;
+  }
+
+  let intersection = 0;
+
+  for (
+    const token
+    of aSet
+  ) {
+    if (
+      bSet.has(token)
+    ) {
+      intersection++;
+    }
+  }
+
+  return (
+    intersection /
+    Math.min(
+      aSet.size,
+      bSet.size
+    )
   );
+}
+
+function sourcePriority(
+  sourceName = ""
+) {
+  const source =
+    String(
+      sourceName
+    ).toLowerCase();
+
+  if (
+    source.includes(
+      "press information bureau"
+    ) ||
+    source === "pib"
+  ) {
+    return 100;
+  }
+
+  if (
+    source.includes(
+      "the hindu"
+    )
+  ) {
+    return 90;
+  }
+
+  if (
+    source.includes(
+      "gktoday"
+    )
+  ) {
+    return 80;
+  }
+
+  if (
+    source.includes(
+      "better india"
+    )
+  ) {
+    return 60;
+  }
+
+  return 50;
+}
+
+function isSameEvent(
+  a,
+  b
+) {
+  if (!a || !b) {
+    return false;
+  }
+
+  const aTitle =
+    normalizeText(
+      a.title
+    );
+
+  const bTitle =
+    normalizeText(
+      b.title
+    );
+
+  if (
+    !aTitle ||
+    !bTitle
+  ) {
+    return false;
+  }
+
+  /*
+   * Strong title similarity.
+   */
+  const similarity =
+    tokenSimilarity(
+      aTitle,
+      bTitle
+    );
+
+  if (
+    similarity >= 0.72
+  ) {
+    return true;
+  }
+
+  /*
+   * Shared high-value entities.
+   */
+  const importantTokens =
+    [
+      ...new Set(
+        duplicateTokens(
+          `${a.title} ${a.description || ""}`
+        )
+      ),
+    ];
+
+  const bTokens =
+    new Set(
+      duplicateTokens(
+        `${b.title} ${b.description || ""}`
+      )
+    );
+
+  const sharedImportant =
+    importantTokens.filter(
+      (token) =>
+        bTokens.has(token) &&
+        token.length >= 5
+    );
+
+  /*
+   * For cross-source duplication,
+   * at least 3 meaningful shared tokens
+   * plus reasonable title overlap is enough.
+   */
+  if (
+    sharedImportant.length >= 3 &&
+    similarity >= 0.5
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function consolidateDuplicateEvents(
+  items = []
+) {
+  const sorted =
+    [...items].sort(
+      (a, b) => {
+        const priorityDifference =
+          sourcePriority(
+            b.source_name
+          ) -
+          sourcePriority(
+            a.source_name
+          );
+
+        if (
+          priorityDifference !== 0
+        ) {
+          return priorityDifference;
+        }
+
+        return (
+          Number(b.score || 0) -
+          Number(a.score || 0)
+        );
+      }
+    );
+
+  const selected = [];
+
+  for (
+    const item
+    of sorted
+  ) {
+    const duplicate =
+      selected.find(
+        (existing) =>
+          isSameEvent(
+            existing,
+            item
+          )
+      );
+
+    if (
+      duplicate
+    ) {
+      console.log(
+        "CROSS-SOURCE DUPLICATE REMOVED:",
+        item.source_name,
+        "|",
+        item.title,
+        "| KEPT:",
+        duplicate.source_name
+      );
+
+      continue;
+    }
+
+    selected.push(
+      item
+    );
+  }
+
+  return selected;
 }
 
 /* ---------------------------------------
@@ -1450,30 +1892,20 @@ async function collectPIB() {
     const html =
       await fetchPIBPage();
 
-    const releaseLinks =
+    const links =
       extractReleaseLinks(
         html
       );
 
     console.log(
-      "PIB RELEASE LINKS FOUND:",
-      releaseLinks.length
+      "PIB RELEASE LINKS:",
+      links.length
     );
 
-    if (
-      !releaseLinks.length
-    ) {
-      console.log(
-        "PIB RELEASE LINK PARSER FAILED."
-      );
-
-      return [];
-    }
-
     const candidates =
-      releaseLinks.slice(
+      links.slice(
         0,
-        35
+        30
       );
 
     const collected = [];
@@ -1488,66 +1920,85 @@ async function collectPIB() {
             release.url
           );
 
-        const title =
-          release.title ||
-          content.slice(
-            0,
-            300
+        if (
+          !content
+        ) {
+          continue;
+        }
+
+        const date =
+          extractPIBDate(
+            content
           );
 
-        if (!title) {
+        /*
+         * STRICT CURRENT-DATE FILTER.
+         */
+        if (
+          !isTodayIST(date)
+        ) {
+          console.log(
+            "PIB OLD/UNKNOWN DATE SKIPPED:",
+            release.title,
+            "| DATE:",
+            date || "UNKNOWN"
+          );
+
           continue;
         }
 
         const score =
           relevanceScore(
-            title,
+            release.title,
             content
           );
 
-        const noise =
+        if (
           isLowValueNoise(
-            title,
+            release.title,
             content
-          );
-
-        console.log(
-          "PIB:",
-          title.slice(
-            0,
-            100
-          ),
-          "| SCORE:",
-          score,
-          "| NOISE:",
-          noise
-        );
-
-        if (noise) {
+          )
+        ) {
           continue;
         }
 
         if (
-          score >= 4
+          score < 4
         ) {
-          collected.push({
-            title,
-            description:
-              content ||
-              title,
-            url:
-              release.url,
-            source_url:
-              release.url,
-            source_name:
-              "Press Information Bureau (PIB)",
-            score,
-            source_type:
-              "current_affairs",
-            report_type:
-              "current_affairs",
-          });
+          continue;
         }
+
+        collected.push({
+          title:
+            release.title,
+          description:
+            content,
+          url:
+            release.url,
+          source_url:
+            release.url,
+          source_name:
+            "Press Information Bureau (PIB)",
+          score:
+            score + 3,
+          source_type:
+            "current_affairs",
+          report_type:
+            "current_affairs",
+          date,
+        });
+
+        console.log(
+          "PIB ACCEPTED:",
+          release.title.slice(
+            0,
+            120
+          ),
+          "| DATE:",
+          date,
+          "| SCORE:",
+          score
+        );
       } catch (error) {
         console.error(
           "PIB release processing failed:",
@@ -1582,7 +2033,7 @@ async function collectGKToday() {
       );
 
     console.log(
-      "GKTODAY LINKS FOUND:",
+      "GKTODAY LINKS:",
       links.length
     );
 
@@ -1607,6 +2058,27 @@ async function collectGKToday() {
         const title =
           article.title;
 
+        const date =
+          extractGKTodayDate(
+            content
+          );
+
+        /*
+         * STRICT CURRENT-DATE FILTER.
+         */
+        if (
+          !isTodayIST(date)
+        ) {
+          console.log(
+            "GKTODAY OLD/UNKNOWN DATE SKIPPED:",
+            title,
+            "| DATE:",
+            date || "UNKNOWN"
+          );
+
+          continue;
+        }
+
         const score =
           relevanceScore(
             title,
@@ -1627,6 +2099,8 @@ async function collectGKToday() {
           ),
           "| SCORE:",
           score,
+          "| DATE:",
+          date,
           "| NOISE:",
           noise
         );
@@ -1655,6 +2129,7 @@ async function collectGKToday() {
             "current_affairs",
           report_type:
             "current_affairs",
+          date,
         });
       } catch (error) {
         console.error(
@@ -1679,63 +2154,15 @@ async function collectGKToday() {
    COLLECT THE HINDU
 --------------------------------------- */
 
-async function collectTheHindu() {
-  const allItems = [];
-
-  for (
-    const feed
-    of THE_HINDU_FEEDS
-  ) {
-    const items =
-      await fetchTheHinduFeed(
-        feed
-      );
-
-    allItems.push(
-      ...items
-    );
-  }
-
-  const unique =
-    removeDuplicates(
-      allItems
-    );
-
-  const important =
-    unique
-      .filter(
-        isImportantTheHinduArticle
-      )
-      .map(
-        (item) => ({
-          ...item,
-          score:
-            relevanceScore(
-              item.title,
-              item.description
-            ) + 2,
-          source_type:
-            "current_affairs",
-          report_type:
-            "current_affairs",
-        })
-      )
-      .sort(
-        (a, b) =>
-          b.score -
-          a.score
-      )
-      .slice(
-        0,
-        12
-      );
-
-  console.log(
-    "THE HINDU IMPORTANT ARTICLES:",
-    important.length
-  );
-
-  return important;
+async function collectTheHinduDisabledLegacy() {
+  /*
+   * Kept only so old references do not
+   * break if this function is searched.
+   *
+   * Actual collector is collectTheHindu()
+   * above, which intentionally returns [].
+   */
+  return [];
 }
 
 /* ---------------------------------------
@@ -1799,6 +2226,13 @@ async function collectBetterIndiaEthics() {
         continue;
       }
 
+      /*
+       * Better India is retained as an
+       * ethics-example source.
+       *
+       * It is NOT allowed to become a
+       * normal current-affairs source.
+       */
       collected.push({
         title:
           article.title,
@@ -1878,20 +2312,79 @@ async function collectSources() {
     }
   );
 
-  const currentAffairs =
+  /*
+   * Step 1:
+   * Exact duplicate removal.
+   */
+  const exactUnique =
     removeDuplicates([
       ...pib,
       ...gktoday,
       ...hindu,
-    ])
+    ]);
+
+  /*
+   * Step 2:
+   * Same-event cross-source
+   * duplicate consolidation.
+   *
+   * PIB > The Hindu > GKToday
+   * priority is used when the same
+   * event appears in multiple sources.
+   */
+  const consolidated =
+    consolidateDuplicateEvents(
+      exactUnique
+    );
+
+  /*
+   * Step 3:
+   * Final UPSC ranking.
+   */
+  const currentAffairs =
+    consolidated
+      .filter(
+        (item) =>
+          isTodayIST(
+            item.date
+          )
+      )
       .sort(
-        (a, b) =>
-          b.score -
-          a.score
+        (a, b) => {
+          const scoreDifference =
+            Number(
+              b.score || 0
+            ) -
+            Number(
+              a.score || 0
+            );
+
+          if (
+            scoreDifference !== 0
+          ) {
+            return scoreDifference;
+          }
+
+          return (
+            sourcePriority(
+              b.source_name
+            ) -
+            sourcePriority(
+              a.source_name
+            )
+          );
+        }
       )
       .slice(
         0,
         10
+      )
+      .map(
+        (item) => ({
+          ...item,
+          date:
+            todayIST(),
+        })
       );
 
   const ethicsExamples =
@@ -1900,8 +2393,12 @@ async function collectSources() {
     )
       .sort(
         (a, b) =>
-          b.score -
-          a.score
+          Number(
+            b.score || 0
+          ) -
+          Number(
+            a.score || 0
+          )
       )
       .slice(
         0,
@@ -2250,6 +2747,8 @@ export async function GET(
           item.source_name,
           "| TYPE:",
           item.report_type,
+          "| DATE:",
+          item.date || "N/A",
           "| SCORE:",
           item.score
         );
@@ -2295,7 +2794,7 @@ export async function GET(
         sources: [
           "PIB",
           "GKToday",
-          "The Hindu",
+          "The Hindu PDF pipeline",
           "The Better India - Ethics",
         ],
         articles_found:
@@ -2341,15 +2840,12 @@ export async function GET(
               source_url:
                 item.source_url,
               date:
+                item.date ||
                 runDate,
 
               /*
-               * IMPORTANT:
                * Better India items are explicitly
                * marked as Ethics examples.
-               *
-               * The existing AI route already
-               * supports report_type.
                */
               report_type:
                 item.report_type,
@@ -2396,21 +2892,6 @@ export async function GET(
             result?.failed_batches ||
             0
         );
-
-      /*
-       * IMPORTANT FIX:
-       *
-       * If the articles already exist,
-       * AI can return:
-       *
-       * created = 0
-       * skipped > 0
-       *
-       * This is NOT a failure.
-       *
-       * It means today's data is already
-       * present in Supabase.
-       */
 
       if (
         !result?.success
@@ -2572,7 +3053,7 @@ export async function GET(
       sources: [
         "PIB",
         "GKToday",
-        "The Hindu",
+        "The Hindu PDF pipeline",
         "The Better India - Ethics",
       ],
 
