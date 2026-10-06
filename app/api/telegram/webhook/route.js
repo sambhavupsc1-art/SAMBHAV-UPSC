@@ -128,13 +128,8 @@ async function sendWelcomeMessage(chatId) {
 <b>After joining the channel, you can open the SAMBHAV UPSC app.</b>
 `;
 
-  // =======================================================
-  // PROFESSIONAL 2-COLUMN GRID
-  // =======================================================
-
   const replyMarkup = {
     inline_keyboard: [
-      // Row 1
       [
         {
           text: "📚 Current Affairs",
@@ -149,7 +144,6 @@ async function sendWelcomeMessage(chatId) {
         },
       ],
 
-      // Row 2
       [
         {
           text: "🤖 AI Evaluation",
@@ -164,7 +158,6 @@ async function sendWelcomeMessage(chatId) {
         },
       ],
 
-      // Row 3
       [
         {
           text: "📊 Performance",
@@ -179,7 +172,6 @@ async function sendWelcomeMessage(chatId) {
         },
       ],
 
-      // Official Channel
       [
         {
           text: "📢 Join Official Channel",
@@ -188,7 +180,6 @@ async function sendWelcomeMessage(chatId) {
         },
       ],
 
-      // Verification
       [
         {
           text: "✓ I Have Joined / Continue",
@@ -200,11 +191,6 @@ async function sendWelcomeMessage(chatId) {
   };
 
   try {
-    /*
-      Vercel image ko pehle server-side fetch
-      karke Telegram par upload kiya ja raha hai.
-    */
-
     const imageResponse =
       await fetch(
         WELCOME_IMAGE_URL,
@@ -241,7 +227,6 @@ async function sendWelcomeMessage(chatId) {
       caption
     );
 
-    // Telegram HTML formatting
     formData.append(
       "parse_mode",
       "HTML"
@@ -281,7 +266,6 @@ async function sendWelcomeMessage(chatId) {
       error
     );
 
-    // Image fail hone par text flow continue rahega
     return sendTelegramMessage(
       chatId,
       caption,
@@ -323,16 +307,6 @@ async function checkChannelMembership(
 
   const status =
     member?.status;
-
-  /*
-    Telegram statuses:
-    creator
-    administrator
-    member
-    restricted
-    left
-    kicked
-  */
 
   if (
     status === "creator" ||
@@ -519,6 +493,205 @@ Aapki preparation, practice aur progress ko ek focused dashboard ke through trac
       ],
     }
   );
+}
+
+/* =========================================================
+   THE HINDU PDF PROCESSOR
+========================================================= */
+
+async function processTheHinduPdf(
+  chatId,
+  message
+) {
+  const document =
+    message?.document;
+
+  if (!document) {
+    return false;
+  }
+
+  const fileName =
+    String(
+      document.file_name || ""
+    );
+
+  const mimeType =
+    String(
+      document.mime_type || ""
+    );
+
+  const isPdf =
+    mimeType ===
+      "application/pdf" ||
+    fileName
+      .toLowerCase()
+      .endsWith(".pdf");
+
+  if (!isPdf) {
+    return false;
+  }
+
+  console.log(
+    "THE HINDU PDF RECEIVED:",
+    {
+      fileName,
+      fileId:
+        document.file_id,
+      fileUniqueId:
+        document.file_unique_id,
+      chatId,
+      messageId:
+        message.message_id,
+    }
+  );
+
+  try {
+    const processorUrl =
+      `${SAMBHAV_APP_URL.replace(
+        /\/$/,
+        ""
+      )}/api/current-affairs/the-hindu`;
+
+    const response =
+      await fetch(
+        processorUrl,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "x-sambhav-internal-secret":
+              TELEGRAM_WEBHOOK_SECRET,
+          },
+
+          body: JSON.stringify({
+            file_id:
+              document.file_id,
+
+            file_unique_id:
+              document.file_unique_id,
+
+            file_name:
+              fileName,
+
+            mime_type:
+              mimeType,
+
+            telegram_chat_id:
+              chatId,
+
+            telegram_message_id:
+              message.message_id,
+
+            telegram_date:
+              message.date || null,
+          }),
+
+          cache: "no-store",
+        }
+      );
+
+    const resultText =
+      await response.text();
+
+    console.log(
+      "THE HINDU PROCESSOR RESPONSE:",
+      {
+        status:
+          response.status,
+
+        body:
+          resultText.slice(
+            0,
+            3000
+          ),
+      }
+    );
+
+    if (!response.ok) {
+      await sendTelegramMessage(
+        chatId,
+
+        `⚠️ <b>The Hindu PDF received</b>
+
+PDF receive ho gaya, lekin processing start nahi ho paayi.
+
+Server response:
+<code>${escapeHtml(
+          resultText.slice(
+            0,
+            500
+          )
+        )}</code>`
+      );
+
+      return true;
+    }
+
+    await sendTelegramMessage(
+      chatId,
+
+      `✅ <b>The Hindu PDF received</b>
+
+Processing start kar di gayi hai:
+
+• PDF date verification
+• Article extraction
+• UPSC relevance filtering
+• Duplicate / same-event check
+• Hindi + English analysis
+• Supabase save`
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "THE HINDU PDF PROCESSING ERROR:",
+      error
+    );
+
+    await sendTelegramMessage(
+      chatId,
+
+      `<b>❌ The Hindu PDF processing error</b>
+
+PDF receive ho gaya tha, lekin processing ke waqt error aa gaya.
+
+Please server logs check karein.`
+    );
+
+    return true;
+  }
+}
+
+/* =========================================================
+   HTML ESCAPE
+========================================================= */
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
 
 /* =========================================================
@@ -729,6 +902,32 @@ export async function POST(request) {
 
     const chatId =
       message.chat.id;
+
+    /* =====================================================
+       THE HINDU PDF
+    ===================================================== */
+
+    if (
+      message.document
+    ) {
+      const handled =
+        await processTheHinduPdf(
+          chatId,
+          message
+        );
+
+      if (handled) {
+        return NextResponse.json({
+          ok: true,
+          type:
+            "the_hindu_pdf",
+        });
+      }
+    }
+
+    /* =====================================================
+       NORMAL TEXT
+    ===================================================== */
 
     const text =
       message.text || "";
