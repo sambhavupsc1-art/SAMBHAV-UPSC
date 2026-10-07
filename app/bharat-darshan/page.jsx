@@ -30,6 +30,35 @@ import { STATE_META, FEATURE_INDEX } from "./data";
 const GEOJSON_URL =
   "https://raw.githubusercontent.com/adarshbiradar/maps-geojson/master/india.json";
 
+/*
+  Verified external feature sources used only when explicit geometry is
+  absent from the separate Bharat Darshan data file.
+*/
+const FEATURE_GEOJSON_SOURCES = {
+  rivers: [
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_rivers_lake_centerlines.geojson",
+  ],
+  ecology: [
+    "https://livingatlas.esri.in/server1/rest/services/Wildlife/National_Parks_and_Wildlife_Sanctuaries/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+  ],
+  coastal: [
+    "https://livingatlas.esri.in/server/rest/services/India/Seaport/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+  ],
+  mountains: [
+    "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_geography_regions_elevation_points.geojson",
+  ],
+  minerals: [
+    "https://livingatlas.esri.in/server/rest/services/Mines/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+  ],
+  agriculture: [
+    "https://livingatlas.esri.in/server/rest/services/AgricultureCensus/Agriculture_Statistics25/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+    "https://livingatlas.esri.in/server/rest/services/AgricultureCensus/India_Agriculture_Statistics_2022_2023_Rice_Production/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+    "https://livingatlas.esri.in/server/rest/services/AgricultureCensus/India_Agriculture_Statistics_2022_2023_Wheat_Production/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+    "https://livingatlas.esri.in/server/rest/services/AgricultureCensus/India_Agriculture_Statistics_2022_2023_Cotton_Production_Bales/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+    "https://livingatlas.esri.in/server/rest/services/AgricultureCensus/India_Agriculture_Statistics_2022_2023_Sugarcane_Production/MapServer/0/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&f=geojson",
+  ],
+};
+
 /* ============================================================
    MODES
    ============================================================ */
@@ -206,6 +235,75 @@ function canonicalId(properties = {}) {
   }
 
   return null;
+}
+
+function externalFeatureName(feature) {
+  const p = feature?.properties || {};
+  return (
+    p.name ||
+    p.NAME ||
+    p.NAME_EN ||
+    p.NAME_LOC ||
+    p.NAME_ALT ||
+    p.name_en ||
+    p.name_local ||
+    p.protectedAreaName ||
+    p.protected_area ||
+    p.PA_NAME ||
+    p.PAName ||
+    p.site_name ||
+    p.PORT_NAME ||
+    p.port_name ||
+    p.mine_name ||
+    p.MINE_NAME ||
+    p.mine ||
+    p.Mine ||
+    p.crop_name ||
+    p.CROP_NAME ||
+    p.crop ||
+    p.Crop ||
+    p.cropname ||
+    p.uid ||
+    p.OBJECTID ||
+    "Verified map feature"
+  );
+}
+
+function externalFeatureMatchesName(featureName, targetName) {
+  const a = normalizeName(featureName);
+  const b = normalizeName(targetName);
+  if (!a || !b) return false;
+  if (a === b) return true;
+
+  const compact = (value) =>
+    value
+      .replace(/national park/g, "")
+      .replace(/national parks/g, "")
+      .replace(/wildlife sanctuary/g, "")
+      .replace(/wildlife sanctuaries/g, "")
+      .replace(/tiger reserve/g, "")
+      .replace(/tiger reserves/g, "")
+      .replace(/protected area/g, "")
+      .replace(/np$/g, "")
+      .replace(/tr$/g, "")
+      .replace(/wls$/g, "")
+      .trim();
+
+  return compact(a) === compact(b);
+}
+
+function geoJsonFeatureToMapItem(feature, index, type) {
+  const name = externalFeatureName(feature);
+  if (!name || !feature?.geometry) return null;
+
+  return {
+    id: `external-${type}-${index}-${normalizeName(name).replace(/[^a-z0-9]+/g, "-")}`,
+    name,
+    type,
+    geometry: feature.geometry,
+    source: "Verified external GeoJSON",
+    sourceUrl: Array.isArray(FEATURE_GEOJSON_SOURCES[type]) ? FEATURE_GEOJSON_SOURCES[type][0] : (FEATURE_GEOJSON_SOURCES[type] || ""),
+  };
 }
 
 /* ============================================================
@@ -975,6 +1073,10 @@ export default function BharatDarshanPage() {
   const [timedIndex, setTimedIndex] = useState(0);
   const [timedScore, setTimedScore] = useState(0);
 
+  const [externalFeatureData, setExternalFeatureData] = useState({});
+  const [externalFeatureLoading, setExternalFeatureLoading] = useState(false);
+  const [externalFeatureError, setExternalFeatureError] = useState("");
+
   /* ==========================================================
      THEME
      ========================================================== */
@@ -1101,6 +1203,84 @@ export default function BharatDarshanPage() {
   }, []);
 
   /* ==========================================================
+     EXTERNAL VERIFIED FEATURE GEOMETRY
+     ========================================================== */
+  useEffect(() => {
+    const sourceKey =
+      mode === "rivers"
+        ? "rivers"
+        : mode === "mountains"
+        ? "mountains"
+        : mode === "ecology"
+        ? "ecology"
+        : mode === "minerals"
+        ? "minerals"
+        : mode === "agriculture"
+        ? "agriculture"
+        : mode === "coastal"
+        ? "coastal"
+        : null;
+
+    if (!sourceKey || externalFeatureData[sourceKey]) return;
+
+    let cancelled = false;
+
+    async function loadExternalFeatures() {
+      setExternalFeatureLoading(true);
+      setExternalFeatureError("");
+
+      try {
+        const urls = Array.isArray(FEATURE_GEOJSON_SOURCES[sourceKey])
+          ? FEATURE_GEOJSON_SOURCES[sourceKey]
+          : [FEATURE_GEOJSON_SOURCES[sourceKey]];
+
+        const responses = await Promise.allSettled(
+          urls.map((url) =>
+            fetch(url, { cache: "force-cache" }).then((response) => {
+              if (!response.ok) throw new Error(`Feature layer request failed (${response.status})`);
+              return response.json();
+            })
+          )
+        );
+
+        const features = responses.flatMap((result) =>
+          result.status === "fulfilled" && Array.isArray(result.value?.features)
+            ? result.value.features
+            : []
+        );
+
+        if (!features.length) {
+          throw new Error("No verified feature geometry was returned.");
+        }
+
+        if (!cancelled) {
+          setExternalFeatureData((previous) => ({
+            ...previous,
+            [sourceKey]: features,
+          }));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setExternalFeatureError(
+            error?.message ||
+              "Feature geometry could not be loaded."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setExternalFeatureLoading(false);
+        }
+      }
+    }
+
+    loadExternalFeatures();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, externalFeatureData]);
+
+  /* ==========================================================
      DERIVED MAP DATA
      ========================================================== */
 
@@ -1196,6 +1376,76 @@ export default function BharatDarshanPage() {
         return "State Overview";
     }
   }
+
+  const externalLayerItems = useMemo(() => {
+    const sourceKey =
+      mode === "rivers"
+        ? "rivers"
+        : mode === "mountains"
+        ? "mountains"
+        : mode === "ecology"
+        ? "ecology"
+        : mode === "minerals"
+        ? "minerals"
+        : mode === "agriculture"
+        ? "agriculture"
+        : mode === "coastal"
+        ? "coastal"
+        : null;
+
+    if (!sourceKey) return [];
+
+    const sourceFeatures =
+      externalFeatureData[sourceKey] || [];
+
+    const selectedState =
+      selectedId ? knowledge[selectedId] : null;
+
+    const targetNames = selectedState
+      ? getModeItemsForSearch(selectedState, mode)
+      : Object.values(knowledge).flatMap((state) =>
+          getModeItemsForSearch(state, mode)
+        );
+
+    const seen = new Set();
+
+    return sourceFeatures
+      .map((feature, index) => {
+        const name = externalFeatureName(feature);
+        const matchedTarget = targetNames.find((target) =>
+          externalFeatureMatchesName(name, target)
+        );
+
+        const isBroadGeographicLayer =
+          mode === "mountains" || mode === "minerals" || mode === "agriculture";
+
+        if (!matchedTarget && !isBroadGeographicLayer) return null;
+
+        const item = geoJsonFeatureToMapItem(
+          feature,
+          index,
+          sourceKey
+        );
+
+        if (!item) return null;
+
+        const key = normalizeName(name);
+        if (seen.has(key)) return null;
+        seen.add(key);
+
+        return {
+          ...item,
+          matchedName: matchedTarget || name,
+          stateId: selectedId || null,
+        };
+      })
+      .filter(Boolean);
+  }, [
+    mode,
+    selectedId,
+    externalFeatureData,
+    knowledge,
+  ]);
 
   /* ==========================================================
      SEARCH
@@ -2289,13 +2539,18 @@ export default function BharatDarshanPage() {
                       const layerKey = getGeoLayerKey(mode);
                       if (!layerKey) return null;
 
-                      const layerItems = Object.entries(knowledge).flatMap(
+                      const localLayerItems = Object.entries(knowledge).flatMap(
                         ([stateId, state]) =>
                           (state.geoLayers?.[layerKey] || []).map((item) => ({
                             ...item,
                             stateId,
                           }))
                       );
+
+                      const layerItems = [
+                        ...localLayerItems,
+                        ...externalLayerItems,
+                      ];
 
                       return layerItems.map((item) => {
                         const path = featureGeometryPath(
@@ -2600,9 +2855,12 @@ export default function BharatDarshanPage() {
 
 </svg>
 
-                  {mode !== "explore" && !Object.values(knowledge).some((state) =>
+                  {mode !== "explore" &&
+                  !Object.values(knowledge).some((state) =>
                     (state.geoLayers?.[getGeoLayerKey(mode)] || []).length
-                  ) ? (
+                  ) &&
+                  externalLayerItems.length === 0 &&
+                  !externalFeatureLoading ? (
                     <div
                       style={{
                         marginTop: 10,
@@ -2618,6 +2876,45 @@ export default function BharatDarshanPage() {
                     </div>
                   ) : null}
 
+
+                  {externalFeatureLoading && mode !== "explore" ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 12,
+                        left: 12,
+                        padding: "7px 9px",
+                        borderRadius: 999,
+                        border: `1px solid ${ui.line}`,
+                        background: ui.surface,
+                        color: ui.muted,
+                        fontSize: 8,
+                        zIndex: 4,
+                      }}
+                    >
+                      Loading verified {getModeLabel().toLowerCase()} geometry…
+                    </div>
+                  ) : null}
+
+                  {externalFeatureError && mode !== "explore" ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 12,
+                        left: 12,
+                        maxWidth: 330,
+                        padding: "8px 10px",
+                        borderRadius: 10,
+                        border: `1px solid ${ui.line}`,
+                        background: ui.surface,
+                        color: ui.muted,
+                        fontSize: 8,
+                        zIndex: 4,
+                      }}
+                    >
+                      {externalFeatureError}
+                    </div>
+                  ) : null}
 
                   {!selectedId && (
                     <div
