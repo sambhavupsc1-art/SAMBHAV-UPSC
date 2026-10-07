@@ -27,11 +27,6 @@ const SAMBHAV_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "https://sambhav-upsc.vercel.app";
 
-const THE_HINDU_HEADLINE_BUCKET =
-  "the-hindu-headlines";
-
-const HEADLINE_RENDER_SCALE = 2.2;
-
 /*
  * Headline matching settings.
  *
@@ -42,6 +37,17 @@ const HEADLINE_RENDER_SCALE = 2.2;
 const MAX_HEADLINE_LINES = 10;
 const MIN_HEADLINE_COVERAGE = 0.40;
 const MIN_HEADLINE_TOKENS = 2;
+
+/* =========================================================
+   PROCESSING LOCK
+========================================================= */
+
+const THE_HINDU_PROCESSING_LOCK =
+  globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK ||
+  new Set();
+
+globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK =
+  THE_HINDU_PROCESSING_LOCK;
 
 /* =========================================================
    BASIC HELPERS
@@ -72,6 +78,11 @@ function todayIST() {
   }).format(new Date());
 }
 
+function escapeSupabase(value) {
+  return encodeURIComponent(
+    String(value || "")
+  );
+}
 
 function slugify(value) {
   return String(value || "")
@@ -261,30 +272,9 @@ async function sendTelegramMessage(
   chatId,
   text
 ) {
-  if (!chatId) return;
-
-  try {
-    await telegramApi(
-      "sendMessage",
-      {
-        chat_id:
-          chatId,
-
-        text,
-
-        parse_mode:
-          "HTML",
-
-        disable_web_page_preview:
-          true,
-      }
-    );
-  } catch (error) {
-    console.error(
-      "TELEGRAM MESSAGE ERROR:",
-      error
-    );
-  }
+  // Telegram status/error messages are intentionally disabled.
+  // The Telegram PDF itself is still downloaded normally.
+  return;
 }
 
 /* =========================================================
@@ -1089,7 +1079,7 @@ async function extractPdfPageLines(
       const viewport =
         page.getViewport({
           scale:
-            HEADLINE_RENDER_SCALE,
+            PDF_LAYOUT_SCALE,
         });
 
       const textContent =
@@ -1395,357 +1385,13 @@ function findHeadlineViaCandidates(
    UPLOAD HEADLINE IMAGE
 ========================================================= */
 
-async function uploadHeadlineImage(
-  imageBuffer,
-  fileUniqueId,
-  headline
-) {
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is missing"
-    );
-  }
-
-  const safeId =
-    String(
-      fileUniqueId ||
-        "pdf"
-    ).replace(
-      /[^a-zA-Z0-9_-]/g,
-      ""
-    );
-
-  const headlineSlug =
-    slugify(
-      headline
-    ) ||
-    "headline";
-
-  const filePath =
-    `${safeId}/${headlineSlug}.png`;
-
-  const uploadUrl =
-    `${SUPABASE_URL}/storage/v1/object/` +
-    `${THE_HINDU_HEADLINE_BUCKET}/${filePath}`;
-
-  const response =
-    await fetch(
-      uploadUrl,
-      {
-        method:
-          "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-
-          apikey:
-            SUPABASE_SERVICE_ROLE_KEY,
-
-          "Content-Type":
-            "image/png",
-
-          "x-upsert":
-            "true",
-        },
-
-        body:
-          imageBuffer,
-      }
-    );
-
-  const responseText =
-    await response.text();
-
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      `Headline image upload failed: ${response.status} ${responseText}`
-    );
-  }
-
-  return (
-    `${SUPABASE_URL}/storage/v1/object/public/` +
-    `${THE_HINDU_HEADLINE_BUCKET}/${filePath}`
-  );
-}
-
 /* =========================================================
    RENDER + CROP MATCHED HEADLINE
 ========================================================= */
 
-async function renderAndUploadHeadline(
-  pdf,
-  createCanvas,
-  match,
-  fileUniqueId,
-  headline
-) {
-  if (!match?.pageNumber || !Array.isArray(match.lines) || !match.lines.length) return "";
-
-  const page = await pdf.getPage(match.pageNumber);
-  try {
-    const viewport = page.getViewport({ scale: HEADLINE_RENDER_SCALE });
-    const pageCanvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const pageContext = pageCanvas.getContext("2d");
-    pageContext.fillStyle = "#ffffff";
-    pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-    const canvasFactory = createPdfCanvasFactory(createCanvas);
-    console.log("THE HINDU HEADLINE RENDER START:", {
-      headline,
-      page: match.pageNumber,
-      matchText: match.text,
-      score: match.score,
-      coverage: match.coverage,
-      lines: match.lines.length,
-    });
-
-    await page.render({ canvasContext: pageContext, viewport, canvasFactory }).promise;
-
-    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-    for (const line of match.lines) {
-      if (!line) continue;
-      x1 = Math.min(x1, line.x1);
-      y1 = Math.min(y1, line.y1);
-      x2 = Math.max(x2, line.x2);
-      y2 = Math.max(y2, line.y2);
-    }
-
-    if (![x1, y1, x2, y2].every(Number.isFinite) || x2 <= x1 || y2 <= y1) {
-      console.warn("THE HINDU HEADLINE INVALID BOUNDS:", { headline, x1, y1, x2, y2 });
-      return "";
-    }
-
-    const paddingX = 12;
-    const paddingY = 10;
-    x1 = Math.max(0, Math.floor(x1 - paddingX));
-    y1 = Math.max(0, Math.floor(y1 - paddingY));
-    x2 = Math.min(pageCanvas.width, Math.ceil(x2 + paddingX));
-    y2 = Math.min(pageCanvas.height, Math.ceil(y2 + paddingY));
-
-    const cropWidth = Math.max(1, x2 - x1);
-    const cropHeight = Math.max(1, y2 - y1);
-
-    if (cropWidth > pageCanvas.width * 0.95 || cropHeight > pageCanvas.height * 0.35) {
-      console.warn("THE HINDU HEADLINE CROP REJECTED AS TOO LARGE:", {
-        headline, cropWidth, cropHeight, pageWidth: pageCanvas.width, pageHeight: pageCanvas.height,
-      });
-      return "";
-    }
-
-    const cropCanvas = createCanvas(cropWidth, cropHeight);
-    const cropContext = cropCanvas.getContext("2d");
-    cropContext.fillStyle = "#ffffff";
-    cropContext.fillRect(0, 0, cropWidth, cropHeight);
-    cropContext.drawImage(pageCanvas, x1, y1, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-    const imageBuffer = cropCanvas.toBuffer("image/png");
-    const publicUrl = await uploadHeadlineImage(imageBuffer, fileUniqueId, headline);
-
-    console.log("THE HINDU HEADLINE IMAGE CREATED:", {
-      headline,
-      page: match.pageNumber,
-      score: match.score,
-      coverage: match.coverage,
-      text: match.text,
-      bounds: { x1, y1, x2, y2 },
-      url: publicUrl,
-    });
-
-    return publicUrl;
-  } catch (error) {
-    console.error("THE HINDU HEADLINE RENDER ERROR:", {
-      headline,
-      page: match?.pageNumber,
-      error: error?.message || error,
-    });
-    return "";
-  } finally {
-    page.cleanup();
-  }
-}
-
 /* =========================================================
    CREATE ACTUAL THE HINDU HEADLINE IMAGE
 ========================================================= */
-
-async function createTheHinduHeadlineImage(
-  pdfBuffer,
-  headline,
-  fileUniqueId
-) {
-  if (
-    !headline ||
-    !pdfBuffer
-  ) {
-    return "";
-  }
-
-  let pdf =
-    null;
-
-  try {
-    const pdfjsLib =
-      await import(
-        "pdfjs-dist/legacy/build/pdf.mjs"
-      );
-
-    const {
-      createCanvas,
-    } =
-      await import(
-        "@napi-rs/canvas"
-      );
-
-    const canvasFactory =
-      createPdfCanvasFactory(
-        createCanvas
-      );
-
-    const loadingTask =
-      pdfjsLib.getDocument({
-        data:
-          new Uint8Array(
-            pdfBuffer
-          ),
-
-        disableWorker:
-          true,
-
-        useSystemFonts:
-          true,
-
-        isEvalSupported:
-          false,
-
-        canvasFactory,
-      });
-
-    pdf =
-      await loadingTask.promise;
-
-    /*
-     * Build page text/layout
-     * once instead of re-parsing
-     * for every candidate.
-     */
-
-    const pageCache =
-      await extractPdfPageLines(
-        pdfjsLib,
-        pdf
-      );
-
-    if (
-      !pageCache.length
-    ) {
-      return "";
-    }
-
-    /*
-     * PASS 1:
-     * Strict headline-sized match first.
-     * Body text is never allowed to win merely because its words
-     * happen to match the database title.
-     */
-
-    let bestMatch =
-      findBestHeadlineInPageCache(
-        pageCache,
-        headline,
-        true
-      );
-
-    console.log(
-      "THE HINDU HEADLINE STRICT MATCH:",
-      {
-        headline,
-        found: !!bestMatch,
-        score: bestMatch?.score || 0,
-        coverage: bestMatch?.coverage || 0,
-        fontRatio: bestMatch?.fontRatio || 0,
-        text: bestMatch?.text || "",
-      }
-    );
-
-    if (
-      !bestMatch ||
-      bestMatch.coverage < 0.45
-    ) {
-      console.warn(
-        "THE HINDU HEADLINE REJECTED: NO HEADLINE-SIZED PDF MATCH",
-        {
-          headline,
-          bestText: bestMatch?.text || "",
-          bestCoverage: bestMatch?.coverage || 0,
-          bestFontRatio: bestMatch?.fontRatio || 0,
-        }
-      );
-      return "";
-    }
-
-    /*
-     * The strict match above is intentionally the only accepted match.
-     * Do not fall back to tiny body-text candidates.
-     */
-
-    /*
-     * Final protection against
-     * very weak matches.
-     */
-
-    const wantedTokenCount =
-      uniqueTokens(
-        headline
-      ).length;
-
-    if (
-      wantedTokenCount >= 5 &&
-      bestMatch.coverage <
-        0.34
-    ) {
-      console.warn(
-        "THE HINDU HEADLINE MATCH TOO WEAK:",
-        headline,
-        bestMatch
-      );
-
-      return "";
-    }
-
-    return await renderAndUploadHeadline(
-      pdf,
-      createCanvas,
-      bestMatch,
-      fileUniqueId,
-      headline
-    );
-  } catch (error) {
-    console.error(
-      "THE HINDU HEADLINE CROP FAILED:",
-      {
-        headline,
-
-        error:
-          error?.message ||
-          error,
-      }
-    );
-
-    return "";
-  } finally {
-    if (pdf) {
-      try {
-        await pdf.cleanup();
-      } catch {}
-    }
-  }
-}
 
 /* =========================================================
    DATE
@@ -2449,12 +2095,404 @@ async function createArticleCandidates(
 }
 
 /* =========================================================
-   DUPLICATE CHECKS DISABLED
+   DUPLICATES
 ========================================================= */
 
-// The Hindu PDF is intentionally processed every time it is received.
-// No in-memory lock, PDF duplicate check, source-URL duplicate check,
-// or same-event/title similarity check is performed in this route.
+const STOPWORDS =
+  new Set([
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "from",
+    "by",
+    "is",
+    "are",
+    "as",
+    "at",
+    "after",
+    "over",
+    "new",
+    "india",
+  ]);
+
+function duplicateTokens(
+  text
+) {
+  return new Set(
+    String(
+      text || ""
+    )
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9\s]/g,
+        " "
+      )
+      .split(
+        /\s+/
+      )
+      .filter(
+        (
+          token
+        ) =>
+          token.length >
+            2 &&
+          !STOPWORDS.has(
+            token
+          )
+      )
+  );
+}
+
+function titleSimilarity(
+  a,
+  b
+) {
+  const left =
+    duplicateTokens(
+      a
+    );
+
+  const right =
+    duplicateTokens(
+      b
+    );
+
+  if (
+    !left.size ||
+    !right.size
+  ) {
+    return 0;
+  }
+
+  let intersection =
+    0;
+
+  for (
+    const token of
+    left
+  ) {
+    if (
+      right.has(
+        token
+      )
+    ) {
+      intersection++;
+    }
+  }
+
+  const union =
+    new Set([
+      ...left,
+      ...right,
+    ]).size;
+
+  return union
+    ? intersection /
+        union
+    : 0;
+}
+
+async function findExistingDuplicate(
+  title,
+  date
+) {
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&limit=200`
+    );
+
+  if (
+    !Array.isArray(
+      rows
+    )
+  ) {
+    return null;
+  }
+
+  for (
+    const row of
+    rows
+  ) {
+    const similarity =
+      titleSimilarity(
+        title,
+        row.title
+      );
+
+    if (
+      similarity >=
+      0.78
+    ) {
+      return {
+        ...row,
+
+        similarity,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function sourceUrlExists(
+  sourceUrl,
+  date
+) {
+  const rows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&source_url=eq.${escapeSupabase(
+        sourceUrl
+      )}&date=eq.${escapeSupabase(
+        date
+      )}&limit=5`
+    );
+
+  return (
+    Array.isArray(
+      rows
+    ) &&
+    rows.length >
+      0
+  );
+}
+
+/* =========================================================
+   REMOVE LEGACY THE HINDU HEADLINE IMAGES
+========================================================= */
+
+async function removeLegacyTheHinduHeadlineImages() {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn(
+        "THE HINDU IMAGE CLEANUP SKIPPED: service role key missing"
+      );
+      return { rows: 0, storage: 0 };
+    }
+
+    const rowsResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/current_affairs?select=id,headline_image_url&source_name=ilike.*The%20Hindu*&headline_image_url=not.is.null&limit=1000`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+
+    if (!rowsResponse.ok) {
+      console.error(
+        "THE HINDU IMAGE CLEANUP QUERY FAILED:",
+        await rowsResponse.text()
+      );
+      return { rows: 0, storage: 0 };
+    }
+
+    const rows = await rowsResponse.json();
+    let storageDeleted = 0;
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const url = String(row?.headline_image_url || "").trim();
+
+      if (url) {
+        const marker = `/storage/v1/object/public/${THE_HINDU_HEADLINE_BUCKET}/`;
+        const markerIndex = url.indexOf(marker);
+
+        if (markerIndex !== -1) {
+          const objectPath = decodeURIComponent(
+            url.slice(markerIndex + marker.length)
+          );
+
+          if (objectPath) {
+            try {
+              const deleteResponse = await fetch(
+                `${SUPABASE_URL}/storage/v1/object/${THE_HINDU_HEADLINE_BUCKET}/${objectPath.split("/").map(encodeURIComponent).join("/")}`,
+                {
+                  method: "DELETE",
+                  headers: {
+                    apikey: SUPABASE_SERVICE_ROLE_KEY,
+                    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  },
+                }
+              );
+
+              if (deleteResponse.ok) {
+                storageDeleted++;
+              }
+            } catch (error) {
+              console.warn(
+                "THE HINDU IMAGE STORAGE DELETE FAILED:",
+                error?.message || error
+              );
+            }
+          }
+        }
+      }
+
+      try {
+        await updateCurrentAffairsRow(row.id, {
+          headline_image_url: null,
+        });
+      } catch (error) {
+        console.warn(
+          "THE HINDU IMAGE DB CLEAR FAILED:",
+          row.id,
+          error?.message || error
+        );
+      }
+    }
+
+    console.log(
+      "THE HINDU LEGACY IMAGES REMOVED:",
+      { rows: Array.isArray(rows) ? rows.length : 0, storageDeleted }
+    );
+
+    return {
+      rows: Array.isArray(rows) ? rows.length : 0,
+      storage: storageDeleted,
+    };
+  } catch (error) {
+    console.error(
+      "THE HINDU IMAGE CLEANUP FAILED:",
+      error?.message || error
+    );
+
+    return { rows: 0, storage: 0 };
+  }
+}
+
+/* =========================================================
+   PDF DUPLICATE
+========================================================= */
+
+async function findExistingPdfArticles(
+  fileUniqueId,
+  date
+) {
+  /*
+   * First try the original PDF marker.
+   */
+  if (fileUniqueId) {
+    const marker =
+      `/the-hindu/${fileUniqueId}#`;
+
+    const markerRows =
+      await supabaseRequest(
+        `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+          date
+        )}&source_url=ilike.*${encodeURIComponent(
+          marker
+        )}*&limit=200`
+      );
+
+    if (
+      Array.isArray(markerRows) &&
+      markerRows.length > 0
+    ) {
+      const matched =
+        markerRows.filter(
+          (row) =>
+            String(
+              row?.source_url ||
+                ""
+            ).includes(marker)
+        );
+
+      if (matched.length > 0) {
+        console.log(
+          "THE HINDU EXISTING ARTICLES FOUND BY PDF MARKER:",
+          {
+            date,
+            count: matched.length,
+          }
+        );
+
+        return matched;
+      }
+    }
+  }
+
+  /*
+   * FALLBACK FOR EXISTING ARTICLES:
+   *
+   * Older The Hindu records can have a
+   * different Telegram fileUniqueId.
+   * For headline-image backfill we can
+   * safely identify them by newspaper date
+   * + The Hindu source.
+   */
+  const allRows =
+    await supabaseRequest(
+      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
+        date
+      )}&limit=200`
+    );
+
+  if (!Array.isArray(allRows)) {
+    return [];
+  }
+
+  const theHinduRows =
+    allRows.filter((row) => {
+      const source =
+        String(
+          row?.source_name ||
+            ""
+        ).toLowerCase();
+
+      return source.includes(
+        "the hindu"
+      );
+    });
+
+  console.log(
+    "THE HINDU EXISTING ARTICLES FOUND BY DATE/SOURCE FALLBACK:",
+    {
+      date,
+      count: theHinduRows.length,
+    }
+  );
+
+  return theHinduRows;
+}
+
+/* =========================================================
+   RECOVER ORIGINAL HEADLINE FROM SOURCE URL
+========================================================= */
+
+function extractHeadlineFromSourceUrl(sourceUrl) {
+  const value = String(sourceUrl || '').trim();
+  const hash = value.indexOf('#');
+  if (hash === -1) return '';
+
+  const fragment = value.slice(hash + 1).trim();
+  if (!fragment) return '';
+
+  try {
+    return decodeURIComponent(fragment)
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch {
+    return fragment
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+}
+
+/* =========================================================
+   BACKFILL EXISTING ARTICLES
+========================================================= */
 
 /* =========================================================
    AI
@@ -2557,6 +2595,9 @@ export async function POST(
   let fileUniqueId =
     null;
 
+  let lockAcquired =
+    false;
+
   try {
     const internalSecret =
       request.headers.get(
@@ -2610,6 +2651,48 @@ export async function POST(
     }
 
     /* -----------------------------------------
+       LOCK
+    ----------------------------------------- */
+
+    if (
+      THE_HINDU_PROCESSING_LOCK.has(
+        fileUniqueId
+      )
+    ) {
+      await sendTelegramMessage(
+        telegramChatId,
+
+        [
+          "♻️ <b>The Hindu PDF Already Processing</b>",
+          "",
+          "Same PDF ka duplicate request receive hua.",
+          "",
+          "Current processing ko duplicate nahi kiya gaya.",
+        ].join(
+          "\n"
+        )
+      );
+
+      return NextResponse.json({
+        ok:
+          true,
+
+        duplicatePdf:
+          true,
+
+        reason:
+          "pdf-already-processing",
+      });
+    }
+
+    THE_HINDU_PROCESSING_LOCK.add(
+      fileUniqueId
+    );
+
+    lockAcquired =
+      true;
+
+    /* -----------------------------------------
        DOWNLOAD
     ----------------------------------------- */
 
@@ -2617,6 +2700,10 @@ export async function POST(
       await downloadTelegramPdf(
         fileId
       );
+
+    // Remove all legacy The Hindu headline images and clear their DB URLs.
+    // This is intentionally idempotent so old images disappear from the app.
+    await removeLegacyTheHinduHeadlineImages();
 
     /* -----------------------------------------
        EXTRACT TEXT
@@ -2640,6 +2727,29 @@ export async function POST(
     if (
       !dateCheck.valid
     ) {
+      await sendTelegramMessage(
+        telegramChatId,
+
+        [
+          "❌ <b>The Hindu PDF Rejected</b>",
+          "",
+          `📄 PDF date: <b>${
+            dateCheck.detectedDate ||
+            "Not found"
+          }</b>`,
+
+          `📅 Today: <b>${
+            dateCheck.currentDate
+          }</b>`,
+
+          "",
+
+          "Old/invalid newspaper PDF ko save nahi kiya gaya.",
+        ].join(
+          "\n"
+        )
+      );
+
       return NextResponse.json(
         {
           ok:
@@ -2664,6 +2774,44 @@ export async function POST(
       dateCheck.detectedDate;
 
     /* -----------------------------------------
+       PDF DUPLICATE
+    ----------------------------------------- */
+
+    const existingPdfArticles =
+      await findExistingPdfArticles(
+        fileUniqueId,
+
+        verifiedDate
+      );
+
+    /*
+     * Same PDF already exists.
+     * Do not create duplicate articles.
+     */
+
+    if (
+      existingPdfArticles.length >
+      0
+    ) {
+      console.log(
+        "THE HINDU PDF DUPLICATE DETECTED:",
+        {
+          date: verifiedDate,
+          existing: existingPdfArticles.length,
+        }
+      );
+
+      return NextResponse.json({
+        ok: true,
+        processed: true,
+        duplicatePdf: true,
+        reason: "pdf-already-processed",
+        date: verifiedDate,
+        existingArticles: existingPdfArticles.length,
+      });
+    }
+
+    /* -----------------------------------------
        CANDIDATES
     ----------------------------------------- */
 
@@ -2679,11 +2827,37 @@ export async function POST(
       );
 
     /* -----------------------------------------
-       CANDIDATES — NO DUPLICATE FILTER
+       SAME PDF DUPLICATES
     ----------------------------------------- */
 
     const uniqueCandidates =
-      candidates;
+      [];
+
+    for (
+      const candidate of
+      candidates
+    ) {
+      const duplicate =
+        uniqueCandidates.some(
+          (
+            existing
+          ) =>
+            titleSimilarity(
+              candidate.original_headline,
+
+              existing.original_headline
+            ) >=
+            0.78
+        );
+
+      if (
+        !duplicate
+      ) {
+        uniqueCandidates.push(
+          candidate
+        );
+      }
+    }
 
     /* -----------------------------------------
        TOP 20
@@ -2734,6 +2908,64 @@ export async function POST(
 
         const sourceUrl =
           `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
+
+        /* SOURCE URL DUPLICATE */
+
+        if (
+          await sourceUrlExists(
+            sourceUrl,
+
+            verifiedDate
+          )
+        ) {
+          results.push({
+            title:
+              candidate.original_headline,
+
+            status:
+              "skipped",
+
+            reason:
+              "source-url-duplicate",
+          });
+
+          continue;
+        }
+
+        /* SAME EVENT */
+
+        const existing =
+          await findExistingDuplicate(
+            candidate.original_headline,
+
+            verifiedDate
+          );
+
+        if (
+          existing
+        ) {
+          results.push({
+            title:
+              candidate.original_headline,
+
+            status:
+              "skipped",
+
+            reason:
+              "same-event-already-exists",
+
+            existingTitle:
+              existing.title,
+
+            existingSource:
+              existing.source_name,
+
+            similarity:
+              existing.similarity,
+          });
+
+          continue;
+        }
 
         /* -------------------------------------
            AI
@@ -2831,9 +3063,13 @@ export async function POST(
 
         `✅ Processed: <b>${processed}</b>`,
 
-        `⏭️ Skipped: <b>${skipped}</b>`,
+        `♻️ Duplicates skipped: <b>${skipped}</b>`,
 
         `❌ Failed: <b>${failed}</b>`,
+
+        "",
+
+        "📰 Actual newspaper headline cutting bhi generate/upload ki gayi.",
 
         "",
 
@@ -2878,6 +3114,26 @@ export async function POST(
       error
     );
 
+    await sendTelegramMessage(
+      telegramChatId,
+
+      [
+        "❌ <b>The Hindu Processing Failed</b>",
+        "",
+
+        `Error: <code>${
+          error?.message ||
+          "Unknown error"
+        }</code>`,
+
+        "",
+
+        "PDF process complete nahi ho paya.",
+      ].join(
+        "\n"
+      )
+    );
+
     return NextResponse.json(
       {
         ok:
@@ -2893,6 +3149,15 @@ export async function POST(
           500,
       }
     );
+  } finally {
+    if (
+      lockAcquired &&
+      fileUniqueId
+    ) {
+      THE_HINDU_PROCESSING_LOCK.delete(
+        fileUniqueId
+      );
+    }
   }
 }
 
