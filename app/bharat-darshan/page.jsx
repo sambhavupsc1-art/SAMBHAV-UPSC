@@ -5,29 +5,28 @@ import { STATE_META, FEATURE_INDEX } from "./data";
 
 /*
   SAMBHAV UPSC — BHARAT DARSHAN
+  Route: /bharat-darshan
 
-  Route:
-  /bharat-darshan
-
-  Important:
-  - Existing SAMBHAV auth/dashboard is not modified.
-  - State selection is based on GeoJSON state names -> stable IDs.
-  - No coordinate-based state guessing.
-  - Static geography is separate from Current Affairs.
+  IMPORTANT
+  - This page is only the Bharat Darshan route.
+  - Geography data stays in ./data.js.
+  - Existing SAMBHAV dashboard/auth/current-affairs/PYQ routes are untouched.
+  - Map selection uses exact source-name -> stable State/UT IDs only.
+  - No coordinate-based or fuzzy state guessing.
 */
 
 const GEOJSON_URL =
   "https://raw.githubusercontent.com/adarshbiradar/maps-geojson/master/india.json";
 
 const MODES = [
-  ["explore", "Explore India", "States & UTs"],
-  ["rivers", "Rivers", "River systems"],
-  ["mountains", "Mountains & Passes", "Relief & passes"],
-  ["ecology", "Ecology", "Parks & biodiversity"],
-  ["minerals", "Minerals & Resources", "Resource geography"],
-  ["agriculture", "Agriculture", "Crops & regions"],
-  ["coastal", "Coastal India", "Ports & islands"],
-  ["climate", "Climate & Monsoon", "Monsoon geography"],
+  ["explore", "Explore India", "States & UTs", "◉"],
+  ["rivers", "Rivers", "River systems", "≈"],
+  ["mountains", "Mountains & Passes", "Relief & passes", "△"],
+  ["ecology", "Ecology", "Parks & biodiversity", "✦"],
+  ["minerals", "Minerals & Resources", "Resource geography", "◆"],
+  ["agriculture", "Agriculture", "Crops & regions", "⌁"],
+  ["coastal", "Coastal India", "Ports & islands", "◒"],
+  ["climate", "Climate & Monsoon", "Monsoon geography", "☼"],
 ];
 
 const REGIONS = [
@@ -41,48 +40,7 @@ const REGIONS = [
   "UTs",
 ];
 
-const NAME_TO_ID = Object.fromEntries(
-  Object.entries(STATE_META).map(([id, value]) => [
-    normalizeName(value.name),
-    id,
-  ])
-);
-
-const FALLBACK_META = (name) => ({
-  name,
-  region: "All India",
-  capital: "—",
-  rivers: ["Data pending verification"],
-  relief: ["Data pending verification"],
-  crops: ["Data pending verification"],
-  ecology: ["Data pending verification"],
-  minerals: ["Data pending verification"],
-  places: ["Data pending verification"],
-  climate: "Verified state profile is being expanded.",
-});
-
 const QUIZ = [
-  {
-    q: "Which river is associated with the Kashmir Valley?",
-    options: ["Jhelum", "Mahanadi", "Narmada", "Sabarmati"],
-    answer: 0,
-    explanation:
-      "The Jhelum is the principal river associated with the Kashmir Valley.",
-  },
-  {
-    q: "Which state is strongly associated with the Thar Desert?",
-    options: ["Rajasthan", "Kerala", "Assam", "Odisha"],
-    answer: 0,
-    explanation:
-      "The Thar Desert occupies a large part of western Rajasthan.",
-  },
-  {
-    q: "Keibul Lamjao National Park is in which state?",
-    options: ["Manipur", "Sikkim", "Meghalaya", "Mizoram"],
-    answer: 0,
-    explanation:
-      "Keibul Lamjao National Park is located in Manipur on Loktak Lake.",
-  },
   {
     q: "The Narmada flows broadly between which two major upland systems?",
     options: [
@@ -96,59 +54,89 @@ const QUIZ = [
       "The Narmada valley lies between the Vindhya range to the north and Satpura range to the south.",
   },
   {
-    q: "Which state is especially important for the northeast/retreating monsoon?",
-    options: [
-      "Tamil Nadu",
-      "Punjab",
-      "Rajasthan",
-      "Himachal Pradesh",
-    ],
+    q: "Keibul Lamjao National Park is associated with which state?",
+    options: ["Manipur", "Sikkim", "Meghalaya", "Mizoram"],
     answer: 0,
     explanation:
-      "Tamil Nadu receives an important share of its rainfall from the northeast monsoon.",
+      "Keibul Lamjao National Park is in Manipur and is associated with Loktak Lake.",
   },
   {
-    q: "Which protected area is associated with the one-horned rhinoceros?",
-    options: ["Kaziranga", "Ranthambore", "Dudhwa", "Periyar"],
+    q: "Which river is most closely associated with the Kashmir Valley?",
+    options: ["Jhelum", "Mahanadi", "Narmada", "Sabarmati"],
     answer: 0,
     explanation:
-      "Kaziranga National Park in Assam is globally important for the greater one-horned rhinoceros.",
+      "The Jhelum is the principal river of the Kashmir Valley.",
+  },
+  {
+    q: "Which state is especially associated with the Thar Desert?",
+    options: ["Rajasthan", "Kerala", "Assam", "Odisha"],
+    answer: 0,
+    explanation:
+      "The Thar Desert occupies a large part of western Rajasthan.",
+  },
+  {
+    q: "Which state receives an important share of rainfall from the northeast monsoon?",
+    options: ["Tamil Nadu", "Punjab", "Rajasthan", "Himachal Pradesh"],
+    answer: 0,
+    explanation:
+      "Tamil Nadu receives a major share of its rainfall during the northeast/retreating monsoon season.",
+  },
+  {
+    q: "Kaziranga is especially famous for which species?",
+    options: ["One-horned rhinoceros", "Asiatic lion", "Snow leopard", "Nilgai"],
+    answer: 0,
+    explanation:
+      "Kaziranga in Assam is globally important for the greater one-horned rhinoceros.",
   },
   {
     q: "Which mineral-resource combination is especially important in Chhattisgarh?",
-    options: [
-      "Iron ore and coal",
-      "Petroleum and natural gas",
-      "Uranium and gold",
-      "Tin and crude oil",
-    ],
+    options: ["Iron ore and coal", "Petroleum and gas", "Gold and uranium", "Tin and crude oil"],
     answer: 0,
     explanation:
-      "Chhattisgarh is an important mineral-producing state, particularly for iron ore and coal.",
+      "Chhattisgarh is an important producer of iron ore and coal among several other minerals.",
   },
   {
-    q: "Which river is closely associated with the Punjab-Haryana plain?",
+    q: "Which river is one of the major rivers of the Punjab-Haryana plain?",
     options: ["Sutlej", "Periyar", "Godavari", "Vaigai"],
     answer: 0,
     explanation:
-      "The Sutlej is one of the major rivers of the northwestern river system.",
+      "The Sutlej is one of the major rivers of northwestern India.",
   },
 ];
+
+const NAME_ALIASES = {
+  "andaman and nicobar islands": "AN",
+  "andaman & nicobar islands": "AN",
+  "nct of delhi": "DL",
+  "national capital territory of delhi": "DL",
+  "delhi": "DL",
+  "orissa": "OD",
+  "pondicherry": "PY",
+  "jammu and kashmir": "JK",
+  "jammu & kashmir": "JK",
+  "ladakh": "LA",
+  "uttarakhand": "UK",
+  "uttaranchal": "UK",
+  "odisha": "OD",
+  "tamil nadu": "TN",
+  "west bengal": "WB",
+  "dadra and nagar haveli and daman and diu": "DN",
+  "dadra & nagar haveli and daman & diu": "DN",
+};
 
 function normalizeName(value) {
   return String(value || "")
     .trim()
     .toLowerCase()
     .replace(/&/g, "and")
+    .replace(/[()]/g, "")
     .replace(/\s+/g, " ");
 }
 
-/*
-  IMPORTANT:
-  GeoJSON files can use different property names.
-  We check multiple names, but only exact name -> stable ID mapping
-  is accepted. No fuzzy coordinate guessing.
-*/
+const NAME_TO_ID = Object.fromEntries(
+  Object.entries(STATE_META).map(([id, value]) => [normalizeName(value.name), id])
+);
+
 function canonicalId(properties = {}) {
   const candidates = [
     properties.ST_NM,
@@ -159,16 +147,18 @@ function canonicalId(properties = {}) {
     properties.state,
     properties.State,
     properties.STATE,
+    properties.st_nm_1,
     properties["Name of State"],
     properties["Name of State / UT"],
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    const id = NAME_TO_ID[normalizeName(candidate)];
+    const normalized = normalizeName(candidate);
+    const alias = NAME_ALIASES[normalized];
+    if (alias && STATE_META[alias]) return alias;
 
-    if (id) {
-      return id;
-    }
+    const exact = NAME_TO_ID[normalized];
+    if (exact) return exact;
   }
 
   return null;
@@ -188,33 +178,82 @@ function getFeatureName(properties = {}) {
   );
 }
 
-function projectPoint([lon, lat], width, height) {
-  const x = ((lon + 180) / 360) * width;
-  const y = ((90 - lat) / 180) * height;
+function getGeometryPoints(geometry) {
+  if (!geometry) return [];
+  if (geometry.type === "Polygon") {
+    return geometry.coordinates?.flat(1) || [];
+  }
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates?.flat(2) || [];
+  }
+  return [];
+}
+
+function getGeoBounds(features) {
+  const bounds = [Infinity, Infinity, -Infinity, -Infinity];
+
+  for (const item of features) {
+    const points = getGeometryPoints(item.feature?.geometry);
+    for (const point of points) {
+      const lon = Number(point?.[0]);
+      const lat = Number(point?.[1]);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+      bounds[0] = Math.min(bounds[0], lon);
+      bounds[1] = Math.min(bounds[1], lat);
+      bounds[2] = Math.max(bounds[2], lon);
+      bounds[3] = Math.max(bounds[3], lat);
+    }
+  }
+
+  if (!Number.isFinite(bounds[0])) return [68, 6, 98, 38];
+  return bounds;
+}
+
+function projectPoint([lon, lat], bounds, width, height) {
+  const [minLon, minLat, maxLon, maxLat] = bounds;
+  const lonSpan = Math.max(maxLon - minLon, 1);
+  const latSpan = Math.max(maxLat - minLat, 1);
+
+  const padding = 34;
+  const usableWidth = width - padding * 2;
+  const usableHeight = height - padding * 2;
+
+  const scale = Math.min(
+    usableWidth / lonSpan,
+    usableHeight / latSpan
+  );
+
+  const mapWidth = lonSpan * scale;
+  const mapHeight = latSpan * scale;
+  const offsetX = (width - mapWidth) / 2;
+  const offsetY = (height - mapHeight) / 2;
+
+  const x = offsetX + (lon - minLon) * scale;
+  const y = height - offsetY - (lat - minLat) * scale;
 
   return [x, y];
 }
 
-function geometryPath(geometry, width, height) {
+function geometryPath(geometry, bounds, width, height) {
   if (!geometry) return "";
 
   const polygons =
     geometry.type === "Polygon"
       ? [geometry.coordinates]
-      : geometry.coordinates || [];
+      : geometry.type === "MultiPolygon"
+        ? geometry.coordinates
+        : [];
 
   return polygons
     .map((polygon) =>
       polygon
         .map((ring) => {
+          if (!ring?.length) return "";
           return (
             ring
               .map((point, index) => {
-                const [x, y] = projectPoint(point, width, height);
-
-                return `${
-                  index === 0 ? "M" : "L"
-                }${x.toFixed(2)} ${y.toFixed(2)}`;
+                const [x, y] = projectPoint(point, bounds, width, height);
+                return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
               })
               .join(" ") + " Z"
           );
@@ -225,69 +264,59 @@ function geometryPath(geometry, width, height) {
 }
 
 function storageKey(user) {
-  const id = user?.id || user?.email || user?.user_id || "guest";
+  return `sambhav_bharat_darshan_${user?.id || user?.email || "guest"}`;
+}
 
-  return `sambhav_bharat_darshan_${id}`;
+function getModeItems(selected, mode) {
+  if (!selected) return [];
+
+  const map = {
+    explore: ["Important Geography", [...selected.rivers, ...selected.relief, ...selected.ecology]],
+    rivers: ["Rivers & Water Systems", selected.rivers],
+    mountains: ["Relief, Mountains & Passes", selected.relief],
+    ecology: ["Ecology & Protected Areas", selected.ecology],
+    minerals: ["Minerals & Resources", selected.minerals],
+    agriculture: ["Agriculture & Crops", selected.crops],
+    coastal: ["Coastal / Important Places", selected.places],
+    climate: ["Climate & Monsoon", [selected.climate]],
+  };
+
+  return map[mode] || map.explore;
 }
 
 export default function BharatDarshanPage() {
   const [theme, setTheme] = useState("light");
-
   const [geo, setGeo] = useState(null);
   const [geoError, setGeoError] = useState("");
   const [loadingMap, setLoadingMap] = useState(true);
-
   const [mode, setMode] = useState("explore");
   const [region, setRegion] = useState("All India");
   const [search, setSearch] = useState("");
-
   const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("overview");
-
+  const [user, setUser] = useState(null);
+  const [progress, setProgress] = useState({});
   const [recallIndex, setRecallIndex] = useState(0);
   const [recallRevealed, setRecallRevealed] = useState(false);
-
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswer, setQuizAnswer] = useState(null);
   const [quizScore, setQuizScore] = useState(0);
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
-
-  const [user, setUser] = useState(null);
-  const [progress, setProgress] = useState({});
-
-  const [compareId, setCompareId] = useState(null);
+  const [compareId, setCompareId] = useState("");
   const [compareOpen, setCompareOpen] = useState(false);
 
-  const [mobilePanel, setMobilePanel] = useState(false);
-
-  /*
-    Theme + existing SAMBHAV auth
-  */
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("sambhav-theme");
-
-      if (saved === "dark" || saved === "light") {
-        setTheme(saved);
-      }
+      const savedTheme = localStorage.getItem("sambhav-theme");
+      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
     } catch {}
 
     let cancelled = false;
-
-    fetch("/api/auth/me", {
-      credentials: "include",
-      cache: "no-store",
-    })
-      .then((response) => {
-        if (!response.ok) return null;
-
-        return response.json();
-      })
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled) {
-          setUser(data?.user || null);
-        }
+        if (!cancelled) setUser(data?.user || null);
       })
       .catch(() => {});
 
@@ -296,66 +325,41 @@ export default function BharatDarshanPage() {
     };
   }, []);
 
-  /*
-    User-specific Bharat Darshan progress.
-    Existing authentication remains untouched.
-  */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey(user));
+      setProgress(raw ? JSON.parse(raw) : {});
+    } catch {
+      setProgress({});
+    }
+  }, [user]);
+
   useEffect(() => {
     try {
       localStorage.setItem("sambhav-theme", theme);
-
-      const raw = localStorage.getItem(storageKey(user));
-
-      if (raw) {
-        setProgress(JSON.parse(raw));
-      }
     } catch {}
-  }, [user, theme]);
+  }, [theme]);
 
-  /*
-    INDIA MAP DATA
-
-    This is the important fix.
-  */
   useEffect(() => {
     let cancelled = false;
-
     setLoadingMap(true);
     setGeoError("");
 
-    fetch(GEOJSON_URL, {
-      method: "GET",
-      cache: "force-cache",
-    })
+    fetch(GEOJSON_URL, { cache: "force-cache" })
       .then((response) => {
-        if (!response.ok) {
-          throw new Error(
-            `India boundary dataset could not be loaded (${response.status}).`
-          );
-        }
-
+        if (!response.ok) throw new Error(`India boundary dataset could not be loaded (${response.status}).`);
         return response.json();
       })
       .then((data) => {
         if (cancelled) return;
-
-        if (!data || !Array.isArray(data.features)) {
-          throw new Error("Invalid India GeoJSON format.");
-        }
-
+        if (!data || !Array.isArray(data.features)) throw new Error("Invalid India GeoJSON format.");
         setGeo(data);
       })
       .catch((error) => {
-        if (!cancelled) {
-          setGeoError(
-            error?.message || "India map data could not be loaded."
-          );
-        }
+        if (!cancelled) setGeoError(error?.message || "India map data could not be loaded.");
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoadingMap(false);
-        }
+        if (!cancelled) setLoadingMap(false);
       });
 
     return () => {
@@ -363,35 +367,38 @@ export default function BharatDarshanPage() {
     };
   }, []);
 
-  const ui =
-    theme === "dark"
-      ? {
-          bg: "#090909",
-          surface: "#121212",
-          surface2: "#181818",
-          text: "#f7f4ec",
-          muted: "#a7a39a",
-          line: "rgba(255,255,255,.10)",
-          gold: "#d6bd79",
-          map: "#151515",
-        }
-      : {
-          bg: "#f7f5ef",
-          surface: "#ffffff",
-          surface2: "#f1eee6",
-          text: "#111111",
-          muted: "#77736b",
-          line: "#e4e0d7",
-          gold: "#9b792f",
-          map: "#eeeae0",
-        };
+  const ui = theme === "dark"
+    ? {
+        bg: "#080808",
+        surface: "#111111",
+        surface2: "#171717",
+        surface3: "#1c1c1c",
+        text: "#f7f3e8",
+        muted: "#aaa59a",
+        faint: "#77736a",
+        line: "rgba(255,255,255,.10)",
+        gold: "#d9be78",
+        goldSoft: "rgba(217,190,120,.12)",
+        map: "#0e0e0e",
+        green: "#cfe8cf",
+        red: "#f0d2d2",
+      }
+    : {
+        bg: "#f6f3ec",
+        surface: "#ffffff",
+        surface2: "#f5f1e7",
+        surface3: "#eee9dc",
+        text: "#11110f",
+        muted: "#726e65",
+        faint: "#9a958b",
+        line: "#e3ded3",
+        gold: "#a47f32",
+        goldSoft: "#f2e8d0",
+        map: "#eeeae0",
+        green: "#dcebd9",
+        red: "#f1dada",
+      };
 
-  /*
-    Convert GeoJSON features into:
-    feature geometry
-    +
-    stable state ID
-  */
   const features = useMemo(() => {
     return (geo?.features || []).map((feature) => ({
       feature,
@@ -400,37 +407,28 @@ export default function BharatDarshanPage() {
     }));
   }, [geo]);
 
-  const selected = selectedId
-    ? STATE_META[selectedId] || FALLBACK_META(selectedId)
-    : null;
+  const mappedFeatures = useMemo(
+    () => features.filter((item) => item.id && STATE_META[item.id]),
+    [features]
+  );
 
-  const selectedName = selected?.name || "Select a state or UT";
+  const mapBounds = useMemo(() => getGeoBounds(mappedFeatures), [mappedFeatures]);
 
-  /*
-    Search:
-    - State / UT
-    - Rivers
-    - Mountains / relief
-    - Ecology
-    - Minerals
-    - Crops
-    - Places
-  */
   const filteredFeatures = useMemo(() => {
     const q = normalizeName(search);
 
-    return features.filter(({ id }) => {
-      if (!id) return false;
-
+    return mappedFeatures.filter(({ id }) => {
       const meta = STATE_META[id];
-
       if (!meta) return false;
 
-      const regionOk =
-        region === "All India" || meta.region === region;
+      const regionOk = region === "All India" || meta.region === region;
+      if (!regionOk) return false;
+      if (!q) return true;
 
       const searchable = [
         meta.name,
+        meta.region,
+        meta.capital,
         ...meta.rivers,
         ...meta.relief,
         ...meta.ecology,
@@ -440,2111 +438,447 @@ export default function BharatDarshanPage() {
         meta.climate,
       ];
 
-      const searchOk =
-        !q ||
-        searchable.some((value) =>
-          normalizeName(value).includes(q)
-        );
+      const directFeatureHit = FEATURE_INDEX?.some(
+        (item) => item.id === id && normalizeName(item.value).includes(q)
+      );
 
-      return regionOk && searchOk;
+      return directFeatureHit || searchable.some((value) => normalizeName(value).includes(q));
     });
-  }, [features, region, search]);
+  }, [mappedFeatures, region, search]);
 
-  /*
-    Mode-specific data
-  */
-  const modeItems = useMemo(() => {
-    if (!selected) return null;
+  const selected = selectedId ? STATE_META[selectedId] : null;
+  const modeItems = useMemo(() => getModeItems(selected, mode), [selected, mode]);
 
-    const map = {
-      rivers: ["Rivers", selected.rivers],
+  const recallCards = useMemo(
+    () => Object.entries(STATE_META).map(([id, state]) => ({
+      id,
+      title: state.name,
+      prompt: `Recall two important UPSC map facts for ${state.name}.`,
+      answer: `${state.rivers.slice(0, 2).join(" and ")}; ${state.relief.slice(0, 2).join(" and ")}.`,
+    })),
+    []
+  );
 
-      mountains: [
-        "Relief & Passes",
-        selected.relief,
-      ],
-
-      ecology: [
-        "Ecology",
-        selected.ecology,
-      ],
-
-      minerals: [
-        "Minerals & Resources",
-        selected.minerals,
-      ],
-
-      agriculture: [
-        "Agriculture",
-        selected.crops,
-      ],
-
-      coastal: [
-        "Coastal / Important Places",
-        selected.places,
-      ],
-
-      climate: [
-        "Climate & Monsoon",
-        [selected.climate],
-      ],
-
-      explore: [
-        "Important Geography",
-        [
-          ...selected.rivers,
-          ...selected.relief,
-          ...selected.ecology,
-        ],
-      ],
-    };
-
-    return map[mode] || map.explore;
-  }, [selected, mode]);
-
-  /*
-    Active recall
-  */
-  const recallCards = useMemo(() => {
-    return Object.values(STATE_META)
-      .slice(0, 20)
-      .map((state) => ({
-        title: state.name,
-
-        prompt:
-          `Recall two important UPSC map facts for ${state.name}.`,
-
-        answer:
-          `${state.rivers.slice(0, 2).join(" and ")}; ` +
-          `${state.relief.slice(0, 2).join(" and ")}.`,
-      }));
-  }, []);
-
-  const currentRecall =
-    recallCards[recallIndex % recallCards.length];
-
+  const currentRecall = recallCards[recallIndex % Math.max(recallCards.length, 1)];
   const currentQuiz = QUIZ[quizIndex];
+  const masteredCount = Object.values(progress).filter((item) => item?.status === "Mastered").length;
+  const learningCount = Object.values(progress).filter((item) => item?.status === "Learning" || item?.status === "Needs Revision").length;
+  const revisionCount = Object.values(progress).filter((item) => item?.status === "Needs Revision").length;
+  const compareState = compareId ? STATE_META[compareId] : null;
 
-  /*
-    Select state
-  */
   function selectState(id) {
     if (!id || !STATE_META[id]) return;
-
     setSelectedId(id);
     setTab("overview");
-    setMobilePanel(true);
     setRecallRevealed(false);
 
     setProgress((previous) => {
       const next = {
         ...previous,
-
         [id]: {
           ...(previous[id] || {}),
-          status: "Learning",
+          status: previous[id]?.status === "Mastered" ? "Mastered" : "Learning",
           lastViewed: new Date().toISOString(),
         },
       };
-
       try {
-        localStorage.setItem(
-          storageKey(user),
-          JSON.stringify(next)
-        );
+        localStorage.setItem(storageKey(user), JSON.stringify(next));
       } catch {}
-
       return next;
     });
   }
 
-  /*
-    Mark state as mastered
-  */
   function markMastered() {
     if (!selectedId) return;
-
     setProgress((previous) => {
       const next = {
         ...previous,
-
         [selectedId]: {
           ...(previous[selectedId] || {}),
           status: "Mastered",
           lastViewed: new Date().toISOString(),
         },
       };
-
       try {
-        localStorage.setItem(
-          storageKey(user),
-          JSON.stringify(next)
-        );
+        localStorage.setItem(storageKey(user), JSON.stringify(next));
       } catch {}
-
       return next;
     });
   }
 
-  /*
-    Quiz
-  */
+  function markNeedsRevision() {
+    if (!selectedId) return;
+    setProgress((previous) => {
+      const next = {
+        ...previous,
+        [selectedId]: {
+          ...(previous[selectedId] || {}),
+          status: "Needs Revision",
+          lastViewed: new Date().toISOString(),
+        },
+      };
+      try {
+        localStorage.setItem(storageKey(user), JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
   function answerQuiz(index) {
     if (quizAnswered) return;
-
     setQuizAnswer(index);
     setQuizAnswered(true);
-
-    if (index === currentQuiz.answer) {
-      setQuizScore((score) => score + 1);
-    }
+    if (index === currentQuiz.answer) setQuizScore((score) => score + 1);
   }
 
   function nextQuiz() {
-    setQuizIndex(
-      (index) => (index + 1) % QUIZ.length
-    );
-
+    setQuizIndex((index) => (index + 1) % QUIZ.length);
     setQuizAnswer(null);
     setQuizAnswered(false);
   }
 
-  const masteredCount = Object.values(progress).filter(
-    (item) => item?.status === "Mastered"
-  ).length;
-
-  const learningCount = Object.values(progress).filter(
-    (item) =>
-      item?.status === "Learning" ||
-      item?.status === "Needs Revision"
-  ).length;
-
-  const totalStates = Object.keys(STATE_META).length;
+  function resetQuiz() {
+    setQuizIndex(0);
+    setQuizAnswer(null);
+    setQuizAnswered(false);
+    setQuizScore(0);
+    setQuizStarted(false);
+  }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: ui.bg,
-        color: ui.text,
-        fontFamily:
-          "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-        paddingBottom: 42,
-      }}
-    >
+    <main style={{ minHeight: "100vh", background: ui.bg, color: ui.text, fontFamily: "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" }}>
       <style>{`
-        * {
-          box-sizing: border-box;
+        *{box-sizing:border-box}
+        html{scroll-behavior:smooth}
+        .bd-scroll::-webkit-scrollbar{width:6px;height:6px}
+        .bd-scroll::-webkit-scrollbar-thumb{background:rgba(130,130,130,.28);border-radius:999px}
+        .bd-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+        .bd-card:hover{transform:translateY(-1px)}
+        .bd-map path{transition:fill .12s ease,stroke .12s ease,filter .12s ease}
+        .bd-map path:hover{fill:#d9be78!important;stroke:#866625!important;cursor:pointer;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12))}
+        .bd-mode{transition:all .18s ease}
+        .bd-mode:hover{transform:translateY(-2px)}
+        .bd-quiz-option{transition:all .15s ease}
+        .bd-quiz-option:hover:not(:disabled){transform:translateY(-1px);border-color:#b9954b!important}
+        @media(max-width:850px){
+          .bd-main-grid{grid-template-columns:1fr!important}
+          .bd-map{height:520px!important}
+          .bd-side{position:relative!important;top:auto!important}
+          .bd-stat-grid{grid-template-columns:repeat(2,1fr)!important}
+          .bd-quiz-grid{grid-template-columns:1fr!important}
+          .bd-compare-grid{grid-template-columns:1fr!important}
         }
-
-        .bd-scroll::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-
-        .bd-scroll::-webkit-scrollbar-thumb {
-          background: rgba(130,130,130,.3);
-          border-radius: 99px;
-        }
-
-        .bd-card {
-          transition:
-            transform .18s ease,
-            border-color .18s ease,
-            box-shadow .18s ease;
-        }
-
-        .bd-card:hover {
-          transform: translateY(-2px);
-        }
-
-        .bd-map path {
-          transition:
-            fill .14s ease,
-            stroke .14s ease;
-        }
-
-        .bd-map path:hover {
-          fill: #d6bd79 !important;
-          stroke: #8e6c29 !important;
-          cursor: pointer;
-        }
-
-        @media(max-width:850px) {
-          .bd-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .bd-map-wrap {
-            min-height: 420px !important;
-          }
-
-          .bd-panel {
-            position: relative !important;
-            top: auto !important;
-          }
-
-          .bd-top-actions {
-            display: none !important;
-          }
-
-          .bd-mobile-toggle {
-            display: flex !important;
-          }
-
-          .bd-stats {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media(min-width:851px) {
-          .bd-mobile-toggle {
-            display: none !important;
-          }
+        @media(max-width:560px){
+          .bd-shell{padding:12px!important}
+          .bd-hero h1{font-size:36px!important}
+          .bd-map-box{min-height:500px!important}
+          .bd-map{height:440px!important}
+          .bd-stat-grid{grid-template-columns:1fr!important}
         }
       `}</style>
 
-      <div
-        style={{
-          maxWidth: 1280,
-          margin: "0 auto",
-          padding: "16px",
-        }}
-      >
+      <div className="bd-shell" style={{ maxWidth: 1280, margin: "0 auto", padding: "18px 18px 50px" }}>
         {/* HEADER */}
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, paddingBottom: 16, borderBottom: `1px solid ${ui.line}` }}>
+          <button onClick={() => (window.location.href = "/")} style={{ border: 0, background: "transparent", color: ui.text, padding: 0, textAlign: "left", cursor: "pointer" }}>
+            <div style={{ fontSize: 21, fontWeight: 950, letterSpacing: "-.7px" }}>SAMBHAV <span style={{ color: ui.gold }}>UPSC</span></div>
+            <div style={{ marginTop: 3, color: ui.muted, fontSize: 8, letterSpacing: "1.7px", fontWeight: 900 }}>BHARAT DARSHAN • MAP INTELLIGENCE</div>
+          </button>
 
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            padding: "4px 2px 18px",
-            borderBottom: `1px solid ${ui.line}`,
-          }}
-        >
-          <div>
-            <button
-              onClick={() => {
-                window.location.href = "/";
-              }}
-              style={{
-                border: 0,
-                background: "transparent",
-                color: ui.text,
-                padding: 0,
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 21,
-                  fontWeight: 950,
-                  letterSpacing: "-.7px",
-                }}
-              >
-                SAMBHAV{" "}
-                <span style={{ color: ui.gold }}>
-                  UPSC
-                </span>
-              </div>
-
-              <div
-                style={{
-                  fontSize: 9,
-                  letterSpacing: "1.7px",
-                  color: ui.muted,
-                  marginTop: 3,
-                  fontWeight: 800,
-                }}
-              >
-                BHARAT DARSHAN
-              </div>
-            </button>
-          </div>
-
-          <div
-            className="bd-top-actions"
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                padding: "9px 12px",
-                borderRadius: 999,
-                background: ui.surface,
-                border: `1px solid ${ui.line}`,
-                fontSize: 9,
-                fontWeight: 800,
-                color: ui.muted,
-              }}
-            >
-              EXPLORE INDIA • LEARN INDIA • MASTER INDIA
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-            }}
-          >
-            <button
-              onClick={() => {
-                const next =
-                  theme === "dark"
-                    ? "light"
-                    : "dark";
-
-                setTheme(next);
-
-                try {
-                  localStorage.setItem(
-                    "sambhav-theme",
-                    next
-                  );
-                } catch {}
-              }}
-              style={{
-                border: `1px solid ${ui.line}`,
-                background: ui.surface,
-                color: ui.text,
-                borderRadius: 12,
-                padding: "9px 11px",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              {theme === "dark" ? "☀" : "☾"}
-            </button>
-
-            <button
-              onClick={() => {
-                window.location.href = "/";
-              }}
-              style={{
-                border: `1px solid ${ui.line}`,
-                background: ui.surface,
-                color: ui.text,
-                borderRadius: 12,
-                padding: "9px 12px",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              ← Home
-            </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={smallButton(ui)}>{theme === "dark" ? "☀" : "☾"}</button>
+            <button onClick={() => (window.location.href = "/")} style={smallButton(ui)}>← Home</button>
           </div>
         </header>
 
         {/* HERO */}
-
-        <section
-          style={{
-            padding: "26px 0 18px",
-          }}
-        >
-          <div
-            style={{
-              color: ui.gold,
-              fontSize: 9,
-              fontWeight: 950,
-              letterSpacing: "1.8px",
-            }}
-          >
-            MAP INTELLIGENCE FOR UPSC
+        <section className="bd-hero" style={{ padding: "30px 0 20px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 10px", borderRadius: 999, background: ui.goldSoft, color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: "1.2px" }}>
+            <span>✦</span> UPSC GEOGRAPHY • PRELIMS • GS
           </div>
-
-          <h1
-            style={{
-              fontSize: "clamp(30px,5vw,54px)",
-              lineHeight: 1,
-              letterSpacing: "-1.8px",
-              margin: "9px 0 10px",
-              fontWeight: 950,
-            }}
-          >
-            Bharat Darshan
-          </h1>
-
-          <p
-            style={{
-              color: ui.muted,
-              maxWidth: 760,
-              margin: 0,
-              lineHeight: 1.65,
-              fontSize: 13,
-            }}
-          >
-            See India → Understand India → Recall
-            India → Master India for UPSC Prelims and
-            GS Geography.
-          </p>
+          <h1 style={{ fontSize: "clamp(38px,6vw,62px)", lineHeight: .95, letterSpacing: "-2.4px", margin: "13px 0 12px", fontWeight: 950 }}>Bharat Darshan</h1>
+          <p style={{ margin: 0, maxWidth: 760, color: ui.muted, fontSize: 13, lineHeight: 1.7 }}>See India → Understand India → Recall India → Master India through interactive maps, geography layers, active recall and UPSC-focused practice.</p>
         </section>
 
-        {/* MODES */}
-
-        <div
-          className="bd-scroll"
-          style={{
-            display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            paddingBottom: 12,
-          }}
-        >
-          {MODES.map(([id, title, sub]) => (
-            <button
-              key={id}
-              onClick={() => setMode(id)}
-              style={{
-                flex: "0 0 auto",
-                textAlign: "left",
-                border: `1px solid ${
-                  mode === id ? ui.gold : ui.line
-                }`,
-                background:
-                  mode === id
-                    ? theme === "dark"
-                      ? "#27231a"
-                      : "#f0e7d2"
-                    : ui.surface,
-                color: ui.text,
-                borderRadius: 13,
-                padding: "10px 12px",
-                cursor: "pointer",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                }}
-              >
-                {title}
-              </div>
-
-              <div
-                style={{
-                  fontSize: 8,
-                  color: ui.muted,
-                  marginTop: 3,
-                }}
-              >
-                {sub}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* REGION + SEARCH */}
-
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            marginBottom: 14,
-            flexWrap: "wrap",
-          }}
-        >
-          {REGIONS.map((item) => (
-            <button
-              key={item}
-              onClick={() => setRegion(item)}
-              style={{
-                border: `1px solid ${
-                  region === item
-                    ? ui.gold
-                    : ui.line
-                }`,
-                background:
-                  region === item
-                    ? ui.gold
-                    : ui.surface,
-                color:
-                  region === item
-                    ? "#111"
-                    : ui.text,
-                borderRadius: 999,
-                padding: "7px 11px",
-                fontSize: 9,
-                fontWeight: 850,
-                cursor: "pointer",
-              }}
-            >
-              {item}
-            </button>
-          ))}
-
-          <div
-            style={{
-              flex: 1,
-              minWidth: 220,
-            }}
-          >
-            <input
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-              placeholder="Search state, river, mountain, park, crop, mineral..."
-              style={{
-                width: "100%",
-                border: `1px solid ${ui.line}`,
-                background: ui.surface,
-                color: ui.text,
-                borderRadius: 999,
-                padding: "9px 13px",
-                outline: "none",
-                fontSize: 10,
-              }}
-            />
+        {/* PREMIUM MODE SELECTOR */}
+        <section style={{ background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 22, padding: 12, boxShadow: theme === "light" ? "0 10px 35px rgba(30,25,15,.05)" : "none" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "2px 4px 10px" }}>
+            <div>
+              <div style={{ fontSize: 9, color: ui.gold, fontWeight: 950, letterSpacing: "1.5px" }}>MAP INTELLIGENCE</div>
+              <div style={{ marginTop: 3, fontSize: 11, fontWeight: 850 }}>Choose a geography layer</div>
+            </div>
+            <div style={{ fontSize: 8, color: ui.muted }}>{mappedFeatures.length} verified map regions</div>
           </div>
-        </div>
 
-        {/* MAP + EXPLORER */}
+          <div className="bd-scroll" style={{ display: "grid", gridTemplateColumns: "repeat(8,minmax(120px,1fr))", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+            {MODES.map(([id, title, sub, icon]) => {
+              const active = mode === id;
+              return (
+                <button key={id} className="bd-mode" onClick={() => setMode(id)} style={{ minWidth: 120, border: `1px solid ${active ? ui.gold : ui.line}`, background: active ? ui.goldSoft : ui.surface2, color: ui.text, borderRadius: 15, padding: "12px 11px", textAlign: "left", cursor: "pointer", position: "relative" }}>
+                  {active && <span style={{ position: "absolute", left: 10, right: 10, top: 0, height: 2, borderRadius: 99, background: ui.gold }} />}
+                  <div style={{ width: 29, height: 29, display: "grid", placeItems: "center", borderRadius: 9, background: active ? ui.gold : ui.surface3, color: active ? "#111" : ui.gold, fontWeight: 950, fontSize: 14 }}>{icon}</div>
+                  <div style={{ marginTop: 9, fontSize: 9, fontWeight: 950, lineHeight: 1.25 }}>{title}</div>
+                  <div style={{ marginTop: 3, fontSize: 7, color: ui.muted, lineHeight: 1.35 }}>{sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-        <div
-          className="bd-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "minmax(0,1.45fr) minmax(330px,.75fr)",
-            gap: 14,
-            alignItems: "start",
-          }}
-        >
-          {/* MAP */}
+        {/* FILTERS */}
+        <section style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="bd-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", maxWidth: "100%", paddingBottom: 2 }}>
+            {REGIONS.map((item) => {
+              const active = region === item;
+              return <button key={item} onClick={() => setRegion(item)} style={{ border: `1px solid ${active ? ui.gold : ui.line}`, background: active ? ui.gold : ui.surface, color: active ? "#111" : ui.text, borderRadius: 999, padding: "7px 11px", fontSize: 8, fontWeight: 900, whiteSpace: "nowrap", cursor: "pointer" }}>{item}</button>;
+            })}
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 13, top: 10, color: ui.faint, fontSize: 11 }}>⌕</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search state, river, mountain, park, crop, mineral…" style={{ width: "100%", border: `1px solid ${ui.line}`, background: ui.surface, color: ui.text, borderRadius: 999, padding: "9px 13px 9px 31px", outline: "none", fontSize: 9 }} />
+            </div>
+          </div>
+        </section>
 
-          <section
-            className="bd-card bd-map-wrap"
-            style={{
-              background: ui.surface,
-              border: `1px solid ${ui.line}`,
-              borderRadius: 22,
-              minHeight: 590,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-                padding: "15px 16px",
-                borderBottom:
-                  `1px solid ${ui.line}`,
-              }}
-            >
+        {/* MAP + STATE EXPLORER */}
+        <div className="bd-main-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(340px,.72fr)", gap: 14, marginTop: 14, alignItems: "start" }}>
+          <section className="bd-card bd-map-box" style={{ background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 24, overflow: "hidden", minHeight: 650, boxShadow: theme === "light" ? "0 12px 40px rgba(30,25,15,.05)" : "none" }}>
+            <div style={{ padding: "15px 17px", borderBottom: `1px solid ${ui.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 900,
-                  }}
-                >
-                  Interactive India Map
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 8,
-                    color: ui.muted,
-                    marginTop: 3,
-                  }}
-                >
-                  Click a verified state/UT polygon
-                  to explore.
-                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 950 }}><span style={{ color: ui.gold }}>◉</span> Interactive India Map</div>
+                <div style={{ marginTop: 4, color: ui.muted, fontSize: 8 }}>Click a verified State/UT polygon to explore its geography.</div>
               </div>
-
-              <div
-                style={{
-                  fontSize: 8,
-                  color: ui.muted,
-                }}
-              >
-                {loadingMap
-                  ? "Loading boundaries…"
-                  : `${filteredFeatures.length} mapped regions`}
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 15, fontWeight: 950 }}>{filteredFeatures.length}</div>
+                <div style={{ fontSize: 7, color: ui.muted }}>visible regions</div>
               </div>
             </div>
 
-            <div
-              style={{
-                padding: 12,
-                height: 510,
-                background: ui.map,
-              }}
-            >
+            <div style={{ height: 560, background: ui.map, position: "relative" }}>
               {loadingMap ? (
-                <div
-                  style={{
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center",
-                    color: ui.muted,
-                  }}
-                >
-                  <div
-                    style={{
-                      textAlign: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 26,
-                      }}
-                    >
-                      ◌
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontWeight: 900,
-                        color: ui.text,
-                      }}
-                    >
-                      Loading India map…
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 5,
-                        fontSize: 10,
-                      }}
-                    >
-                      Loading verified polygon
-                      boundaries.
-                    </div>
-                  </div>
-                </div>
+                <MapMessage ui={ui} title="Loading India map…" text="Fetching verified administrative boundaries." />
               ) : geoError ? (
-                <div
-                  style={{
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center",
-                    textAlign: "center",
-                    color: ui.muted,
-                    padding: 30,
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 26,
-                      }}
-                    >
-                      ◌
-                    </div>
-
-                    <div
-                      style={{
-                        fontWeight: 900,
-                        color: ui.text,
-                        marginTop: 8,
-                      }}
-                    >
-                      Location data unavailable
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 10,
-                        marginTop: 6,
-                      }}
-                    >
-                      {geoError}
-                    </div>
-                  </div>
-                </div>
+                <MapMessage ui={ui} title="Location data unavailable" text={geoError} />
               ) : (
-                <svg
-                  className="bd-map"
-                  viewBox="0 0 720 620"
-                  width="100%"
-                  height="100%"
-                  preserveAspectRatio="xMidYMid meet"
-                  role="img"
-                  aria-label="Interactive India administrative map"
-                >
-                  <rect
-                    width="720"
-                    height="620"
-                    fill="transparent"
-                  />
-
-                  {features.map(
-                    ({
-                      feature,
-                      id,
-                      name,
-                    }) => {
-                      if (!id) return null;
-
-                      const meta =
-                        STATE_META[id];
-
-                      const visible =
-                        filteredFeatures.some(
-                          (item) =>
-                            item.id === id
-                        );
-
-                      const isSelected =
-                        selectedId === id;
-
-                      return (
-                        <path
-                          key={id}
-                          d={geometryPath(
-                            feature.geometry,
-                            720,
-                            620
-                          )}
-                          fill={
-                            isSelected
-                              ? ui.gold
-                              : visible
-                              ? theme === "dark"
-                                ? "#242424"
-                                : "#ddd9ce"
-                              : theme === "dark"
-                              ? "#111"
-                              : "#e8e5dd"
-                          }
-                          stroke={
-                            isSelected
-                              ? "#8e6c29"
-                              : theme === "dark"
-                              ? "#686868"
-                              : "#aaa69c"
-                          }
-                          strokeWidth={
-                            isSelected
-                              ? 2.1
-                              : 1.1
-                          }
-                          onClick={() =>
-                            selectState(id)
-                          }
-                          aria-label={
-                            meta?.name || name
-                          }
-                        />
-                      );
-                    }
-                  )}
+                <svg className="bd-map" viewBox="0 0 900 700" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interactive India map">
+                  {features.map(({ feature, id, name }) => {
+                    if (!id || !STATE_META[id]) return null;
+                    const visible = filteredFeatures.some((item) => item.id === id);
+                    const selected = selectedId === id;
+                    return (
+                      <path
+                        key={`${id}-${name}`}
+                        d={geometryPath(feature.geometry, mapBounds, 900, 700)}
+                        fill={selected ? ui.gold : visible ? (theme === "dark" ? "#292929" : "#ddd8cb") : (theme === "dark" ? "#151515" : "#e9e5db")}
+                        stroke={selected ? "#806020" : theme === "dark" ? "#68645d" : "#aaa398"}
+                        strokeWidth={selected ? 2.5 : 1.15}
+                        onClick={() => selectState(id)}
+                        aria-label={STATE_META[id]?.name || name}
+                      />
+                    );
+                  })}
                 </svg>
               )}
             </div>
 
-            <div
-              style={{
-                padding: "10px 14px",
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                color: ui.muted,
-                fontSize: 8,
-                borderTop:
-                  `1px solid ${ui.line}`,
-              }}
-            >
-              <span>
-                Stable State/UT mapping
-              </span>
-
-              <span>
-                Verified polygon geometry
-              </span>
+            <div style={{ padding: "9px 14px", borderTop: `1px solid ${ui.line}`, display: "flex", justifyContent: "space-between", gap: 12, color: ui.muted, fontSize: 7 }}>
+              <span>Exact State/UT name → stable ID</span>
+              <span>Verified polygon geometry</span>
             </div>
           </section>
 
-          {/* STATE EXPLORER */}
-
-          <aside
-            className="bd-panel"
-            style={{
-              position: "sticky",
-              top: 12,
-              background: ui.surface,
-              border: `1px solid ${ui.line}`,
-              borderRadius: 22,
-              overflow: "hidden",
-            }}
-          >
-            <button
-              className="bd-mobile-toggle"
-              onClick={() =>
-                setMobilePanel(
-                  (value) => !value
-                )
-              }
-              style={{
-                width: "100%",
-                display: "none",
-                justifyContent:
-                  "space-between",
-                border: 0,
-                borderBottom:
-                  `1px solid ${ui.line}`,
-                background: ui.surface,
-                color: ui.text,
-                padding: 14,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              State Explorer
-
-              <span>
-                {mobilePanel ? "−" : "+"}
-              </span>
-            </button>
-
-            <div
-              style={{
-                padding: 17,
-                display:
-                  mobilePanel
-                    ? "block"
-                    : undefined,
-              }}
-            >
-              <div
-                style={{
-                  color: ui.gold,
-                  fontSize: 8,
-                  letterSpacing: "1.4px",
-                  fontWeight: 900,
-                }}
-              >
-                STATE EXPLORER
-              </div>
-
-              <h2
-                style={{
-                  fontSize: 24,
-                  margin: "7px 0 5px",
-                  letterSpacing: "-.7px",
-                }}
-              >
-                {selectedName}
-              </h2>
+          <aside className="bd-side" style={{ position: "sticky", top: 12, background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 24, overflow: "hidden", boxShadow: theme === "light" ? "0 12px 40px rgba(30,25,15,.05)" : "none" }}>
+            <div style={{ padding: 17 }}>
+              <div style={{ color: ui.gold, fontSize: 8, letterSpacing: "1.5px", fontWeight: 950 }}>STATE EXPLORER</div>
+              <h2 style={{ margin: "7px 0 4px", fontSize: 25, letterSpacing: "-.8px" }}>{selected?.name || "Select a State or UT"}</h2>
+              <div style={{ color: ui.muted, fontSize: 9 }}>{selected ? `${selected.region} • Capital: ${selected.capital}` : "Map par kisi State/UT par tap karein."}</div>
 
               {selected ? (
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: ui.muted,
-                  }}
-                >
-                  {selected.region} • Capital:{" "}
-                  {selected.capital}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: ui.muted,
-                  }}
-                >
-                  Map par state/UT select karein.
-                </div>
-              )}
-
-              {selected && (
                 <>
-                  {/* TABS */}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      marginTop: 14,
-                    }}
-                  >
-                    {[
-                      ["overview", "Overview"],
-                      ["facts", "UPSC Facts"],
-                      ["recall", "Recall"],
-                    ].map(
-                      ([id, label]) => (
-                        <button
-                          key={id}
-                          onClick={() =>
-                            setTab(id)
-                          }
-                          style={{
-                            flex: 1,
-                            border: `1px solid ${
-                              tab === id
-                                ? ui.gold
-                                : ui.line
-                            }`,
-                            background:
-                              tab === id
-                                ? ui.gold
-                                : ui.surface2,
-                            color:
-                              tab === id
-                                ? "#111"
-                                : ui.text,
-                            borderRadius: 10,
-                            padding: "8px 4px",
-                            fontSize: 8,
-                            fontWeight: 900,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 14 }}>
+                    {[['overview','Overview'],['facts','UPSC Facts'],['recall','Recall']].map(([id,label]) => <button key={id} onClick={() => setTab(id)} style={{ border: `1px solid ${tab === id ? ui.gold : ui.line}`, background: tab === id ? ui.gold : ui.surface2, color: tab === id ? "#111" : ui.text, borderRadius: 10, padding: "8px 4px", fontSize: 8, fontWeight: 900, cursor: "pointer" }}>{label}</button>)}
                   </div>
 
-                  {/* OVERVIEW */}
+                  {tab === "overview" && <div style={{ marginTop: 15 }}>
+                    <InfoGroup label="Rivers & Water" items={selected.rivers} ui={ui} />
+                    <InfoGroup label="Relief, Mountains & Passes" items={selected.relief} ui={ui} />
+                    <InfoGroup label="Ecology & Protected Areas" items={selected.ecology} ui={ui} />
+                    <InfoGroup label="Agriculture & Crops" items={selected.crops} ui={ui} />
+                    <InfoGroup label="Minerals & Resources" items={selected.minerals} ui={ui} />
+                    <InfoGroup label="Important Places" items={selected.places} ui={ui} />
+                  </div>}
 
-                  {tab === "overview" && (
-                    <div
-                      style={{
-                        marginTop: 15,
-                      }}
-                    >
-                      <InfoGroup
-                        label="Rivers / Water"
-                        items={selected.rivers}
-                        ui={ui}
-                      />
-
-                      <InfoGroup
-                        label="Relief / Mountains / Passes"
-                        items={selected.relief}
-                        ui={ui}
-                      />
-
-                      <InfoGroup
-                        label="Ecology"
-                        items={selected.ecology}
-                        ui={ui}
-                      />
-
-                      <InfoGroup
-                        label="Agriculture"
-                        items={selected.crops}
-                        ui={ui}
-                      />
-
-                      <InfoGroup
-                        label="Minerals / Resources"
-                        items={selected.minerals}
-                        ui={ui}
-                      />
-
-                      <InfoGroup
-                        label="Important Places"
-                        items={selected.places}
-                        ui={ui}
-                      />
+                  {tab === "facts" && <div style={{ marginTop: 15, display: "grid", gap: 9 }}>
+                    <FeaturePanel title="CURRENT LAYER" value={modeItems?.[0] || "Important Geography"} ui={ui} />
+                    <FeaturePanel title="CLIMATE & MONSOON" value={selected.climate} ui={ui} />
+                    <div style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 15, padding: 13 }}>
+                      <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>UPSC MAP RELEVANCE</div>
+                      <div style={{ marginTop: 7, color: ui.muted, fontSize: 9, lineHeight: 1.65 }}>State location, river association, relief, ecology, resources and agriculture can be used for Prelims elimination and GS Geography map revision.</div>
                     </div>
-                  )}
+                  </div>}
 
-                  {/* FACTS */}
-
-                  {tab === "facts" && (
-                    <div
-                      style={{
-                        marginTop: 15,
-                      }}
-                    >
-                      <div
-                        style={{
-                          background:
-                            ui.surface2,
-                          border: `1px solid ${ui.line}`,
-                          borderRadius: 15,
-                          padding: 13,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 900,
-                            color: ui.gold,
-                          }}
-                        >
-                          UPSC IMPORTANCE
-                        </div>
-
-                        <p
-                          style={{
-                            margin:
-                              "8px 0 0",
-                            fontSize: 10,
-                            lineHeight: 1.65,
-                            color: ui.muted,
-                          }}
-                        >
-                          Use this profile for
-                          map-location questions,
-                          river/relief
-                          associations,
-                          ecology,
-                          agriculture,
-                          minerals and
-                          state-based
-                          elimination in
-                          Prelims.
-                        </p>
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: 9,
-                          background:
-                            ui.surface2,
-                          border: `1px solid ${ui.line}`,
-                          borderRadius: 15,
-                          padding: 13,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 900,
-                            color: ui.gold,
-                          }}
-                        >
-                          CLIMATE & MONSOON
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: 7,
-                            fontSize: 10,
-                            color: ui.muted,
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          {selected.climate}
-                        </div>
-                      </div>
-
-                      {modeItems && (
-                        <div
-                          style={{
-                            marginTop: 9,
-                            background:
-                              ui.surface2,
-                            border: `1px solid ${ui.line}`,
-                            borderRadius: 15,
-                            padding: 13,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 900,
-                              color: ui.gold,
-                            }}
-                          >
-                            {modeItems[0]}
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap:
-                                "wrap",
-                              gap: 5,
-                              marginTop: 8,
-                            }}
-                          >
-                            {modeItems[1].map(
-                              (item) => (
-                                <span
-                                  key={item}
-                                  style={{
-                                    padding:
-                                      "6px 7px",
-                                    borderRadius:
-                                      8,
-                                    background:
-                                      ui.surface,
-                                    border: `1px solid ${ui.line}`,
-                                    fontSize: 8,
-                                  }}
-                                >
-                                  {item}
-                                </span>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
+                  {tab === "recall" && <div style={{ marginTop: 15 }}>
+                    <div style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 16, padding: 14 }}>
+                      <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: "1px" }}>ACTIVE RECALL</div>
+                      <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, fontWeight: 850 }}>Recall two important map facts for {selected.name}.</div>
+                      <button onClick={() => setRecallRevealed(true)} style={{ marginTop: 12, width: "100%", border: `1px solid ${ui.line}`, background: ui.surface, color: ui.text, borderRadius: 11, padding: 10, fontWeight: 900, cursor: "pointer" }}>{recallRevealed ? "Answer revealed" : "Reveal answer"}</button>
+                      {recallRevealed && <div style={{ marginTop: 9, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>{selected.rivers.slice(0,2).join(" and ")}; {selected.relief.slice(0,2).join(" and ")}.</div>}
                     </div>
-                  )}
+                    <button onClick={() => { setRecallRevealed(false); setRecallIndex((value) => value + 1); }} style={{ marginTop: 8, width: "100%", border: 0, background: ui.gold, color: "#111", borderRadius: 11, padding: 10, fontWeight: 900, cursor: "pointer" }}>Next Recall →</button>
+                  </div>}
 
-                  {/* RECALL */}
-
-                  {tab === "recall" && (
-                    <div
-                      style={{
-                        marginTop: 15,
-                      }}
-                    >
-                      <div
-                        style={{
-                          border: `1px solid ${ui.line}`,
-                          background:
-                            ui.surface2,
-                          borderRadius: 16,
-                          padding: 14,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            color: ui.gold,
-                            fontWeight: 900,
-                          }}
-                        >
-                          ACTIVE RECALL
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: 10,
-                            fontSize: 13,
-                            fontWeight: 850,
-                          }}
-                        >
-                          Name two map facts you
-                          can recall for{" "}
-                          {selected.name}.
-                        </div>
-
-                        <button
-                          onClick={() =>
-                            setRecallRevealed(
-                              true
-                            )
-                          }
-                          style={{
-                            marginTop: 13,
-                            width: "100%",
-                            border: `1px solid ${ui.line}`,
-                            background:
-                              ui.surface,
-                            color: ui.text,
-                            borderRadius: 11,
-                            padding: 10,
-                            fontWeight: 850,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {recallRevealed
-                            ? "Answer revealed"
-                            : "Reveal answer"}
-                        </button>
-
-                        {recallRevealed && (
-                          <div
-                            style={{
-                              marginTop: 10,
-                              color: ui.muted,
-                              fontSize: 10,
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {selected.rivers
-                              .slice(0, 2)
-                              .join(" and ")}
-                            ;{" "}
-                            {selected.relief
-                              .slice(0, 2)
-                              .join(" and ")}
-                            .
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setRecallRevealed(
-                            false
-                          );
-
-                          setRecallIndex(
-                            (value) =>
-                              value + 1
-                          );
-                        }}
-                        style={{
-                          marginTop: 8,
-                          width: "100%",
-                          border: 0,
-                          background: ui.gold,
-                          color: "#111",
-                          borderRadius: 11,
-                          padding: 10,
-                          fontWeight: 900,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Next Recall →
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ACTIONS */}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 7,
-                      marginTop: 14,
-                    }}
-                  >
-                    <button
-                      onClick={markMastered}
-                      style={{
-                        flex: 1,
-                        border: 0,
-                        background: ui.gold,
-                        color: "#111",
-                        borderRadius: 11,
-                        padding: 10,
-                        fontSize: 9,
-                        fontWeight: 900,
-                        cursor: "pointer",
-                      }}
-                    >
-                      ✓ Mark Mastered
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setCompareId(
-                          compareId ||
-                            Object.keys(
-                              STATE_META
-                            ).find(
-                              (id) =>
-                                id !==
-                                selectedId
-                            ) ||
-                            null
-                        );
-
-                        setCompareOpen(true);
-                      }}
-                      style={{
-                        flex: 1,
-                        border: `1px solid ${ui.line}`,
-                        background:
-                          ui.surface2,
-                        color: ui.text,
-                        borderRadius: 11,
-                        padding: 10,
-                        fontSize: 9,
-                        fontWeight: 900,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Compare
-                    </button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginTop: 14 }}>
+                    <button onClick={markMastered} style={primaryButton(ui)}>✓ Mark Mastered</button>
+                    <button onClick={markNeedsRevision} style={secondaryButton(ui)}>↻ Needs Revision</button>
                   </div>
-
-                  <div
-                    style={{
-                      marginTop: 9,
-                      fontSize: 8,
-                      color: ui.muted,
-                    }}
-                  >
-                    Status:{" "}
-                    <b
-                      style={{
-                        color: ui.text,
-                      }}
-                    >
-                      {progress[selectedId]
-                        ?.status ||
-                        "Not Started"}
-                    </b>
-                  </div>
+                  <button onClick={() => { const next = Object.keys(STATE_META).find((id) => id !== selectedId) || ""; setCompareId(next); setCompareOpen(true); }} style={{ width: "100%", marginTop: 7, ...secondaryButton(ui) }}>Compare States</button>
+                  <div style={{ marginTop: 8, fontSize: 8, color: ui.muted }}>Status: <b style={{ color: ui.text }}>{progress[selectedId]?.status || "Not Started"}</b></div>
                 </>
+              ) : (
+                <div style={{ marginTop: 18, border: `1px dashed ${ui.line}`, background: ui.surface2, borderRadius: 16, padding: 16, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>India map se State/UT select karte hi yahan rivers, relief, ecology, agriculture, minerals, places aur climate ka UPSC-focused profile open hoga.</div>
               )}
             </div>
           </aside>
         </div>
 
-        {/* STATS */}
-
-        <section
-          className="bd-stats"
-          style={{
-            marginTop: 16,
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(3,minmax(0,1fr))",
-            gap: 12,
-          }}
-        >
-          <StatCard
-            ui={ui}
-            label="States / UTs in knowledge base"
-            value={totalStates}
-          />
-
-          <StatCard
-            ui={ui}
-            label="Mastered"
-            value={masteredCount}
-          />
-
-          <StatCard
-            ui={ui}
-            label="Learning / Revision"
-            value={learningCount}
-          />
+        {/* PROGRESS */}
+        <section style={{ marginTop: 14 }}>
+          <div className="bd-stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+            <StatCard ui={ui} label="Knowledge Base" value={Object.keys(STATE_META).length} sub="States & UTs" />
+            <StatCard ui={ui} label="Mastered" value={masteredCount} sub="Actual progress" />
+            <StatCard ui={ui} label="Learning" value={learningCount} sub="Viewed / learning" />
+            <StatCard ui={ui} label="Needs Revision" value={revisionCount} sub="Marked by you" />
+          </div>
         </section>
 
-        {/* MAP QUIZ */}
-
-        <section
-          style={{
-            marginTop: 16,
-            background: ui.surface,
-            border: `1px solid ${ui.line}`,
-            borderRadius: 22,
-            padding: 17,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
+        {/* QUIZ */}
+        <section style={{ marginTop: 14, background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 24, padding: 18, boxShadow: theme === "light" ? "0 12px 40px rgba(30,25,15,.05)" : "none" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
             <div>
-              <div
-                style={{
-                  color: ui.gold,
-                  fontSize: 8,
-                  fontWeight: 900,
-                  letterSpacing: "1.4px",
-                }}
-              >
-                MAP QUIZ
-              </div>
-
-              <h2
-                style={{
-                  margin: "6px 0 0",
-                  fontSize: 22,
-                }}
-              >
-                Test your India map
-                intelligence
-              </h2>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: "1.5px" }}><span>✦</span> MAP QUIZ • PRACTICE</div>
+              <h2 style={{ margin: "7px 0 4px", fontSize: 24, letterSpacing: "-.7px" }}>Test your India map intelligence</h2>
+              <div style={{ color: ui.muted, fontSize: 9 }}>Practice questions are clearly labelled and are not presented as official UPSC PYQs.</div>
             </div>
-
-            {!quizStarted ? (
-              <button
-                onClick={() =>
-                  setQuizStarted(true)
-                }
-                style={{
-                  border: 0,
-                  background: ui.gold,
-                  color: "#111",
-                  borderRadius: 12,
-                  padding: "10px 15px",
-                  fontWeight: 900,
-                  cursor: "pointer",
-                }}
-              >
-                Start Quiz
-              </button>
-            ) : (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: ui.muted,
-                }}
-              >
-                Score:{" "}
-                <b
-                  style={{
-                    color: ui.text,
-                  }}
-                >
-                  {quizScore}/{QUIZ.length}
-                </b>
-              </div>
-            )}
+            {quizStarted && <div style={{ textAlign: "right" }}><div style={{ fontSize: 19, fontWeight: 950 }}>{quizScore}/{QUIZ.length}</div><div style={{ fontSize: 7, color: ui.muted }}>score</div></div>}
           </div>
 
-          {quizStarted && (
-            <div
-              style={{
-                marginTop: 16,
-                background: ui.surface2,
-                border: `1px solid ${ui.line}`,
-                borderRadius: 16,
-                padding: 15,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 9,
-                  color: ui.muted,
-                }}
-              >
-                Question{" "}
-                {quizIndex + 1} /{" "}
-                {QUIZ.length}
+          {!quizStarted ? (
+            <div style={{ marginTop: 16, border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 16, padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+              <div><div style={{ fontSize: 11, fontWeight: 900 }}>8-question map practice</div><div style={{ marginTop: 4, color: ui.muted, fontSize: 8 }}>State locations • rivers • relief • ecology • resources • monsoon</div></div>
+              <button onClick={() => setQuizStarted(true)} style={primaryButton(ui)}>Start Practice →</button>
+            </div>
+          ) : (
+            <div style={{ marginTop: 16, border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 17, padding: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, color: ui.muted, fontSize: 8 }}><span>Question {quizIndex + 1} of {QUIZ.length}</span><span>Practice Question</span></div>
+              <div style={{ marginTop: 11, fontSize: 15, lineHeight: 1.45, fontWeight: 950 }}>{currentQuiz.q}</div>
+
+              <div className="bd-quiz-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginTop: 15 }}>
+                {currentQuiz.options.map((option, index) => {
+                  const chosen = quizAnswer === index;
+                  const correct = currentQuiz.answer === index;
+                  const answeredCorrect = quizAnswered && correct;
+                  const answeredWrong = quizAnswered && chosen && !correct;
+                  return (
+                    <button key={option} className="bd-quiz-option" disabled={quizAnswered} onClick={() => answerQuiz(index)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 56, border: `1px solid ${answeredCorrect || chosen ? ui.gold : ui.line}`, background: answeredCorrect ? ui.green : answeredWrong ? ui.red : ui.surface, color: ui.text, borderRadius: 13, padding: "10px 12px", textAlign: "left", cursor: quizAnswered ? "default" : "pointer" }}>
+                      <span style={{ width: 29, height: 29, flex: "0 0 29px", display: "grid", placeItems: "center", borderRadius: 9, background: answeredCorrect ? "#b8d9b8" : answeredWrong ? "#e6bebe" : ui.surface2, color: ui.text, fontSize: 9, fontWeight: 950 }}>{String.fromCharCode(65 + index)}</span>
+                      <span style={{ fontSize: 9, lineHeight: 1.45, fontWeight: 850 }}>{option}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div
-                style={{
-                  marginTop: 9,
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                {currentQuiz.q}
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(2,minmax(0,1fr))",
-                  gap: 8,
-                  marginTop: 13,
-                }}
-              >
-                {currentQuiz.options.map(
-                  (option, index) => {
-                    const chosen =
-                      quizAnswer === index;
-
-                    const correct =
-                      currentQuiz.answer ===
-                      index;
-
-                    const bg =
-                      quizAnswered &&
-                      correct
-                        ? "#dcebd9"
-                        : quizAnswered &&
-                          chosen
-                        ? "#f0d8d8"
-                        : ui.surface;
-
-                    return (
-                      <button
-                        key={option}
-                        onClick={() =>
-                          answerQuiz(index)
-                        }
-                        style={{
-                          textAlign: "left",
-                          border: `1px solid ${
-                            chosen ||
-                            (quizAnswered &&
-                              correct)
-                              ? ui.gold
-                              : ui.line
-                          }`,
-                          background: bg,
-                          color: "#111",
-                          borderRadius: 11,
-                          padding: 11,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          cursor: quizAnswered
-                            ? "default"
-                            : "pointer",
-                        }}
-                      >
-                        {String.fromCharCode(
-                          65 + index
-                        )}
-                        . {option}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-
-              {quizAnswered && (
-                <>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      fontSize: 10,
-                      color: ui.muted,
-                      lineHeight: 1.55,
-                    }}
-                  >
-                    <b
-                      style={{
-                        color: ui.text,
-                      }}
-                    >
-                      Explanation:
-                    </b>{" "}
-                    {currentQuiz.explanation}
-                  </div>
-
-                  <button
-                    onClick={nextQuiz}
-                    style={{
-                      marginTop: 12,
-                      border: 0,
-                      background: ui.gold,
-                      color: "#111",
-                      borderRadius: 11,
-                      padding: "9px 14px",
-                      fontWeight: 900,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Next Question →
-                  </button>
-                </>
-              )}
+              {quizAnswered && <div style={{ marginTop: 13, borderTop: `1px solid ${ui.line}`, paddingTop: 12 }}>
+                <div style={{ fontSize: 8, color: ui.gold, fontWeight: 950 }}>EXPLANATION</div>
+                <div style={{ marginTop: 5, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>{currentQuiz.explanation}</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                  <button onClick={nextQuiz} style={primaryButton(ui)}>Next Question →</button>
+                  <button onClick={resetQuiz} style={secondaryButton(ui)}>Restart</button>
+                </div>
+              </div>}
             </div>
           )}
         </section>
 
-        {/* GLOBAL ACTIVE RECALL */}
-
-        <section
-          style={{
-            marginTop: 16,
-            background: ui.surface,
-            border: `1px solid ${ui.line}`,
-            borderRadius: 22,
-            padding: 17,
-          }}
-        >
-          <div
-            style={{
-              color: ui.gold,
-              fontSize: 8,
-              fontWeight: 900,
-              letterSpacing: "1.4px",
-            }}
-          >
-            ACTIVE RECALL
-          </div>
-
-          <h2
-            style={{
-              margin: "6px 0 4px",
-              fontSize: 22,
-            }}
-          >
-            Learn → Recall → Revise
-          </h2>
-
-          <p
-            style={{
-              margin: 0,
-              color: ui.muted,
-              fontSize: 10,
-              lineHeight: 1.55,
-            }}
-          >
-            Ek location ko dekhkar answer
-            yaad karo, phir reveal karke apni
-            recall accuracy judge karo.
-          </p>
-
-          <div
-            style={{
-              marginTop: 13,
-              display: "grid",
-              gridTemplateColumns:
-                "minmax(0,1fr) auto",
-              gap: 10,
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                border: `1px solid ${ui.line}`,
-                background: ui.surface2,
-                borderRadius: 14,
-                padding: 13,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 8,
-                  color: ui.gold,
-                  fontWeight: 900,
-                }}
-              >
-                {currentRecall.title}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 7,
-                  fontSize: 11,
-                  fontWeight: 850,
-                }}
-              >
-                {currentRecall.prompt}
-              </div>
-
-              {recallRevealed && (
-                <div
-                  style={{
-                    marginTop: 7,
-                    fontSize: 9,
-                    color: ui.muted,
-                  }}
-                >
-                  {currentRecall.answer}
-                </div>
-              )}
+        {/* ACTIVE RECALL */}
+        <section style={{ marginTop: 14, background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 24, padding: 18 }}>
+          <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: "1.5px" }}>ACTIVE RECALL</div>
+          <h2 style={{ margin: "7px 0 4px", fontSize: 23 }}>Learn → Recall → Revise → Master</h2>
+          <p style={{ margin: 0, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>Location ko dekhkar answer recall karo, phir reveal karke apni memory check karo.</p>
+          <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "stretch" }}>
+            <div style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 15, padding: 14 }}>
+              <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>{currentRecall?.title || "India"}</div>
+              <div style={{ marginTop: 7, fontSize: 11, fontWeight: 850 }}>{currentRecall?.prompt}</div>
+              {recallRevealed && <div style={{ marginTop: 8, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>{currentRecall?.answer}</div>}
             </div>
-
-            <button
-              onClick={() =>
-                setRecallRevealed(
-                  (value) => !value
-                )
-              }
-              style={{
-                border: 0,
-                background: ui.gold,
-                color: "#111",
-                borderRadius: 11,
-                padding: "10px 13px",
-                fontSize: 9,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              {recallRevealed
-                ? "Hide"
-                : "Reveal"}
-            </button>
+            <button onClick={() => setRecallRevealed((value) => !value)} style={{ minWidth: 95, ...primaryButton(ui) }}>{recallRevealed ? "Hide" : "Reveal"}</button>
           </div>
-
-          <button
-            onClick={() => {
-              setRecallIndex(
-                (value) => value + 1
-              );
-
-              setRecallRevealed(false);
-            }}
-            style={{
-              marginTop: 9,
-              border: `1px solid ${ui.line}`,
-              background: ui.surface,
-              color: ui.text,
-              borderRadius: 11,
-              padding: "9px 12px",
-              fontSize: 9,
-              fontWeight: 850,
-              cursor: "pointer",
-            }}
-          >
-            Next Recall →
-          </button>
+          <button onClick={() => { setRecallIndex((value) => value + 1); setRecallRevealed(false); }} style={{ marginTop: 9, ...secondaryButton(ui) }}>Next Recall →</button>
         </section>
 
-        <footer
-          style={{
-            marginTop: 28,
-            paddingTop: 18,
-            borderTop: `1px solid ${ui.line}`,
-            color: ui.muted,
-            fontSize: 8,
-            display: "flex",
-            justifyContent:
-              "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <span>
-            SAMBHAV UPSC • Bharat Darshan
-          </span>
+        {/* COMPARISON MODAL */}
+        {compareOpen && selected && <div onClick={() => setCompareOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,.65)", display: "grid", placeItems: "center", padding: 15 }}>
+          <div onClick={(event) => event.stopPropagation()} className="bd-scroll" style={{ width: "min(920px,100%)", maxHeight: "90vh", overflow: "auto", background: ui.surface, color: ui.text, border: `1px solid ${ui.line}`, borderRadius: 24, padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+              <div><div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>STATE COMPARISON</div><h2 style={{ margin: "6px 0 0", fontSize: 23 }}>{selected.name} vs {compareState?.name || "Select state"}</h2></div>
+              <button onClick={() => setCompareOpen(false)} style={smallButton(ui)}>×</button>
+            </div>
+            <select value={compareId} onChange={(event) => setCompareId(event.target.value)} style={{ marginTop: 14, width: "100%", border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 11, padding: 10, outline: "none" }}>
+              <option value="">Select comparison state</option>
+              {Object.entries(STATE_META).filter(([id]) => id !== selectedId).map(([id, state]) => <option key={id} value={id}>{state.name}</option>)}
+            </select>
+            {compareState && <div className="bd-compare-grid" style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                ["Rivers", selected.rivers, compareState.rivers],
+                ["Relief", selected.relief, compareState.relief],
+                ["Agriculture", selected.crops, compareState.crops],
+                ["Ecology", selected.ecology, compareState.ecology],
+                ["Minerals", selected.minerals, compareState.minerals],
+                ["Places", selected.places, compareState.places],
+              ].map(([label, a, b]) => <div key={label} style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 14, padding: 13 }}><div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>{label}</div><div style={{ marginTop: 8, fontSize: 9, lineHeight: 1.55 }}><b>{selected.name}:</b> <span style={{ color: ui.muted }}>{a.join(", ")}</span></div><div style={{ marginTop: 6, fontSize: 9, lineHeight: 1.55 }}><b>{compareState.name}:</b> <span style={{ color: ui.muted }}>{b.join(", ")}</span></div></div>)}
+            </div>}
+          </div>
+        </div>}
 
-          <span>
-            Static geography and user progress
-            are separate from Current Affairs.
-          </span>
+        <footer style={{ marginTop: 25, paddingTop: 16, borderTop: `1px solid ${ui.line}`, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", color: ui.faint, fontSize: 7 }}>
+          <span>SAMBHAV UPSC • Bharat Darshan</span>
+          <span>Static geography is separate from Current Affairs.</span>
         </footer>
       </div>
-
-      {/* COMPARISON MODAL */}
-
-      {compareOpen && selected && (
-        <div
-          onClick={() =>
-            setCompareOpen(false)
-          }
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,.58)",
-            zIndex: 100,
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-          }}
-        >
-          <div
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-            className="bd-scroll"
-            style={{
-              width: "min(920px,100%)",
-              maxHeight: "90vh",
-              overflow: "auto",
-              background: ui.surface,
-              color: ui.text,
-              border: `1px solid ${ui.line}`,
-              borderRadius: 22,
-              padding: 18,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: ui.gold,
-                    fontSize: 8,
-                    fontWeight: 900,
-                  }}
-                >
-                  STATE COMPARISON
-                </div>
-
-                <h2
-                  style={{
-                    margin: "5px 0 0",
-                    fontSize: 22,
-                  }}
-                >
-                  {selected.name} vs{" "}
-                  {STATE_META[compareId]
-                    ?.name ||
-                    "Select state"}
-                </h2>
-              </div>
-
-              <button
-                onClick={() =>
-                  setCompareOpen(false)
-                }
-                style={{
-                  border: `1px solid ${ui.line}`,
-                  background:
-                    ui.surface2,
-                  color: ui.text,
-                  borderRadius: 10,
-                  padding: "8px 11px",
-                  cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <select
-              value={compareId || ""}
-              onChange={(event) =>
-                setCompareId(
-                  event.target.value
-                )
-              }
-              style={{
-                marginTop: 14,
-                width: "100%",
-                border: `1px solid ${ui.line}`,
-                background: ui.surface2,
-                color: ui.text,
-                borderRadius: 11,
-                padding: 10,
-              }}
-            >
-              <option value="">
-                Select comparison state
-              </option>
-
-              {Object.entries(
-                STATE_META
-              )
-                .filter(
-                  ([id]) =>
-                    id !== selectedId
-                )
-                .map(([id, value]) => (
-                  <option
-                    key={id}
-                    value={id}
-                  >
-                    {value.name}
-                  </option>
-                ))}
-            </select>
-
-            {compareId &&
-              STATE_META[compareId] && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    overflowX: "auto",
-                  }}
-                >
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse:
-                        "collapse",
-                      fontSize: 9,
-                    }}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={th(ui)}>
-                          Dimension
-                        </th>
-
-                        <th style={th(ui)}>
-                          {selected.name}
-                        </th>
-
-                        <th style={th(ui)}>
-                          {
-                            STATE_META[
-                              compareId
-                            ].name
-                          }
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {[
-                        [
-                          "Rivers",
-                          selected.rivers,
-                          STATE_META[
-                            compareId
-                          ].rivers,
-                        ],
-                        [
-                          "Relief",
-                          selected.relief,
-                          STATE_META[
-                            compareId
-                          ].relief,
-                        ],
-                        [
-                          "Agriculture",
-                          selected.crops,
-                          STATE_META[
-                            compareId
-                          ].crops,
-                        ],
-                        [
-                          "Ecology",
-                          selected.ecology,
-                          STATE_META[
-                            compareId
-                          ].ecology,
-                        ],
-                        [
-                          "Minerals",
-                          selected.minerals,
-                          STATE_META[
-                            compareId
-                          ].minerals,
-                        ],
-                        [
-                          "Places",
-                          selected.places,
-                          STATE_META[
-                            compareId
-                          ].places,
-                        ],
-                      ].map(
-                        ([label, a, b]) => (
-                          <tr key={label}>
-                            <td
-                              style={td(
-                                ui,
-                                true
-                              )}
-                            >
-                              {label}
-                            </td>
-
-                            <td
-                              style={td(ui)}
-                            >
-                              {a.join(", ")}
-                            </td>
-
-                            <td
-                              style={td(ui)}
-                            >
-                              {b.join(", ")}
-                            </td>
-                          </tr>
-                        )
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-          </div>
-        </div>
-      )}
     </main>
   );
 }
 
-function InfoGroup({
-  label,
-  items,
-  ui,
-}) {
-  return (
-    <div
-      style={{
-        marginBottom: 12,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 8,
-          color: ui.gold,
-          fontWeight: 900,
-          letterSpacing: ".8px",
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 5,
-          marginTop: 6,
-        }}
-      >
-        {items.map((item) => (
-          <span
-            key={item}
-            style={{
-              padding: "6px 7px",
-              borderRadius: 8,
-              background: ui.surface2,
-              border: `1px solid ${ui.line}`,
-              fontSize: 8,
-              color: ui.text,
-            }}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
+function InfoGroup({ label, items, ui }) {
+  if (!items?.length) return null;
+  return <div style={{ marginBottom: 13 }}>
+    <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: ".8px" }}>{label}</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+      {items.map((item) => <span key={item} style={{ padding: "6px 8px", borderRadius: 8, background: ui.surface2, border: `1px solid ${ui.line}`, fontSize: 8, color: ui.text }}>{item}</span>)}
     </div>
-  );
+  </div>;
 }
 
-function StatCard({
-  ui,
-  label,
-  value,
-}) {
-  return (
-    <div
-      style={{
-        background: ui.surface,
-        border: `1px solid ${ui.line}`,
-        borderRadius: 17,
-        padding: 14,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 8,
-          color: ui.muted,
-          fontWeight: 800,
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          marginTop: 6,
-          fontSize: 23,
-          fontWeight: 950,
-          color: ui.text,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
+function FeaturePanel({ title, value, ui }) {
+  return <div style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 15, padding: 13 }}><div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>{title}</div><div style={{ marginTop: 7, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>{value}</div></div>;
 }
 
-function th(ui) {
-  return {
-    textAlign: "left",
-    padding: 10,
-    borderBottom:
-      `1px solid ${ui.line}`,
-    color: ui.gold,
-  };
+function StatCard({ ui, label, value, sub }) {
+  return <div style={{ background: ui.surface, border: `1px solid ${ui.line}`, borderRadius: 17, padding: 14 }}><div style={{ color: ui.muted, fontSize: 8, fontWeight: 800 }}>{label}</div><div style={{ marginTop: 6, fontSize: 24, fontWeight: 950 }}>{value}</div><div style={{ marginTop: 3, color: ui.faint, fontSize: 7 }}>{sub}</div></div>;
 }
 
-function td(ui, bold = false) {
-  return {
-    padding: 10,
-    borderBottom:
-      `1px solid ${ui.line}`,
-    color: ui.muted,
-    verticalAlign: "top",
-    fontWeight: bold ? 900 : 500,
-  };
+function MapMessage({ ui, title, text }) {
+  return <div style={{ height: "100%", display: "grid", placeItems: "center", textAlign: "center", padding: 30, color: ui.muted }}><div><div style={{ width: 46, height: 46, margin: "0 auto", borderRadius: 15, display: "grid", placeItems: "center", background: ui.surface2, border: `1px solid ${ui.line}`, color: ui.gold, fontSize: 21 }}>◌</div><div style={{ marginTop: 11, fontSize: 12, fontWeight: 950, color: ui.text }}>{title}</div><div style={{ marginTop: 5, fontSize: 9, lineHeight: 1.5 }}>{text}</div></div></div>;
+}
+
+function smallButton(ui) {
+  return { border: `1px solid ${ui.line}`, background: ui.surface, color: ui.text, borderRadius: 11, padding: "9px 11px", cursor: "pointer", fontWeight: 850, fontSize: 9 };
+}
+
+function primaryButton(ui) {
+  return { border: 0, background: ui.gold, color: "#111", borderRadius: 11, padding: "10px 13px", cursor: "pointer", fontWeight: 950, fontSize: 9 };
+}
+
+function secondaryButton(ui) {
+  return { border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 11, padding: "10px 13px", cursor: "pointer", fontWeight: 900, fontSize: 9 };
 }
