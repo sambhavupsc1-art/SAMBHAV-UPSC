@@ -475,6 +475,105 @@ const RECALL_ITEMS = [
 ];
 
 /* ============================================================
+   OFFICIAL REPORTS / LATEST DATA
+   ============================================================
+
+   These cards are report metadata/navigation only. They do not
+   replace the separate State/UT geography data file.
+
+   Report years are deliberately shown beside every item so that
+   static geography and changing datasets are not mixed silently.
+*/
+const OFFICIAL_REPORTS = [
+  {
+    id: "forest",
+    category: "Forest",
+    title: "India State of Forest Report 2023",
+    issuer: "Forest Survey of India • MoEFCC",
+    year: "2023",
+    updated: "Official report",
+    summary:
+      "Forest cover, tree cover, mangrove cover, forest types, biodiversity, forest fire monitoring, growing stock, bamboo and carbon stock.",
+    upsc:
+      "Prelims: forest-cover classes, mangroves, carbon stock and state-wise geography. GS-III: forests, biodiversity and climate mitigation.",
+    sourceUrl: "https://fsi.nic.in/forest-report-2023",
+    sourceLabel: "FSI official report",
+  },
+  {
+    id: "agriculture",
+    category: "Agriculture",
+    title: "Agricultural Statistics at a Glance 2024",
+    issuer: "Department of Agriculture & Farmers Welfare",
+    year: "2024",
+    updated: "Official statistics",
+    summary:
+      "Crop area, production, productivity and wider agriculture statistics for UPSC-oriented state and national comparisons.",
+    upsc:
+      "Prelims: crop geography and production patterns. GS-III: productivity, irrigation, diversification and agricultural trends.",
+    sourceUrl:
+      "https://desagri.gov.in/document-report/agricultural-statistics-at-a-glance-2024/",
+    sourceLabel: "Agriculture Department",
+  },
+  {
+    id: "environment",
+    category: "Environment",
+    title: "Annual Report 2025–26",
+    issuer: "Ministry of Environment, Forest & Climate Change",
+    year: "2025–26",
+    updated: "Official annual report",
+    summary:
+      "Ministry-level environment, forest, biodiversity, pollution, climate and conservation programme information.",
+    upsc:
+      "Useful for current static linkage: institutions, schemes, conservation programmes and environment governance.",
+    sourceUrl: "https://www.moef.gov.in/annual-reports",
+    sourceLabel: "MoEFCC annual reports",
+  },
+  {
+    id: "water",
+    category: "Water",
+    title: "National Compilation on Dynamic Ground Water Resources of India, 2025",
+    issuer: "Central Ground Water Board • Ministry of Jal Shakti",
+    year: "2025",
+    updated: "Official assessment",
+    summary:
+      "National groundwater-resource assessment with state/UT and assessment-unit level groundwater information.",
+    upsc:
+      "Prelims: aquifers and groundwater terminology. GS-III: groundwater stress, irrigation, recharge and water security.",
+    sourceUrl:
+      "https://cgwb.gov.in/en/national-compilation-dynamic-ground-water-resources-india-2025",
+    sourceLabel: "CGWB official report",
+  },
+  {
+    id: "climate",
+    category: "Climate",
+    title: "Statement on the Climate of India During 2025",
+    issuer: "India Meteorological Department • Ministry of Earth Sciences",
+    year: "2025",
+    updated: "Issued 1 January 2026",
+    summary:
+      "Annual climate assessment for India covering temperature, rainfall and significant weather/climate observations.",
+    upsc:
+      "GS-I/GS-III linkage: monsoon, rainfall variability, temperature extremes, cyclones and climate-risk geography.",
+    sourceUrl:
+      "https://internal.imd.gov.in/pages/press_release_mausam.php",
+    sourceLabel: "IMD official releases",
+  },
+];
+
+const REPORT_FILTERS = [
+  ["all", "All"],
+  ["forest", "Forest"],
+  ["agriculture", "Agriculture"],
+  ["environment", "Environment"],
+  ["water", "Water"],
+  ["climate", "Climate"],
+];
+
+function getReportStatusLabel(report) {
+  if (report?.updated) return report.updated;
+  return "Official source";
+}
+/* ============================================================
    GEOJSON HELPERS
    ============================================================ */
 
@@ -709,6 +808,8 @@ export default function BharatDarshanPage() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
   const [progress, setProgress] = useState({});
+
+  const [reportFilter, setReportFilter] = useState("all");
 
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -1386,6 +1487,17 @@ export default function BharatDarshanPage() {
 
           .bd-compare-table {
             min-width: 720px;
+          }
+        }
+
+
+        @media (max-width: 760px) {
+          .bd-report-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .bd-mastery-stats {
+            grid-template-columns: repeat(2,minmax(0,1fr)) !important;
           }
         }
 
@@ -3762,6 +3874,340 @@ export default function BharatDarshanPage() {
       </div>
 
       {/* ======================================================
+        {/* ====================================================
+            OFFICIAL REPORTS + LATEST DATA
+        ==================================================== */}
+
+        <section
+          style={{
+            marginTop: 15,
+            background: ui.surface,
+            border: `1px solid ${ui.line}`,
+            borderRadius: 22,
+            padding: 17,
+            boxShadow: ui.shadow,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: modeAccent,
+                  fontSize: 8,
+                  fontWeight: 950,
+                  letterSpacing: "1.4px",
+                }}
+              >
+                OFFICIAL REPORTS • LATEST DATA
+              </div>
+
+              <h2
+                style={{
+                  margin: "6px 0 5px",
+                  fontSize: 22,
+                }}
+              >
+                India Data Intelligence
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  maxWidth: 780,
+                  color: ui.muted,
+                  fontSize: 9,
+                  lineHeight: 1.65,
+                }}
+              >
+                Verified government publications are kept separate from the
+                State/UT geography dataset. Every card shows its report year
+                and source so static facts are not silently mixed with
+                changing statistics.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                flexWrap: "wrap",
+              }}
+            >
+              {REPORT_FILTERS.map(([id, label]) => {
+                const active = reportFilter === id;
+
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setReportFilter(id)}
+                    style={{
+                      border: `1px solid ${
+                        active ? ui.gold : ui.line
+                      }`,
+                      background: active
+                        ? ui.gold
+                        : ui.surface2,
+                      color: active
+                        ? "#111"
+                        : ui.text,
+                      borderRadius: 999,
+                      padding: "7px 10px",
+                      fontSize: 8,
+                      fontWeight: 900,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2,minmax(0,1fr))",
+              gap: 10,
+            }}
+            className="bd-report-grid"
+          >
+            {OFFICIAL_REPORTS
+              .filter(
+                (report) =>
+                  reportFilter === "all" ||
+                  report.id === reportFilter
+              )
+              .map((report) => (
+                <OfficialReportCard
+                  key={report.id}
+                  report={report}
+                  ui={ui}
+                  accent={modeAccent}
+                />
+              ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 13,
+              background: ui.surface2,
+              border: `1px solid ${ui.line}`,
+              fontSize: 8,
+              color: ui.muted,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ color: ui.text }}>
+              Data integrity rule:
+            </strong>{" "}
+            report cards provide verified publication references. They do not
+            invent state-wise numbers. Numeric State/UT values should come
+            from the separate Bharat Darshan data file. If a precise
+            location/value is unavailable, the UI must show
+            “Location data unavailable” rather than guess.
+          </div>
+        </section>
+
+        {/* ====================================================
+            INDIA MASTERY + MISTAKE MAP
+        ==================================================== */}
+
+        <section
+          style={{
+            marginTop: 15,
+            background: ui.surface,
+            border: `1px solid ${ui.line}`,
+            borderRadius: 22,
+            padding: 17,
+            boxShadow: ui.shadow,
+          }}
+        >
+          <div
+            style={{
+              color: modeAccent,
+              fontSize: 8,
+              fontWeight: 950,
+              letterSpacing: "1.4px",
+            }}
+          >
+            INDIA MASTERY • MISTAKE MAP
+          </div>
+
+          <h2
+            style={{
+              margin: "6px 0 5px",
+              fontSize: 22,
+            }}
+          >
+            Learn → Recall → Quiz → Revise → Master
+          </h2>
+
+          <p
+            style={{
+              margin: 0,
+              color: ui.muted,
+              fontSize: 9,
+              lineHeight: 1.6,
+            }}
+          >
+            This dashboard uses only the progress actually recorded in this
+            module. No synthetic scores or fake completion percentages are
+            shown.
+          </p>
+
+          <div
+            style={{
+              marginTop: 13,
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(4,minmax(0,1fr))",
+              gap: 8,
+            }}
+            className="bd-mastery-stats"
+          >
+            <StatCard
+              ui={ui}
+              label="Mapped States / UTs"
+              value={totalStates}
+            />
+            <StatCard
+              ui={ui}
+              label="Mastered"
+              value={masteredCount}
+            />
+            <StatCard
+              ui={ui}
+              label="Needs Revision"
+              value={revisionCount}
+            />
+            <StatCard
+              ui={ui}
+              label="Learning"
+              value={learningCount}
+            />
+          </div>
+
+          <div
+            style={{
+              marginTop: 13,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+            }}
+          >
+            {Object.values(knowledge)
+              .sort((a, b) =>
+                a.name.localeCompare(b.name)
+              )
+              .map((state) => {
+                const status =
+                  progress[state.id]?.status ||
+                  "Not Started";
+
+                const statusMeta =
+                  status === "Mastered"
+                    ? {
+                        label: "Mastered",
+                        bg: "#2e6b46",
+                        fg: "#fff",
+                      }
+                    : status ===
+                      "Needs Revision"
+                    ? {
+                        label: "Needs Revision",
+                        bg: "#9a5b35",
+                        fg: "#fff",
+                      }
+                    : status === "Learning"
+                    ? {
+                        label: "Learning",
+                        bg: "#85712f",
+                        fg: "#fff",
+                      }
+                    : {
+                        label: "Not Started",
+                        bg: ui.surface2,
+                        fg: ui.muted,
+                      };
+
+                return (
+                  <button
+                    key={state.id}
+                    onClick={() =>
+                      selectState(state.id)
+                    }
+                    title={`${state.name} • ${status}`}
+                    style={{
+                      border:
+                        `1px solid ${ui.line}`,
+                      background:
+                        statusMeta.bg,
+                      color:
+                        statusMeta.fg,
+                      borderRadius: 9,
+                      padding:
+                        "6px 8px",
+                      cursor:
+                        "pointer",
+                      fontSize: 7,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {state.name}
+                  </button>
+                );
+              })}
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              color: ui.muted,
+              fontSize: 8,
+            }}
+          >
+            <span>
+              <b style={{ color: "#2e6b46" }}>
+                ●
+              </b>{" "}
+              Mastered
+            </span>
+            <span>
+              <b style={{ color: "#9a5b35" }}>
+                ●
+              </b>{" "}
+              Needs Revision
+            </span>
+            <span>
+              <b style={{ color: "#85712f" }}>
+                ●
+              </b>{" "}
+              Learning
+            </span>
+            <span>
+              <b style={{ color: ui.muted }}>
+                ●
+              </b>{" "}
+              Not Started
+            </span>
+          </div>
+        </section>
           3-STATE COMPARISON MODAL
       ====================================================== */}
 
