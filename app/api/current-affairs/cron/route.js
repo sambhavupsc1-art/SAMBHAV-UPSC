@@ -873,14 +873,220 @@ function extractPIBDate(
   const text =
     stripHtml(content);
 
-  const patterns = [
+  /*
+   * PIB explicitly publishes the release date as:
+   * "Posted on: 07 Oct 2026"
+   *
+   * Always prefer this marker over arbitrary dates
+   * mentioned inside the release body.
+   */
+  const postedPatterns = [
+    /\bPosted\s+on\s*[:\-]?\s*(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{4})\b/i,
+    /\bPosted\s+on\s*[:\-]?\s*(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/i,
+    /\bPosted\s+on\s*[:\-]?\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),?\s+(\d{4})\b/i,
+  ];
+
+  const genericPatterns = [
     /\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/,
-    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+    /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{4})\b/i,
     /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/i,
   ];
 
+  const monthNumber = (
+    month
+  ) => {
+    const value =
+      String(month || "")
+        .toLowerCase()
+        .slice(0, 3);
+
+    const months = {
+      jan: 1,
+      feb: 2,
+      mar: 3,
+      apr: 4,
+      may: 5,
+      jun: 6,
+      jul: 7,
+      aug: 8,
+      sep: 9,
+      oct: 10,
+      nov: 11,
+      dec: 12,
+    };
+
+    return months[value] || 0;
+  };
+
+  const formatDate = (
+    year,
+    month,
+    day
+  ) => {
+    const numericYear =
+      Number(year);
+
+    const numericMonth =
+      Number(month);
+
+    const numericDay =
+      Number(day);
+
+    if (
+      !Number.isInteger(
+        numericYear
+      ) ||
+      !Number.isInteger(
+        numericMonth
+      ) ||
+      !Number.isInteger(
+        numericDay
+      ) ||
+      numericMonth < 1 ||
+      numericMonth > 12 ||
+      numericDay < 1 ||
+      numericDay > 31
+    ) {
+      return "";
+    }
+
+    /*
+     * Use UTC so the server's runtime timezone cannot
+     * shift the extracted PIB date by one day.
+     */
+    const date =
+      new Date(
+        Date.UTC(
+          numericYear,
+          numericMonth - 1,
+          numericDay
+        )
+      );
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "";
+    }
+
+    /*
+     * Reject JavaScript's date rollover, e.g.
+     * 31 February becoming a March date.
+     */
+    if (
+      date.getUTCFullYear() !==
+        numericYear ||
+      date.getUTCMonth() !==
+        numericMonth - 1 ||
+      date.getUTCDate() !==
+        numericDay
+    ) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        timeZone:
+          "Asia/Kolkata",
+        year:
+          "numeric",
+        month:
+          "2-digit",
+        day:
+          "2-digit",
+      }
+    ).format(date);
+  };
+
+  const parseMatch = (
+    match
+  ) => {
+    if (!match) {
+      return "";
+    }
+
+    /*
+     * Numeric date:
+     * DD/MM/YYYY
+     */
+    if (
+      /^\d+$/.test(
+        match[1]
+      ) &&
+      /^\d+$/.test(
+        match[2]
+      ) &&
+      /^\d{4}$/.test(
+        match[3]
+      )
+    ) {
+      return formatDate(
+        match[3],
+        match[2],
+        match[1]
+      );
+    }
+
+    /*
+     * Textual date:
+     * DD Month YYYY
+     */
+    if (
+      /^\d+$/.test(
+        match[1]
+      ) &&
+      /[A-Za-z]/.test(
+        match[2]
+      ) &&
+      /^\d{4}$/.test(
+        match[3]
+      )
+    ) {
+      return formatDate(
+        match[3],
+        monthNumber(
+          match[2]
+        ),
+        match[1]
+      );
+    }
+
+    /*
+     * Textual date:
+     * Month DD, YYYY
+     */
+    if (
+      /[A-Za-z]/.test(
+        match[1]
+      ) &&
+      /^\d+$/.test(
+        match[2]
+      ) &&
+      /^\d{4}$/.test(
+        match[3]
+      )
+    ) {
+      return formatDate(
+        match[3],
+        monthNumber(
+          match[1]
+        ),
+        match[2]
+      );
+    }
+
+    return "";
+  };
+
+  /*
+   * First try PIB's explicit "Posted on" marker.
+   */
   for (
-    const pattern of patterns
+    const pattern
+    of postedPatterns
   ) {
     const match =
       text.match(pattern);
@@ -889,68 +1095,44 @@ function extractPIBDate(
       continue;
     }
 
-    try {
-      let date;
+    const parsed =
+      parseMatch(match);
 
-      if (
-        /^\d{1,2}$/.test(
-          match[1]
-        )
-      ) {
-        if (
-          /^\d{4}$/.test(
-            match[3]
-          )
-        ) {
-          date =
-            new Date(
-              Number(match[3]),
-              Number(match[2]) - 1,
-              Number(match[1])
-            );
-        }
-      } else if (
-        /^\d{4}$/.test(
-          match[3]
-        )
-      ) {
-        date =
-          new Date(
-            `${match[1]} ${match[2]}, ${match[3]}`
-          );
-      } else if (
-        /^\d{4}$/.test(
-          match[3]
-        )
-      ) {
-        date =
-          new Date(
-            `${match[1]} ${match[2]}, ${match[3]}`
-          );
-      }
+    if (parsed) {
+      console.log(
+        "PIB DATE EXTRACTED FROM POSTED ON:",
+        parsed
+      );
 
-      if (
-        date &&
-        !Number.isNaN(
-          date.getTime()
-        )
-      ) {
-        return new Intl.DateTimeFormat(
-          "en-CA",
-          {
-            timeZone:
-              "Asia/Kolkata",
-            year:
-              "numeric",
-            month:
-              "2-digit",
-            day:
-              "2-digit",
-          }
-        ).format(date);
-      }
-    } catch {
+      return parsed;
+    }
+  }
+
+  /*
+   * Fallback for PIB pages/releases that use a
+   * date format without the explicit marker.
+   */
+  for (
+    const pattern
+    of genericPatterns
+  ) {
+    const match =
+      text.match(pattern);
+
+    if (!match) {
       continue;
+    }
+
+    const parsed =
+      parseMatch(match);
+
+    if (parsed) {
+      console.log(
+        "PIB DATE EXTRACTED FROM FALLBACK:",
+        parsed
+      );
+
+      return parsed;
     }
   }
 
