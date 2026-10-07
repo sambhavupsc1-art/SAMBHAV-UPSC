@@ -731,23 +731,114 @@ function buildPdfTextLines(
   const lines = [];
   for (const item of items) {
     let existing = null;
+
     for (const line of lines) {
-      const tolerance = Math.max(4, Math.min(18, Math.max(line.height || 0, item.height || 0) * 0.65));
-      if (Math.abs(line.y - item.y) <= tolerance) {
+      const tolerance =
+        Math.max(
+          4,
+          Math.min(
+            18,
+            Math.max(
+              line.height || 0,
+              item.height || 0
+            ) * 0.65
+          )
+        );
+
+      const sameBaseline =
+        Math.abs(
+          line.y - item.y
+        ) <= tolerance;
+
+      /*
+       * IMPORTANT:
+       * A newspaper page has multiple columns.
+       * The old code merged every text item with
+       * the same Y coordinate, even when the item
+       * belonged to another column. That produced
+       * broken strings such as:
+       * "and then Miami. Now it is everything,"
+       *
+       * Only merge items that are vertically aligned
+       * AND horizontally touching/overlapping.
+       */
+      const horizontalOverlap =
+        Math.min(
+          line.x2,
+          item.x2
+        ) -
+          Math.max(
+            line.x1,
+            item.x1
+          ) >
+        0;
+
+      const horizontalGap =
+        item.x1 > line.x2
+          ? item.x1 - line.x2
+          : line.x1 > item.x2
+          ? line.x1 - item.x2
+          : 0;
+
+      const horizontalTolerance =
+        Math.max(
+          18,
+          Math.min(
+            55,
+            Math.max(
+              line.fontSize || 0,
+              item.fontSize || 0
+            ) * 2.5
+          )
+        );
+
+      const sameHorizontalLine =
+        horizontalOverlap ||
+        horizontalGap <=
+          horizontalTolerance;
+
+      if (
+        sameBaseline &&
+        sameHorizontalLine
+      ) {
         existing = line;
         break;
       }
     }
+
     if (existing) {
       existing.items.push(item);
-      existing.x1 = Math.min(existing.x1, item.x1);
-      existing.x2 = Math.max(existing.x2, item.x2);
-      existing.y1 = Math.min(existing.y1, item.y1);
-      existing.y2 = Math.max(existing.y2, item.y2);
-      existing.height = Math.max(existing.height, item.height);
-      existing.fontSize = Math.max(existing.fontSize || 0, item.fontSize || 0);
-      existing.bold = existing.bold || item.bold;
-      existing.y = (existing.y1 + existing.y2) / 2;
+      existing.x1 = Math.min(
+        existing.x1,
+        item.x1
+      );
+      existing.x2 = Math.max(
+        existing.x2,
+        item.x2
+      );
+      existing.y1 = Math.min(
+        existing.y1,
+        item.y1
+      );
+      existing.y2 = Math.max(
+        existing.y2,
+        item.y2
+      );
+      existing.height = Math.max(
+        existing.height,
+        item.height
+      );
+      existing.fontSize = Math.max(
+        existing.fontSize || 0,
+        item.fontSize || 0
+      );
+      existing.bold =
+        existing.bold ||
+        item.bold;
+      existing.y =
+        (existing.y1 +
+          existing.y2) /
+        2;
     } else {
       lines.push({
         y: item.y,
@@ -2345,6 +2436,626 @@ function createArticleCandidates(
 }
 
 /* =========================================================
+   PDF-AWARE ARTICLE CANDIDATES
+========================================================= */
+
+/*
+ * The original article extraction worked on large
+ * text blocks from pdf-parse and simply selected the
+ * first "headline-like" line. That is unsafe for a
+ * newspaper because PDF text order follows columns and
+ * body text can appear before/after the real headline.
+ *
+ * This version uses PDF coordinates + font size to
+ * identify headline candidates from the actual page.
+ */
+async function createArticleCandidatesFromPdf(
+  pdfBuffer
+) {
+  if (!pdfBuffer) {
+    return [];
+  }
+
+  let pdf = null;
+
+  try {
+    const canvasModule =
+      await import(
+        "@napi-rs/canvas"
+      );
+
+    if (
+      canvasModule.DOMMatrix &&
+      !globalThis.DOMMatrix
+    ) {
+      globalThis.DOMMatrix =
+        canvasModule.DOMMatrix;
+    }
+
+    if (
+      canvasModule.ImageData &&
+      !globalThis.ImageData
+    ) {
+      globalThis.ImageData =
+        canvasModule.ImageData;
+    }
+
+    if (
+      canvasModule.Path2D &&
+      !globalThis.Path2D
+    ) {
+      globalThis.Path2D =
+        canvasModule.Path2D;
+    }
+
+    const pdfjsLib =
+      await import(
+        "pdfjs-dist/legacy/build/pdf.mjs"
+      );
+
+    const loadingTask =
+      pdfjsLib.getDocument({
+        data:
+          new Uint8Array(
+            pdfBuffer
+          ),
+        disableWorker:
+          true,
+        useSystemFonts:
+          true,
+        isEvalSupported:
+          false,
+      });
+
+    pdf =
+      await loadingTask.promise;
+
+    const pageCache =
+      await extractPdfPageLines(
+        pdfjsLib,
+        pdf
+      );
+
+    const candidates = [];
+
+    for (
+      const pageData of pageCache
+    ) {
+      const lines =
+        Array.isArray(
+          pageData?.lines
+        )
+          ? pageData.lines
+          : [];
+
+      if (!lines.length) {
+        continue;
+      }
+
+      const usableLines =
+        lines.filter(
+          (line) =>
+            line &&
+            line.text &&
+            line.text.length >= 2
+        );
+
+      if (!usableLines.length) {
+        continue;
+      }
+
+      const fontSizes =
+        usableLines
+          .map(
+            (line) =>
+              Number(
+                line.fontSize
+              ) || 0
+          )
+          .filter(
+            (size) =>
+              size > 0
+          )
+          .sort(
+            (a, b) =>
+              a - b
+          );
+
+      const medianFont =
+        fontSizes.length
+          ? fontSizes[
+              Math.floor(
+                fontSizes.length / 2
+              )
+            ]
+          : 12;
+
+      const maxFont =
+        fontSizes.length
+          ? fontSizes[
+              fontSizes.length - 1
+            ]
+          : medianFont;
+
+      const headlineFontThreshold =
+        Math.max(
+          medianFont * 1.35,
+          maxFont * 0.42,
+          15
+        );
+
+      const pageText =
+        usableLines
+          .map(
+            (line) =>
+              line.text
+          )
+          .join("\n")
+          .slice(
+            0,
+            14000
+          );
+
+      const pageRelevance =
+        relevanceScore(
+          pageText
+        );
+
+      const isNoiseHeadline =
+        (value) => {
+          const lower =
+            cleanText(
+              value
+            ).toLowerCase();
+
+          if (
+            !lower ||
+            lower.length < 20 ||
+            lower.length > 220
+          ) {
+            return true;
+          }
+
+          const noise = [
+            "the hindu",
+            "wednesday",
+            "thursday",
+            "tuesday",
+            "monday",
+            "friday",
+            "saturday",
+            "sunday",
+            "october 2026",
+            "september 2026",
+            "page ",
+            "opinion",
+            "editorial",
+            "www.",
+            "http://",
+            "https://",
+          ];
+
+          return noise.some(
+            (word) =>
+              lower.includes(
+                word
+              )
+          );
+        };
+
+      const likely =
+        usableLines.filter(
+          (line) => {
+            const value =
+              cleanText(
+                line.text
+              );
+
+            if (
+              isNoiseHeadline(
+                value
+              )
+            ) {
+              return false;
+            }
+
+            const tokens =
+              uniqueTokens(
+                value
+              );
+
+            if (
+              tokens.length <
+              3
+            ) {
+              return false;
+            }
+
+            const font =
+              Number(
+                line.fontSize
+              ) || 0;
+
+            const fontStrong =
+              font >=
+                headlineFontThreshold ||
+              (
+                line.bold &&
+                font >=
+                  medianFont * 1.12
+              );
+
+            return fontStrong;
+          }
+        );
+
+      for (
+        let start = 0;
+        start < likely.length;
+        start++
+      ) {
+        const first =
+          likely[start];
+
+        let group = [
+          first
+        ];
+
+        let combined =
+          cleanText(
+            first.text
+          );
+
+        let maxGroupFont =
+          Number(
+            first.fontSize
+          ) || 0;
+
+        for (
+          let nextIndex =
+            start + 1;
+          nextIndex <
+            likely.length &&
+          group.length < 4;
+          nextIndex++
+        ) {
+          const next =
+            likely[
+              nextIndex
+            ];
+
+          const previous =
+            group[
+              group.length - 1
+            ];
+
+          const verticalGap =
+            Math.abs(
+              Number(
+                next.y
+              ) -
+                Number(
+                  previous.y
+                )
+            );
+
+          const horizontalGap =
+            next.x1 >
+            previous.x2
+              ? next.x1 -
+                previous.x2
+              : previous.x1 >
+                next.x2
+              ? previous.x1 -
+                next.x2
+              : 0;
+
+          const horizontalOverlap =
+            Math.min(
+              next.x2,
+              previous.x2
+            ) -
+              Math.max(
+                next.x1,
+                previous.x1
+              ) >
+            0;
+
+          const maxAllowedGap =
+            Math.max(
+              90,
+              Math.max(
+                next.height ||
+                  0,
+                previous.height ||
+                  0
+              ) * 4
+            );
+
+          const maxHorizontalGap =
+            Math.max(
+              45,
+              Math.max(
+                next.fontSize ||
+                  0,
+                previous.fontSize ||
+                  0
+              ) * 2.5
+            );
+
+          if (
+            verticalGap >
+            maxAllowedGap
+          ) {
+            break;
+          }
+
+          if (
+            !horizontalOverlap &&
+            horizontalGap >
+              maxHorizontalGap
+          ) {
+            break;
+          }
+
+          const nextText =
+            cleanText(
+              next.text
+            );
+
+          const proposed =
+            `${combined} ${nextText}`
+              .replace(
+                /\s+/g,
+                " "
+              )
+              .trim();
+
+          if (
+            proposed.length >
+            220
+          ) {
+            break;
+          }
+
+          group.push(
+            next
+          );
+
+          combined =
+            proposed;
+
+          maxGroupFont =
+            Math.max(
+              maxGroupFont,
+              Number(
+                next.fontSize
+              ) || 0
+            );
+        }
+
+        if (
+          isNoiseHeadline(
+            combined
+          )
+        ) {
+          continue;
+        }
+
+        const tokenCount =
+          uniqueTokens(
+            combined
+          ).length;
+
+        if (
+          tokenCount <
+          3
+        ) {
+          continue;
+        }
+
+        const titleScore =
+          relevanceScore(
+            combined
+          );
+
+        const fontRatio =
+          maxGroupFont /
+          Math.max(
+            1,
+            medianFont
+          );
+
+        const relevance =
+          pageRelevance +
+          titleScore * 3 +
+          Math.min(
+            3,
+            Math.max(
+              0,
+              fontRatio - 1
+            )
+          );
+
+        /*
+         * Keep content from the same newspaper
+         * column around the headline. This avoids
+         * feeding unrelated columns to the AI.
+         */
+        const left =
+          Math.min(
+            ...group.map(
+              (line) =>
+                line.x1
+            )
+          );
+
+        const right =
+          Math.max(
+            ...group.map(
+              (line) =>
+                line.x2
+            )
+          );
+
+        const top =
+          Math.min(
+            ...group.map(
+              (line) =>
+                line.y1
+            )
+          );
+
+        const columnLines =
+          usableLines.filter(
+            (line) => {
+              const overlap =
+                Math.min(
+                  right,
+                  line.x2
+                ) -
+                Math.max(
+                  left,
+                  line.x1
+                );
+
+              const gap =
+                line.x1 > right
+                  ? line.x1 -
+                    right
+                  : left >
+                    line.x2
+                  ? left -
+                    line.x2
+                  : 0;
+
+              const sameColumn =
+                overlap > 0 ||
+                gap <=
+                  Math.max(
+                    35,
+                    maxGroupFont *
+                      2
+                  );
+
+              const below =
+                line.y1 >=
+                  top -
+                    Math.max(
+                      20,
+                      maxGroupFont
+                    ) &&
+                line.y1 <=
+                  top +
+                    1200;
+
+              return (
+                sameColumn &&
+                below
+              );
+            }
+          );
+
+        const columnText =
+          columnLines
+            .sort(
+              (a, b) =>
+                a.y - b.y ||
+                a.x1 - b.x1
+            )
+            .map(
+              (line) =>
+                line.text
+            )
+            .join("\n")
+            .slice(
+              0,
+              14000
+            );
+
+        candidates.push({
+          title:
+            combined,
+
+          original_headline:
+            combined,
+
+          original_subheadline:
+            "",
+
+          content:
+            columnText ||
+            pageText,
+
+          relevanceScore:
+            relevance,
+
+          headline_image_url:
+            "",
+
+          pdfPage:
+            pageData.pageNumber,
+
+          headlineFontSize:
+            maxGroupFont,
+        });
+      }
+    }
+
+    const unique =
+      [];
+
+    for (
+      const candidate of
+      candidates
+    ) {
+      const duplicate =
+        unique.some(
+          (existing) =>
+            titleSimilarity(
+              candidate.original_headline,
+              existing.original_headline
+            ) >=
+            0.72
+        );
+
+      if (
+        !duplicate
+      ) {
+        unique.push(
+          candidate
+        );
+      }
+    }
+
+    console.log(
+      "THE HINDU PDF-AWARE CANDIDATES:",
+      {
+        pages:
+          pageCache.length,
+        candidates:
+          unique.length,
+      }
+    );
+
+    return unique;
+  } catch (error) {
+    console.error(
+      "THE HINDU PDF HEADLINE CANDIDATE EXTRACTION FAILED:",
+      error
+    );
+
+    return [];
+  } finally {
+    if (pdf) {
+      try {
+        await pdf.cleanup();
+      } catch {}
+    }
+  }
+}
+
+/* =========================================================
    DUPLICATES
 ========================================================= */
 
@@ -3108,10 +3819,29 @@ export async function POST(
        CANDIDATES
     ----------------------------------------- */
 
-    const candidates =
-      createArticleCandidates(
-        pdfText
+    let candidates =
+      await createArticleCandidatesFromPdf(
+        downloaded.buffer
       );
+
+    /*
+     * Safety fallback:
+     * if coordinate-based extraction cannot find
+     * candidates, retain the old text-block parser.
+     */
+    if (
+      !Array.isArray(candidates) ||
+      candidates.length === 0
+    ) {
+      console.warn(
+        "THE HINDU PDF-AWARE EXTRACTION RETURNED 0 CANDIDATES. FALLING BACK TO TEXT BLOCK EXTRACTION."
+      );
+
+      candidates =
+        createArticleCandidates(
+          pdfText
+        );
+    }
 
     /* -----------------------------------------
        SAME PDF DUPLICATES
