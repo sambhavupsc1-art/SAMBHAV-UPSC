@@ -263,6 +263,28 @@ function geometryPath(geometry, bounds, width, height) {
     .join(" ");
 }
 
+function geometryCenter(geometry, bounds, width, height) {
+  const points = getGeometryPoints(geometry);
+  if (!points.length) return [width * 0.5, height * 0.5];
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const point of points) {
+    const projected = projectPoint(point, bounds, width, height);
+    if (!Number.isFinite(projected[0]) || !Number.isFinite(projected[1])) continue;
+    minX = Math.min(minX, projected[0]);
+    minY = Math.min(minY, projected[1]);
+    maxX = Math.max(maxX, projected[0]);
+    maxY = Math.max(maxY, projected[1]);
+  }
+
+  if (!Number.isFinite(minX)) return [width * 0.5, height * 0.5];
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+
 function storageKey(user) {
   return `sambhav_bharat_darshan_${user?.id || user?.email || "guest"}`;
 }
@@ -304,6 +326,7 @@ export default function BharatDarshanPage() {
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
   const [compareId, setCompareId] = useState("");
+  const [compareId2, setCompareId2] = useState("");
   const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
@@ -465,6 +488,15 @@ export default function BharatDarshanPage() {
   const learningCount = Object.values(progress).filter((item) => item?.status === "Learning" || item?.status === "Needs Revision").length;
   const revisionCount = Object.values(progress).filter((item) => item?.status === "Needs Revision").length;
   const compareState = compareId ? STATE_META[compareId] : null;
+  const compareState2 = compareId2 ? STATE_META[compareId2] : null;
+  const selectedMapFeature = useMemo(
+    () => mappedFeatures.find((item) => item.id === selectedId),
+    [mappedFeatures, selectedId]
+  );
+  const selectedMapAnchor = useMemo(
+    () => selectedMapFeature ? geometryCenter(selectedMapFeature.feature?.geometry, mapBounds, 900, 700) : null,
+    [selectedMapFeature, mapBounds]
+  );
 
   function selectState(id) {
     if (!id || !STATE_META[id]) return;
@@ -537,6 +569,13 @@ export default function BharatDarshanPage() {
     setQuizAnswered(false);
   }
 
+  function openComparison() {
+    const ids = Object.keys(STATE_META).filter((id) => id !== selectedId);
+    setCompareId(ids[0] || "");
+    setCompareId2(ids[1] || "");
+    setCompareOpen(true);
+  }
+
   function resetQuiz() {
     setQuizIndex(0);
     setQuizAnswer(null);
@@ -546,7 +585,7 @@ export default function BharatDarshanPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: ui.bg, color: ui.text, fontFamily: "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" }}>
+    <main style={{ minHeight: "100vh", background: ui.bg, color: ui.text, fontFamily: "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", ["--bd-line"]: ui.line, ["--bd-surface"]: ui.surface }}>
       <style>{`
         *{box-sizing:border-box}
         html{scroll-behavior:smooth}
@@ -560,20 +599,36 @@ export default function BharatDarshanPage() {
         .bd-mode:hover{transform:translateY(-2px)}
         .bd-quiz-option{transition:all .15s ease}
         .bd-quiz-option:hover:not(:disabled){transform:translateY(-1px);border-color:#b9954b!important}
-        @media(max-width:850px){
+        .bd-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .bd-comparison-table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0}
+        .bd-comparison-table th,.bd-comparison-table td{padding:12px 13px;border-right:1px solid var(--bd-line);border-bottom:1px solid var(--bd-line);vertical-align:top;text-align:left}
+        .bd-comparison-table th:last-child,.bd-comparison-table td:last-child{border-right:0}
+        .bd-comparison-table thead th{position:sticky;top:0;background:var(--bd-surface);z-index:2}
+        @media(max-width:1100px){
           .bd-main-grid{grid-template-columns:1fr!important}
-          .bd-map{height:520px!important}
           .bd-side{position:relative!important;top:auto!important}
+          .bd-mode-grid{grid-template-columns:repeat(4,minmax(150px,1fr))!important}
+        }
+        @media(max-width:760px){
+          .bd-shell{padding:12px!important}
+          .bd-main-grid{gap:10px!important}
+          .bd-map-box{min-height:520px!important}
+          .bd-map-stage{height:500px!important}
+          .bd-map{height:500px!important}
           .bd-stat-grid{grid-template-columns:repeat(2,1fr)!important}
           .bd-quiz-grid{grid-template-columns:1fr!important}
-          .bd-compare-grid{grid-template-columns:1fr!important}
+          .bd-mode-grid{grid-template-columns:repeat(4,minmax(135px,1fr))!important}
+          .bd-hero h1{font-size:42px!important}
         }
-        @media(max-width:560px){
-          .bd-shell{padding:12px!important}
-          .bd-hero h1{font-size:36px!important}
-          .bd-map-box{min-height:500px!important}
-          .bd-map{height:440px!important}
+        @media(max-width:520px){
+          .bd-shell{padding:10px!important}
+          .bd-hero{padding-top:22px!important}
+          .bd-hero h1{font-size:34px!important}
+          .bd-map-stage{height:430px!important}
+          .bd-map{height:430px!important}
           .bd-stat-grid{grid-template-columns:1fr!important}
+          .bd-mode-grid{grid-template-columns:repeat(4,minmax(122px,1fr))!important}
+          .bd-comparison-table{min-width:690px}
         }
       `}</style>
 
@@ -610,7 +665,7 @@ export default function BharatDarshanPage() {
             <div style={{ fontSize: 8, color: ui.muted }}>{mappedFeatures.length} verified map regions</div>
           </div>
 
-          <div className="bd-scroll" style={{ display: "grid", gridTemplateColumns: "repeat(8,minmax(120px,1fr))", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+          <div className="bd-scroll bd-mode-grid" style={{ display: "grid", gridTemplateColumns: "repeat(8,minmax(120px,1fr))", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
             {MODES.map(([id, title, sub, icon]) => {
               const active = mode === id;
               return (
@@ -655,7 +710,7 @@ export default function BharatDarshanPage() {
               </div>
             </div>
 
-            <div style={{ height: 560, background: ui.map, position: "relative" }}>
+            <div className="bd-map-stage" style={{ height: 560, background: ui.map, position: "relative" }}>
               {loadingMap ? (
                 <MapMessage ui={ui} title="Loading India map…" text="Fetching verified administrative boundaries." />
               ) : geoError ? (
@@ -678,6 +733,39 @@ export default function BharatDarshanPage() {
                       />
                     );
                   })}
+
+                  {selected && selectedMapAnchor && (() => {
+                    const [ax, ay] = selectedMapAnchor;
+                    const cardW = 190;
+                    const cardH = 70;
+                    const placeRight = ax < 560;
+                    const cardX = Math.max(18, Math.min(900 - cardW - 18, placeRight ? ax + 78 : ax - cardW - 78));
+                    const cardY = Math.max(24, Math.min(700 - cardH - 24, ay - 44));
+                    const endX = placeRight ? cardX : cardX + cardW;
+                    const endY = cardY + cardH * 0.5;
+                    const bendX = placeRight ? ax + 38 : ax - 38;
+                    const bendY = ay - 34;
+                    return (
+                      <g pointerEvents="none">
+                        <path
+                          d={`M ${ax.toFixed(1)} ${ay.toFixed(1)} Q ${bendX.toFixed(1)} ${bendY.toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}`}
+                          fill="none"
+                          stroke={ui.gold}
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          opacity=".95"
+                        />
+                        <circle cx={ax} cy={ay} r="5" fill={ui.gold} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2" />
+                        <foreignObject x={cardX} y={cardY} width={cardW} height={cardH}>
+                          <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: "100%", height: "100%", border: `1px solid ${ui.gold}`, background: theme === "dark" ? "rgba(17,17,17,.97)" : "rgba(255,255,255,.97)", borderRadius: 14, padding: "10px 12px", boxShadow: "0 8px 25px rgba(0,0,0,.20)", color: ui.text, fontFamily: "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" }}>
+                            <div style={{ fontSize: 7, color: ui.gold, fontWeight: 950, letterSpacing: "1.2px" }}>SELECTED LOCATION</div>
+                            <div style={{ marginTop: 4, fontSize: 13, fontWeight: 950, lineHeight: 1.1 }}>{selected.name}</div>
+                            <div style={{ marginTop: 4, fontSize: 8, color: ui.muted }}>{selected.region === "UTs" ? "Union Territory" : "State"} • Tap to explore</div>
+                          </div>
+                        </foreignObject>
+                      </g>
+                    );
+                  })()}
                 </svg>
               )}
             </div>
@@ -732,7 +820,7 @@ export default function BharatDarshanPage() {
                     <button onClick={markMastered} style={primaryButton(ui)}>✓ Mark Mastered</button>
                     <button onClick={markNeedsRevision} style={secondaryButton(ui)}>↻ Needs Revision</button>
                   </div>
-                  <button onClick={() => { const next = Object.keys(STATE_META).find((id) => id !== selectedId) || ""; setCompareId(next); setCompareOpen(true); }} style={{ width: "100%", marginTop: 7, ...secondaryButton(ui) }}>Compare States</button>
+                  <button onClick={openComparison} style={{ width: "100%", marginTop: 7, ...secondaryButton(ui) }}>Compare 3 States</button>
                   <div style={{ marginTop: 8, fontSize: 8, color: ui.muted }}>Status: <b style={{ color: ui.text }}>{progress[selectedId]?.status || "Not Started"}</b></div>
                 </>
               ) : (
@@ -816,29 +904,77 @@ export default function BharatDarshanPage() {
           <button onClick={() => { setRecallIndex((value) => value + 1); setRecallRevealed(false); }} style={{ marginTop: 9, ...secondaryButton(ui) }}>Next Recall →</button>
         </section>
 
-        {/* COMPARISON MODAL */}
-        {compareOpen && selected && <div onClick={() => setCompareOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,.65)", display: "grid", placeItems: "center", padding: 15 }}>
-          <div onClick={(event) => event.stopPropagation()} className="bd-scroll" style={{ width: "min(920px,100%)", maxHeight: "90vh", overflow: "auto", background: ui.surface, color: ui.text, border: `1px solid ${ui.line}`, borderRadius: 24, padding: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-              <div><div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>STATE COMPARISON</div><h2 style={{ margin: "6px 0 0", fontSize: 23 }}>{selected.name} vs {compareState?.name || "Select state"}</h2></div>
-              <button onClick={() => setCompareOpen(false)} style={smallButton(ui)}>×</button>
+        {/* THREE-STATE COMPARISON */}
+        {compareOpen && selected && (
+          <div onClick={() => setCompareOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,.68)", display: "grid", placeItems: "center", padding: 12 }}>
+            <div onClick={(event) => event.stopPropagation()} className="bd-scroll" style={{ width: "min(1180px,100%)", maxHeight: "92vh", overflow: "auto", background: ui.surface, color: ui.text, border: `1px solid ${ui.line}`, borderRadius: 24, padding: 18, boxShadow: "0 25px 80px rgba(0,0,0,.35)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ color: ui.gold, fontSize: 8, fontWeight: 950, letterSpacing: "1.5px" }}>UPSC COMPARISON LAB</div>
+                  <h2 style={{ margin: "6px 0 4px", fontSize: "clamp(21px,3vw,30px)", letterSpacing: "-.8px" }}>Compare 3 States / UTs</h2>
+                  <div style={{ color: ui.muted, fontSize: 9, lineHeight: 1.5 }}>Side-by-side geography comparison for faster Prelims revision and elimination practice.</div>
+                </div>
+                <button onClick={() => setCompareOpen(false)} style={smallButton(ui)}>×</button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 9, marginTop: 16 }}>
+                <CompareSelect label="State / UT 1" value={selectedId} disabled ui={ui}>
+                  <option value={selectedId}>{selected.name}</option>
+                </CompareSelect>
+                <CompareSelect label="State / UT 2" value={compareId} onChange={(event) => setCompareId(event.target.value)} ui={ui}>
+                  <option value="">Select state / UT</option>
+                  {Object.entries(STATE_META).filter(([id]) => id !== selectedId && id !== compareId2).map(([id, state]) => <option key={id} value={id}>{state.name}</option>)}
+                </CompareSelect>
+                <CompareSelect label="State / UT 3" value={compareId2} onChange={(event) => setCompareId2(event.target.value)} ui={ui}>
+                  <option value="">Select state / UT</option>
+                  {Object.entries(STATE_META).filter(([id]) => id !== selectedId && id !== compareId).map(([id, state]) => <option key={id} value={id}>{state.name}</option>)}
+                </CompareSelect>
+              </div>
+
+              {compareState && compareState2 ? (
+                <div className="bd-table-wrap" style={{ marginTop: 16, border: `1px solid ${ui.line}`, borderRadius: 17 }}>
+                  <table className="bd-comparison-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 145, color: ui.gold, fontSize: 8 }}>GEOGRAPHY</th>
+                        {[selected, compareState, compareState2].map((state) => (
+                          <th key={state.name} style={{ color: ui.text, minWidth: 205 }}>
+                            <div style={{ fontSize: 11, fontWeight: 950 }}>{state.name}</div>
+                            <div style={{ marginTop: 4, color: ui.muted, fontSize: 7 }}>{state.region === "UTs" ? "Union Territory" : state.region} • {state.capital}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Rivers & Water", selected.rivers, compareState.rivers, compareState2.rivers],
+                        ["Relief / Passes", selected.relief, compareState.relief, compareState2.relief],
+                        ["Agriculture", selected.crops, compareState.crops, compareState2.crops],
+                        ["Ecology", selected.ecology, compareState.ecology, compareState2.ecology],
+                        ["Minerals", selected.minerals, compareState.minerals, compareState2.minerals],
+                        ["Important Places", selected.places, compareState.places, compareState2.places],
+                        ["Climate / Monsoon", [selected.climate], [compareState.climate], [compareState2.climate]],
+                      ].map(([label, a, b, c]) => (
+                        <tr key={label}>
+                          <td style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>{label}</td>
+                          {[a, b, c].map((items, index) => (
+                            <td key={index}>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                                {items.map((item) => <span key={item} style={{ display: "inline-block", padding: "5px 7px", borderRadius: 7, background: ui.surface2, color: ui.text, fontSize: 8, lineHeight: 1.35 }}>{item}</span>)}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ marginTop: 16, padding: 22, border: `1px dashed ${ui.line}`, background: ui.surface2, borderRadius: 16, textAlign: "center", color: ui.muted, fontSize: 9 }}>Select all three States/UTs to open the comparison table.</div>
+              )}
             </div>
-            <select value={compareId} onChange={(event) => setCompareId(event.target.value)} style={{ marginTop: 14, width: "100%", border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 11, padding: 10, outline: "none" }}>
-              <option value="">Select comparison state</option>
-              {Object.entries(STATE_META).filter(([id]) => id !== selectedId).map(([id, state]) => <option key={id} value={id}>{state.name}</option>)}
-            </select>
-            {compareState && <div className="bd-compare-grid" style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[
-                ["Rivers", selected.rivers, compareState.rivers],
-                ["Relief", selected.relief, compareState.relief],
-                ["Agriculture", selected.crops, compareState.crops],
-                ["Ecology", selected.ecology, compareState.ecology],
-                ["Minerals", selected.minerals, compareState.minerals],
-                ["Places", selected.places, compareState.places],
-              ].map(([label, a, b]) => <div key={label} style={{ border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 14, padding: 13 }}><div style={{ color: ui.gold, fontSize: 8, fontWeight: 950 }}>{label}</div><div style={{ marginTop: 8, fontSize: 9, lineHeight: 1.55 }}><b>{selected.name}:</b> <span style={{ color: ui.muted }}>{a.join(", ")}</span></div><div style={{ marginTop: 6, fontSize: 9, lineHeight: 1.55 }}><b>{compareState.name}:</b> <span style={{ color: ui.muted }}>{b.join(", ")}</span></div></div>)}
-            </div>}
           </div>
-        </div>}
+        )}
 
         <footer style={{ marginTop: 25, paddingTop: 16, borderTop: `1px solid ${ui.line}`, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", color: ui.faint, fontSize: 7 }}>
           <span>SAMBHAV UPSC • Bharat Darshan</span>
@@ -846,6 +982,17 @@ export default function BharatDarshanPage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+function CompareSelect({ label, value, onChange, disabled, children, ui }) {
+  return (
+    <label style={{ display: "block", border: `1px solid ${ui.line}`, background: ui.surface2, borderRadius: 13, padding: 10 }}>
+      <div style={{ color: ui.gold, fontSize: 7, fontWeight: 950, letterSpacing: "1px" }}>{label}</div>
+      <select value={value} onChange={onChange} disabled={disabled} style={{ marginTop: 6, width: "100%", border: 0, outline: "none", background: "transparent", color: ui.text, fontSize: 9, fontWeight: 850 }}>
+        {children}
+      </select>
+    </label>
   );
 }
 
