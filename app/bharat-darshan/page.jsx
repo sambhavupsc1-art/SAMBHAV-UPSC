@@ -4208,7 +4208,9 @@ export default function BharatDarshanPage() {
             </span>
           </div>
         </section>
-          3-STATE COMPARISON MODAL
+
+      {/* ======================================================
+         3-STATE COMPARISON MODAL
       ====================================================== */}
 
       {compareOpen &&
@@ -4716,6 +4718,129 @@ function SmallInfoCard({
           : "Location data unavailable"}
       </div>
     </div>
+  );
+}
+
+function OfficialReportCard({ report, ui, accent }) {
+  const status = getReportStatusLabel(report);
+
+  return (
+    <article
+      style={{
+        background: ui.surface,
+        border: `1px solid ${ui.line}`,
+        borderRadius: 20,
+        padding: 18,
+        boxShadow: ui.shadow,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              color: accent || ui.gold,
+              fontSize: 9,
+              fontWeight: 900,
+              letterSpacing: ".12em",
+              textTransform: "uppercase",
+            }}
+          >
+            {report.category}
+          </div>
+          <h3
+            style={{
+              margin: "7px 0 0",
+              fontSize: 16,
+              lineHeight: 1.3,
+              fontWeight: 900,
+              color: ui.text,
+            }}
+          >
+            {report.title}
+          </h3>
+        </div>
+        <span
+          style={{
+            flexShrink: 0,
+            padding: "6px 9px",
+            borderRadius: 999,
+            border: `1px solid ${ui.line}`,
+            color: ui.muted,
+            fontSize: 8,
+            fontWeight: 800,
+          }}
+        >
+          {report.year}
+        </span>
+      </div>
+
+      <div
+        style={{
+          marginTop: 12,
+          color: ui.muted,
+          fontSize: 10,
+          lineHeight: 1.6,
+        }}
+      >
+        <strong style={{ color: ui.text }}>{report.publisher}</strong>
+        {status ? ` • ${status}` : ""}
+      </div>
+
+      {report.description ? (
+        <p
+          style={{
+            margin: "10px 0 0",
+            color: ui.muted,
+            fontSize: 10,
+            lineHeight: 1.65,
+          }}
+        >
+          {report.description}
+        </p>
+      ) : null}
+
+      {report.upsc ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 11,
+            borderRadius: 14,
+            background: ui.surface2,
+            border: `1px solid ${ui.line}`,
+            color: ui.text,
+            fontSize: 9,
+            lineHeight: 1.55,
+          }}
+        >
+          <strong>UPSC relevance:</strong> {report.upsc}
+        </div>
+      ) : null}
+
+      {report.sourceUrl ? (
+        <a
+          href={report.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "inline-flex",
+            marginTop: 14,
+            color: ui.gold,
+            fontSize: 9,
+            fontWeight: 900,
+            textDecoration: "none",
+          }}
+        >
+          Open official source →
+        </a>
+      ) : null}
+    </article>
   );
 }
 
