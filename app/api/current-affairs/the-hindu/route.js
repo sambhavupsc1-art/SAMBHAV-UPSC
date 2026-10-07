@@ -699,12 +699,14 @@ function buildPdfTextLines(
           Math.hypot(Number(transform[2]) || 0, Number(transform[3]) || 0) ||
           Math.hypot(Number(transform[0]) || 0, Number(transform[1]) || 0)
       );
+
       const rect = viewport.convertToViewportRectangle([
         pdfX,
         pdfY - pdfHeight,
         pdfX + pdfWidth,
         pdfY,
       ]);
+
       const x1 = Math.min(rect[0], rect[2]);
       const x2 = Math.max(rect[0], rect[2]);
       const y1 = Math.min(rect[1], rect[3]);
@@ -716,9 +718,13 @@ function buildPdfTextLines(
       const fontName = String(item.fontName || "");
       const style = textContent?.styles?.[item.fontName] || {};
       const fontFamily = String(style.fontFamily || "");
+
       return {
         text: String(item.str || "").trim(),
-        x1, x2, y1, y2,
+        x1,
+        x2,
+        y1,
+        y2,
         x: x1,
         y: (y1 + y2) / 2,
         width: Math.max(1, x2 - x1),
@@ -728,119 +734,48 @@ function buildPdfTextLines(
       };
     });
 
-  const lines = [];
+  /*
+   * IMPORTANT:
+   * PDF text extraction can place text from two newspaper columns
+   * on exactly the same Y coordinate. The old implementation merged
+   * those columns into one line, which produced false headlines such
+   * as "... while every merchant who ...".
+   *
+   * First group by vertical position, then split each row into
+   * horizontal clusters when there is a real column-sized gap.
+   */
+  const rows = [];
+
   for (const item of items) {
-    let existing = null;
+    let row = null;
 
-    for (const line of lines) {
-      const tolerance =
-        Math.max(
-          4,
-          Math.min(
-            18,
-            Math.max(
-              line.height || 0,
-              item.height || 0
-            ) * 0.65
-          )
-        );
-
-      const sameBaseline =
-        Math.abs(
-          line.y - item.y
-        ) <= tolerance;
-
-      /*
-       * IMPORTANT:
-       * A newspaper page has multiple columns.
-       * The old code merged every text item with
-       * the same Y coordinate, even when the item
-       * belonged to another column. That produced
-       * broken strings such as:
-       * "and then Miami. Now it is everything,"
-       *
-       * Only merge items that are vertically aligned
-       * AND horizontally touching/overlapping.
-       */
-      const horizontalOverlap =
+    for (const candidate of rows) {
+      const tolerance = Math.max(
+        3,
         Math.min(
-          line.x2,
-          item.x2
-        ) -
-          Math.max(
-            line.x1,
-            item.x1
-          ) >
-        0;
+          14,
+          Math.max(candidate.height || 0, item.height || 0) * 0.65
+        )
+      );
 
-      const horizontalGap =
-        item.x1 > line.x2
-          ? item.x1 - line.x2
-          : line.x1 > item.x2
-          ? line.x1 - item.x2
-          : 0;
-
-      const horizontalTolerance =
-        Math.max(
-          18,
-          Math.min(
-            55,
-            Math.max(
-              line.fontSize || 0,
-              item.fontSize || 0
-            ) * 2.5
-          )
-        );
-
-      const sameHorizontalLine =
-        horizontalOverlap ||
-        horizontalGap <=
-          horizontalTolerance;
-
-      if (
-        sameBaseline &&
-        sameHorizontalLine
-      ) {
-        existing = line;
+      if (Math.abs(candidate.y - item.y) <= tolerance) {
+        row = candidate;
         break;
       }
     }
 
-    if (existing) {
-      existing.items.push(item);
-      existing.x1 = Math.min(
-        existing.x1,
-        item.x1
-      );
-      existing.x2 = Math.max(
-        existing.x2,
-        item.x2
-      );
-      existing.y1 = Math.min(
-        existing.y1,
-        item.y1
-      );
-      existing.y2 = Math.max(
-        existing.y2,
-        item.y2
-      );
-      existing.height = Math.max(
-        existing.height,
-        item.height
-      );
-      existing.fontSize = Math.max(
-        existing.fontSize || 0,
-        item.fontSize || 0
-      );
-      existing.bold =
-        existing.bold ||
-        item.bold;
-      existing.y =
-        (existing.y1 +
-          existing.y2) /
-        2;
+    if (row) {
+      row.items.push(item);
+      row.x1 = Math.min(row.x1, item.x1);
+      row.x2 = Math.max(row.x2, item.x2);
+      row.y1 = Math.min(row.y1, item.y1);
+      row.y2 = Math.max(row.y2, item.y2);
+      row.height = Math.max(row.height, item.height);
+      row.fontSize = Math.max(row.fontSize || 0, item.fontSize || 0);
+      row.bold = row.bold || item.bold;
+      row.y = (row.y + item.y) / 2;
     } else {
-      lines.push({
+      rows.push({
         y: item.y,
         items: [item],
         x1: item.x1,
@@ -854,10 +789,59 @@ function buildPdfTextLines(
     }
   }
 
-  for (const line of lines) {
-    line.items.sort((a, b) => a.x1 - b.x1);
-    line.text = line.items.map(item => item.text).join(" ").replace(/\s+/g, " ").trim();
-    line.tokenCount = uniqueTokens(line.text).length;
+  const lines = [];
+
+  for (const row of rows) {
+    const sorted = [...row.items].sort((a, b) => a.x1 - b.x1);
+    let cluster = [];
+    let previous = null;
+
+    const flush = () => {
+      if (!cluster.length) return;
+
+      const x1 = Math.min(...cluster.map(item => item.x1));
+      const x2 = Math.max(...cluster.map(item => item.x2));
+      const y1 = Math.min(...cluster.map(item => item.y1));
+      const y2 = Math.max(...cluster.map(item => item.y2));
+      const fontSize = Math.max(...cluster.map(item => item.fontSize || 0));
+      const bold = cluster.some(item => item.bold);
+      const text = cluster.map(item => item.text).join(" ").replace(/\s+/g, " ").trim();
+
+      if (text) {
+        lines.push({
+          y: (y1 + y2) / 2,
+          items: cluster,
+          x1,
+          x2,
+          y1,
+          y2,
+          height: Math.max(1, y2 - y1),
+          fontSize,
+          bold,
+          text,
+          tokenCount: uniqueTokens(text).length,
+        });
+      }
+
+      cluster = [];
+    };
+
+    for (const item of sorted) {
+      if (previous) {
+        const gap = item.x1 - previous.x2;
+        const referenceFont = Math.max(previous.fontSize || 1, item.fontSize || 1);
+        const columnGap = Math.max(42, Math.min(140, referenceFont * 3.2));
+
+        if (gap > columnGap) {
+          flush();
+        }
+      }
+
+      cluster.push(item);
+      previous = item;
+    }
+
+    flush();
   }
 
   lines.sort((a, b) => {
@@ -1019,18 +1003,23 @@ function scoreHeadlineWindow(
 
 function findBestHeadlineOnPage(
   lines,
-  wanted
+  wanted,
+  pageMedianFontSize = 0,
+  strictHeadline = false
 ) {
   if (!Array.isArray(lines) || !lines.length || !wanted) return null;
 
   let best = null;
   const wantedCount = uniqueTokens(wanted).length;
-  const maxLines = Math.min(6, lines.length);
+  const maxLines = Math.min(strictHeadline ? 4 : 6, lines.length);
+  const median = Math.max(1, Number(pageMedianFontSize) || 1);
 
   for (let start = 0; start < lines.length; start++) {
     let combined = "";
     let windowFontSize = 0;
     let windowBold = false;
+    let totalFont = 0;
+    let fontSamples = 0;
 
     for (let count = 1; count <= maxLines && start + count <= lines.length; count++) {
       const current = lines[start + count - 1];
@@ -1045,9 +1034,29 @@ function findBestHeadlineOnPage(
 
       combined = (combined + " " + current.text).replace(/\s+/g, " ").trim();
       windowFontSize = Math.max(windowFontSize, current.fontSize || 0);
+      totalFont += Number(current.fontSize) || 0;
+      fontSamples++;
       windowBold = windowBold || !!current.bold;
 
       const metrics = scoreHeadlineWindow(wanted, combined);
+      const averageFontSize = totalFont / Math.max(1, fontSamples);
+      const fontRatio = windowFontSize / median;
+
+      /*
+       * Newspaper headlines are normally materially larger than the
+       * surrounding article body. In strict mode we refuse tiny body
+       * text even when all title tokens happen to match it exactly.
+       */
+      if (strictHeadline) {
+        if (fontRatio < 1.18 || averageFontSize / median < 1.10) {
+          continue;
+        }
+        if (combined.length > 220) continue;
+      }
+
+      const exactEnough = metrics.exact || metrics.coverage >= 0.88;
+      const fontBonus = Math.min(0.22, Math.max(0, fontRatio - 1) * 0.18) + (windowBold ? 0.055 : 0);
+      const adjustedScore = metrics.score + fontBonus - Math.max(0, count - 1) * 0.025;
       const candidate = {
         ...metrics,
         start,
@@ -1055,13 +1064,11 @@ function findBestHeadlineOnPage(
         lines: lines.slice(start, start + count),
         text: combined,
         fontSize: windowFontSize,
+        averageFontSize,
+        fontRatio,
         bold: windowBold,
+        adjustedScore,
       };
-
-      const exactEnough = metrics.exact || metrics.coverage >= 0.88;
-      const fontBonus = Math.min(0.12, (windowFontSize / 100) * 0.12) + (windowBold ? 0.035 : 0);
-      const adjustedScore = metrics.score + fontBonus - Math.max(0, count - 1) * 0.025;
-      candidate.adjustedScore = adjustedScore;
 
       if (!best || adjustedScore > best.adjustedScore) best = candidate;
 
@@ -1117,12 +1124,26 @@ async function extractPdfPageLines(
           viewport
         );
 
+      const fontSizes = lines
+        .map(line => Number(line?.fontSize) || 0)
+        .filter(Boolean)
+        .sort((a, b) => a - b);
+
+      const middle = Math.floor(fontSizes.length / 2);
+      const medianFontSize = fontSizes.length
+        ? (fontSizes.length % 2
+          ? fontSizes[middle]
+          : (fontSizes[middle - 1] + fontSizes[middle]) / 2)
+        : 0;
+
       pageCache.push({
         pageNumber,
 
         viewport,
 
         lines,
+
+        medianFontSize,
       });
     } finally {
       page.cleanup();
@@ -1133,12 +1154,60 @@ async function extractPdfPageLines(
 }
 
 /* =========================================================
+   BUILD PDF HEADLINE LAYOUT INDEX
+========================================================= */
+
+async function buildPdfHeadlineLayoutIndex(
+  pdfBuffer
+) {
+  if (!pdfBuffer) return [];
+
+  let pdf = null;
+
+  try {
+    const pdfjsLib = await import(
+      "pdfjs-dist/legacy/build/pdf.mjs"
+    );
+
+    const { createCanvas } = await import(
+      "@napi-rs/canvas"
+    );
+
+    const canvasFactory = createPdfCanvasFactory(
+      createCanvas
+    );
+
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(pdfBuffer),
+      disableWorker: true,
+      useSystemFonts: true,
+      isEvalSupported: false,
+      canvasFactory,
+    });
+
+    pdf = await loadingTask.promise;
+
+    return await extractPdfPageLines(
+      pdfjsLib,
+      pdf
+    );
+  } finally {
+    if (pdf) {
+      try {
+        await pdf.cleanup();
+      } catch {}
+    }
+  }
+}
+
+/* =========================================================
    FIND BEST HEADLINE IN COMPLETE PDF
 ========================================================= */
 
 function findBestHeadlineInPageCache(
   pageCache,
-  headline
+  headline,
+  strictHeadline = false
 ) {
   let best =
     null;
@@ -1150,7 +1219,9 @@ function findBestHeadlineInPageCache(
     const match =
       findBestHeadlineOnPage(
         pageData.lines,
-        headline
+        headline,
+        pageData.medianFontSize,
+        strictHeadline
       );
 
     if (
@@ -1594,137 +1665,50 @@ async function createTheHinduHeadlineImage(
 
     /*
      * PASS 1:
-     * Direct title -> PDF line matching.
+     * Strict headline-sized match first.
+     * Body text is never allowed to win merely because its words
+     * happen to match the database title.
      */
 
     let bestMatch =
       findBestHeadlineInPageCache(
         pageCache,
-        headline
+        headline,
+        true
       );
 
     console.log(
-      "THE HINDU HEADLINE DIRECT MATCH:",
+      "THE HINDU HEADLINE STRICT MATCH:",
       {
         headline,
-
-        found:
-          !!bestMatch,
-
-        score:
-          bestMatch?.score ||
-          0,
-
-        coverage:
-          bestMatch?.coverage ||
-          0,
-
-        text:
-          bestMatch?.text ||
-          "",
+        found: !!bestMatch,
+        score: bestMatch?.score || 0,
+        coverage: bestMatch?.coverage || 0,
+        fontRatio: bestMatch?.fontRatio || 0,
+        text: bestMatch?.text || "",
       }
     );
 
-    /*
-     * PASS 2:
-     * Generate PDF headline-like candidates
-     * and compare DB title against them.
-     *
-     * This handles cases where the stored
-     * title differs slightly from the PDF
-     * text extraction.
-     */
-
     if (
       !bestMatch ||
-      bestMatch.coverage <
-        MIN_HEADLINE_COVERAGE
-    ) {
-      const candidates =
-        extractPdfHeadlineCandidates(
-          pageCache
-        );
-
-      const fallback =
-        findHeadlineViaCandidates(
-          headline,
-          candidates
-        );
-
-      console.log(
-        "THE HINDU HEADLINE FALLBACK MATCH:",
-        {
-          headline,
-
-          found:
-            !!fallback,
-
-          score:
-            fallback?.score ||
-            0,
-
-          coverage:
-            fallback?.coverage ||
-            0,
-
-          text:
-            fallback?.text ||
-            "",
-        }
-      );
-
-      if (
-        fallback &&
-        (
-          !bestMatch ||
-          fallback.score >
-            bestMatch.score
-        )
-      ) {
-        bestMatch =
-          fallback;
-      }
-    }
-
-    /*
-     * PASS 3:
-     * If token coverage is still low,
-     * use a relaxed candidate match.
-     *
-     * We still require at least two
-     * meaningful tokens to avoid random
-     * body-text crops.
-     */
-
-    if (
-      !bestMatch ||
-      (
-        bestMatch.coverage <
-          0.30 &&
-        !bestMatch.exact
-      )
+      bestMatch.coverage < 0.45
     ) {
       console.warn(
-        "THE HINDU HEADLINE COULD NOT BE LOCATED:",
+        "THE HINDU HEADLINE REJECTED: NO HEADLINE-SIZED PDF MATCH",
         {
           headline,
-
-          bestText:
-            bestMatch?.text ||
-            "",
-
-          bestScore:
-            bestMatch?.score ||
-            0,
-
-          bestCoverage:
-            bestMatch?.coverage ||
-            0,
+          bestText: bestMatch?.text || "",
+          bestCoverage: bestMatch?.coverage || 0,
+          bestFontRatio: bestMatch?.fontRatio || 0,
         }
       );
-
       return "";
     }
+
+    /*
+     * The strict match above is intentionally the only accepted match.
+     * Do not fall back to tiny body-text candidates.
+     */
 
     /*
      * Final protection against
@@ -2336,8 +2320,9 @@ function extractHeadlineAndDeck(
   };
 }
 
-function createArticleCandidates(
-  pdfText
+async function createArticleCandidates(
+  pdfText,
+  headlineLayoutIndex = []
 ) {
   const blocks =
     splitIntoCandidateBlocks(
@@ -2392,7 +2377,7 @@ function createArticleCandidates(
     }
 
     const {
-      headline,
+      headline: rawHeadline,
       subheadline,
     } =
       extractHeadlineAndDeck(
@@ -2400,12 +2385,58 @@ function createArticleCandidates(
       );
 
     if (
-      headline.length <
+      rawHeadline.length <
         20 ||
-      headline.length >
+      rawHeadline.length >
         250
     ) {
       continue;
+    }
+
+    let headline = rawHeadline;
+
+    /*
+     * IMPORTANT: never trust a raw PDF text line as a newspaper
+     * headline unless the same text can be located in a headline-sized
+     * PDF text region. This removes body-column lines that happened to
+     * be returned first by pdf-parse.
+     */
+    if (headlineLayoutIndex.length) {
+      const layoutMatch =
+        findBestHeadlineInPageCache(
+          headlineLayoutIndex,
+          rawHeadline,
+          true
+        );
+
+      if (
+        !layoutMatch ||
+        layoutMatch.coverage < 0.45
+      ) {
+        continue;
+      }
+
+      headline = cleanText(
+        layoutMatch.text
+      );
+
+      if (
+        headline.length < 20 ||
+        headline.length > 250
+      ) {
+        continue;
+      }
+
+      console.log(
+        "THE HINDU HEADLINE VERIFIED BY PDF LAYOUT:",
+        {
+          rawHeadline,
+          headline,
+          coverage: layoutMatch.coverage,
+          score: layoutMatch.score,
+          fontRatio: layoutMatch.fontRatio,
+        }
+      );
     }
 
     candidates.push({
@@ -2433,626 +2464,6 @@ function createArticleCandidates(
   }
 
   return candidates;
-}
-
-/* =========================================================
-   PDF-AWARE ARTICLE CANDIDATES
-========================================================= */
-
-/*
- * The original article extraction worked on large
- * text blocks from pdf-parse and simply selected the
- * first "headline-like" line. That is unsafe for a
- * newspaper because PDF text order follows columns and
- * body text can appear before/after the real headline.
- *
- * This version uses PDF coordinates + font size to
- * identify headline candidates from the actual page.
- */
-async function createArticleCandidatesFromPdf(
-  pdfBuffer
-) {
-  if (!pdfBuffer) {
-    return [];
-  }
-
-  let pdf = null;
-
-  try {
-    const canvasModule =
-      await import(
-        "@napi-rs/canvas"
-      );
-
-    if (
-      canvasModule.DOMMatrix &&
-      !globalThis.DOMMatrix
-    ) {
-      globalThis.DOMMatrix =
-        canvasModule.DOMMatrix;
-    }
-
-    if (
-      canvasModule.ImageData &&
-      !globalThis.ImageData
-    ) {
-      globalThis.ImageData =
-        canvasModule.ImageData;
-    }
-
-    if (
-      canvasModule.Path2D &&
-      !globalThis.Path2D
-    ) {
-      globalThis.Path2D =
-        canvasModule.Path2D;
-    }
-
-    const pdfjsLib =
-      await import(
-        "pdfjs-dist/legacy/build/pdf.mjs"
-      );
-
-    const loadingTask =
-      pdfjsLib.getDocument({
-        data:
-          new Uint8Array(
-            pdfBuffer
-          ),
-        disableWorker:
-          true,
-        useSystemFonts:
-          true,
-        isEvalSupported:
-          false,
-      });
-
-    pdf =
-      await loadingTask.promise;
-
-    const pageCache =
-      await extractPdfPageLines(
-        pdfjsLib,
-        pdf
-      );
-
-    const candidates = [];
-
-    for (
-      const pageData of pageCache
-    ) {
-      const lines =
-        Array.isArray(
-          pageData?.lines
-        )
-          ? pageData.lines
-          : [];
-
-      if (!lines.length) {
-        continue;
-      }
-
-      const usableLines =
-        lines.filter(
-          (line) =>
-            line &&
-            line.text &&
-            line.text.length >= 2
-        );
-
-      if (!usableLines.length) {
-        continue;
-      }
-
-      const fontSizes =
-        usableLines
-          .map(
-            (line) =>
-              Number(
-                line.fontSize
-              ) || 0
-          )
-          .filter(
-            (size) =>
-              size > 0
-          )
-          .sort(
-            (a, b) =>
-              a - b
-          );
-
-      const medianFont =
-        fontSizes.length
-          ? fontSizes[
-              Math.floor(
-                fontSizes.length / 2
-              )
-            ]
-          : 12;
-
-      const maxFont =
-        fontSizes.length
-          ? fontSizes[
-              fontSizes.length - 1
-            ]
-          : medianFont;
-
-      const headlineFontThreshold =
-        Math.max(
-          medianFont * 1.35,
-          maxFont * 0.42,
-          15
-        );
-
-      const pageText =
-        usableLines
-          .map(
-            (line) =>
-              line.text
-          )
-          .join("\n")
-          .slice(
-            0,
-            14000
-          );
-
-      const pageRelevance =
-        relevanceScore(
-          pageText
-        );
-
-      const isNoiseHeadline =
-        (value) => {
-          const lower =
-            cleanText(
-              value
-            ).toLowerCase();
-
-          if (
-            !lower ||
-            lower.length < 20 ||
-            lower.length > 220
-          ) {
-            return true;
-          }
-
-          const noise = [
-            "the hindu",
-            "wednesday",
-            "thursday",
-            "tuesday",
-            "monday",
-            "friday",
-            "saturday",
-            "sunday",
-            "october 2026",
-            "september 2026",
-            "page ",
-            "opinion",
-            "editorial",
-            "www.",
-            "http://",
-            "https://",
-          ];
-
-          return noise.some(
-            (word) =>
-              lower.includes(
-                word
-              )
-          );
-        };
-
-      const likely =
-        usableLines.filter(
-          (line) => {
-            const value =
-              cleanText(
-                line.text
-              );
-
-            if (
-              isNoiseHeadline(
-                value
-              )
-            ) {
-              return false;
-            }
-
-            const tokens =
-              uniqueTokens(
-                value
-              );
-
-            if (
-              tokens.length <
-              3
-            ) {
-              return false;
-            }
-
-            const font =
-              Number(
-                line.fontSize
-              ) || 0;
-
-            const fontStrong =
-              font >=
-                headlineFontThreshold ||
-              (
-                line.bold &&
-                font >=
-                  medianFont * 1.12
-              );
-
-            return fontStrong;
-          }
-        );
-
-      for (
-        let start = 0;
-        start < likely.length;
-        start++
-      ) {
-        const first =
-          likely[start];
-
-        let group = [
-          first
-        ];
-
-        let combined =
-          cleanText(
-            first.text
-          );
-
-        let maxGroupFont =
-          Number(
-            first.fontSize
-          ) || 0;
-
-        for (
-          let nextIndex =
-            start + 1;
-          nextIndex <
-            likely.length &&
-          group.length < 4;
-          nextIndex++
-        ) {
-          const next =
-            likely[
-              nextIndex
-            ];
-
-          const previous =
-            group[
-              group.length - 1
-            ];
-
-          const verticalGap =
-            Math.abs(
-              Number(
-                next.y
-              ) -
-                Number(
-                  previous.y
-                )
-            );
-
-          const horizontalGap =
-            next.x1 >
-            previous.x2
-              ? next.x1 -
-                previous.x2
-              : previous.x1 >
-                next.x2
-              ? previous.x1 -
-                next.x2
-              : 0;
-
-          const horizontalOverlap =
-            Math.min(
-              next.x2,
-              previous.x2
-            ) -
-              Math.max(
-                next.x1,
-                previous.x1
-              ) >
-            0;
-
-          const maxAllowedGap =
-            Math.max(
-              90,
-              Math.max(
-                next.height ||
-                  0,
-                previous.height ||
-                  0
-              ) * 4
-            );
-
-          const maxHorizontalGap =
-            Math.max(
-              45,
-              Math.max(
-                next.fontSize ||
-                  0,
-                previous.fontSize ||
-                  0
-              ) * 2.5
-            );
-
-          if (
-            verticalGap >
-            maxAllowedGap
-          ) {
-            break;
-          }
-
-          if (
-            !horizontalOverlap &&
-            horizontalGap >
-              maxHorizontalGap
-          ) {
-            break;
-          }
-
-          const nextText =
-            cleanText(
-              next.text
-            );
-
-          const proposed =
-            `${combined} ${nextText}`
-              .replace(
-                /\s+/g,
-                " "
-              )
-              .trim();
-
-          if (
-            proposed.length >
-            220
-          ) {
-            break;
-          }
-
-          group.push(
-            next
-          );
-
-          combined =
-            proposed;
-
-          maxGroupFont =
-            Math.max(
-              maxGroupFont,
-              Number(
-                next.fontSize
-              ) || 0
-            );
-        }
-
-        if (
-          isNoiseHeadline(
-            combined
-          )
-        ) {
-          continue;
-        }
-
-        const tokenCount =
-          uniqueTokens(
-            combined
-          ).length;
-
-        if (
-          tokenCount <
-          3
-        ) {
-          continue;
-        }
-
-        const titleScore =
-          relevanceScore(
-            combined
-          );
-
-        const fontRatio =
-          maxGroupFont /
-          Math.max(
-            1,
-            medianFont
-          );
-
-        const relevance =
-          pageRelevance +
-          titleScore * 3 +
-          Math.min(
-            3,
-            Math.max(
-              0,
-              fontRatio - 1
-            )
-          );
-
-        /*
-         * Keep content from the same newspaper
-         * column around the headline. This avoids
-         * feeding unrelated columns to the AI.
-         */
-        const left =
-          Math.min(
-            ...group.map(
-              (line) =>
-                line.x1
-            )
-          );
-
-        const right =
-          Math.max(
-            ...group.map(
-              (line) =>
-                line.x2
-            )
-          );
-
-        const top =
-          Math.min(
-            ...group.map(
-              (line) =>
-                line.y1
-            )
-          );
-
-        const columnLines =
-          usableLines.filter(
-            (line) => {
-              const overlap =
-                Math.min(
-                  right,
-                  line.x2
-                ) -
-                Math.max(
-                  left,
-                  line.x1
-                );
-
-              const gap =
-                line.x1 > right
-                  ? line.x1 -
-                    right
-                  : left >
-                    line.x2
-                  ? left -
-                    line.x2
-                  : 0;
-
-              const sameColumn =
-                overlap > 0 ||
-                gap <=
-                  Math.max(
-                    35,
-                    maxGroupFont *
-                      2
-                  );
-
-              const below =
-                line.y1 >=
-                  top -
-                    Math.max(
-                      20,
-                      maxGroupFont
-                    ) &&
-                line.y1 <=
-                  top +
-                    1200;
-
-              return (
-                sameColumn &&
-                below
-              );
-            }
-          );
-
-        const columnText =
-          columnLines
-            .sort(
-              (a, b) =>
-                a.y - b.y ||
-                a.x1 - b.x1
-            )
-            .map(
-              (line) =>
-                line.text
-            )
-            .join("\n")
-            .slice(
-              0,
-              14000
-            );
-
-        candidates.push({
-          title:
-            combined,
-
-          original_headline:
-            combined,
-
-          original_subheadline:
-            "",
-
-          content:
-            columnText ||
-            pageText,
-
-          relevanceScore:
-            relevance,
-
-          headline_image_url:
-            "",
-
-          pdfPage:
-            pageData.pageNumber,
-
-          headlineFontSize:
-            maxGroupFont,
-        });
-      }
-    }
-
-    const unique =
-      [];
-
-    for (
-      const candidate of
-      candidates
-    ) {
-      const duplicate =
-        unique.some(
-          (existing) =>
-            titleSimilarity(
-              candidate.original_headline,
-              existing.original_headline
-            ) >=
-            0.72
-        );
-
-      if (
-        !duplicate
-      ) {
-        unique.push(
-          candidate
-        );
-      }
-    }
-
-    console.log(
-      "THE HINDU PDF-AWARE CANDIDATES:",
-      {
-        pages:
-          pageCache.length,
-        candidates:
-          unique.length,
-      }
-    );
-
-    return unique;
-  } catch (error) {
-    console.error(
-      "THE HINDU PDF HEADLINE CANDIDATE EXTRACTION FAILED:",
-      error
-    );
-
-    return [];
-  } finally {
-    if (pdf) {
-      try {
-        await pdf.cleanup();
-      } catch {}
-    }
-  }
 }
 
 /* =========================================================
@@ -3378,13 +2789,13 @@ async function backfillExistingPdfHeadlineImages(
       continue;
     }
 
-    if (String(row?.headline_image_url || '').trim()) {
-      skipped++;
-      continue;
-    }
+    const oldHeadlineImageUrl = String(
+      row?.headline_image_url ||
+      ''
+    ).trim();
 
     try {
-      console.log('THE HINDU BACKFILL START:', {
+      console.log('THE HINDU BACKFILL FORCE START:', {
         articleId,
         dbTitle,
         cropHeadline,
@@ -3413,10 +2824,11 @@ async function backfillExistingPdfHeadlineImages(
 
       updated++;
 
-      console.log('THE HINDU BACKFILL SUCCESS:', {
+      console.log('THE HINDU BACKFILL FORCE SUCCESS:', {
         articleId,
         dbTitle,
         cropHeadline,
+        replacedExistingImage: !!oldHeadlineImageUrl,
         headlineImageUrl,
       });
     } catch (error) {
@@ -3772,11 +3184,11 @@ export async function POST(
 
           "",
 
-          "🖼 <b>Headline image backfill:</b>",
+          "🖼 <b>Headline image force-backfill:</b>",
 
           `🔎 Processed: <b>${backfill.processed}</b>`,
 
-          `✅ Images added: <b>${backfill.updated}</b>`,
+          `✅ Images regenerated: <b>${backfill.updated}</b>`,
 
           `⏭ Skipped: <b>${backfill.skipped}</b>`,
 
@@ -3819,29 +3231,16 @@ export async function POST(
        CANDIDATES
     ----------------------------------------- */
 
-    let candidates =
-      await createArticleCandidatesFromPdf(
+    const headlineLayoutIndex =
+      await buildPdfHeadlineLayoutIndex(
         downloaded.buffer
       );
 
-    /*
-     * Safety fallback:
-     * if coordinate-based extraction cannot find
-     * candidates, retain the old text-block parser.
-     */
-    if (
-      !Array.isArray(candidates) ||
-      candidates.length === 0
-    ) {
-      console.warn(
-        "THE HINDU PDF-AWARE EXTRACTION RETURNED 0 CANDIDATES. FALLING BACK TO TEXT BLOCK EXTRACTION."
+    const candidates =
+      await createArticleCandidates(
+        pdfText,
+        headlineLayoutIndex
       );
-
-      candidates =
-        createArticleCandidates(
-          pdfText
-        );
-    }
 
     /* -----------------------------------------
        SAME PDF DUPLICATES
