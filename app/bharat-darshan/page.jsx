@@ -244,6 +244,102 @@ function firstDefined(...values) {
   return null;
 }
 
+function normalizeGeoFeatureItems(value, fallbackType = "point") {
+  return asArray(value)
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const name = firstDefined(
+        item.name,
+        item.title,
+        item.label,
+        item.feature,
+        item.river,
+        item.park,
+        item.pass,
+        item.mineral,
+        item.crop,
+        item.port
+      );
+
+      if (!name) return null;
+
+      const geometry = item.geometry || item.geojson || item.geoJSON || null;
+      const coordinates = item.coordinates || item.coords || null;
+      const lat = item.lat ?? item.latitude;
+      const lon = item.lon ?? item.lng ?? item.longitude;
+
+      let safeCoordinates = null;
+      if (Array.isArray(coordinates)) {
+        safeCoordinates = coordinates;
+      } else if (
+        Number.isFinite(Number(lat)) &&
+        Number.isFinite(Number(lon))
+      ) {
+        safeCoordinates = [Number(lon), Number(lat)];
+      }
+
+      const validPoint =
+        Array.isArray(safeCoordinates) &&
+        safeCoordinates.length === 2 &&
+        Number.isFinite(Number(safeCoordinates[0])) &&
+        Number.isFinite(Number(safeCoordinates[1]));
+
+      const validGeometry =
+        geometry &&
+        typeof geometry === "object" &&
+        typeof geometry.type === "string" &&
+        Array.isArray(geometry.coordinates);
+
+      if (!validPoint && !validGeometry) return null;
+
+      return {
+        id: item.id || item.featureId || `${fallbackType}-${String(name)}`,
+        name: String(name),
+        type: item.type || fallbackType,
+        description: item.description || item.note || "",
+        source: item.source || item.sourceName || "",
+        sourceUrl: item.sourceUrl || item.url || "",
+        geometry: validGeometry ? geometry : null,
+        coordinates: validPoint ? [Number(safeCoordinates[0]), Number(safeCoordinates[1])] : null,
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeStateGeoLayers(raw = {}, feature = {}) {
+  return {
+    rivers: normalizeGeoFeatureItems(
+      firstDefined(raw.riverFeatures, raw.riversGeo, raw.riversMap, feature.riverFeatures),
+      "river"
+    ),
+    mountains: normalizeGeoFeatureItems(
+      firstDefined(raw.mountainFeatures, raw.reliefGeo, raw.mountainsMap, feature.mountainFeatures),
+      "mountain"
+    ),
+    ecology: normalizeGeoFeatureItems(
+      firstDefined(raw.ecologyFeatures, raw.protectedAreaFeatures, raw.parksMap, feature.ecologyFeatures),
+      "ecology"
+    ),
+    minerals: normalizeGeoFeatureItems(
+      firstDefined(raw.mineralFeatures, raw.resourcesMap, feature.mineralFeatures),
+      "mineral"
+    ),
+    agriculture: normalizeGeoFeatureItems(
+      firstDefined(raw.agricultureFeatures, raw.cropRegions, raw.cropsMap, feature.agricultureFeatures),
+      "agriculture"
+    ),
+    coastal: normalizeGeoFeatureItems(
+      firstDefined(raw.coastalFeatures, raw.portFeatures, raw.coastMap, feature.coastalFeatures),
+      "coastal"
+    ),
+    climate: normalizeGeoFeatureItems(
+      firstDefined(raw.climateFeatures, raw.climateMap, feature.climateFeatures),
+      "climate"
+    ),
+  };
+}
+
 function normalizeStateData(id, raw = {}) {
   const feature = FEATURE_INDEX?.[id] || {};
 
@@ -328,6 +424,8 @@ function normalizeStateData(id, raw = {}) {
         feature.coastal
       )
     ),
+
+    geoLayers: normalizeStateGeoLayers(raw, feature),
 
     climate:
       firstDefined(
@@ -760,6 +858,47 @@ function featureAnchor(feature, bounds, width = 720, height = 620) {
    COLOR / UI
    ============================================================ */
 
+function getGeoLayerKey(mode) {
+  switch (mode) {
+    case "rivers": return "rivers";
+    case "mountains": return "mountains";
+    case "ecology": return "ecology";
+    case "minerals": return "minerals";
+    case "agriculture": return "agriculture";
+    case "coastal": return "coastal";
+    case "climate": return "climate";
+    default: return null;
+  }
+}
+
+function featureGeometryPath(geometry, bounds, width = 720, height = 620) {
+  if (!geometry) return "";
+  if (geometry.type === "LineString") {
+    return geometry.coordinates
+      .map(([lon, lat], index) => {
+        const [x, y] = projectPoint([lon, lat], bounds, width, height);
+        return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+      })
+      .join(" ");
+  }
+  if (geometry.type === "MultiLineString") {
+    return geometry.coordinates
+      .map((line) => featureGeometryPath({ type: "LineString", coordinates: line }, bounds, width, height))
+      .join(" ");
+  }
+  if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
+    return geometryPath(geometry, bounds, width, height);
+  }
+  return "";
+}
+
+function featurePoint(feature, bounds, width = 720, height = 620) {
+  if (!feature?.coordinates) return null;
+  const [lon, lat] = feature.coordinates;
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  return projectPoint([lon, lat], bounds, width, height);
+}
+
 function getModeAccent(mode) {
   const map = {
     explore: "#b08a42",
@@ -796,6 +935,8 @@ export default function BharatDarshanPage() {
   const [geoError, setGeoError] = useState("");
 
   const [selectedId, setSelectedId] = useState(null);
+
+  const [selectedMapFeature, setSelectedMapFeature] = useState(null);
 
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -1129,6 +1270,7 @@ export default function BharatDarshanPage() {
     if (!knowledge[id]) return;
 
     setSelectedId(id);
+    setSelectedMapFeature(null);
     setActiveTab("overview");
     setRecallRevealed(false);
     setMobilePanelOpen(true);
@@ -1142,6 +1284,10 @@ export default function BharatDarshanPage() {
   /* ==========================================================
      MASTERED
      ========================================================== */
+
+  function selectMapFeature(feature, stateId) {
+    setSelectedMapFeature({ ...feature, stateId });
+  }
 
   function markMastered() {
     if (!selectedId) return;
@@ -2083,6 +2229,83 @@ export default function BharatDarshanPage() {
                       }
                     )}
 
+                    {/* =====================================================
+                        VERIFIED MAP INTELLIGENCE LAYERS
+                        Only explicit geometry/coordinates from the separate
+                        Bharat Darshan data source are rendered. No centroid,
+                        proximity or visual guessing is used.
+                    ===================================================== */}
+                    {(() => {
+                      const layerKey = getGeoLayerKey(mode);
+                      if (!layerKey) return null;
+
+                      const layerItems = Object.entries(knowledge).flatMap(
+                        ([stateId, state]) =>
+                          (state.geoLayers?.[layerKey] || []).map((item) => ({
+                            ...item,
+                            stateId,
+                          }))
+                      );
+
+                      return layerItems.map((item) => {
+                        const path = featureGeometryPath(
+                          item.geometry,
+                          bounds,
+                          720,
+                          620
+                        );
+                        const point = featurePoint(item, bounds, 720, 620);
+                        const isSelected =
+                          selectedMapFeature?.id === item.id &&
+                          selectedMapFeature?.stateId === item.stateId;
+
+                        if (!path && !point) return null;
+
+                        return (
+                          <g
+                            key={`${item.stateId}-${item.id}`}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${item.name} map feature`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              selectMapFeature(item, item.stateId);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                selectMapFeature(item, item.stateId);
+                              }
+                            }}
+                            style={{ cursor: "pointer" }}
+                          >
+                            {path ? (
+                              <path
+                                d={path}
+                                fill={item.type === "ecology" ? "rgba(95,155,104,.18)" : "none"}
+                                stroke={getModeAccent(mode)}
+                                strokeWidth={isSelected ? 5 : 2.5}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity={isSelected ? 1 : .82}
+                              />
+                            ) : null}
+                            {point ? (
+                              <circle
+                                cx={point[0]}
+                                cy={point[1]}
+                                r={isSelected ? 8 : 5}
+                                fill={getModeAccent(mode)}
+                                stroke="white"
+                                strokeWidth="2"
+                                opacity={isSelected ? 1 : .9}
+                              />
+                            ) : null}
+                          </g>
+                        );
+                      });
+                    })()}
+
                     {/* =================================================
                         CURVED LEADER LINE
                     ================================================= */}
@@ -2286,7 +2509,65 @@ export default function BharatDarshanPage() {
                           </>
                         );
                       })()}
-                  </svg>
+                                      {selectedMapFeature ? (() => {
+                      const point = featurePoint(selectedMapFeature, bounds, 720, 620);
+                      if (!point) return null;
+                      const cardX = point[0] < 360 ? 420 : 24;
+                      const cardY = Math.max(34, Math.min(500, point[1] - 42));
+                      return (
+                        <g pointerEvents="none">
+                          <line
+                            x1={point[0]}
+                            y1={point[1]}
+                            x2={cardX < point[0] ? cardX + 8 : cardX + 220}
+                            y2={cardY + 30}
+                            stroke={getModeAccent(mode)}
+                            strokeWidth="2"
+                            strokeDasharray="4 4"
+                          />
+                          <rect
+                            x={cardX}
+                            y={cardY}
+                            width="220"
+                            height="72"
+                            rx="14"
+                            fill={theme === "dark" ? "#111111" : "#fffdf8"}
+                            stroke={getModeAccent(mode)}
+                            strokeWidth="1.5"
+                          />
+                          <text x={cardX + 14} y={cardY + 24} fontSize="14" fontWeight="700" fill={theme === "dark" ? "#fff" : "#161616"}>
+                            {selectedMapFeature.name}
+                          </text>
+                          <text x={cardX + 14} y={cardY + 45} fontSize="11" fill={theme === "dark" ? "#c9c9c9" : "#666"}>
+                            {knowledge[selectedMapFeature.stateId]?.name || "India"} · {getModeLabel()}
+                          </text>
+                          <text x={cardX + 14} y={cardY + 61} fontSize="10" fill={getModeAccent(mode)}>
+                            Verified map feature
+                          </text>
+                        </g>
+                      );
+                    })() : null}
+
+</svg>
+
+                  {mode !== "explore" && !Object.values(knowledge).some((state) =>
+                    (state.geoLayers?.[getGeoLayerKey(mode)] || []).length
+                  ) ? (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: `1px solid ${ui.border}`,
+                        color: ui.muted,
+                        fontSize: 12,
+                        background: ui.card,
+                      }}
+                    >
+                      Map geometry for this layer is not present in the verified data source. Location data unavailable — no feature is placed by approximation.
+                    </div>
+                  ) : null}
+
 
                   {!selectedId && (
                     <div
