@@ -44,17 +44,6 @@ const MIN_HEADLINE_COVERAGE = 0.40;
 const MIN_HEADLINE_TOKENS = 2;
 
 /* =========================================================
-   PROCESSING LOCK
-========================================================= */
-
-const THE_HINDU_PROCESSING_LOCK =
-  globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK ||
-  new Set();
-
-globalThis.__SAMBHAV_THE_HINDU_PROCESSING_LOCK =
-  THE_HINDU_PROCESSING_LOCK;
-
-/* =========================================================
    BASIC HELPERS
 ========================================================= */
 
@@ -83,11 +72,6 @@ function todayIST() {
   }).format(new Date());
 }
 
-function escapeSupabase(value) {
-  return encodeURIComponent(
-    String(value || "")
-  );
-}
 
 function slugify(value) {
   return String(value || "")
@@ -2467,383 +2451,12 @@ async function createArticleCandidates(
 }
 
 /* =========================================================
-   DUPLICATES
+   DUPLICATE CHECKS DISABLED
 ========================================================= */
 
-const STOPWORDS =
-  new Set([
-    "the",
-    "a",
-    "an",
-    "and",
-    "or",
-    "of",
-    "to",
-    "in",
-    "on",
-    "for",
-    "with",
-    "from",
-    "by",
-    "is",
-    "are",
-    "as",
-    "at",
-    "after",
-    "over",
-    "new",
-    "india",
-  ]);
-
-function duplicateTokens(
-  text
-) {
-  return new Set(
-    String(
-      text || ""
-    )
-      .toLowerCase()
-      .replace(
-        /[^a-z0-9\s]/g,
-        " "
-      )
-      .split(
-        /\s+/
-      )
-      .filter(
-        (
-          token
-        ) =>
-          token.length >
-            2 &&
-          !STOPWORDS.has(
-            token
-          )
-      )
-  );
-}
-
-function titleSimilarity(
-  a,
-  b
-) {
-  const left =
-    duplicateTokens(
-      a
-    );
-
-  const right =
-    duplicateTokens(
-      b
-    );
-
-  if (
-    !left.size ||
-    !right.size
-  ) {
-    return 0;
-  }
-
-  let intersection =
-    0;
-
-  for (
-    const token of
-    left
-  ) {
-    if (
-      right.has(
-        token
-      )
-    ) {
-      intersection++;
-    }
-  }
-
-  const union =
-    new Set([
-      ...left,
-      ...right,
-    ]).size;
-
-  return union
-    ? intersection /
-        union
-    : 0;
-}
-
-async function findExistingDuplicate(
-  title,
-  date
-) {
-  const rows =
-    await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&date=eq.${escapeSupabase(
-        date
-      )}&limit=200`
-    );
-
-  if (
-    !Array.isArray(
-      rows
-    )
-  ) {
-    return null;
-  }
-
-  for (
-    const row of
-    rows
-  ) {
-    const similarity =
-      titleSimilarity(
-        title,
-        row.title
-      );
-
-    if (
-      similarity >=
-      0.78
-    ) {
-      return {
-        ...row,
-
-        similarity,
-      };
-    }
-  }
-
-  return null;
-}
-
-async function sourceUrlExists(
-  sourceUrl,
-  date
-) {
-  const rows =
-    await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date&source_url=eq.${escapeSupabase(
-        sourceUrl
-      )}&date=eq.${escapeSupabase(
-        date
-      )}&limit=5`
-    );
-
-  return (
-    Array.isArray(
-      rows
-    ) &&
-    rows.length >
-      0
-  );
-}
-
-/* =========================================================
-   PDF DUPLICATE
-========================================================= */
-
-async function findExistingPdfArticles(
-  fileUniqueId,
-  date
-) {
-  /*
-   * First try the original PDF marker.
-   */
-  if (fileUniqueId) {
-    const marker =
-      `/the-hindu/${fileUniqueId}#`;
-
-    const markerRows =
-      await supabaseRequest(
-        `/rest/v1/current_affairs?select=id,title,source_name,source_url,date,headline_image_url&date=eq.${escapeSupabase(
-          date
-        )}&source_url=ilike.*${encodeURIComponent(
-          marker
-        )}*&limit=200`
-      );
-
-    if (
-      Array.isArray(markerRows) &&
-      markerRows.length > 0
-    ) {
-      const matched =
-        markerRows.filter(
-          (row) =>
-            String(
-              row?.source_url ||
-                ""
-            ).includes(marker)
-        );
-
-      if (matched.length > 0) {
-        console.log(
-          "THE HINDU EXISTING ARTICLES FOUND BY PDF MARKER:",
-          {
-            date,
-            count: matched.length,
-          }
-        );
-
-        return matched;
-      }
-    }
-  }
-
-  /*
-   * FALLBACK FOR EXISTING ARTICLES:
-   *
-   * Older The Hindu records can have a
-   * different Telegram fileUniqueId.
-   * For headline-image backfill we can
-   * safely identify them by newspaper date
-   * + The Hindu source.
-   */
-  const allRows =
-    await supabaseRequest(
-      `/rest/v1/current_affairs?select=id,title,source_name,source_url,date,headline_image_url&date=eq.${escapeSupabase(
-        date
-      )}&limit=200`
-    );
-
-  if (!Array.isArray(allRows)) {
-    return [];
-  }
-
-  const theHinduRows =
-    allRows.filter((row) => {
-      const source =
-        String(
-          row?.source_name ||
-            ""
-        ).toLowerCase();
-
-      return source.includes(
-        "the hindu"
-      );
-    });
-
-  console.log(
-    "THE HINDU EXISTING ARTICLES FOUND BY DATE/SOURCE FALLBACK:",
-    {
-      date,
-      count: theHinduRows.length,
-    }
-  );
-
-  return theHinduRows;
-}
-
-/* =========================================================
-   RECOVER ORIGINAL HEADLINE FROM SOURCE URL
-========================================================= */
-
-function extractHeadlineFromSourceUrl(sourceUrl) {
-  const value = String(sourceUrl || '').trim();
-  const hash = value.indexOf('#');
-  if (hash === -1) return '';
-
-  const fragment = value.slice(hash + 1).trim();
-  if (!fragment) return '';
-
-  try {
-    return decodeURIComponent(fragment)
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  } catch {
-    return fragment
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-}
-
-/* =========================================================
-   BACKFILL EXISTING ARTICLES
-========================================================= */
-
-async function backfillExistingPdfHeadlineImages(
-  pdfBuffer,
-  fileUniqueId,
-  existingArticles
-) {
-  if (!pdfBuffer || !fileUniqueId || !Array.isArray(existingArticles) || existingArticles.length === 0) {
-    return { processed: 0, updated: 0, skipped: 0, failed: 0 };
-  }
-
-  let processed = 0;
-  let updated = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const row of existingArticles) {
-    processed++;
-
-    const articleId = row?.id;
-    const dbTitle = String(row?.title || '').trim();
-    const sourceHeadline = extractHeadlineFromSourceUrl(row?.source_url);
-    const cropHeadline = sourceHeadline || dbTitle;
-
-    if (!articleId || !cropHeadline) {
-      skipped++;
-      continue;
-    }
-
-    const oldHeadlineImageUrl = String(
-      row?.headline_image_url ||
-      ''
-    ).trim();
-
-    try {
-      console.log('THE HINDU BACKFILL FORCE START:', {
-        articleId,
-        dbTitle,
-        cropHeadline,
-        headlineSource: sourceHeadline ? 'source_url_slug' : 'database_title',
-      });
-
-      const headlineImageUrl = await createTheHinduHeadlineImage(
-        pdfBuffer,
-        cropHeadline,
-        fileUniqueId
-      );
-
-      if (!headlineImageUrl) {
-        console.warn('THE HINDU BACKFILL CROP NOT FOUND:', {
-          articleId,
-          dbTitle,
-          cropHeadline,
-        });
-        failed++;
-        continue;
-      }
-
-      await updateCurrentAffairsRow(articleId, {
-        headline_image_url: headlineImageUrl,
-      });
-
-      updated++;
-
-      console.log('THE HINDU BACKFILL FORCE SUCCESS:', {
-        articleId,
-        dbTitle,
-        cropHeadline,
-        replacedExistingImage: !!oldHeadlineImageUrl,
-        headlineImageUrl,
-      });
-    } catch (error) {
-      failed++;
-      console.error('THE HINDU BACKFILL FAILED:', {
-        articleId,
-        dbTitle,
-        cropHeadline,
-        error: error?.message || error,
-      });
-    }
-  }
-
-  return { processed, updated, skipped, failed };
-}
+// The Hindu PDF is intentionally processed every time it is received.
+// No in-memory lock, PDF duplicate check, source-URL duplicate check,
+// or same-event/title similarity check is performed in this route.
 
 /* =========================================================
    AI
@@ -2950,9 +2563,6 @@ export async function POST(
   let fileUniqueId =
     null;
 
-  let lockAcquired =
-    false;
-
   try {
     const internalSecret =
       request.headers.get(
@@ -3004,48 +2614,6 @@ export async function POST(
         }
       );
     }
-
-    /* -----------------------------------------
-       LOCK
-    ----------------------------------------- */
-
-    if (
-      THE_HINDU_PROCESSING_LOCK.has(
-        fileUniqueId
-      )
-    ) {
-      await sendTelegramMessage(
-        telegramChatId,
-
-        [
-          "♻️ <b>The Hindu PDF Already Processing</b>",
-          "",
-          "Same PDF ka duplicate request receive hua.",
-          "",
-          "Current processing ko duplicate nahi kiya gaya.",
-        ].join(
-          "\n"
-        )
-      );
-
-      return NextResponse.json({
-        ok:
-          true,
-
-        duplicatePdf:
-          true,
-
-        reason:
-          "pdf-already-processing",
-      });
-    }
-
-    THE_HINDU_PROCESSING_LOCK.add(
-      fileUniqueId
-    );
-
-    lockAcquired =
-      true;
 
     /* -----------------------------------------
        DOWNLOAD
@@ -3125,109 +2693,6 @@ export async function POST(
       dateCheck.detectedDate;
 
     /* -----------------------------------------
-       PDF DUPLICATE
-    ----------------------------------------- */
-
-    const existingPdfArticles =
-      await findExistingPdfArticles(
-        fileUniqueId,
-
-        verifiedDate
-      );
-
-    /*
-     * IMPORTANT:
-     *
-     * Same PDF already exists.
-     *
-     * Do NOT create new articles.
-     *
-     * Instead:
-     * generate missing headline images
-     * for the existing articles.
-     */
-
-    if (
-      existingPdfArticles.length >
-      0
-    ) {
-      console.log(
-        "THE HINDU PDF DUPLICATE DETECTED:",
-        {
-          date:
-            verifiedDate,
-
-          existing:
-            existingPdfArticles.length,
-        }
-      );
-
-      const backfill =
-        await backfillExistingPdfHeadlineImages(
-          downloaded.buffer,
-
-          fileUniqueId,
-
-          existingPdfArticles
-        );
-
-      await sendTelegramMessage(
-        telegramChatId,
-
-        [
-          "♻️ <b>The Hindu PDF Already Processed</b>",
-          "",
-
-          `📅 Date: <b>${verifiedDate}</b>`,
-
-          `📰 Existing articles: <b>${existingPdfArticles.length}</b>`,
-
-          "",
-
-          "🖼 <b>Headline image force-backfill:</b>",
-
-          `🔎 Processed: <b>${backfill.processed}</b>`,
-
-          `✅ Images regenerated: <b>${backfill.updated}</b>`,
-
-          `⏭ Skipped: <b>${backfill.skipped}</b>`,
-
-          `❌ Failed: <b>${backfill.failed}</b>`,
-
-          "",
-
-          "✅ Existing articles update kiye gaye.",
-
-          "🚫 New duplicate articles create nahi hue.",
-        ].join(
-          "\n"
-        )
-      );
-
-      return NextResponse.json({
-        ok:
-          true,
-
-        processed:
-          true,
-
-        duplicatePdf:
-          true,
-
-        reason:
-          "pdf-headline-image-backfill",
-
-        date:
-          verifiedDate,
-
-        existingArticles:
-          existingPdfArticles.length,
-
-        backfill,
-      });
-    }
-
-    /* -----------------------------------------
        CANDIDATES
     ----------------------------------------- */
 
@@ -3243,37 +2708,11 @@ export async function POST(
       );
 
     /* -----------------------------------------
-       SAME PDF DUPLICATES
+       CANDIDATES — NO DUPLICATE FILTER
     ----------------------------------------- */
 
     const uniqueCandidates =
-      [];
-
-    for (
-      const candidate of
-      candidates
-    ) {
-      const duplicate =
-        uniqueCandidates.some(
-          (
-            existing
-          ) =>
-            titleSimilarity(
-              candidate.original_headline,
-
-              existing.original_headline
-            ) >=
-            0.78
-        );
-
-      if (
-        !duplicate
-      ) {
-        uniqueCandidates.push(
-          candidate
-        );
-      }
-    }
+      candidates;
 
     /* -----------------------------------------
        TOP 20
@@ -3324,64 +2763,6 @@ export async function POST(
 
         const sourceUrl =
           `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
-
-        /* SOURCE URL DUPLICATE */
-
-        if (
-          await sourceUrlExists(
-            sourceUrl,
-
-            verifiedDate
-          )
-        ) {
-          results.push({
-            title:
-              candidate.original_headline,
-
-            status:
-              "skipped",
-
-            reason:
-              "source-url-duplicate",
-          });
-
-          continue;
-        }
-
-        /* SAME EVENT */
-
-        const existing =
-          await findExistingDuplicate(
-            candidate.original_headline,
-
-            verifiedDate
-          );
-
-        if (
-          existing
-        ) {
-          results.push({
-            title:
-              candidate.original_headline,
-
-            status:
-              "skipped",
-
-            reason:
-              "same-event-already-exists",
-
-            existingTitle:
-              existing.title,
-
-            existingSource:
-              existing.source_name,
-
-            similarity:
-              existing.similarity,
-          });
-
-          continue;
-        }
 
         /* -------------------------------------
            ACTUAL THE HINDU HEADLINE CROP
@@ -3505,7 +2886,7 @@ export async function POST(
 
         `✅ Processed: <b>${processed}</b>`,
 
-        `♻️ Duplicates skipped: <b>${skipped}</b>`,
+        `⏭️ Skipped: <b>${skipped}</b>`,
 
         `❌ Failed: <b>${failed}</b>`,
 
@@ -3591,15 +2972,6 @@ export async function POST(
           500,
       }
     );
-  } finally {
-    if (
-      lockAcquired &&
-      fileUniqueId
-    ) {
-      THE_HINDU_PROCESSING_LOCK.delete(
-        fileUniqueId
-      );
-    }
   }
 }
 
