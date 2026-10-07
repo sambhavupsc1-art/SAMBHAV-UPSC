@@ -1928,6 +1928,17 @@ export default function BharatDarshanPage() {
     );
   }
 
+  function geometryIntersectsAnyIndiaState(geometry, stateFeatures) {
+    if (!geometry || !Array.isArray(stateFeatures) || !stateFeatures.length) {
+      return false;
+    }
+
+    return stateFeatures.some((stateItem) =>
+      stateItem?.feature?.geometry &&
+      geometryIntersectsState(geometry, stateItem.feature.geometry)
+    );
+  }
+
   function featureInsideSelectedState(feature, stateId) {
     if (!stateId) return false;
     const stateFeature = geoData?.find((item) => item.id === stateId)?.feature;
@@ -2037,15 +2048,27 @@ export default function BharatDarshanPage() {
           }
         }
 
-        if (
-          mode === "rivers" &&
-          selectedStateFeature?.geometry &&
-          !geometryIntersectsState(
-            item.geometry,
-            selectedStateFeature.geometry
-          )
-        ) {
-          return null;
+        if (mode === "rivers") {
+          // Never render the global river network on the India map.
+          // With no selected state, a river segment must intersect at
+          // least one verified Indian State/UT polygon.
+          if (selectedStateFeature?.geometry) {
+            if (
+              !geometryIntersectsState(
+                item.geometry,
+                selectedStateFeature.geometry
+              )
+            ) {
+              return null;
+            }
+          } else if (
+            !geometryIntersectsAnyIndiaState(
+              item.geometry,
+              geoData
+            )
+          ) {
+            return null;
+          }
         }
 
         /*
