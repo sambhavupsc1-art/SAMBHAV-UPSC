@@ -1252,14 +1252,108 @@ function featureGeometryPath(geometry, bounds, width = 720, height = 620) {
 }
 
 function featurePoint(feature, bounds, width = 720, height = 620) {
+  /*
+    IMPORTANT:
+    Rivers are LineString/MultiLineString features, so they do not have
+    feature.coordinates directly. Use the verified geometry's representative
+    point as the card anchor. This keeps the river intelligence card on-map
+    instead of silently returning null.
+  */
   const coordinates =
     feature?.coordinates ||
-    (feature?.geometry?.type === "Point" ? feature.geometry.coordinates : null);
+    (feature?.geometry
+      ? geometryRepresentativePointSafe(feature.geometry)
+      : null);
 
   if (!Array.isArray(coordinates)) return null;
+
   const [lon, lat] = coordinates;
-  if (!Number.isFinite(Number(lon)) || !Number.isFinite(Number(lat))) return null;
-  return projectPoint([Number(lon), Number(lat)], bounds, width, height);
+  if (
+    !Number.isFinite(Number(lon)) ||
+    !Number.isFinite(Number(lat))
+  ) {
+    return null;
+  }
+
+  return projectPoint(
+    [Number(lon), Number(lat)],
+    bounds,
+    width,
+    height
+  );
+}
+
+function geometryRepresentativePointSafe(geometry) {
+  if (!geometry || !geometry.type) return null;
+
+  if (
+    geometry.type === "Point" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    return geometry.coordinates;
+  }
+
+  if (
+    geometry.type === "MultiPoint" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    return geometry.coordinates.find(
+      (point) =>
+        Array.isArray(point) &&
+        Number.isFinite(Number(point[0])) &&
+        Number.isFinite(Number(point[1]))
+    ) || null;
+  }
+
+  if (
+    geometry.type === "LineString" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    return (
+      geometry.coordinates[
+        Math.floor(geometry.coordinates.length / 2)
+      ] || null
+    );
+  }
+
+  if (
+    geometry.type === "MultiLineString" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    const lines = geometry.coordinates.filter(
+      (line) => Array.isArray(line) && line.length
+    );
+    if (!lines.length) return null;
+
+    const line = lines[Math.floor(lines.length / 2)];
+    return line[Math.floor(line.length / 2)] || null;
+  }
+
+  if (
+    geometry.type === "Polygon" &&
+    Array.isArray(geometry.coordinates?.[0])
+  ) {
+    const ring = geometry.coordinates[0];
+    return ring[Math.floor(ring.length / 2)] || null;
+  }
+
+  if (
+    geometry.type === "MultiPolygon" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    const polygon = geometry.coordinates.find(
+      (item) =>
+        Array.isArray(item) &&
+        Array.isArray(item[0]) &&
+        item[0].length
+    );
+    if (!polygon) return null;
+
+    const ring = polygon[0];
+    return ring[Math.floor(ring.length / 2)] || null;
+  }
+
+  return null;
 }
 
 function getModeAccent(mode) {
@@ -3429,7 +3523,14 @@ export default function BharatDarshanPage() {
                           <g>
                             <line x1={point[0]} y1={point[1]} x2={targetX} y2={cardY + 32} stroke={accent} strokeWidth="2.5" strokeDasharray="6 4" pointerEvents="none" />
                             <circle cx={point[0]} cy={point[1]} r="7" fill={accent} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2.5" pointerEvents="none" />
-                            <foreignObject x={cardX} y={cardY} width={cardWidth} height={cardHeight} pointerEvents="all">
+                            <foreignObject
+                              x={cardX}
+                              y={cardY}
+                              width={cardWidth}
+                              height={cardHeight}
+                              pointerEvents="all"
+                              style={{ overflow: "visible" }}
+                            >
                               <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: "100%", height: "100%", boxSizing: "border-box", padding: 14, borderRadius: 18, background: theme === "dark" ? "#111" : "#fffdf8", color: theme === "dark" ? "#fff" : "#171717", border: `1.5px solid ${accent}`, boxShadow: "0 18px 45px rgba(0,0,0,.28)", fontFamily: "inherit", overflow: "hidden" }}>
                                 <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.2px", color: accent }}>RIVER INTELLIGENCE</div>
                                 <div style={{ marginTop: 5, fontSize: 21, fontWeight: 950, lineHeight: 1 }}>{info.name}</div>
