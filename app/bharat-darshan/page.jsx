@@ -296,11 +296,19 @@ function geoJsonFeatureToMapItem(feature, index, type) {
   const name = externalFeatureName(feature);
   if (!name || !feature?.geometry) return null;
 
+  const geometry = feature.geometry;
+  const coordinates =
+    geometry?.type === "Point" && Array.isArray(geometry.coordinates)
+      ? geometry.coordinates
+      : null;
+
   return {
     id: `external-${type}-${index}-${normalizeName(name).replace(/[^a-z0-9]+/g, "-")}`,
     name,
     type,
-    geometry: feature.geometry,
+    geometry,
+    coordinates,
+    properties: feature.properties || {},
     source: "Verified external GeoJSON",
     sourceUrl: Array.isArray(FEATURE_GEOJSON_SOURCES[type]) ? FEATURE_GEOJSON_SOURCES[type][0] : (FEATURE_GEOJSON_SOURCES[type] || ""),
   };
@@ -991,10 +999,14 @@ function featureGeometryPath(geometry, bounds, width = 720, height = 620) {
 }
 
 function featurePoint(feature, bounds, width = 720, height = 620) {
-  if (!feature?.coordinates) return null;
-  const [lon, lat] = feature.coordinates;
-  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
-  return projectPoint([lon, lat], bounds, width, height);
+  const coordinates =
+    feature?.coordinates ||
+    (feature?.geometry?.type === "Point" ? feature.geometry.coordinates : null);
+
+  if (!Array.isArray(coordinates)) return null;
+  const [lon, lat] = coordinates;
+  if (!Number.isFinite(Number(lon)) || !Number.isFinite(Number(lat))) return null;
+  return projectPoint([Number(lon), Number(lat)], bounds, width, height);
 }
 
 function getModeAccent(mode) {
@@ -1433,10 +1445,16 @@ export default function BharatDarshanPage() {
         if (seen.has(key)) return null;
         seen.add(key);
 
+        const propertyStateId = canonicalId(item.properties || {});
+        const resolvedStateId =
+          propertyStateId ||
+          (matchedTarget && selectedId ? selectedId : null);
+
         return {
           ...item,
           matchedName: matchedTarget || name,
-          stateId: selectedId || null,
+          stateId: resolvedStateId,
+          matchedTarget: matchedTarget || null,
         };
       })
       .filter(Boolean);
@@ -1522,6 +1540,72 @@ export default function BharatDarshanPage() {
           ...state.coastal,
         ];
     }
+  }
+
+  function getFeatureIntelligence(feature) {
+    if (!feature) return null;
+
+    const state = feature.stateId ? knowledge[feature.stateId] : null;
+    const staticItems = state
+      ? (mode === "rivers"
+          ? state.rivers
+          : mode === "mountains"
+          ? state.relief
+          : mode === "ecology"
+          ? state.ecology
+          : mode === "minerals"
+          ? state.minerals
+          : mode === "agriculture"
+          ? state.crops
+          : mode === "coastal"
+          ? state.coastal
+          : mode === "climate"
+          ? [state.climate]
+          : [])
+      : [];
+
+    const props = feature.properties || {};
+    const propertyPairs = [
+      ["Origin", props.origin || props.ORIGIN || props.source_name],
+      ["Basin", props.basin || props.BASIN || props.basin_name],
+      ["Tributaries", props.tributaries || props.TRIBUTARIES],
+      ["Elevation", props.elevation || props.ELEVATION || props.elev],
+      ["Range", props.range || props.RANGE || props.mountain_range],
+      ["Category", props.category || props.CATEGORY || props.type],
+      ["State", props.state || props.STATE || props.state_name || props.ST_NM],
+      ["District", props.district || props.DISTRICT || props.district_name],
+      ["Crop", props.crop || props.CROP || props.crop_name],
+      ["Production", props.production || props.PRODUCTION],
+      ["Mineral", props.mineral || props.MINERAL || props.mine_name],
+      ["Protected area", props.protected_area || props.PA_NAME || props.site_name],
+      ["Port type", props.port_type || props.PORT_TYPE],
+    ].filter(([, value]) => value !== undefined && value !== null && String(value).trim());
+
+    const facts = [];
+    const seen = new Set();
+    for (const [label, value] of propertyPairs) {
+      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      const key = `${label}:${text}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      facts.push({ label, value: text });
+      if (facts.length >= 4) break;
+    }
+
+    if (!facts.length && staticItems.length) {
+      facts.push({ label: "Static association", value: staticItems.slice(0, 5).join(" • ") });
+    }
+    if (state?.capital && facts.length < 4) facts.push({ label: "State capital", value: state.capital });
+    if (state?.region && facts.length < 4) facts.push({ label: "Region", value: state.region });
+
+    return {
+      name: feature.name || feature.matchedName || "Map feature",
+      stateName: state?.name || props.state || props.STATE || "India",
+      modeLabel: getModeLabel(),
+      facts,
+      description: feature.description || props.description || props.DESCRIPTION || "Verified map feature linked to Bharat Darshan geography data.",
+      sourceUrl: feature.sourceUrl || "",
+    };
   }
 
   /* ==========================================================
@@ -2816,39 +2900,24 @@ export default function BharatDarshanPage() {
                       })()}
                                       {selectedMapFeature ? (() => {
                       const point = featurePoint(selectedMapFeature, bounds, 720, 620);
-                      if (!point) return null;
-                      const cardX = point[0] < 360 ? 420 : 24;
-                      const cardY = Math.max(34, Math.min(500, point[1] - 42));
+                      const info = getFeatureIntelligence(selectedMapFeature);
+                      if (!point || !info) return null;
+                      const cardWidth = 250;
+                      const cardHeight = 150;
+                      const cardX = point[0] < 360 ? 452 : 18;
+                      const cardY = Math.max(18, Math.min(450, point[1] - 60));
+                      const targetX = cardX < point[0] ? cardX + 8 : cardX + cardWidth - 8;
                       return (
                         <g pointerEvents="none">
-                          <line
-                            x1={point[0]}
-                            y1={point[1]}
-                            x2={cardX < point[0] ? cardX + 8 : cardX + 220}
-                            y2={cardY + 30}
-                            stroke={getModeAccent(mode)}
-                            strokeWidth="2"
-                            strokeDasharray="4 4"
-                          />
-                          <rect
-                            x={cardX}
-                            y={cardY}
-                            width="220"
-                            height="72"
-                            rx="14"
-                            fill={theme === "dark" ? "#111111" : "#fffdf8"}
-                            stroke={getModeAccent(mode)}
-                            strokeWidth="1.5"
-                          />
-                          <text x={cardX + 14} y={cardY + 24} fontSize="14" fontWeight="700" fill={theme === "dark" ? "#fff" : "#161616"}>
-                            {selectedMapFeature.name}
-                          </text>
-                          <text x={cardX + 14} y={cardY + 45} fontSize="11" fill={theme === "dark" ? "#c9c9c9" : "#666"}>
-                            {knowledge[selectedMapFeature.stateId]?.name || "India"} · {getModeLabel()}
-                          </text>
-                          <text x={cardX + 14} y={cardY + 61} fontSize="10" fill={getModeAccent(mode)}>
-                            Verified map feature
-                          </text>
+                          <line x1={point[0]} y1={point[1]} x2={targetX} y2={cardY + 34} stroke={getModeAccent(mode)} strokeWidth="2" strokeDasharray="5 4" />
+                          <circle cx={point[0]} cy={point[1]} r="6" fill={getModeAccent(mode)} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2" />
+                          <rect x={cardX} y={cardY} width={cardWidth} height={cardHeight} rx="16" fill={theme === "dark" ? "#111111" : "#fffdf8"} stroke={getModeAccent(mode)} strokeWidth="1.5" />
+                          <text x={cardX + 14} y={cardY + 23} fontSize="13" fontWeight="800" fill={theme === "dark" ? "#fff" : "#161616"}>{info.name}</text>
+                          <text x={cardX + 14} y={cardY + 42} fontSize="9" fontWeight="800" fill={getModeAccent(mode)}>{info.stateName} · {info.modeLabel}</text>
+                          {info.facts.slice(0, 3).map((fact, index) => (
+                            <text key={`${fact.label}-${index}`} x={cardX + 14} y={cardY + 63 + index * 22} fontSize="8" fill={theme === "dark" ? "#d4d4d4" : "#555"}>{fact.label}: {fact.value.length > 32 ? `${fact.value.slice(0, 32)}…` : fact.value}</text>
+                          ))}
+                          <text x={cardX + 14} y={cardY + 133} fontSize="8" fontWeight="700" fill={getModeAccent(mode)}>Map feature selected</text>
                         </g>
                       );
                     })() : null}
@@ -2969,37 +3038,30 @@ export default function BharatDarshanPage() {
             </div>
           </section>
 
-          {selectedMapFeature ? (
-            <section
-              style={{
-                marginTop: 12,
-                padding: 15,
-                borderRadius: 18,
-                border: `1px solid ${modeAccent}`,
-                background: ui.surface,
-                boxShadow: ui.shadow,
-              }}
-            >
-              <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.3px", color: modeAccent }}>
-                SELECTED MAP FEATURE
-              </div>
-              <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 950 }}>{selectedMapFeature.name}</div>
-                  <div style={{ marginTop: 4, fontSize: 9, color: ui.muted }}>
-                    {knowledge[selectedMapFeature.stateId]?.name || "India"} · {getModeLabel()}
-                  </div>
+          {selectedMapFeature ? (() => {
+            const info = getFeatureIntelligence(selectedMapFeature);
+            if (!info) return null;
+            return (
+              <section style={{ marginTop: 12, padding: 15, borderRadius: 18, border: `1px solid ${modeAccent}`, background: ui.surface, boxShadow: ui.shadow }}>
+                <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.3px", color: modeAccent }}>MAP FEATURE INTELLIGENCE</div>
+                <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <div><div style={{ fontSize: 22, fontWeight: 950 }}>{info.name}</div><div style={{ marginTop: 4, fontSize: 9, color: ui.muted }}>{info.stateName} · {info.modeLabel}</div></div>
+                  <span style={{ padding: "5px 8px", borderRadius: 999, border: `1px solid ${ui.line}`, color: modeAccent, fontSize: 8, fontWeight: 900 }}>VERIFIED MAP FEATURE</span>
                 </div>
-                <span style={{ padding: "5px 8px", borderRadius: 999, border: `1px solid ${ui.line}`, color: modeAccent, fontSize: 8, fontWeight: 900 }}>
-                  VERIFIED MAP DATA
-                </span>
-              </div>
-              <div style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" onClick={() => { setSelectedId(selectedMapFeature.stateId); setMobilePanelOpen(true); }} style={{ border: 0, borderRadius: 10, padding: "9px 12px", background: modeAccent, color: "#111", fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Open state intelligence</button>
-                <button type="button" onClick={() => setSelectedMapFeature(null)} style={{ border: `1px solid ${ui.line}`, borderRadius: 10, padding: "9px 12px", background: ui.surface2, color: ui.text, fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Close</button>
-              </div>
-            </section>
-          ) : null}
+                <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+                  {info.facts.length ? info.facts.map((fact, index) => (
+                    <div key={`${fact.label}-${index}`} style={{ padding: 10, borderRadius: 12, background: ui.surface2, border: `1px solid ${ui.line}` }}><div style={{ fontSize: 7, fontWeight: 950, color: modeAccent, textTransform: "uppercase", letterSpacing: ".7px" }}>{fact.label}</div><div style={{ marginTop: 5, fontSize: 10, lineHeight: 1.45 }}>{fact.value}</div></div>
+                  )) : <div style={{ padding: 10, borderRadius: 12, background: ui.surface2, border: `1px solid ${ui.line}`, fontSize: 9, color: ui.muted }}>Feature-specific attributes are not available in the verified source.</div>}
+                </div>
+                <div style={{ marginTop: 10, padding: 11, borderRadius: 12, border: `1px solid ${ui.line}`, background: ui.card, color: ui.muted, fontSize: 9, lineHeight: 1.55 }}>{info.description}</div>
+                <div style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" onClick={() => { if (selectedMapFeature.stateId) setSelectedId(selectedMapFeature.stateId); setMobilePanelOpen(true); }} style={{ border: 0, borderRadius: 10, padding: "9px 12px", background: modeAccent, color: "#111", fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Open state intelligence</button>
+                  <button type="button" onClick={() => setSelectedMapFeature(null)} style={{ border: `1px solid ${ui.line}`, borderRadius: 10, padding: "9px 12px", background: ui.surface2, color: ui.text, fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Close</button>
+                  {info.sourceUrl ? <a href={info.sourceUrl} target="_blank" rel="noreferrer" style={{ border: `1px solid ${ui.line}`, borderRadius: 10, padding: "9px 12px", background: ui.surface2, color: ui.text, fontWeight: 900, fontSize: 9, textDecoration: "none" }}>Source</a> : null}
+                </div>
+              </section>
+            );
+          })() : null}
 
           {/* EXPLORER */}
           <aside
