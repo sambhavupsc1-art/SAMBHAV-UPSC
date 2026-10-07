@@ -3433,9 +3433,23 @@ export default function BharatDarshanPage() {
                                 />
                               </>
                             ) : null}
-                            {point ? (
+                            {item.type === "rivers" && point && isSelected ? (
+                              <circle
+                                cx={point[0]}
+                                cy={point[1]}
+                                r="7"
+                                fill={getModeAccent(mode)}
+                                stroke="white"
+                                strokeWidth="2.5"
+                                opacity="1"
+                                pointerEvents="none"
+                              />
+                            ) : null}
+                            {point && item.type !== "rivers" ? (
                               <>
-                                {/* Wider invisible touch target for point features. */}
+                                {/* Point markers are reserved for true point features.
+                                    River LineString/MultiLineString features must stay
+                                    clean: their line itself is the interaction target. */}
                                 <circle
                                   cx={point[0]}
                                   cy={point[1]}
