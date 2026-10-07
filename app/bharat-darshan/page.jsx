@@ -1389,6 +1389,101 @@ export default function BharatDarshanPage() {
     }
   }
 
+  function geometryRepresentativePoint(geometry) {
+    if (!geometry || !geometry.type) return null;
+
+    if (geometry.type === "Point" && Array.isArray(geometry.coordinates)) {
+      const [lon, lat] = geometry.coordinates;
+      return Number.isFinite(Number(lon)) && Number.isFinite(Number(lat))
+        ? [Number(lon), Number(lat)]
+        : null;
+    }
+
+    if (geometry.type === "MultiPoint" && Array.isArray(geometry.coordinates)) {
+      return geometry.coordinates.find(
+        (point) =>
+          Array.isArray(point) &&
+          Number.isFinite(Number(point[0])) &&
+          Number.isFinite(Number(point[1]))
+      ) || null;
+    }
+
+    if (geometry.type === "LineString" && Array.isArray(geometry.coordinates)) {
+      return geometry.coordinates[Math.floor(geometry.coordinates.length / 2)] || null;
+    }
+
+    if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+      const line = geometry.coordinates.find((x) => Array.isArray(x) && x.length);
+      return line ? line[Math.floor(line.length / 2)] : null;
+    }
+
+    if (geometry.type === "Polygon" && Array.isArray(geometry.coordinates)) {
+      const ring = geometry.coordinates.find((x) => Array.isArray(x) && x.length);
+      return ring ? ring[Math.floor(ring.length / 2)] : null;
+    }
+
+    if (geometry.type === "MultiPolygon" && Array.isArray(geometry.coordinates)) {
+      for (const polygon of geometry.coordinates) {
+        const ring = Array.isArray(polygon)
+          ? polygon.find((x) => Array.isArray(x) && x.length)
+          : null;
+        if (ring?.length) return ring[Math.floor(ring.length / 2)];
+      }
+    }
+
+    return null;
+  }
+
+  function pointInRing(point, ring) {
+    if (!Array.isArray(point) || !Array.isArray(ring) || ring.length < 3) return false;
+    const [x, y] = point;
+    let inside = false;
+
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = Number(ring[i]?.[0]);
+      const yi = Number(ring[i]?.[1]);
+      const xj = Number(ring[j]?.[0]);
+      const yj = Number(ring[j]?.[1]);
+      if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+
+      const intersects =
+        yi > y !== yj > y &&
+        x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+      if (intersects) inside = !inside;
+    }
+
+    return inside;
+  }
+
+  function pointInGeometry(point, geometry) {
+    if (!point || !geometry) return false;
+
+    if (geometry.type === "Polygon") {
+      const rings = geometry.coordinates || [];
+      if (!rings.length || !pointInRing(point, rings[0])) return false;
+      return !rings.slice(1).some((hole) => pointInRing(point, hole));
+    }
+
+    if (geometry.type === "MultiPolygon") {
+      return (geometry.coordinates || []).some((polygon) => {
+        if (!polygon?.length || !pointInRing(point, polygon[0])) return false;
+        return !polygon.slice(1).some((hole) => pointInRing(point, hole));
+      });
+    }
+
+    return false;
+  }
+
+  function featureInsideSelectedState(feature, stateId) {
+    if (!stateId) return false;
+    const stateFeature = geoData?.find((item) => item.id === stateId)?.feature;
+    const geometry = feature?.geometry;
+    if (!stateFeature?.geometry || !geometry) return false;
+
+    const point = geometryRepresentativePoint(geometry);
+    return pointInGeometry(point, stateFeature.geometry);
+  }
+
   const externalLayerItems = useMemo(() => {
     const sourceKey =
       mode === "rivers"
@@ -1428,10 +1523,10 @@ export default function BharatDarshanPage() {
           externalFeatureMatchesName(name, target)
         );
 
-        const isBroadGeographicLayer =
+        const broadLayer =
           mode === "mountains" || mode === "minerals" || mode === "agriculture";
 
-        if (!matchedTarget && !isBroadGeographicLayer) return null;
+        if (!matchedTarget && !broadLayer) return null;
 
         const item = geoJsonFeatureToMapItem(
           feature,
@@ -1440,6 +1535,14 @@ export default function BharatDarshanPage() {
         );
 
         if (!item) return null;
+
+        if (broadLayer) {
+          if (!selectedId) return null;
+          const propertyStateId = canonicalId(item.properties || {});
+          const insideSelectedState = featureInsideSelectedState(item, selectedId);
+          if (propertyStateId && propertyStateId !== selectedId) return null;
+          if (!propertyStateId && !insideSelectedState) return null;
+        }
 
         const key = normalizeName(name);
         if (seen.has(key)) return null;
@@ -2923,6 +3026,25 @@ export default function BharatDarshanPage() {
                     })() : null}
 
 </svg>
+
+                  {selectedId &&
+                  ["mountains", "minerals", "agriculture"].includes(mode) &&
+                  !externalFeatureLoading &&
+                  externalLayerItems.length === 0 ? (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: `1px solid ${ui.border}`,
+                        color: ui.muted,
+                        fontSize: 12,
+                        background: ui.card,
+                      }}
+                    >
+                      No verified {getModeLabel().toLowerCase()} feature geometry was found inside the selected state. Location data unavailable — no unrelated feature is shown.
+                    </div>
+                  ) : null}
 
                   {mode !== "explore" &&
                   !Object.values(knowledge).some((state) =>
