@@ -1167,6 +1167,157 @@ function ringPath(ring, bounds, width, height) {
     .join(" ") + " Z";
 }
 
+
+const GEOMETRY_BOUNDS_CACHE = new WeakMap();
+
+function geometryBounds(geometry) {
+  if (!geometry || typeof geometry !== "object") return null;
+  const cached = GEOMETRY_BOUNDS_CACHE.get(geometry);
+  if (cached) return cached;
+
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+
+  function visit(value) {
+    if (!Array.isArray(value)) return;
+    if (
+      value.length >= 2 &&
+      Number.isFinite(Number(value[0])) &&
+      Number.isFinite(Number(value[1])) &&
+      !Array.isArray(value[0])
+    ) {
+      const lon = Number(value[0]);
+      const lat = Number(value[1]);
+      minLon = Math.min(minLon, lon);
+      maxLon = Math.max(maxLon, lon);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      return;
+    }
+    value.forEach(visit);
+  }
+
+  visit(geometry.coordinates);
+
+  const result =
+    Number.isFinite(minLon) &&
+    Number.isFinite(maxLon) &&
+    Number.isFinite(minLat) &&
+    Number.isFinite(maxLat)
+      ? { minLon, maxLon, minLat, maxLat }
+      : null;
+
+  GEOMETRY_BOUNDS_CACHE.set(geometry, result);
+  return result;
+}
+
+function boundsOverlap(a, b) {
+  if (!a || !b) return true;
+  return !(
+    a.maxLon < b.minLon ||
+    a.minLon > b.maxLon ||
+    a.maxLat < b.minLat ||
+    a.minLat > b.maxLat
+  );
+}
+
+function simplifyLineCoordinates(points, tolerance = 0.018) {
+  if (!Array.isArray(points) || points.length <= 2) return points || [];
+
+  const sqTolerance = tolerance * tolerance;
+  const squaredDistance = (p1, p2) => {
+    const dx = Number(p1?.[0]) - Number(p2?.[0]);
+    const dy = Number(p1?.[1]) - Number(p2?.[1]);
+    return dx * dx + dy * dy;
+  };
+
+  const getSqSegDist = (p, p1, p2) => {
+    let x = p1[0];
+    let y = p1[1];
+    let dx = p2[0] - x;
+    let dy = p2[1] - y;
+
+    if (dx !== 0 || dy !== 0) {
+      const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+      if (t > 1) {
+        x = p2[0];
+        y = p2[1];
+      } else if (t > 0) {
+        x += dx * t;
+        y += dy * t;
+      }
+    }
+
+    dx = p[0] - x;
+    dy = p[1] - y;
+    return dx * dx + dy * dy;
+  };
+
+  const simplifyRadial = (coords) => {
+    let previous = coords[0];
+    const kept = [previous];
+    for (let i = 1; i < coords.length; i += 1) {
+      const point = coords[i];
+      if (squaredDistance(point, previous) > sqTolerance) {
+        kept.push(point);
+        previous = point;
+      }
+    }
+    if (previous !== coords[coords.length - 1]) kept.push(coords[coords.length - 1]);
+    return kept;
+  };
+
+  const simplifyDouglasPeucker = (coords) => {
+    const markers = new Uint8Array(coords.length);
+    markers[0] = markers[coords.length - 1] = 1;
+    const stack = [[0, coords.length - 1]];
+
+    while (stack.length) {
+      const [first, last] = stack.pop();
+      let maxSqDist = sqTolerance;
+      let index = -1;
+
+      for (let i = first + 1; i < last; i += 1) {
+        const sqDist = getSqSegDist(coords[i], coords[first], coords[last]);
+        if (sqDist > maxSqDist) {
+          index = i;
+          maxSqDist = sqDist;
+        }
+      }
+
+      if (index !== -1) {
+        markers[index] = 1;
+        stack.push([first, index], [index, last]);
+      }
+    }
+
+    return coords.filter((_, index) => markers[index]);
+  };
+
+  return simplifyDouglasPeucker(simplifyRadial(points));
+}
+
+function simplifyGeometryForMap(geometry) {
+  if (!geometry) return geometry;
+  if (geometry.type === "LineString") {
+    return {
+      ...geometry,
+      coordinates: simplifyLineCoordinates(geometry.coordinates, 0.018),
+    };
+  }
+  if (geometry.type === "MultiLineString") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((line) =>
+        simplifyLineCoordinates(line, 0.018)
+      ),
+    };
+  }
+  return geometry;
+}
+
 function geometryPath(geometry, bounds, width = 720, height = 620) {
   if (!geometry) return "";
 
@@ -1599,11 +1750,14 @@ export default function BharatDarshanPage() {
         ? "coastal"
         : null;
 
-    if (!sourceKey || externalFeatureData[sourceKey]) return;
+    if (!sourceKey) return;
 
     let cancelled = false;
 
     async function loadExternalFeatures() {
+      // Do not refetch an already-loaded layer when the user revisits a mode.
+      if (externalFeatureData[sourceKey]) return;
+
       setExternalFeatureLoading(true);
       setExternalFeatureError("");
 
@@ -1612,20 +1766,24 @@ export default function BharatDarshanPage() {
           ? FEATURE_GEOJSON_SOURCES[sourceKey]
           : [FEATURE_GEOJSON_SOURCES[sourceKey]];
 
-        const responses = await Promise.allSettled(
-          urls.map((url) =>
-            fetch(url, { cache: "force-cache" }).then((response) => {
-              if (!response.ok) throw new Error(`Feature layer request failed (${response.status})`);
-              return response.json();
-            })
-          )
-        );
+        let features = [];
 
-        const features = responses.flatMap((result) =>
-          result.status === "fulfilled" && Array.isArray(result.value?.features)
-            ? result.value.features
-            : []
-        );
+        // Fetch the primary source first. The previous Promise.allSettled
+        // downloaded the huge CWC layer AND its fallback simultaneously,
+        // which caused the Rivers tab to become noticeably sluggish.
+        for (const url of urls) {
+          try {
+            const response = await fetch(url, { cache: "force-cache" });
+            if (!response.ok) throw new Error(`Feature layer request failed (${response.status})`);
+            const payload = await response.json();
+            if (Array.isArray(payload?.features) && payload.features.length) {
+              features = payload.features;
+              break;
+            }
+          } catch (sourceError) {
+            // Try the next verified fallback source only when necessary.
+          }
+        }
 
         if (!features.length) {
           throw new Error("No verified feature geometry was returned.");
@@ -1656,7 +1814,7 @@ export default function BharatDarshanPage() {
     return () => {
       cancelled = true;
     };
-  }, [mode, externalFeatureData]);
+  }, [mode]);
 
   /* ==========================================================
      DERIVED MAP DATA
@@ -1854,6 +2012,12 @@ export default function BharatDarshanPage() {
   ) {
     if (!geometry || !stateGeometry) return false;
 
+    // Fast reject before expensive point-in-polygon work. This matters
+    // heavily for the CWC river network on mobile devices.
+    if (!boundsOverlap(geometryBounds(geometry), geometryBounds(stateGeometry))) {
+      return false;
+    }
+
     const points = [];
 
     function collectPoints(g) {
@@ -1949,6 +2113,19 @@ export default function BharatDarshanPage() {
     return pointInGeometry(point, stateFeature.geometry);
   }
 
+  const verifiedIndiaRiverFeatures = useMemo(() => {
+    const sourceFeatures = externalFeatureData.rivers || [];
+    if (!sourceFeatures.length || !geoData?.length) return [];
+
+    // This expensive national filter runs only when the downloaded river
+    // layer or verified State/UT geometry changes — not on every state click.
+    return sourceFeatures.filter((feature) => {
+      const geometry = feature?.geometry;
+      if (!geometry) return false;
+      return geometryIntersectsAnyIndiaState(geometry, geoData);
+    });
+  }, [externalFeatureData.rivers, geoData]);
+
   const externalLayerItems = useMemo(() => {
     const sourceKey =
       mode === "rivers"
@@ -1968,7 +2145,9 @@ export default function BharatDarshanPage() {
     if (!sourceKey) return [];
 
     const sourceFeatures =
-      externalFeatureData[sourceKey] || [];
+      mode === "rivers"
+        ? verifiedIndiaRiverFeatures
+        : externalFeatureData[sourceKey] || [];
 
     const selectedStateFeature = selectedId
       ? geoData?.find((item) => item.id === selectedId)?.feature
@@ -2048,25 +2227,8 @@ export default function BharatDarshanPage() {
           }
         }
 
-        if (mode === "rivers") {
-          // Never render the global river network on the India map.
-          // With no selected state, a river segment must intersect at
-          // least one verified Indian State/UT polygon.
-          if (selectedStateFeature?.geometry) {
-            if (
-              !geometryIntersectsState(
-                item.geometry,
-                selectedStateFeature.geometry
-              )
-            ) {
-              return null;
-            }
-          } else if (
-            !geometryIntersectsAnyIndiaState(
-              item.geometry,
-              geoData
-            )
-          ) {
+        if (mode === "rivers" && selectedStateFeature?.geometry) {
+          if (!geometryIntersectsState(item.geometry, selectedStateFeature.geometry)) {
             return null;
           }
         }
@@ -2106,6 +2268,7 @@ export default function BharatDarshanPage() {
     externalFeatureData,
     knowledge,
     geoData,
+    verifiedIndiaRiverFeatures,
   ]);
 
   /* ==========================================================
@@ -3392,8 +3555,12 @@ export default function BharatDarshanPage() {
                       ];
 
                       return layerItems.map((item) => {
+                        const renderGeometry =
+                          item.type === "rivers"
+                            ? simplifyGeometryForMap(item.geometry)
+                            : item.geometry;
                         const path = featureGeometryPath(
-                          item.geometry,
+                          renderGeometry,
                           bounds,
                           720,
                           620
@@ -3439,7 +3606,7 @@ export default function BharatDarshanPage() {
                                   d={path}
                                   fill="none"
                                   stroke="transparent"
-                                  strokeWidth={item.type === "rivers" ? 18 : 14}
+                                  strokeWidth={item.type === "rivers" ? 14 : 14}
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   pointerEvents="stroke"
