@@ -937,6 +937,7 @@ export default function BharatDarshanPage() {
   const [selectedId, setSelectedId] = useState(null);
 
   const [selectedMapFeature, setSelectedMapFeature] = useState(null);
+  const [mapLayerVisible, setMapLayerVisible] = useState(true);
 
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -951,6 +952,17 @@ export default function BharatDarshanPage() {
   const [progress, setProgress] = useState({});
 
   const [reportFilter, setReportFilter] = useState("all");
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSelectedMapFeature(null);
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -1807,6 +1819,8 @@ export default function BharatDarshanPage() {
                 onClick={() => {
                   setMode(item.id);
                   setSearch("");
+                  setSelectedMapFeature(null);
+                  setMapLayerVisible(true);
                 }}
                 style={{
                   flex:
@@ -2036,6 +2050,42 @@ export default function BharatDarshanPage() {
                   ? "Loading..."
                   : `${filteredFeatures.length} mapped`}
               </div>
+
+              <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {mode !== "explore" ? (
+                  <button
+                    type="button"
+                    onClick={() => setMapLayerVisible((value) => !value)}
+                    style={{
+                      ...iconButton(ui),
+                      padding: "7px 10px",
+                      fontSize: 9,
+                      borderColor: mapLayerVisible ? modeAccent : ui.line,
+                      color: mapLayerVisible ? modeAccent : ui.muted,
+                    }}
+                    aria-pressed={mapLayerVisible}
+                  >
+                    {mapLayerVisible ? "Layer on" : "Layer off"}
+                  </button>
+                ) : null}
+
+                {(selectedId || selectedMapFeature) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(null);
+                      setSelectedMapFeature(null);
+                    }}
+                    style={{
+                      ...iconButton(ui),
+                      padding: "7px 10px",
+                      fontSize: 9,
+                    }}
+                  >
+                    Clear selection
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div
@@ -2235,7 +2285,7 @@ export default function BharatDarshanPage() {
                         Bharat Darshan data source are rendered. No centroid,
                         proximity or visual guessing is used.
                     ===================================================== */}
-                    {(() => {
+                    {mapLayerVisible && (() => {
                       const layerKey = getGeoLayerKey(mode);
                       if (!layerKey) return null;
 
@@ -2621,6 +2671,38 @@ export default function BharatDarshanPage() {
               </span>
             </div>
           </section>
+
+          {selectedMapFeature ? (
+            <section
+              style={{
+                marginTop: 12,
+                padding: 15,
+                borderRadius: 18,
+                border: `1px solid ${modeAccent}`,
+                background: ui.surface,
+                boxShadow: ui.shadow,
+              }}
+            >
+              <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.3px", color: modeAccent }}>
+                SELECTED MAP FEATURE
+              </div>
+              <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 950 }}>{selectedMapFeature.name}</div>
+                  <div style={{ marginTop: 4, fontSize: 9, color: ui.muted }}>
+                    {knowledge[selectedMapFeature.stateId]?.name || "India"} · {getModeLabel()}
+                  </div>
+                </div>
+                <span style={{ padding: "5px 8px", borderRadius: 999, border: `1px solid ${ui.line}`, color: modeAccent, fontSize: 8, fontWeight: 900 }}>
+                  VERIFIED MAP DATA
+                </span>
+              </div>
+              <div style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => { setSelectedId(selectedMapFeature.stateId); setMobilePanelOpen(true); }} style={{ border: 0, borderRadius: 10, padding: "9px 12px", background: modeAccent, color: "#111", fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Open state intelligence</button>
+                <button type="button" onClick={() => setSelectedMapFeature(null)} style={{ border: `1px solid ${ui.line}`, borderRadius: 10, padding: "9px 12px", background: ui.surface2, color: ui.text, fontWeight: 900, fontSize: 9, cursor: "pointer" }}>Close</button>
+              </div>
+            </section>
+          ) : null}
 
           {/* EXPLORER */}
           <aside
