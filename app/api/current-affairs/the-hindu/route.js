@@ -2442,8 +2442,6 @@ async function createArticleCandidates(
       relevanceScore:
         score,
 
-      headline_image_url:
-        "",
     });
   }
 
@@ -2494,10 +2492,6 @@ async function processThroughExistingAI(
 
                 original_subheadline:
                   candidate.original_subheadline,
-
-                headline_image_url:
-                  candidate.headline_image_url ||
-                  "",
 
                 date,
 
@@ -2646,29 +2640,6 @@ export async function POST(
     if (
       !dateCheck.valid
     ) {
-      await sendTelegramMessage(
-        telegramChatId,
-
-        [
-          "❌ <b>The Hindu PDF Rejected</b>",
-          "",
-          `📄 PDF date: <b>${
-            dateCheck.detectedDate ||
-            "Not found"
-          }</b>`,
-
-          `📅 Today: <b>${
-            dateCheck.currentDate
-          }</b>`,
-
-          "",
-
-          "Old/invalid newspaper PDF ko save nahi kiya gaya.",
-        ].join(
-          "\n"
-        )
-      );
-
       return NextResponse.json(
         {
           ok:
@@ -2765,28 +2736,6 @@ export async function POST(
           `https://t.me/SAMBHAVUPSC1/the-hindu/${fileUniqueId}#${articleSlug}`;
 
         /* -------------------------------------
-           ACTUAL THE HINDU HEADLINE CROP
-        ------------------------------------- */
-
-        candidate.headline_image_url =
-          await createTheHinduHeadlineImage(
-            downloaded.buffer,
-
-            candidate.original_headline,
-
-            fileUniqueId
-          );
-
-        if (
-          !candidate.headline_image_url
-        ) {
-          console.warn(
-            "Headline image unavailable:",
-            candidate.original_headline
-          );
-        }
-
-        /* -------------------------------------
            AI
         ------------------------------------- */
 
@@ -2805,10 +2754,6 @@ export async function POST(
 
           status:
             "processed",
-
-          headline_image_url:
-            candidate.headline_image_url ||
-            "",
 
           ai:
             aiResult,
@@ -2892,10 +2837,6 @@ export async function POST(
 
         "",
 
-        "📰 Actual newspaper headline cutting bhi generate/upload ki gayi.",
-
-        "",
-
         "📚 Supabase/App update complete.",
       ].join(
         "\n"
@@ -2935,26 +2876,6 @@ export async function POST(
     console.error(
       "THE HINDU PIPELINE FATAL ERROR:",
       error
-    );
-
-    await sendTelegramMessage(
-      telegramChatId,
-
-      [
-        "❌ <b>The Hindu Processing Failed</b>",
-        "",
-
-        `Error: <code>${
-          error?.message ||
-          "Unknown error"
-        }</code>`,
-
-        "",
-
-        "PDF process complete nahi ho paya.",
-      ].join(
-        "\n"
-      )
     );
 
     return NextResponse.json(
