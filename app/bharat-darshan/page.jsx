@@ -1816,7 +1816,12 @@ export default function BharatDarshanPage() {
      ========================================================== */
 
   function selectMapFeature(feature, stateId) {
+    if (!feature) return;
     setSelectedMapFeature({ ...feature, stateId });
+    if (stateId && knowledge[stateId]) {
+      setSelectedId(stateId);
+      setMobilePanelOpen(false);
+    }
   }
 
   function markMastered() {
@@ -2922,7 +2927,16 @@ export default function BharatDarshanPage() {
                             role="button"
                             tabIndex={0}
                             aria-label={`${item.name} map feature`}
+                            pointerEvents="all"
+                            onPointerDown={(event) => {
+                              event.stopPropagation();
+                              selectMapFeature(item, item.stateId);
+                            }}
                             onClick={(event) => {
+                              event.stopPropagation();
+                              selectMapFeature(item, item.stateId);
+                            }}
+                            onTouchStart={(event) => {
                               event.stopPropagation();
                               selectMapFeature(item, item.stateId);
                             }}
@@ -2932,29 +2946,53 @@ export default function BharatDarshanPage() {
                                 selectMapFeature(item, item.stateId);
                               }
                             }}
-                            style={{ cursor: "pointer" }}
+                            style={{ cursor: "pointer", pointerEvents: "all" }}
                           >
                             {path ? (
-                              <path
-                                d={path}
-                                fill={item.type === "ecology" ? "rgba(95,155,104,.18)" : "none"}
-                                stroke={getModeAccent(mode)}
-                                strokeWidth={isSelected ? 5 : 2.5}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                opacity={isSelected ? 1 : .82}
-                              />
+                              <>
+                                {/* Wider invisible touch target: keeps thin river lines easy to tap on mobile. */}
+                                <path
+                                  d={path}
+                                  fill="none"
+                                  stroke="transparent"
+                                  strokeWidth={item.type === "rivers" ? 18 : 14}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  pointerEvents="stroke"
+                                />
+                                <path
+                                  d={path}
+                                  fill={item.type === "ecology" ? "rgba(95,155,104,.18)" : "none"}
+                                  stroke={getModeAccent(mode)}
+                                  strokeWidth={isSelected ? 5 : 2.5}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  opacity={isSelected ? 1 : .82}
+                                  pointerEvents="stroke"
+                                />
+                              </>
                             ) : null}
                             {point ? (
-                              <circle
-                                cx={point[0]}
-                                cy={point[1]}
-                                r={isSelected ? 8 : 5}
-                                fill={getModeAccent(mode)}
-                                stroke="white"
-                                strokeWidth="2"
-                                opacity={isSelected ? 1 : .9}
-                              />
+                              <>
+                                {/* Wider invisible touch target for point features. */}
+                                <circle
+                                  cx={point[0]}
+                                  cy={point[1]}
+                                  r={isSelected ? 16 : 13}
+                                  fill="transparent"
+                                  pointerEvents="all"
+                                />
+                                <circle
+                                  cx={point[0]}
+                                  cy={point[1]}
+                                  r={isSelected ? 8 : 5}
+                                  fill={getModeAccent(mode)}
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  opacity={isSelected ? 1 : .9}
+                                  pointerEvents="none"
+                                />
+                              </>
                             ) : null}
                           </g>
                         );
