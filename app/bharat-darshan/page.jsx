@@ -59,6 +59,193 @@ const FEATURE_GEOJSON_SOURCES = {
   ],
 };
 
+
+/* ============================================================
+   RIVER INTELLIGENCE — UPSC MAP CARD
+   Verified/curated from India-WRIS/CWC/NRSC/ISRO and official
+   river-governance sources. The page never invents missing fields.
+   ============================================================ */
+const RIVER_INTELLIGENCE = {
+  ganga: {
+    origin: "Bhagirathi at Gangotri Glacier near Gomukh, Uttarakhand; becomes Ganga at Devprayag after meeting Alaknanda.",
+    states: "Uttarakhand → Uttar Pradesh → Bihar → Jharkhand → West Bengal",
+    tributaries: "Yamuna, Son, Ramganga, Ghaghara, Gandak, Kosi, Mahananda; major sub-tributaries include Chambal and Betwa.",
+    end: "Bay of Bengal / Ganga–Brahmaputra–Meghna delta",
+    governance: "Namami Gange / National Mission for Clean Ganga (NMCG)",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  yamuna: {
+    origin: "Yamunotri Glacier, Uttarakhand, in the Bandarpunch massif.",
+    states: "Uttarakhand → Himachal Pradesh (course/boundary stretches) → Haryana → Delhi → Uttar Pradesh",
+    tributaries: "Tons, Chambal, Sindh, Betwa, Ken; Hindon and several smaller tributaries join in the lower basin.",
+    end: "Confluences with the Ganga at Prayagraj, Uttar Pradesh.",
+    governance: "Yamuna Action Plan / National River Conservation Programme; river rejuvenation is also addressed under central river-cleaning programmes.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  brahmaputra: {
+    origin: "Rises in the Tibetan Himalaya; enters India through Arunachal Pradesh as Siang/Dihang.",
+    states: "Arunachal Pradesh → Assam",
+    tributaries: "Dibang, Lohit, Subansiri, Kameng/Jia-Bharali, Manas, Dhansiri, Kopili.",
+    end: "Enters Bangladesh, where it joins the Ganga system and ultimately drains to the Bay of Bengal.",
+    governance: "National Waterway-2 and basin-level water-resources management; no bilateral treaty is asserted here without a river-specific verified source.",
+    sourceUrl: "https://indiawris.gov.in/",
+  },
+  narmada: {
+    origin: "Amarkantak region, Madhya Pradesh.",
+    states: "Madhya Pradesh → Maharashtra/Gujarat boundary stretches → Gujarat",
+    tributaries: "Tawa, Hiran, Orsang, Kolar and other tributaries.",
+    end: "Gulf of Khambhat (Arabian Sea).",
+    governance: "Sardar Sarovar Project; Narmada Water Disputes Tribunal Award.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Narmada%20Basin.pdf",
+  },
+  godavari: {
+    origin: "Trimbakeshwar/Nashik region, Maharashtra, in the Western Ghats.",
+    states: "Maharashtra → Telangana → Andhra Pradesh",
+    tributaries: "Pranhita, Indravati, Sabari, Manjira, Maner and Purna among major tributaries.",
+    end: "Bay of Bengal, through the Godavari delta in Andhra Pradesh.",
+    governance: "Polavaram Project and Godavari Water Disputes Tribunal framework.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/godavari-water-disputes-tribunal-april-1969",
+  },
+  krishna: {
+    origin: "Near Jor village, Satara district, Maharashtra, near Mahabaleshwar in the Western Ghats.",
+    states: "Maharashtra → Karnataka → Telangana → Andhra Pradesh",
+    tributaries: "Bhima, Tungabhadra, Ghataprabha, Malaprabha, Koyna, Musi, Munneru and others.",
+    end: "Bay of Bengal.",
+    governance: "Krishna Water Disputes Tribunal framework; major basin projects include Nagarjuna Sagar and Srisailam.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Krishna%20Basin.pdf",
+  },
+  mahanadi: {
+    origin: "Dhamtari district, Chhattisgarh.",
+    states: "Chhattisgarh → Odisha",
+    tributaries: "Seonath, Hasdeo, Mand, Ib, Ong, Tel and Jonk among major tributaries.",
+    end: "Bay of Bengal.",
+    governance: "Hirakud Project and Mahanadi basin water-management framework; no additional treaty is asserted without a verified river-specific source.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Mahanadi%20Basin.pdf",
+  },
+  cauvery: {
+    origin: "Talakaveri in the Brahmagiri Hills, Karnataka.",
+    states: "Karnataka → Tamil Nadu → Puducherry (Karaikal region via delta system)",
+    tributaries: "Kabini, Hemavati, Harangi, Shimsha, Arkavathi, Bhavani, Noyyal and Amaravati.",
+    end: "Bay of Bengal.",
+    governance: "Cauvery Water Management Authority / Cauvery Water Regulation Committee under the inter-state water-dispute framework.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  tapi: {
+    origin: "Multai, Betul district, Madhya Pradesh.",
+    states: "Madhya Pradesh → Maharashtra → Gujarat",
+    tributaries: "Purna, Girna, Panjhra, Waghur, Aner and others.",
+    end: "Gulf of Khambhat (Arabian Sea).",
+    governance: "Ukai Project and Tapi basin water-resources management.",
+    sourceUrl: "https://indiawris.gov.in/",
+  },
+  son: {
+    origin: "Maikala range, near Amarkantak/Sonbhadra region of Madhya Pradesh.",
+    states: "Madhya Pradesh → Uttar Pradesh → Bihar",
+    tributaries: "Rihand, Kanhar, North Koel, Gopat, Banas and others.",
+    end: "Joins the Ganga near Patna/Dinapur, Bihar.",
+    governance: "Rihand Dam is a major project in the Son sub-basin.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  gandak: {
+    origin: "Himalayan system of Nepal/Tibet; the river enters the Indian plains at Valmikinagar, Bihar.",
+    states: "Uttar Pradesh/Bihar border stretches → Bihar",
+    tributaries: "Kali Gandaki, Trishuli and other Himalayan tributary streams.",
+    end: "Joins the Ganga near Patna, Bihar.",
+    governance: "Valmikinagar/Gandak Barrage and the Gandak basin's India–Nepal water-management arrangements.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  kosi: {
+    origin: "Himalayan system of Tibet/Nepal; formed by major Himalayan streams including Arun, Sun Kosi and Tamur systems.",
+    states: "Bihar (Indian course)",
+    tributaries: "Arun, Sun Kosi, Tamur and associated Himalayan streams.",
+    end: "Joins the Ganga in Bihar.",
+    governance: "Kosi Barrage / India–Nepal Kosi Project framework.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  ghaghara: {
+    origin: "Himalayan/Tibetan–Nepalese river system; known as Karnali in the upper reaches.",
+    states: "Uttar Pradesh → Bihar",
+    tributaries: "Rapti, Little Gandak and other Himalayan/foothill tributaries.",
+    end: "Joins the Ganga in Bihar.",
+    governance: "Gandak/Ganga basin water management; no separate treaty is asserted here without a verified river-specific source.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  chambal: {
+    origin: "Janapav Hills, Madhya Pradesh.",
+    states: "Madhya Pradesh → Rajasthan → Uttar Pradesh",
+    tributaries: "Banas, Kali Sindh, Parbati and Mej among major tributaries.",
+    end: "Joins the Yamuna in Uttar Pradesh.",
+    governance: "Gandhi Sagar, Rana Pratap Sagar, Jawahar Sagar and Kota Barrage form the major Chambal cascade.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Ganga%20Basin.pdf",
+  },
+  betwa: {
+    origin: "Vindhyan range, Madhya Pradesh.",
+    states: "Madhya Pradesh → Uttar Pradesh",
+    tributaries: "Dhasan, Jamni and other tributaries.",
+    end: "Joins the Yamuna near Hamirpur, Uttar Pradesh.",
+    governance: "Ken–Betwa Link Project; Betwa basin water-management projects.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  jhelum: {
+    origin: "Verinag spring, Jammu & Kashmir, in the southeastern Kashmir Valley.",
+    states: "Jammu & Kashmir (UT)",
+    tributaries: "Lidder, Sindh and Pohru among important tributaries.",
+    end: "Enters Pakistan and joins the Chenab, ultimately forming part of the Indus system.",
+    governance: "Indus Waters Treaty (1960) framework.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  sutlej: {
+    origin: "Tibetan Plateau; enters India through Himachal Pradesh near Shipki La.",
+    states: "Himachal Pradesh → Punjab",
+    tributaries: "Spiti, Baspa and other Himalayan tributaries.",
+    end: "Joins the Beas at Harike and continues through the Indus river system in Pakistan.",
+    governance: "Bhakra-Nangal Project; Indus Waters Treaty framework.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  ravi: {
+    origin: "Himalayan region of Himachal Pradesh.",
+    states: "Himachal Pradesh → Punjab",
+    tributaries: "Budhil, Siul and other Himalayan tributaries.",
+    end: "Flows into Pakistan and joins the Chenab system.",
+    governance: "Indus Waters Treaty framework; Ranjit Sagar/Thien Dam is a major basin project.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  beas: {
+    origin: "Beas Kund near Rohtang Pass, Himachal Pradesh.",
+    states: "Himachal Pradesh → Punjab",
+    tributaries: "Parbati, Binwa, Banganga and other tributaries.",
+    end: "Joins the Sutlej at Harike, Punjab.",
+    governance: "Beas Project / Pong Dam; Indus Waters Treaty framework.",
+    sourceUrl: "https://www.jalshakti-dowr.gov.in/",
+  },
+  mahi: {
+    origin: "Vindhya Range, Madhya Pradesh.",
+    states: "Madhya Pradesh → Rajasthan → Gujarat",
+    tributaries: "Som, Anas and Panam among important tributaries.",
+    end: "Gulf of Khambhat (Arabian Sea).",
+    governance: "Mahi Bajaj Sagar Project and basin water-resources management.",
+    sourceUrl: "https://indiawris.gov.in/downloads/Mahi%20Basin.pdf",
+  },
+};
+
+function riverKey(value) {
+  const n = normalizeName(value).replace(/\briver\b/g, "").trim();
+  const aliases = {
+    "ganga river": "ganga", gang: "ganga",
+    yamuna: "yamuna", jamuna: "yamuna",
+    brahmaputra: "brahmaputra", siang: "brahmaputra", dihang: "brahmaputra",
+    narmada: "narmada", narbada: "narmada",
+    godavari: "godavari", krishna: "krishna",
+    mahanadi: "mahanadi", cauvery: "cauvery", kaveri: "cauvery",
+    tapi: "tapi", tapti: "tapi",
+    son: "son", sone: "son", gandak: "gandak",
+    kosi: "kosi", koshi: "kosi", ghaghara: "ghaghara", ghaghar: "ghaghara",
+    chambal: "chambal", betwa: "betwa", jhelum: "jhelum",
+    sutlej: "sutlej", satluj: "sutlej", ravi: "ravi", beas: "beas", mahi: "mahi",
+  };
+  return aliases[n] || n;
+}
+
 /* ============================================================
    MODES
    ============================================================ */
@@ -1730,25 +1917,52 @@ export default function BharatDarshanPage() {
     if (!feature) return null;
 
     const state = feature.stateId ? knowledge[feature.stateId] : null;
+    const props = feature.properties || {};
+    const featureName = feature.name || feature.matchedName || props.name || props.NAME || "Map feature";
+
+    if (mode === "rivers" || feature.type === "rivers") {
+      const river = RIVER_INTELLIGENCE[riverKey(featureName)];
+      const facts = [];
+      if (river) {
+        facts.push(
+          { label: "Origin", value: river.origin },
+          { label: "States of flow", value: river.states },
+          { label: "Tributaries", value: river.tributaries },
+          { label: "End / outlet", value: river.end },
+          { label: "Project / treaty", value: river.governance },
+        );
+      } else {
+        const propertyPairs = [
+          ["Origin", props.origin || props.ORIGIN || props.source_name],
+          ["Basin", props.basin || props.BASIN || props.basin_name],
+          ["Tributaries", props.tributaries || props.TRIBUTARIES],
+          ["End / outlet", props.outlet || props.OUTLET || props.mouth || props.MOUTH],
+          ["State", props.state || props.STATE || props.state_name || props.ST_NM],
+        ].filter(([, value]) => value !== undefined && value !== null && String(value).trim());
+        propertyPairs.forEach(([label, value]) => facts.push({ label, value: Array.isArray(value) ? value.join(", ") : String(value) }));
+      }
+
+      if (!facts.length) {
+        facts.push({ label: "Verified status", value: "River-specific intelligence is not available in the verified source for this feature." });
+      }
+
+      return {
+        name: featureName,
+        stateName: state?.name || props.state || props.STATE || "India",
+        modeLabel: "Rivers",
+        facts,
+        description: river
+          ? "UPSC river intelligence: source, Indian course, major tributaries, outlet and verified governance/project context."
+          : "Verified river geometry selected. River-specific fields are shown only when supported by the verified dataset.",
+        sourceUrl: river?.sourceUrl || feature.sourceUrl || "https://indiawris.gov.in/",
+        river: true,
+      };
+    }
+
     const staticItems = state
-      ? (mode === "rivers"
-          ? state.rivers
-          : mode === "mountains"
-          ? state.relief
-          : mode === "ecology"
-          ? state.ecology
-          : mode === "minerals"
-          ? state.minerals
-          : mode === "agriculture"
-          ? state.crops
-          : mode === "coastal"
-          ? state.coastal
-          : mode === "climate"
-          ? [state.climate]
-          : [])
+      ? (mode === "mountains" ? state.relief : mode === "ecology" ? state.ecology : mode === "minerals" ? state.minerals : mode === "agriculture" ? state.crops : mode === "coastal" ? state.coastal : mode === "climate" ? [state.climate] : [])
       : [];
 
-    const props = feature.properties || {};
     const propertyPairs = [
       ["Origin", props.origin || props.ORIGIN || props.source_name],
       ["Basin", props.basin || props.BASIN || props.basin_name],
@@ -1775,20 +1989,18 @@ export default function BharatDarshanPage() {
       facts.push({ label, value: text });
       if (facts.length >= 4) break;
     }
-
-    if (!facts.length && staticItems.length) {
-      facts.push({ label: "Static association", value: staticItems.slice(0, 5).join(" • ") });
-    }
+    if (!facts.length && staticItems.length) facts.push({ label: "Static association", value: staticItems.slice(0, 5).join(" • ") });
     if (state?.capital && facts.length < 4) facts.push({ label: "State capital", value: state.capital });
     if (state?.region && facts.length < 4) facts.push({ label: "Region", value: state.region });
 
     return {
-      name: feature.name || feature.matchedName || "Map feature",
+      name: featureName,
       stateName: state?.name || props.state || props.STATE || "India",
       modeLabel: getModeLabel(),
       facts,
       description: feature.description || props.description || props.DESCRIPTION || "Verified map feature linked to Bharat Darshan geography data.",
       sourceUrl: feature.sourceUrl || "",
+      river: false,
     };
   }
 
@@ -3206,6 +3418,36 @@ export default function BharatDarshanPage() {
                       const point = featurePoint(selectedMapFeature, bounds, 720, 620);
                       const info = getFeatureIntelligence(selectedMapFeature);
                       if (!point || !info) return null;
+                      const accent = getModeAccent(mode);
+                      if (info.river) {
+                        const cardWidth = 340;
+                        const cardHeight = 365;
+                        const cardX = point[0] < 360 ? 365 : 15;
+                        const cardY = Math.max(10, Math.min(245, point[1] - 110));
+                        const targetX = cardX < point[0] ? cardX + cardWidth : cardX;
+                        return (
+                          <g>
+                            <line x1={point[0]} y1={point[1]} x2={targetX} y2={cardY + 32} stroke={accent} strokeWidth="2.5" strokeDasharray="6 4" pointerEvents="none" />
+                            <circle cx={point[0]} cy={point[1]} r="7" fill={accent} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2.5" pointerEvents="none" />
+                            <foreignObject x={cardX} y={cardY} width={cardWidth} height={cardHeight} pointerEvents="all">
+                              <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: "100%", height: "100%", boxSizing: "border-box", padding: 14, borderRadius: 18, background: theme === "dark" ? "#111" : "#fffdf8", color: theme === "dark" ? "#fff" : "#171717", border: `1.5px solid ${accent}`, boxShadow: "0 18px 45px rgba(0,0,0,.28)", fontFamily: "inherit", overflow: "hidden" }}>
+                                <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.2px", color: accent }}>RIVER INTELLIGENCE</div>
+                                <div style={{ marginTop: 5, fontSize: 21, fontWeight: 950, lineHeight: 1 }}>{info.name}</div>
+                                <div style={{ marginTop: 4, fontSize: 8, color: theme === "dark" ? "#aaa" : "#666" }}>{info.stateName} · UPSC Map Feature</div>
+                                <div style={{ marginTop: 9, display: "grid", gap: 6 }}>
+                                  {info.facts.slice(0, 5).map((fact, index) => (
+                                    <div key={`${fact.label}-${index}`} style={{ padding: "6px 7px", borderRadius: 9, background: theme === "dark" ? "#1b1b1a" : "#f2efe7", border: `1px solid ${theme === "dark" ? "#2b2b29" : "#e1ddd2"}` }}>
+                                      <div style={{ fontSize: 6.5, fontWeight: 950, letterSpacing: ".7px", textTransform: "uppercase", color: accent }}>{fact.label}</div>
+                                      <div style={{ marginTop: 2, fontSize: 7.5, lineHeight: 1.35, color: theme === "dark" ? "#ddd" : "#333" }}>{fact.value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{ marginTop: 7, fontSize: 6.5, color: theme === "dark" ? "#8f8f8f" : "#777", lineHeight: 1.3 }}>Verified river intelligence • Source: India-WRIS / Government water-resources sources</div>
+                              </div>
+                            </foreignObject>
+                          </g>
+                        );
+                      }
                       const cardWidth = 250;
                       const cardHeight = 150;
                       const cardX = point[0] < 360 ? 452 : 18;
@@ -3213,15 +3455,13 @@ export default function BharatDarshanPage() {
                       const targetX = cardX < point[0] ? cardX + 8 : cardX + cardWidth - 8;
                       return (
                         <g pointerEvents="none">
-                          <line x1={point[0]} y1={point[1]} x2={targetX} y2={cardY + 34} stroke={getModeAccent(mode)} strokeWidth="2" strokeDasharray="5 4" />
-                          <circle cx={point[0]} cy={point[1]} r="6" fill={getModeAccent(mode)} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2" />
-                          <rect x={cardX} y={cardY} width={cardWidth} height={cardHeight} rx="16" fill={theme === "dark" ? "#111111" : "#fffdf8"} stroke={getModeAccent(mode)} strokeWidth="1.5" />
+                          <line x1={point[0]} y1={point[1]} x2={targetX} y2={cardY + 34} stroke={accent} strokeWidth="2" strokeDasharray="5 4" />
+                          <circle cx={point[0]} cy={point[1]} r="6" fill={accent} stroke={theme === "dark" ? "#111" : "#fff"} strokeWidth="2" />
+                          <rect x={cardX} y={cardY} width={cardWidth} height={cardHeight} rx="16" fill={theme === "dark" ? "#111111" : "#fffdf8"} stroke={accent} strokeWidth="1.5" />
                           <text x={cardX + 14} y={cardY + 23} fontSize="13" fontWeight="800" fill={theme === "dark" ? "#fff" : "#161616"}>{info.name}</text>
-                          <text x={cardX + 14} y={cardY + 42} fontSize="9" fontWeight="800" fill={getModeAccent(mode)}>{info.stateName} · {info.modeLabel}</text>
-                          {info.facts.slice(0, 3).map((fact, index) => (
-                            <text key={`${fact.label}-${index}`} x={cardX + 14} y={cardY + 63 + index * 22} fontSize="8" fill={theme === "dark" ? "#d4d4d4" : "#555"}>{fact.label}: {fact.value.length > 32 ? `${fact.value.slice(0, 32)}…` : fact.value}</text>
-                          ))}
-                          <text x={cardX + 14} y={cardY + 133} fontSize="8" fontWeight="700" fill={getModeAccent(mode)}>Map feature selected</text>
+                          <text x={cardX + 14} y={cardY + 42} fontSize="9" fontWeight="800" fill={accent}>{info.stateName} · {info.modeLabel}</text>
+                          {info.facts.slice(0, 3).map((fact, index) => (<text key={`${fact.label}-${index}`} x={cardX + 14} y={cardY + 63 + index * 22} fontSize="8" fill={theme === "dark" ? "#d4d4d4" : "#555"}>{fact.label}: {fact.value.length > 32 ? `${fact.value.slice(0, 32)}…` : fact.value}</text>))}
+                          <text x={cardX + 14} y={cardY + 133} fontSize="8" fontWeight="700" fill={accent}>Map feature selected</text>
                         </g>
                       );
                     })() : null}
@@ -3361,7 +3601,7 @@ export default function BharatDarshanPage() {
             </div>
           </section>
 
-          {selectedMapFeature ? (() => {
+          {selectedMapFeature && mode !== "rivers" ? (() => {
             const info = getFeatureIntelligence(selectedMapFeature);
             if (!info) return null;
             return (
