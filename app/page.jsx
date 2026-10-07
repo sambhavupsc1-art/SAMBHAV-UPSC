@@ -1053,6 +1053,12 @@ function PublicLanding({ theme, toggleTheme }) {
         "Daily UPSC-focused intelligence with exam-oriented revision.",
     },
     {
+      icon: "◉",
+      title: "Bharat Darshan",
+      text:
+        "Interactive India Geography, maps, active recall, quizzes and UPSC-focused revision.",
+    },
+    {
       icon: "◎",
       title: "PYQ Intelligence",
       text:
@@ -1206,7 +1212,24 @@ function PublicLanding({ theme, toggleTheme }) {
               {features.map((feature, index) => (
                 <div
                   key={feature.title}
-                  style={{ ...styles.featureCard, background: publicUi.surface, border: `1px solid ${publicUi.line}`, color: publicUi.text, boxShadow: dark ? "0 8px 24px rgba(0,0,0,0.22)" : styles.featureCard.boxShadow }}
+                  onClick={() => {
+                    if (feature.title === "Bharat Darshan") {
+                      window.location.href = "/bharat-darshan";
+                    }
+                  }}
+                  style={{
+                    ...styles.featureCard,
+                    background: publicUi.surface,
+                    border: `1px solid ${publicUi.line}`,
+                    color: publicUi.text,
+                    boxShadow: dark
+                      ? "0 8px 24px rgba(0,0,0,0.22)"
+                      : styles.featureCard.boxShadow,
+                    cursor:
+                      feature.title === "Bharat Darshan"
+                        ? "pointer"
+                        : "default",
+                  }}
                 >
                   <div style={styles.featureIcon}>
                     {feature.icon}
