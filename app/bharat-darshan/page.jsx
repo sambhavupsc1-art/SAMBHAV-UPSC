@@ -36,6 +36,9 @@ const GEOJSON_URL =
 */
 const FEATURE_GEOJSON_SOURCES = {
   rivers: [
+    // CWC / National Water Data Portal — River Network (updated Nov 2025).
+    "https://nwdp.nwic.gov.in/dataset/3209962f-d0ff-45b8-910a-209bf69a0ccf/resource/6e552705-842d-40a4-92b2-8506bb66df2a/download/river_network.geojson",
+    // Fallback for major named rivers if the CWC endpoint is unavailable.
     "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_rivers_lake_centerlines.geojson",
   ],
   ecology: [
@@ -186,6 +189,14 @@ const RIVER_INTELLIGENCE = {
     governance: "Ken–Betwa Link Project; Betwa basin water-management projects.",
     sourceUrl: "https://www.jalshakti-dowr.gov.in/",
   },
+  indus: {
+    origin: "Near Lake Manasarovar / Tibetan Plateau, Tibet (China).",
+    states: "India (Ladakh) → Pakistan.",
+    tributaries: "Zanskar, Shyok, Gilgit, Kabul, Jhelum, Chenab, Ravi, Beas and Sutlej are part of the wider Indus river system.",
+    end: "Arabian Sea near the Indus Delta, Sindh, Pakistan.",
+    governance: "Indus Waters Treaty, 1960 — the Indus is one of the Western Rivers under the treaty's India–Pakistan water-sharing framework.",
+    sourceUrl: "https://www.mea.gov.in/bilateral-documents.htm?dtl%2F6439%2FIndus=&outputType=chromeless",
+  },
   jhelum: {
     origin: "Verinag spring, Jammu & Kashmir, in the southeastern Kashmir Valley.",
     states: "Jammu & Kashmir (UT)",
@@ -231,10 +242,11 @@ const RIVER_INTELLIGENCE = {
 function riverKey(value) {
   const n = normalizeName(value).replace(/\briver\b/g, "").trim();
   const aliases = {
-    "ganga river": "ganga", gang: "ganga",
-    yamuna: "yamuna", jamuna: "yamuna",
-    brahmaputra: "brahmaputra", siang: "brahmaputra", dihang: "brahmaputra",
-    narmada: "narmada", narbada: "narmada",
+    "ganga river": "ganga", ganges: "ganga", "ganges river": "ganga", gang: "ganga",
+    yamuna: "yamuna", jamuna: "yamuna", "yamuna river": "yamuna",
+    brahmaputra: "brahmaputra", "brahmaputra river": "brahmaputra", siang: "brahmaputra", dihang: "brahmaputra",
+    indus: "indus", "indus river": "indus", sindhu: "indus",
+    narmada: "narmada", narbada: "narmada", "narmada river": "narmada",
     godavari: "godavari", krishna: "krishna",
     mahanadi: "mahanadi", cauvery: "cauvery", kaveri: "cauvery",
     tapi: "tapi", tapti: "tapi",
@@ -1836,6 +1848,86 @@ export default function BharatDarshanPage() {
     return false;
   }
 
+  function geometryIntersectsState(
+    geometry,
+    stateGeometry
+  ) {
+    if (!geometry || !stateGeometry) return false;
+
+    const points = [];
+
+    function collectPoints(g) {
+      if (!g) return;
+
+      if (g.type === "Point") {
+        if (Array.isArray(g.coordinates)) {
+          points.push(g.coordinates);
+        }
+        return;
+      }
+
+      if (
+        g.type === "LineString" ||
+        g.type === "MultiPoint"
+      ) {
+        if (Array.isArray(g.coordinates)) {
+          g.coordinates.forEach((point) => {
+            if (Array.isArray(point)) {
+              points.push(point);
+            }
+          });
+        }
+        return;
+      }
+
+      if (
+        g.type === "MultiLineString" ||
+        g.type === "Polygon"
+      ) {
+        if (Array.isArray(g.coordinates)) {
+          g.coordinates.forEach((part) => {
+            if (Array.isArray(part)) {
+              part.forEach((point) => {
+                if (
+                  Array.isArray(point) &&
+                  Number.isFinite(Number(point[0])) &&
+                  Number.isFinite(Number(point[1]))
+                ) {
+                  points.push(point);
+                }
+              });
+            }
+          });
+        }
+        return;
+      }
+
+      if (g.type === "MultiPolygon") {
+        if (Array.isArray(g.coordinates)) {
+          g.coordinates.forEach((polygon) =>
+            polygon.forEach((ring) =>
+              ring.forEach((point) => {
+                if (
+                  Array.isArray(point) &&
+                  Number.isFinite(Number(point[0])) &&
+                  Number.isFinite(Number(point[1]))
+                ) {
+                  points.push(point);
+                }
+              })
+            )
+          );
+        }
+      }
+    }
+
+    collectPoints(geometry);
+
+    return points.some((point) =>
+      pointInGeometry(point, stateGeometry)
+    );
+  }
+
   function featureInsideSelectedState(feature, stateId) {
     if (!stateId) return false;
     const stateFeature = geoData?.find((item) => item.id === stateId)?.feature;
@@ -1867,28 +1959,35 @@ export default function BharatDarshanPage() {
     const sourceFeatures =
       externalFeatureData[sourceKey] || [];
 
-    const selectedState =
-      selectedId ? knowledge[selectedId] : null;
+    const selectedStateFeature = selectedId
+      ? geoData?.find((item) => item.id === selectedId)?.feature
+      : null;
 
-    const targetNames = selectedState
-      ? getModeItemsForSearch(selectedState, mode)
+    const targetNames = selectedId
+      ? getModeItemsForSearch(knowledge[selectedId], mode)
       : Object.values(knowledge).flatMap((state) =>
           getModeItemsForSearch(state, mode)
         );
 
+    const broadLayer =
+      mode === "mountains" ||
+      mode === "minerals" ||
+      mode === "agriculture";
+
     const seen = new Set();
 
+    /*
+      RIVERS:
+      - If a State/UT is selected, show every verified river geometry
+        that actually intersects that polygon.
+      - Do not rely only on the static data names.
+      - If no State/UT is selected, show the verified national river network.
+      - No centroid, nearest-state or approximate placement is used.
+    */
     return sourceFeatures
       .map((feature, index) => {
         const name = externalFeatureName(feature);
-        const matchedTarget = targetNames.find((target) =>
-          externalFeatureMatchesName(name, target)
-        );
-
-        const broadLayer =
-          mode === "mountains" || mode === "minerals" || mode === "agriculture";
-
-        if (!matchedTarget && !broadLayer) return null;
+        if (!name) return null;
 
         const item = geoJsonFeatureToMapItem(
           feature,
@@ -1898,22 +1997,77 @@ export default function BharatDarshanPage() {
 
         if (!item) return null;
 
-        if (broadLayer) {
-          if (!selectedId) return null;
-          const propertyStateId = canonicalId(item.properties || {});
-          const insideSelectedState = featureInsideSelectedState(item, selectedId);
-          if (propertyStateId && propertyStateId !== selectedId) return null;
-          if (!propertyStateId && !insideSelectedState) return null;
+        const matchedTarget = targetNames.find((target) =>
+          externalFeatureMatchesName(name, target)
+        );
+
+        if (
+          !matchedTarget &&
+          !broadLayer &&
+          mode !== "rivers"
+        ) {
+          return null;
         }
 
-        const key = normalizeName(name);
+        if (broadLayer) {
+          if (!selectedId) return null;
+
+          const propertyStateId = canonicalId(
+            item.properties || {}
+          );
+
+          const insideSelectedState =
+            featureInsideSelectedState(
+              item,
+              selectedId
+            );
+
+          if (
+            propertyStateId &&
+            propertyStateId !== selectedId
+          ) {
+            return null;
+          }
+
+          if (
+            !propertyStateId &&
+            !insideSelectedState
+          ) {
+            return null;
+          }
+        }
+
+        if (
+          mode === "rivers" &&
+          selectedStateFeature?.geometry &&
+          !geometryIntersectsState(
+            item.geometry,
+            selectedStateFeature.geometry
+          )
+        ) {
+          return null;
+        }
+
+        /*
+          Keep verified geometry segments. We intentionally do not
+          deduplicate by river name because doing so can hide portions
+          of a long river such as Ganga, Yamuna or Indus.
+        */
+        const key = `${normalizeName(name)}-${index}`;
         if (seen.has(key)) return null;
         seen.add(key);
 
-        const propertyStateId = canonicalId(item.properties || {});
+        const propertyStateId = canonicalId(
+          item.properties || {}
+        );
+
         const resolvedStateId =
           propertyStateId ||
-          (matchedTarget && selectedId ? selectedId : null);
+          (selectedId && mode === "rivers"
+            ? selectedId
+            : matchedTarget && selectedId
+            ? selectedId
+            : null);
 
         return {
           ...item,
@@ -1928,6 +2082,7 @@ export default function BharatDarshanPage() {
     selectedId,
     externalFeatureData,
     knowledge,
+    geoData,
   ]);
 
   /* ==========================================================
