@@ -679,6 +679,72 @@ const RECALL_ITEMS = [
 ];
 
 /* ============================================================
+   DATA-DRIVEN TIMED TEST BANK
+   ============================================================ */
+
+function buildTimedQuestionBank(knowledge) {
+  const states = Object.values(knowledge || {}).filter(Boolean);
+  if (states.length < 4) return [];
+
+  const questions = [];
+  const categories = [
+    ["rivers", "river"],
+    ["relief", "relief feature"],
+    ["ecology", "protected area"],
+    ["minerals", "mineral/resource"],
+    ["crops", "crop"],
+    ["coastal", "coastal feature"],
+  ];
+
+  for (const state of states) {
+    if (state.capital && !String(state.capital).toLowerCase().includes("unavailable")) {
+      questions.push({
+        q: `Which State / UT has ${state.capital} as its capital?`,
+        options: [],
+        answerStateId: state.id,
+        explanation: `${state.capital} is listed as the capital of ${state.name} in the Bharat Darshan data.`,
+      });
+    }
+
+    for (const [key, label] of categories) {
+      const items = Array.isArray(state[key]) ? state[key] : [];
+      for (const raw of items.slice(0, 3)) {
+        const item = String(raw || "").trim();
+        if (!item || item.toLowerCase().includes("unavailable")) continue;
+        questions.push({
+          q: `Which State / UT is associated with ${item}?`,
+          options: [],
+          answerStateId: state.id,
+          explanation: `${item} is listed under ${label} for ${state.name} in the Bharat Darshan data.`,
+        });
+      }
+    }
+  }
+
+  const unique = [];
+  const seen = new Set();
+  for (const question of questions) {
+    const key = question.q.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const answerState = knowledge[question.answerStateId];
+    if (!answerState) continue;
+    const distractors = states
+      .filter((state) => state.id !== answerState.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const optionStates = [answerState, ...distractors].sort(() => Math.random() - 0.5);
+    unique.push({
+      ...question,
+      options: optionStates.map((state) => state.name),
+      answer: optionStates.findIndex((state) => state.id === answerState.id),
+    });
+  }
+
+  return unique;
+}
+
+/* ============================================================
    OFFICIAL REPORTS / LATEST DATA
    ============================================================
 
@@ -1082,8 +1148,15 @@ export default function BharatDarshanPage() {
 
   const [timedMode, setTimedMode] = useState(null);
   const [timedStarted, setTimedStarted] = useState(false);
+  const [timedFinished, setTimedFinished] = useState(false);
   const [timedIndex, setTimedIndex] = useState(0);
   const [timedScore, setTimedScore] = useState(0);
+  const [timedCorrect, setTimedCorrect] = useState(0);
+  const [timedWrong, setTimedWrong] = useState(0);
+  const [timedAnswer, setTimedAnswer] = useState(null);
+  const [timedAnswered, setTimedAnswered] = useState(false);
+  const [timedTimeLeft, setTimedTimeLeft] = useState(0);
+  const [timedQuestions, setTimedQuestions] = useState([]);
 
   const [externalFeatureData, setExternalFeatureData] = useState({});
   const [externalFeatureLoading, setExternalFeatureLoading] = useState(false);
@@ -1312,6 +1385,14 @@ export default function BharatDarshanPage() {
   const modeAccent = getModeAccent(mode);
 
   const totalStates = Object.keys(knowledge).length;
+
+  const timedQuestionPool = useMemo(
+    () => buildTimedQuestionBank(knowledge),
+    [knowledge]
+  );
+
+  const currentTimedQuestion =
+    timedQuestions[timedIndex] || null;
 
   const masteredCount = Object.values(progress).filter(
     (x) => x?.status === "Mastered"
@@ -1861,32 +1942,81 @@ export default function BharatDarshanPage() {
      ========================================================== */
 
   const TIMED_OPTIONS = [
-    {
-      id: "10-5",
-      title: "10 / 5",
-      questions: 10,
-      minutes: 5,
-    },
-    {
-      id: "25-10",
-      title: "25 / 10",
-      questions: 25,
-      minutes: 10,
-    },
-    {
-      id: "50-20",
-      title: "50 / 20",
-      questions: 50,
-      minutes: 20,
-    },
+    { id: "10-5", title: "10 / 5", questions: 10, minutes: 5 },
+    { id: "25-10", title: "25 / 10", questions: 25, minutes: 10 },
+    { id: "50-20", title: "50 / 20", questions: 50, minutes: 20 },
   ];
 
+  function formatTime(seconds) {
+    const safe = Math.max(0, Number(seconds) || 0);
+    const minutes = Math.floor(safe / 60);
+    const remaining = safe % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
+  }
+
+  function finishTimedTest() {
+    setTimedFinished(true);
+    setTimedStarted(false);
+    setTimedAnswered(false);
+    setTimedAnswer(null);
+  }
+
   function startTimedTest(option) {
+    const pool = [...timedQuestionPool].sort(() => Math.random() - 0.5);
+    const selectedQuestions = pool.slice(0, option.questions);
+    if (selectedQuestions.length < option.questions) return;
+
     setTimedMode(option);
+    setTimedQuestions(selectedQuestions);
     setTimedStarted(true);
+    setTimedFinished(false);
     setTimedIndex(0);
     setTimedScore(0);
+    setTimedCorrect(0);
+    setTimedWrong(0);
+    setTimedAnswer(null);
+    setTimedAnswered(false);
+    setTimedTimeLeft(option.minutes * 60);
   }
+
+  function answerTimed(index) {
+    if (!currentTimedQuestion || timedAnswered) return;
+
+    const correct = index === currentTimedQuestion.answer;
+    setTimedAnswer(index);
+    setTimedAnswered(true);
+
+    if (correct) {
+      setTimedCorrect((value) => value + 1);
+      setTimedScore((value) => value + 1);
+    } else {
+      setTimedWrong((value) => value + 1);
+      setTimedScore((value) => Math.max(0, value - 0.33));
+    }
+  }
+
+  function nextTimedQuestion() {
+    if (!timedQuestions.length) return;
+    if (timedIndex >= timedQuestions.length - 1) {
+      finishTimedTest();
+      return;
+    }
+    setTimedIndex((value) => value + 1);
+    setTimedAnswer(null);
+    setTimedAnswered(false);
+  }
+
+  useEffect(() => {
+    if (!timedStarted || timedFinished) return;
+    if (timedTimeLeft <= 0) {
+      finishTimedTest();
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setTimedTimeLeft((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [timedStarted, timedFinished, timedTimeLeft]);
 
   /* ==========================================================
      UI
@@ -1955,14 +2085,33 @@ export default function BharatDarshanPage() {
           -webkit-tap-highlight-color: transparent;
         }
 
+        button:not(:disabled) {
+          transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+        }
+
+        button:not(:disabled):hover {
+          transform: translateY(-1px);
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+          outline: 2px solid ${ui.gold};
+          outline-offset: 2px;
+        }
+
         .bd-shell {
           width: min(1480px, calc(100% - 28px));
           margin: 0 auto;
-          padding: 18px 0 42px;
+          padding: 18px 0 calc(42px + env(safe-area-inset-bottom, 0px) + 96px);
         }
 
         .bd-scroll {
           scrollbar-width: thin;
+        }
+
+        .bd-feature-intelligence {
+          scroll-margin-bottom: 120px;
         }
 
         .bd-modes {
@@ -2083,10 +2232,19 @@ export default function BharatDarshanPage() {
           .bd-compare-table {
             min-width: 720px;
           }
+
+          .bd-timed-options {
+            grid-template-columns: 1fr !important;
+          }
         }
 
 
         @media (max-width: 760px) {
+          .bd-feature-intelligence {
+            margin-bottom: 18px;
+            padding: 14px !important;
+          }
+
           .bd-report-grid {
             grid-template-columns: 1fr !important;
           }
@@ -2585,6 +2743,11 @@ export default function BharatDarshanPage() {
                 </div>
               ) : (
                 <>
+                  {loadingMap ? (
+                    <div style={{ position: "absolute", inset: 12, zIndex: 3, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+                      <div style={{ padding: "10px 13px", borderRadius: 999, border: `1px solid ${ui.line}`, background: ui.surface, color: ui.muted, fontSize: 9, fontWeight: 900, boxShadow: ui.shadow }}>Loading verified India map…</div>
+                    </div>
+                  ) : null}
                   <svg
                     viewBox="0 0 720 620"
                     width="100%"
@@ -3164,7 +3327,7 @@ export default function BharatDarshanPage() {
             const info = getFeatureIntelligence(selectedMapFeature);
             if (!info) return null;
             return (
-              <section style={{ marginTop: 12, padding: 15, borderRadius: 18, border: `1px solid ${modeAccent}`, background: ui.surface, boxShadow: ui.shadow }}>
+              <section className="bd-feature-intelligence" style={{ marginTop: 12, padding: 15, borderRadius: 18, border: `1px solid ${modeAccent}`, background: ui.surface, boxShadow: ui.shadow }}>
                 <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.3px", color: modeAccent }}>MAP FEATURE INTELLIGENCE</div>
                 <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
                   <div><div style={{ fontSize: 22, fontWeight: 950 }}>{info.name}</div><div style={{ marginTop: 4, fontSize: 9, color: ui.muted }}>{info.stateName} · {info.modeLabel}</div></div>
@@ -4258,168 +4421,95 @@ export default function BharatDarshanPage() {
         <section
           style={{
             marginTop: 15,
-            background:
-              ui.surface,
-            border:
-              `1px solid ${ui.line}`,
+            background: ui.surface,
+            border: `1px solid ${ui.line}`,
             borderRadius: 22,
             padding: 17,
+            boxShadow: ui.shadow,
           }}
         >
-          <div
-            style={{
-              color:
-                modeAccent,
-              fontSize: 8,
-              fontWeight:
-                950,
-              letterSpacing:
-                "1.4px",
-            }}
-          >
+          <div style={{ color: modeAccent, fontSize: 8, fontWeight: 950, letterSpacing: "1.4px" }}>
             TIMED MAP TEST
           </div>
-
-          <h2
-            style={{
-              margin:
-                "6px 0 5px",
-              fontSize: 22,
-            }}
-          >
-            Exam-style map revision
-          </h2>
-
-          <p
-            style={{
-              margin: 0,
-              color:
-                ui.muted,
-              fontSize: 9,
-              lineHeight:
-                1.6,
-            }}
-          >
-            Choose a test size according to
-            your revision time.
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(3,minmax(0,1fr))",
-              gap: 9,
-              marginTop: 13,
-            }}
-          >
-            {TIMED_OPTIONS.map(
-              (option) => (
-                <button
-                  key={
-                    option.id
-                  }
-                  onClick={() =>
-                    startTimedTest(
-                      option
-                    )
-                  }
-                  style={{
-                    textAlign:
-                      "left",
-                    border:
-                      `1px solid ${ui.line}`,
-                    background:
-                      ui.surface2,
-                    color:
-                      ui.text,
-                    borderRadius:
-                      13,
-                    padding:
-                      12,
-                    cursor:
-                      "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize:
-                        14,
-                      fontWeight:
-                        950,
-                    }}
-                  >
-                    {
-                      option.title
-                    }
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop:
-                        4,
-                      color:
-                        ui.muted,
-                      fontSize:
-                        8,
-                    }}
-                  >
-                    {option.questions}{" "}
-                    questions •{" "}
-                    {option.minutes}{" "}
-                    minutes
-                  </div>
-                </button>
-              )
-            )}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <h2 style={{ margin: "6px 0 5px", fontSize: 22 }}>Exam-style map revision</h2>
+              <p style={{ margin: 0, color: ui.muted, fontSize: 9, lineHeight: 1.6 }}>
+                Data-driven map questions generated from the verified Bharat Darshan geography dataset. +1 correct, −0.33 incorrect.
+              </p>
+            </div>
+            {timedStarted && timedMode ? (
+              <div style={{ padding: "8px 11px", borderRadius: 12, background: ui.surface2, border: `1px solid ${timedTimeLeft <= 30 ? "#a04b3f" : ui.line}`, fontSize: 12, fontWeight: 950, color: timedTimeLeft <= 30 ? "#a04b3f" : ui.text }}>
+                {formatTime(timedTimeLeft)}
+              </div>
+            ) : null}
           </div>
 
-          {timedStarted &&
-            timedMode && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: 13,
-                  borderRadius: 14,
-                  background:
-                    `${modeAccent}10`,
-                  border:
-                    `1px solid ${modeAccent}40`,
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight:
-                      950,
-                    fontSize:
-                      10,
-                  }}
+          {!timedStarted && !timedFinished ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 9, marginTop: 13 }} className="bd-timed-options">
+              {TIMED_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => startTimedTest(option)}
+                  disabled={timedQuestionPool.length < option.questions}
+                  style={{ textAlign: "left", border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 13, padding: 12, cursor: timedQuestionPool.length < option.questions ? "not-allowed" : "pointer", opacity: timedQuestionPool.length < option.questions ? 0.5 : 1, transition: "transform .18s ease, border-color .18s ease" }}
                 >
-                  {timedMode.title} Test
-                  Ready
-                </div>
+                  <div style={{ fontSize: 14, fontWeight: 950 }}>{option.title}</div>
+                  <div style={{ marginTop: 4, color: ui.muted, fontSize: 8 }}>{option.questions} questions • {option.minutes} minutes</div>
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-                <div
-                  style={{
-                    marginTop:
-                      5,
-                    color:
-                      ui.muted,
-                    fontSize:
-                      8,
-                    lineHeight:
-                      1.6,
-                  }}
-                >
-                  Timed test engine is
-                  connected to the Bharat
-                  Darshan test flow. Add
-                  your authenticated question
-                  bank here without changing
-                  the map module.
-                </div>
+          {timedStarted && currentTimedQuestion ? (
+            <div style={{ marginTop: 13, padding: 14, borderRadius: 16, background: ui.surface2, border: `1px solid ${ui.line}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, color: ui.muted, fontSize: 8, fontWeight: 900 }}>
+                <span>Question {timedIndex + 1} / {timedQuestions.length}</span>
+                <span>Score {Number(timedScore.toFixed(2))}</span>
               </div>
-            )}
+              <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5, fontWeight: 900 }}>{currentTimedQuestion.q}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8, marginTop: 12 }} className="bd-timed-options">
+                {currentTimedQuestion.options.map((option, index) => {
+                  const chosen = timedAnswer === index;
+                  const correct = currentTimedQuestion.answer === index;
+                  const background = timedAnswered && correct ? (theme === "dark" ? "#203426" : "#dcebd9") : timedAnswered && chosen ? (theme === "dark" ? "#3b2424" : "#f0d8d8") : ui.surface;
+                  return (
+                    <button key={option} type="button" onClick={() => answerTimed(index)} disabled={timedAnswered} style={{ minHeight: 52, textAlign: "left", border: `1px solid ${timedAnswered && (chosen || correct) ? modeAccent : ui.line}`, background, color: ui.text, borderRadius: 11, padding: 11, fontSize: 10, fontWeight: 850, cursor: timedAnswered ? "default" : "pointer" }}>
+                      <span style={{ display: "inline-grid", placeItems: "center", width: 22, height: 22, marginRight: 7, borderRadius: 7, background: ui.surface3 }}>{String.fromCharCode(65 + index)}</span>
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+              {timedAnswered ? (
+                <>
+                  <div style={{ marginTop: 11, padding: 10, borderRadius: 11, background: ui.surface, color: ui.muted, fontSize: 9, lineHeight: 1.55 }}>
+                    <strong style={{ color: ui.text }}>{timedAnswer === currentTimedQuestion.answer ? "Correct" : "Incorrect"}.</strong>{" "}{currentTimedQuestion.explanation}
+                  </div>
+                  <button type="button" onClick={nextTimedQuestion} style={{ marginTop: 10, border: 0, background: modeAccent, color: "#111", borderRadius: 11, padding: "9px 14px", fontWeight: 950, cursor: "pointer" }}>
+                    {timedIndex >= timedQuestions.length - 1 ? "Finish Test" : "Next Question →"}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {timedFinished ? (
+            <div style={{ marginTop: 13, padding: 15, borderRadius: 16, background: `${modeAccent}10`, border: `1px solid ${modeAccent}45` }}>
+              <div style={{ color: modeAccent, fontSize: 8, fontWeight: 950, letterSpacing: "1.2px" }}>TEST COMPLETE</div>
+              <div style={{ marginTop: 5, fontSize: 22, fontWeight: 950 }}>{Number(timedScore.toFixed(2))} / {timedQuestions.length}</div>
+              <div style={{ marginTop: 6, color: ui.muted, fontSize: 9 }}>
+                Correct: {timedCorrect} • Incorrect: {timedWrong} • Accuracy: {timedQuestions.length ? Math.round((timedCorrect / timedQuestions.length) * 100) : 0}%
+              </div>
+              <button type="button" onClick={() => { setTimedFinished(false); setTimedMode(null); setTimedQuestions([]); }} style={{ marginTop: 10, border: `1px solid ${ui.line}`, background: ui.surface, color: ui.text, borderRadius: 11, padding: "9px 12px", fontSize: 9, fontWeight: 900, cursor: "pointer" }}>
+                Choose another test
+              </button>
+            </div>
+          ) : null}
+
+          {timedQuestionPool.length < 50 ? (
+            <div style={{ marginTop: 10, color: ui.muted, fontSize: 8 }}>Available verified question pool: {timedQuestionPool.length}. Larger test sizes unlock automatically as the geography dataset grows.</div>
+          ) : null}
         </section>
 
         {/* ====================================================
@@ -4715,10 +4805,8 @@ export default function BharatDarshanPage() {
             Active recall
           </span>
         </footer>
-      </div>
 
-      {/* ======================================================
-        {/* ====================================================
+      {/* ====================================================
             OFFICIAL REPORTS + LATEST DATA
         ==================================================== */}
 
@@ -5052,6 +5140,8 @@ export default function BharatDarshanPage() {
             </span>
           </div>
         </section>
+
+      </div>
 
       {/* ======================================================
          3-STATE COMPARISON MODAL
