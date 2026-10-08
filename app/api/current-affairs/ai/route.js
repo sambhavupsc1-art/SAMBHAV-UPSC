@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -17,21 +20,14 @@ const GEMINI_MODELS = [
   "gemini-3.8-flash",
 ];
 
-// One article per AI request.
 const BATCH_SIZE = 1;
 
 /* =========================================================
    SUPABASE
 ========================================================= */
 
-async function supabaseRequest(
-  path,
-  options = {}
-) {
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_KEY
-  ) {
+async function supabaseRequest(path, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     throw new Error(
       "Supabase environment variables missing."
     );
@@ -41,20 +37,12 @@ async function supabaseRequest(
     `${SUPABASE_URL}/rest/v1/${path}`,
     {
       ...options,
-
       headers: {
-        apikey:
-          SUPABASE_KEY,
-
-        Authorization:
-          `Bearer ${SUPABASE_KEY}`,
-
-        "Content-Type":
-          "application/json",
-
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
         ...(options.headers || {}),
       },
-
       cache: "no-store",
     }
   );
@@ -73,25 +61,13 @@ function cleanJson(text) {
 
   let cleaned = String(text)
     .trim()
-    .replace(
-      /^```json\s*/i,
-      ""
-    )
-    .replace(
-      /^```\s*/i,
-      ""
-    )
-    .replace(
-      /\s*```$/i,
-      ""
-    )
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
     .trim();
 
-  const first =
-    cleaned.indexOf("{");
-
-  const last =
-    cleaned.lastIndexOf("}");
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
 
   if (
     first === -1 ||
@@ -103,29 +79,17 @@ function cleanJson(text) {
     );
   }
 
-  cleaned =
-    cleaned.slice(
-      first,
-      last + 1
-    );
+  cleaned = cleaned.slice(
+    first,
+    last + 1
+  );
 
   try {
-    return JSON.parse(
-      cleaned
-    );
+    return JSON.parse(cleaned);
   } catch (error) {
-    console.error(
-      "JSON PARSE FAILED:",
-      cleaned.slice(
-        0,
-        3000
-      )
-    );
-
     throw new Error(
       `Gemini JSON parse failed: ${
-        error?.message ||
-        "invalid JSON"
+        error?.message || "invalid JSON"
       }`
     );
   }
@@ -136,52 +100,36 @@ function cleanJson(text) {
 ========================================================= */
 
 function buildPrompt(item) {
-  const isTheHindu =
-    String(
-      item?.source_name || ""
-    )
+  const isEthics =
+    String(item?.report_type || "")
       .toLowerCase()
-      .includes("the hindu");
+      .includes("ethics");
 
   const input = {
     index: 0,
 
     title: String(
-      item.title || ""
+      item?.title || ""
     ).slice(0, 500),
 
-    /*
-      ORIGINAL THE HINDU HEADLINE
-    */
-    original_headline:
-      String(
-        item.original_headline ||
-          item.title ||
-          ""
-      ).slice(0, 500),
-
-    /*
-      ORIGINAL THE HINDU SUBHEADLINE / DECK
-    */
-    original_subheadline:
-      String(
-        item.original_subheadline ||
-          ""
-      ).slice(0, 2500),
-
-    date:
-      item.date || "",
+    date: item?.date || "",
 
     source_name:
-      item.source_name ||
+      item?.source_name ||
       "Press Information Bureau (PIB)",
 
     source_url:
-      item.source_url || "",
+      item?.source_url || "",
 
     content: String(
-      item.content || ""
+      item?.content || ""
     ).slice(0, 14000),
+
+    report_type:
+      item?.report_type || "",
+
+    source_type:
+      item?.source_type || "",
   };
 
   return `
@@ -189,7 +137,7 @@ You are the UPSC Current Affairs Editor for SAMBHAV UPSC.
 
 The backend has ALREADY selected this article as UPSC relevant.
 
-Create EXACTLY ONE current-affairs record for this article.
+Create EXACTLY ONE current-affairs record.
 
 DO NOT reject it.
 DO NOT skip it.
@@ -217,59 +165,30 @@ Hindi must be natural UPSC-standard Hindi.
 English must be UPSC-standard English.
 
 =========================================================
-VERY IMPORTANT — THE HINDU HEADLINE RULE
+ARTICLE TYPE
 =========================================================
 
 ${
-  isTheHindu
+  isEthics
     ? `
-THIS IS A THE HINDU ARTICLE.
+This is an ETHICS EXAMPLE.
 
-The field "original_headline" contains the exact headline
-from The Hindu newspaper PDF.
+Focus on:
+- integrity
+- empathy
+- compassion
+- courage
+- public service
+- civic responsibility
+- leadership
+- social responsibility
 
-You MUST preserve the original headline EXACTLY.
-
-DO NOT:
-- rewrite it
-- shorten it
-- paraphrase it
-- translate it
-- improve it
-- correct its grammar
-- change punctuation
-- add words
-- remove words
-- make it more attractive
-
-The final "title_en" MUST be EXACTLY the same as
-"original_headline".
-
-The final database "title" MUST also be EXACTLY the same
-as "original_headline".
-
-The field "original_subheadline" contains the original
-The Hindu subheadline/deck printed below the main headline.
-
-Preserve it EXACTLY.
-
-DO NOT:
-- rewrite it
-- summarize it
-- translate it
-- paraphrase it
-- add information
-- remove information
-
-Return it in "headline_subtitle".
-
-"headline_subtitle" MUST be EXACTLY the same as
-"original_subheadline".
+Only use an ethics angle when supported by the article.
 `
     : `
-This is not a The Hindu PDF article.
+This is a normal CURRENT AFFAIRS article.
 
-Use the supplied article title normally.
+Focus on UPSC relevance.
 `
 }
 
@@ -294,7 +213,7 @@ Ethics, Integrity, Aptitude
 
 Do not force GS-IV.
 
-Do not force a scheme.
+Do not force a government scheme.
 
 Do not force a report.
 
@@ -304,14 +223,11 @@ Do not fabricate PYQs.
 IMPORTANT DATE RULE
 =========================================================
 
-The supplied input date is the authoritative
-publication/current-affairs date.
+The supplied input date is authoritative.
 
-Return the SAME date supplied in the input.
+Return EXACTLY the same date.
 
 Do not change it.
-
-Do not use today's date if the input date is different.
 
 =========================================================
 REQUIRED JSON
@@ -324,7 +240,6 @@ REQUIRED JSON
 
       "title_hi": "",
       "title_en": "",
-      "headline_subtitle": "",
       "date": "",
 
       "gs": "",
@@ -379,14 +294,18 @@ REQUIRED JSON
 PRELIMS MCQ
 =========================================================
 
-Create exactly one UPSC-style MCQ based ONLY on facts
-supported by the article.
+Create exactly ONE UPSC-style MCQ.
+
+The MCQ must be based ONLY on facts supported by
+the supplied article.
 
 =========================================================
 RELATED PYQ
 =========================================================
 
-Only provide a genuine PYQ if confidently supported.
+Only provide a genuine UPSC PYQ if confidently supported.
+
+Never fabricate a PYQ.
 
 Otherwise return empty string.
 
@@ -394,7 +313,7 @@ Otherwise return empty string.
 PREMIUM FACT
 =========================================================
 
-Give one useful UPSC fact supported by the article.
+Give ONE useful UPSC fact supported by the article.
 
 =========================================================
 STATIC LINK
@@ -439,9 +358,7 @@ async function generateWithGemini(
   let lastError =
     "Unknown Gemini error.";
 
-  for (
-    const model of GEMINI_MODELS
-  ) {
+  for (const model of GEMINI_MODELS) {
     for (
       let attempt = 1;
       attempt <= 3;
@@ -450,11 +367,8 @@ async function generateWithGemini(
       try {
         console.log(
           "GEMINI TRY:",
-          "ARTICLE",
           articleNumber,
-          "MODEL",
           model,
-          "ATTEMPT",
           attempt
         );
 
@@ -463,35 +377,28 @@ async function generateWithGemini(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
             {
               method: "POST",
-
               headers: {
                 "Content-Type":
                   "application/json",
               },
-
-              body:
-                JSON.stringify({
-                  contents: [
-                    {
-                      parts: [
-                        {
-                          text:
-                            prompt,
-                        },
-                      ],
-                    },
-                  ],
-
-                  generationConfig: {
-                    temperature: 0.1,
-
-                    responseMimeType:
-                      "application/json",
-
-                    maxOutputTokens:
-                      12000,
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: prompt,
+                      },
+                    ],
                   },
-                }),
+                ],
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType:
+                    "application/json",
+                  maxOutputTokens:
+                    12000,
+                },
+              }),
             }
           );
 
@@ -503,30 +410,12 @@ async function generateWithGemini(
             result?.error?.message ||
             `Gemini HTTP ${response.status}`;
 
-          console.error(
-            "GEMINI ERROR:",
-            "ARTICLE",
-            articleNumber,
-            "MODEL",
-            model,
-            "ATTEMPT",
-            attempt,
-            "STATUS",
-            response.status,
-            lastError
-          );
-
           const retryable =
-            response.status ===
-              429 ||
-            response.status ===
-              500 ||
-            response.status ===
-              502 ||
-            response.status ===
-              503 ||
-            response.status ===
-              504;
+            response.status === 429 ||
+            response.status === 500 ||
+            response.status === 502 ||
+            response.status === 503 ||
+            response.status === 504;
 
           if (
             retryable &&
@@ -536,8 +425,7 @@ async function generateWithGemini(
               (resolve) =>
                 setTimeout(
                   resolve,
-                  1500 *
-                    attempt
+                  1500 * attempt
                 )
             );
 
@@ -557,14 +445,6 @@ async function generateWithGemini(
             )
             .join("") || "";
 
-        console.log(
-          "GEMINI RESPONSE RECEIVED:",
-          "ARTICLE",
-          articleNumber,
-          "LENGTH",
-          text.length
-        );
-
         const parsed =
           cleanJson(text);
 
@@ -579,23 +459,12 @@ async function generateWithGemini(
         }
 
         if (
-          parsed.articles.length !==
-          1
+          parsed.articles.length !== 1
         ) {
           throw new Error(
             `Gemini returned ${parsed.articles.length} articles instead of 1.`
           );
         }
-
-        console.log(
-          "GEMINI SUCCESS:",
-          "ARTICLE",
-          articleNumber,
-          "MODEL",
-          model,
-          "ATTEMPT",
-          attempt
-        );
 
         return parsed;
       } catch (error) {
@@ -604,25 +473,19 @@ async function generateWithGemini(
           "Unknown Gemini error.";
 
         console.error(
-          "GEMINI MODEL ERROR:",
-          "ARTICLE",
+          "GEMINI ERROR:",
           articleNumber,
-          "MODEL",
           model,
-          "ATTEMPT",
           attempt,
           lastError
         );
 
-        if (
-          attempt < 3
-        ) {
+        if (attempt < 3) {
           await new Promise(
             (resolve) =>
               setTimeout(
                 resolve,
-                1500 *
-                  attempt
+                1500 * attempt
               )
           );
         }
@@ -636,305 +499,226 @@ async function generateWithGemini(
 }
 
 /* =========================================================
-   ARTICLE NORMALIZATION
+   NORMALIZE ARTICLE
 ========================================================= */
 
 function normalizeArticle(
   article,
   input
 ) {
-  const isTheHindu =
-    String(
-      input?.source_name || ""
-    )
-      .toLowerCase()
-      .includes("the hindu");
+  const titleEn = String(
+    article?.title_en ||
+      input?.title ||
+      ""
+  ).trim();
 
-  /*
-    IMPORTANT:
-    For The Hindu, NEVER use AI-generated
-    title as the authoritative headline.
-  */
-
-  const originalHeadline =
-    String(
-      input?.original_headline ||
-        input?.title ||
-        ""
-    ).trim();
-
-  const originalSubheadline =
-    String(
-      input?.original_subheadline ||
-        article?.headline_subtitle ||
-        ""
-    ).trim();
-
-  /*
-    ACTUAL NEWSPAPER HEADLINE IMAGE
-  */
-  const headlineImageUrl =
-    String(
-      input?.headline_image_url ||
-        ""
-    ).trim();
-
-  const finalTitle =
-    isTheHindu
-      ? originalHeadline
-      : String(
-          article.title_en ||
-            article.title_hi ||
-            input.title ||
-            ""
-        ).trim();
-
-  const finalTitleEn =
-    isTheHindu
-      ? originalHeadline
-      : String(
-          article.title_en ||
-            input.title ||
-            ""
-        ).trim();
-
-  const finalTitleHi =
-    isTheHindu
-      ? originalHeadline
-      : String(
-          article.title_hi ||
-            input.title ||
-            ""
-        ).trim();
+  const titleHi = String(
+    article?.title_hi ||
+      input?.title ||
+      ""
+  ).trim();
 
   return {
-    /*
-      MAIN TITLE
-    */
     title:
-      finalTitle,
+      titleEn || titleHi,
 
-    /*
-      For The Hindu this is EXACT
-      original headline.
-    */
     title_hi:
-      finalTitleHi,
+      titleHi,
 
     title_en:
-      finalTitleEn,
+      titleEn,
 
-    /*
-      ORIGINAL THE HINDU DECK
-    */
-    headline_subtitle:
-      isTheHindu
-        ? originalSubheadline
-        : String(
-            article.headline_subtitle ||
-              ""
-          ).trim(),
-
-    /*
-      ACTUAL THE HINDU NEWSPAPER
-      HEADLINE CUTTING IMAGE URL
-    */
-    headline_image_url:
-      headlineImageUrl,
-
-    /*
-      DATE
-    */
     date:
-      input.date ||
-      article.date ||
+      input?.date ||
+      article?.date ||
       new Date()
         .toISOString()
         .slice(0, 10),
 
     gs:
       String(
-        article.gs || ""
+        article?.gs || ""
       ).trim(),
 
     subject:
       String(
-        article.subject || ""
+        article?.subject || ""
       ).trim(),
 
     paper:
       String(
-        article.paper ||
-          article.gs ||
+        article?.paper ||
+          article?.gs ||
           ""
       ).trim(),
 
     source_name:
       String(
-        input.source_name ||
-          article.source_name ||
+        input?.source_name ||
+          article?.source_name ||
           ""
       ).trim(),
 
     source_url:
       String(
-        input.source_url ||
-          article.source_url ||
+        input?.source_url ||
+          article?.source_url ||
           ""
       ).trim(),
 
     why_in_news_hi:
       String(
-        article.why_in_news_hi ||
+        article?.why_in_news_hi ||
           ""
       ).trim(),
 
     why_in_news_en:
       String(
-        article.why_in_news_en ||
+        article?.why_in_news_en ||
           ""
       ).trim(),
 
     background_hi:
       String(
-        article.background_hi ||
+        article?.background_hi ||
           ""
       ).trim(),
 
     background_en:
       String(
-        article.background_en ||
+        article?.background_en ||
           ""
       ).trim(),
 
     key_facts_hi:
       String(
-        article.key_facts_hi ||
+        article?.key_facts_hi ||
           ""
       ).trim(),
 
     key_facts_en:
       String(
-        article.key_facts_en ||
+        article?.key_facts_en ||
           ""
       ).trim(),
 
     prelims_hi:
       String(
-        article.prelims_hi ||
+        article?.prelims_hi ||
           ""
       ).trim(),
 
     prelims_en:
       String(
-        article.prelims_en ||
+        article?.prelims_en ||
           ""
       ).trim(),
 
     mains_analysis_hi:
       String(
-        article.mains_analysis_hi ||
+        article?.mains_analysis_hi ||
           ""
       ).trim(),
 
     mains_analysis_en:
       String(
-        article.mains_analysis_en ||
+        article?.mains_analysis_en ||
           ""
       ).trim(),
 
     static_link:
       String(
-        article.static_link ||
+        article?.static_link ||
           ""
       ).trim(),
 
     premium_fact_hi:
       String(
-        article.premium_fact_hi ||
+        article?.premium_fact_hi ||
           ""
       ).trim(),
 
     premium_fact_en:
       String(
-        article.premium_fact_en ||
+        article?.premium_fact_en ||
           ""
       ).trim(),
 
     related_pyqs_hi:
       String(
-        article.related_pyqs_hi ||
+        article?.related_pyqs_hi ||
           ""
       ).trim(),
 
     related_pyqs_en:
       String(
-        article.related_pyqs_en ||
+        article?.related_pyqs_en ||
           ""
       ).trim(),
 
     prelims_mcq_hi:
       String(
-        article.prelims_mcq_hi ||
+        article?.prelims_mcq_hi ||
           ""
       ).trim(),
 
     prelims_mcq_en:
       String(
-        article.prelims_mcq_en ||
+        article?.prelims_mcq_en ||
           ""
       ).trim(),
 
     mains_question_hi:
       String(
-        article.mains_question_hi ||
+        article?.mains_question_hi ||
           ""
       ).trim(),
 
     mains_question_en:
       String(
-        article.mains_question_en ||
+        article?.mains_question_en ||
           ""
       ).trim(),
 
     report_type:
       String(
-        article.report_type ||
+        input?.report_type ||
+          article?.report_type ||
           ""
       ).trim(),
 
     tags:
       String(
-        article.tags || ""
+        article?.tags || ""
       ).trim(),
 
     important_place:
       String(
-        article.important_place ||
+        article?.important_place ||
           ""
       ).trim(),
 
     personalities:
       String(
-        article.personalities ||
+        article?.personalities ||
           ""
       ).trim(),
 
     government_scheme:
       String(
-        article.government_scheme ||
+        article?.government_scheme ||
           ""
       ).trim(),
 
     ethics_angle_hi:
       String(
-        article.ethics_angle_hi ||
+        article?.ethics_angle_hi ||
           ""
       ).trim(),
 
     ethics_angle_en:
       String(
-        article.ethics_angle_en ||
+        article?.ethics_angle_en ||
           ""
       ).trim(),
 
@@ -943,7 +727,7 @@ function normalizeArticle(
 }
 
 /* =========================================================
-   DUPLICATE / SAME EVENT
+   DUPLICATE HELPERS
 ========================================================= */
 
 const DUPLICATE_STOPWORDS =
@@ -1015,9 +799,7 @@ function normalizeTitleForDuplicate(
     .trim();
 }
 
-function duplicateTokens(
-  value
-) {
+function duplicateTokens(value) {
   return new Set(
     normalizeTitleForDuplicate(
       value
@@ -1058,9 +840,7 @@ function titleSimilarity(
     }
   }
 
-  if (
-    intersection === 0
-  ) {
+  if (!intersection) {
     return 0;
   }
 
@@ -1100,11 +880,7 @@ function isSameEvent(
       existingTitle
     );
 
-  if (
-    a &&
-    b &&
-    a === b
-  ) {
+  if (a && b && a === b) {
     return true;
   }
 
@@ -1117,36 +893,29 @@ function isSameEvent(
 }
 
 /* =========================================================
-   CROSS SOURCE DUPLICATE
+   CROSS-SOURCE DUPLICATE
 ========================================================= */
 
 async function findSameEventDuplicate(
-  article,
-  input
+  article
 ) {
-  if (!article.date) {
+  if (!article?.date) {
     return null;
   }
 
-  const encodedDate =
-    encodeURIComponent(
-      article.date
-    );
-
   const response =
     await supabaseRequest(
-      `current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodedDate}&limit=100`,
+      `current_affairs?select=id,title,source_name,source_url,date&date=eq.${encodeURIComponent(
+        article.date
+      )}&limit=100`,
       {
         method: "GET",
       }
     );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
-
     throw new Error(
-      `Cross-source duplicate check failed: ${errorText}`
+      `Cross-source duplicate check failed: ${await response.text()}`
     );
   }
 
@@ -1154,64 +923,29 @@ async function findSameEventDuplicate(
     await response.json();
 
   if (
-    !Array.isArray(
-      existing
-    ) ||
+    !Array.isArray(existing) ||
     existing.length === 0
   ) {
     return null;
   }
 
-  const incomingTitles = [
-    input?.original_headline ||
-      input?.title ||
-      "",
-
-    article?.title ||
-      "",
-
-    article?.title_hi ||
-      "",
-
-    article?.title_en ||
-      "",
-  ].filter(Boolean);
-
-  for (
-    const row of existing
-  ) {
-    const existingTitle =
-      row?.title || "";
-
-    for (
-      const incomingTitle of
-        incomingTitles
+  for (const row of existing) {
+    if (
+      isSameEvent(
+        article.title,
+        row?.title || ""
+      )
     ) {
-      if (
-        isSameEvent(
-          incomingTitle,
-          existingTitle
-        )
-      ) {
-        return {
-          id: row.id,
-
-          title:
-            existingTitle,
-
-          source_name:
-            row.source_name ||
-            "",
-
-          source_url:
-            row.source_url ||
-            "",
-
-          date:
-            row.date ||
-            "",
-        };
-      }
+      return {
+        id: row.id,
+        title: row.title || "",
+        source_name:
+          row.source_name || "",
+        source_url:
+          row.source_url || "",
+        date:
+          row.date || "",
+      };
     }
   }
 
@@ -1226,28 +960,17 @@ async function saveArticle(
   article,
   articleNumber
 ) {
-  console.log(
-    "SUPABASE SAVE START:",
-    "ARTICLE",
-    articleNumber,
-    article.title_en
-  );
-
   const response =
     await supabaseRequest(
       "current_affairs",
       {
         method: "POST",
-
         headers: {
           Prefer:
             "return=representation",
         },
-
         body:
-          JSON.stringify(
-            article
-          ),
+          JSON.stringify(article),
       }
     );
 
@@ -1255,28 +978,16 @@ async function saveArticle(
     await response.text();
 
   if (!response.ok) {
-    console.error(
-      "SUPABASE SAVE FAILED:",
-      "ARTICLE",
-      articleNumber,
-      response.status,
-      text
-    );
-
     throw new Error(
       `Supabase save failed: ${text}`
     );
   }
 
-  console.log(
-    "SUPABASE SAVE SUCCESS:",
-    "ARTICLE",
-    articleNumber
-  );
-
-  return JSON.parse(
-    text
-  );
+  try {
+    return JSON.parse(text);
+  } catch {
+    return [];
+  }
 }
 
 /* =========================================================
@@ -1287,12 +998,6 @@ async function processArticle(
   input,
   articleNumber
 ) {
-  console.log(
-    "ARTICLE PROCESS START:",
-    articleNumber,
-    input.title
-  );
-
   const generated =
     await generateWithGemini(
       buildPrompt(input),
@@ -1300,7 +1005,7 @@ async function processArticle(
     );
 
   const aiArticle =
-    generated.articles[0];
+    generated?.articles?.[0];
 
   if (!aiArticle) {
     throw new Error(
@@ -1324,145 +1029,38 @@ async function processArticle(
   }
 
   /*
-    ABSOLUTE THE HINDU TITLE PROTECTION
-
-    Even if Gemini changes the title,
-    original headline from input wins.
-  */
-
-  const isTheHindu =
-    String(
-      input?.source_name ||
-        ""
-    )
-      .toLowerCase()
-      .includes("the hindu");
-
-  if (isTheHindu) {
-    article.title =
-      String(
-        input.original_headline ||
-          input.title ||
-          ""
-      ).trim();
-
-    article.title_en =
-      article.title;
-
-    article.title_hi =
-      article.title;
-
-    article.headline_subtitle =
-      String(
-        input.original_subheadline ||
-          ""
-      ).trim();
-
-    /*
-      ABSOLUTE HEADLINE IMAGE
-      PROTECTION
-
-      The URL generated from the actual
-      newspaper PDF crop is authoritative.
-    */
-    article.headline_image_url =
-      String(
-        input.headline_image_url ||
-          article.headline_image_url ||
-          ""
-      ).trim();
-  }
-
-  /*
-    Original source metadata.
-  */
-
-  article.source_url =
-    input.source_url ||
-    article.source_url ||
-    "";
-
-  article.source_name =
-    input.source_name ||
-    article.source_name ||
-    "";
-
-  /*
-    Input date is authoritative.
-  */
-
-  article.date =
-    input.date ||
-    article.date ||
-    new Date()
-      .toISOString()
-      .slice(0, 10);
-
-  /*
-    Keep headline image URL for
-    every article if it was supplied.
-  */
-  if (
-    input.headline_image_url
-  ) {
-    article.headline_image_url =
-      String(
-        input.headline_image_url
-      ).trim();
-  }
-
-  /* ---------------------------------------------
-     EXACT SOURCE URL + DATE DUPLICATE
-  --------------------------------------------- */
+   * EXACT SOURCE URL + DATE DUPLICATE
+   */
 
   if (
     article.source_url &&
     article.date
   ) {
-    const encodedUrl =
-      encodeURIComponent(
-        article.source_url
-      );
-
-    const encodedDate =
-      encodeURIComponent(
-        article.date
-      );
-
-    const duplicateResponse =
+    const response =
       await supabaseRequest(
-        `current_affairs?select=id&source_url=eq.${encodedUrl}&date=eq.${encodedDate}&limit=1`,
+        `current_affairs?select=id&source_url=eq.${encodeURIComponent(
+          article.source_url
+        )}&date=eq.${encodeURIComponent(
+          article.date
+        )}&limit=1`,
         {
           method: "GET",
         }
       );
 
-    if (
-      !duplicateResponse.ok
-    ) {
-      const errorText =
-        await duplicateResponse.text();
-
+    if (!response.ok) {
       throw new Error(
-        `Duplicate check failed: ${errorText}`
+        `Duplicate check failed: ${await response.text()}`
       );
     }
 
     const duplicates =
-      await duplicateResponse.json();
+      await response.json();
 
     if (
-      Array.isArray(
-        duplicates
-      ) &&
+      Array.isArray(duplicates) &&
       duplicates.length > 0
     ) {
-      console.log(
-        "SOURCE DUPLICATE SKIPPED:",
-        articleNumber,
-        article.title_en
-      );
-
       return {
         created: 0,
         skipped: 1,
@@ -1472,28 +1070,16 @@ async function processArticle(
     }
   }
 
-  /* ---------------------------------------------
-     CROSS SOURCE SAME EVENT
-  --------------------------------------------- */
+  /*
+   * CROSS-SOURCE SAME EVENT
+   */
 
   const sameEvent =
     await findSameEventDuplicate(
-      article,
-      input
+      article
     );
 
   if (sameEvent) {
-    console.log(
-      "CROSS-SOURCE DUPLICATE SKIPPED:",
-      articleNumber,
-      "| NEW:",
-      article.title_en,
-      "| EXISTING:",
-      sameEvent.title,
-      "| EXISTING SOURCE:",
-      sameEvent.source_name
-    );
-
     return {
       created: 0,
       skipped: 1,
@@ -1506,9 +1092,9 @@ async function processArticle(
     };
   }
 
-  /* ---------------------------------------------
-     SAVE
-  --------------------------------------------- */
+  /*
+   * SAVE
+   */
 
   await saveArticle(
     article,
@@ -1526,9 +1112,7 @@ async function processArticle(
    POST
 ========================================================= */
 
-export async function POST(
-  request
-) {
+export async function POST(request) {
   console.log(
     "CURRENT AFFAIRS AI REQUEST START"
   );
@@ -1557,27 +1141,15 @@ export async function POST(
     const items =
       body.items;
 
-    console.log(
-      "CURRENT AFFAIRS AI REQUEST VALIDATED:",
-      items.length,
-      "articles"
-    );
-
-    if (
-      items.length === 0
-    ) {
+    if (!items.length) {
       return NextResponse.json({
         success: true,
-
         articles_received: 0,
-
         articles_created: 0,
-
         articles_skipped: 0,
-
         articles_processed: 0,
-
         failed_batches: 0,
+        failed_articles: [],
       });
     }
 
@@ -1617,49 +1189,34 @@ export async function POST(
             );
 
           created +=
-            result.created;
+            Number(
+              result?.created || 0
+            );
 
           skipped +=
-            result.skipped;
-
-          console.log(
-            "ARTICLE COMPLETE:",
-            articleNumber,
-            "| CREATED:",
-            result.created,
-            "| SKIPPED:",
-            result.skipped,
-            "| REASON:",
-            result.reason
-          );
+            Number(
+              result?.skipped || 0
+            );
         } catch (error) {
           failed++;
-
-          const message =
-            error?.message ||
-            String(error);
 
           errors.push({
             article:
               articleNumber,
-
             title:
-              input?.title ||
-              "",
-
+              input?.title || "",
             error:
-              message,
+              error?.message ||
+              String(error),
           });
 
           console.error(
             "ARTICLE FAILED:",
             articleNumber,
-            input?.title ||
-              "",
-            message
+            input?.title || "",
+            error?.message ||
+              error
           );
-
-          continue;
         }
       }
     }
@@ -1667,43 +1224,19 @@ export async function POST(
     const processed =
       created + skipped;
 
-    console.log(
-      "CURRENT AFFAIRS AI FINAL:",
-      {
-        received:
-          items.length,
-
-        created,
-
-        skipped,
-
-        processed,
-
-        failed,
-      }
-    );
-
-    if (
-      processed > 0
-    ) {
+    if (processed > 0) {
       return NextResponse.json({
         success: true,
-
         articles_received:
           items.length,
-
         articles_created:
           created,
-
         articles_skipped:
           skipped,
-
         articles_processed:
           processed,
-
         failed_batches:
           failed,
-
         failed_articles:
           errors,
       });
@@ -1712,25 +1245,18 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-
         articles_received:
           items.length,
-
         articles_created:
           created,
-
         articles_skipped:
           skipped,
-
         articles_processed:
           processed,
-
         failed_batches:
           failed,
-
         failed_articles:
           errors,
-
         error:
           "No current-affairs article could be processed.",
       },
@@ -1747,17 +1273,11 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-
         articles_received: 0,
-
         articles_created: 0,
-
         articles_skipped: 0,
-
         articles_processed: 0,
-
         failed_batches: 1,
-
         error:
           error?.message ||
           "Current Affairs AI generation failed.",
