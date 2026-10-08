@@ -1196,6 +1196,7 @@ const STATE_META = {
   },
 };
 
+
 /* ============================================================
    BHARAT DARSHAN — MAPPING CLASS 2026 ENHANCEMENT
    Source basis: user-provided "FINAL MAPPING CLASS FOR 2026 PRELIMS.pdf"
