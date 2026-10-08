@@ -1,296 +1,386 @@
-"use client";
+// app/bharat-darshan/world/data.js
+// WORLD MAP — UPSC-focused data layer
+// Structured for Countries, Physical Geography, Chokepoints,
+// Resources, UPSC Hotspots, Active Recall and Quiz.
 
-import { useEffect, useMemo, useState } from "react";
-
-/*
-  SAMBHAV UPSC — WORLD MAP INTELLIGENCE
-  Route: /world-map
-  Independent from Bharat Darshan / India Mapping.
-*/
-
-const WORLD_GEOJSON_URL =
-  "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
-
-const CONTINENTS = ["All","Asia","Europe","Africa","North America","South America","Oceania","Antarctica"];
-
-const COUNTRIES = [
-  ["IN","India","Asia","New Delhi"],["CN","China","Asia","Beijing"],["PK","Pakistan","Asia","Islamabad"],
-  ["AF","Afghanistan","Asia","Kabul"],["IR","Iran","Asia","Tehran"],["IQ","Iraq","Asia","Baghdad"],
-  ["SA","Saudi Arabia","Asia","Riyadh"],["AE","United Arab Emirates","Asia","Abu Dhabi"],["OM","Oman","Asia","Muscat"],
-  ["YE","Yemen","Asia","Sana'a"],["TR","Türkiye","Asia","Ankara"],["IL","Israel","Asia","Jerusalem"],
-  ["KZ","Kazakhstan","Asia","Astana"],["UZ","Uzbekistan","Asia","Tashkent"],["TM","Turkmenistan","Asia","Ashgabat"],
-  ["TJ","Tajikistan","Asia","Dushanbe"],["KG","Kyrgyzstan","Asia","Bishkek"],["MN","Mongolia","Asia","Ulaanbaatar"],
-  ["JP","Japan","Asia","Tokyo"],["KR","South Korea","Asia","Seoul"],["VN","Vietnam","Asia","Hanoi"],
-  ["TH","Thailand","Asia","Bangkok"],["MM","Myanmar","Asia","Naypyidaw"],["BD","Bangladesh","Asia","Dhaka"],
-  ["NP","Nepal","Asia","Kathmandu"],["BT","Bhutan","Asia","Thimphu"],["LK","Sri Lanka","Asia","Sri Jayawardenepura Kotte"],
-  ["ID","Indonesia","Asia","Jakarta"],["MY","Malaysia","Asia","Kuala Lumpur"],["SG","Singapore","Asia","Singapore"],
-  ["PH","Philippines","Asia","Manila"],["AU","Australia","Oceania","Canberra"],["NZ","New Zealand","Oceania","Wellington"],
-  ["RU","Russia","Europe","Moscow"],["GB","United Kingdom","Europe","London"],["FR","France","Europe","Paris"],
-  ["DE","Germany","Europe","Berlin"],["IT","Italy","Europe","Rome"],["ES","Spain","Europe","Madrid"],
-  ["UA","Ukraine","Europe","Kyiv"],["PL","Poland","Europe","Warsaw"],["GR","Greece","Europe","Athens"],
-  ["NO","Norway","Europe","Oslo"],["SE","Sweden","Europe","Stockholm"],["FI","Finland","Europe","Helsinki"],
-  ["IS","Iceland","Europe","Reykjavik"],["US","United States","North America","Washington, D.C."],
-  ["CA","Canada","North America","Ottawa"],["MX","Mexico","North America","Mexico City"],["CU","Cuba","North America","Havana"],
-  ["BR","Brazil","South America","Brasília"],["AR","Argentina","South America","Buenos Aires"],["CL","Chile","South America","Santiago"],
-  ["PE","Peru","South America","Lima"],["CO","Colombia","South America","Bogotá"],["VE","Venezuela","South America","Caracas"],
-  ["ZA","South Africa","Africa","Pretoria"],["EG","Egypt","Africa","Cairo"],["LY","Libya","Africa","Tripoli"],
-  ["DZ","Algeria","Africa","Algiers"],["MA","Morocco","Africa","Rabat"],["SD","Sudan","Africa","Khartoum"],
-  ["ET","Ethiopia","Africa","Addis Ababa"],["KE","Kenya","Africa","Nairobi"],["TZ","Tanzania","Africa","Dodoma"],
-  ["NG","Nigeria","Africa","Abuja"],["GH","Ghana","Africa","Accra"],["CD","DR Congo","Africa","Kinshasa"]
+export const WORLD_COUNTRIES = [
+  ["Afghanistan","Kabul","Asia"],
+  ["Albania","Tirana","Europe"],
+  ["Algeria","Algiers","Africa"],
+  ["Argentina","Buenos Aires","South America"],
+  ["Australia","Canberra","Oceania"],
+  ["Austria","Vienna","Europe"],
+  ["Bangladesh","Dhaka","Asia"],
+  ["Belgium","Brussels","Europe"],
+  ["Bhutan","Thimphu","Asia"],
+  ["Brazil","Brasília","South America"],
+  ["Canada","Ottawa","North America"],
+  ["Chile","Santiago","South America"],
+  ["China","Beijing","Asia"],
+  ["Colombia","Bogotá","South America"],
+  ["Cuba","Havana","North America"],
+  ["Czechia","Prague","Europe"],
+  ["Denmark","Copenhagen","Europe"],
+  ["Egypt","Cairo","Africa"],
+  ["Ethiopia","Addis Ababa","Africa"],
+  ["Finland","Helsinki","Europe"],
+  ["France","Paris","Europe"],
+  ["Germany","Berlin","Europe"],
+  ["Ghana","Accra","Africa"],
+  ["Greece","Athens","Europe"],
+  ["Hungary","Budapest","Europe"],
+  ["Iceland","Reykjavík","Europe"],
+  ["India","New Delhi","Asia"],
+  ["Indonesia","Jakarta","Asia"],
+  ["Iran","Tehran","Asia"],
+  ["Iraq","Baghdad","Asia"],
+  ["Ireland","Dublin","Europe"],
+  ["Israel","Jerusalem","Asia"],
+  ["Italy","Rome","Europe"],
+  ["Japan","Tokyo","Asia"],
+  ["Jordan","Amman","Asia"],
+  ["Kazakhstan","Astana","Asia"],
+  ["Kenya","Nairobi","Africa"],
+  ["Kuwait","Kuwait City","Asia"],
+  ["Kyrgyzstan","Bishkek","Asia"],
+  ["Laos","Vientiane","Asia"],
+  ["Lebanon","Beirut","Asia"],
+  ["Libya","Tripoli","Africa"],
+  ["Malaysia","Kuala Lumpur","Asia"],
+  ["Maldives","Malé","Asia"],
+  ["Mexico","Mexico City","North America"],
+  ["Mongolia","Ulaanbaatar","Asia"],
+  ["Morocco","Rabat","Africa"],
+  ["Myanmar","Naypyidaw","Asia"],
+  ["Nepal","Kathmandu","Asia"],
+  ["Netherlands","Amsterdam","Europe"],
+  ["New Zealand","Wellington","Oceania"],
+  ["Nigeria","Abuja","Africa"],
+  ["Norway","Oslo","Europe"],
+  ["Oman","Muscat","Asia"],
+  ["Pakistan","Islamabad","Asia"],
+  ["Peru","Lima","South America"],
+  ["Philippines","Manila","Asia"],
+  ["Poland","Warsaw","Europe"],
+  ["Portugal","Lisbon","Europe"],
+  ["Qatar","Doha","Asia"],
+  ["Romania","Bucharest","Europe"],
+  ["Russia","Moscow","Europe/Asia"],
+  ["Saudi Arabia","Riyadh","Asia"],
+  ["Serbia","Belgrade","Europe"],
+  ["Singapore","Singapore","Asia"],
+  ["South Africa","Pretoria","Africa"],
+  ["South Korea","Seoul","Asia"],
+  ["Spain","Madrid","Europe"],
+  ["Sri Lanka","Sri Jayawardenepura Kotte","Asia"],
+  ["Sudan","Khartoum","Africa"],
+  ["Sweden","Stockholm","Europe"],
+  ["Switzerland","Bern","Europe"],
+  ["Syria","Damascus","Asia"],
+  ["Tajikistan","Dushanbe","Asia"],
+  ["Thailand","Bangkok","Asia"],
+  ["Tunisia","Tunis","Africa"],
+  ["Türkiye","Ankara","Asia/Europe"],
+  ["Turkmenistan","Ashgabat","Asia"],
+  ["UAE","Abu Dhabi","Asia"],
+  ["Uganda","Kampala","Africa"],
+  ["Ukraine","Kyiv","Europe"],
+  ["United Kingdom","London","Europe"],
+  ["United States","Washington, D.C.","North America"],
+  ["Uzbekistan","Tashkent","Asia"],
+  ["Venezuela","Caracas","South America"],
+  ["Vietnam","Hanoi","Asia"],
+  ["Yemen","Sana'a","Asia"],
+  ["Zambia","Lusaka","Africa"],
+  ["Zimbabwe","Harare","Africa"],
 ];
 
-const META = Object.fromEntries(COUNTRIES.map(([id,name,continent,capital]) => [id,{id,name,continent,capital}]));
+export const WORLD_PHYSICAL_FEATURES = {
+  mountains: [
+    ["Himalayas","Asia","India, Nepal, Bhutan, China, Pakistan","Young fold mountain system"],
+    ["Karakoram","Asia","Pakistan, India, China","K2; high-altitude passes"],
+    ["Hindu Kush","Asia","Afghanistan, Pakistan","Strategic mountain system"],
+    ["Tien Shan","Asia","Kyrgyzstan, Kazakhstan, China","Major Central Asian mountain system"],
+    ["Kunlun","Asia","China","North of the Tibetan Plateau"],
+    ["Zagros","Asia","Iran, Iraq","Major fold mountain system"],
+    ["Alps","Europe","France, Switzerland, Italy, Austria","Major European mountain system"],
+    ["Pyrenees","Europe","Spain, France, Andorra","Natural barrier between Iberia and France"],
+    ["Atlas","Africa","Morocco, Algeria, Tunisia","Northwest African mountain system"],
+    ["Drakensberg","Africa","South Africa, Lesotho","Southern African mountain system"],
+    ["Andes","South America","Chile, Argentina, Peru, Bolivia, Ecuador, Colombia, Venezuela","Major western South American mountain chain"],
+    ["Rockies","North America","Canada, United States","Western North American mountain system"],
+    ["Appalachians","North America","United States, Canada","Ancient mountain system"],
+    ["Great Dividing Range","Oceania","Australia","Eastern Australian mountain system"],
+  ],
 
-const POINTS = {
-  capitals: [
-    ["New Delhi",77.21,28.61],["Beijing",116.40,39.90],["Islamabad",73.09,33.69],
-    ["Tehran",51.39,35.69],["Riyadh",46.72,24.71],["Ankara",32.86,39.93],
-    ["Astana",71.43,51.17],["Tashkent",69.24,41.31],["Tokyo",139.69,35.68],
-    ["Seoul",126.98,37.57],["Bangkok",100.50,13.76],["Jakarta",106.85,-6.21],
-    ["Canberra",149.13,-35.28],["Moscow",37.62,55.75],["London",-0.13,51.51],
-    ["Paris",2.35,48.86],["Berlin",13.40,52.52],["Rome",12.50,41.90],
-    ["Cairo",31.24,30.04],["Nairobi",36.82,-1.29],["Pretoria",28.19,-25.75],
-    ["Washington DC",-77.04,38.91],["Ottawa",-75.70,45.42],["Mexico City",-99.13,19.43],
-    ["Brasilia",-47.88,-15.79],["Buenos Aires",-58.38,-34.60],["Santiago",-70.67,-33.45],
-    ["Lima",-77.04,-12.05]
+  rivers: [
+    ["Nile","Africa","Lake Victoria region","Mediterranean Sea","Egypt, Sudan, Uganda and basin states"],
+    ["Amazon","South America","Peruvian Andes","Atlantic Ocean","Brazil, Peru, Colombia and basin"],
+    ["Yangtze","Asia","Tibetan Plateau","East China Sea","China"],
+    ["Yellow River","Asia","Qinghai/Tibetan Plateau","Bohai Sea","China"],
+    ["Mekong","Asia","Tibetan Plateau","South China Sea","China, Myanmar, Laos, Thailand, Cambodia, Vietnam"],
+    ["Ganges","Asia","Himalayas","Bay of Bengal","India, Bangladesh"],
+    ["Brahmaputra","Asia","Tibet","Bay of Bengal","China, India, Bangladesh"],
+    ["Indus","Asia","Tibetan Plateau","Arabian Sea","China, India, Pakistan"],
+    ["Tigris","Asia","Turkey","Persian Gulf system","Turkey, Iraq"],
+    ["Euphrates","Asia","Turkey","Persian Gulf system","Turkey, Syria, Iraq"],
+    ["Danube","Europe","Germany","Black Sea","Central and Eastern Europe"],
+    ["Rhine","Europe","Swiss Alps","North Sea","Switzerland, Germany, Netherlands"],
+    ["Volga","Europe","Russia","Caspian Sea","Russia"],
+    ["Niger","Africa","Guinea Highlands region","Gulf of Guinea","West Africa"],
+    ["Congo","Africa","Central Africa","Atlantic Ocean","DR Congo, Republic of Congo and basin"],
+    ["Zambezi","Africa","Southern Africa","Indian Ocean","Zambia, Zimbabwe, Mozambique and basin"],
+    ["Orange","Africa","Lesotho/South Africa","Atlantic Ocean","Southern Africa"],
+    ["Paraná","South America","Brazil","Río de la Plata","Brazil, Paraguay, Argentina"],
+    ["Orinoco","South America","Venezuela region","Atlantic Ocean","Venezuela, Colombia basin"],
+    ["Mississippi–Missouri","North America","United States","Gulf of Mexico","United States"],
+    ["Mackenzie","North America","Canada","Beaufort Sea","Canada"],
+    ["Murray–Darling","Oceania","Australia","Southern Ocean system","Australia"],
   ],
-  physical: [
-    ["Himalayas",84,29.5,"Mountain range"],["Karakoram",77,35.5,"Mountain range"],
-    ["Hindu Kush",70,36,"Mountain range"],["Tien Shan",80,42.5,"Mountain range"],
-    ["Ural Mountains",59,60,"Mountain range"],["Alps",10.5,46.5,"Mountain range"],
-    ["Atlas",3,32,"Mountain range"],["Andes",-70,-15,"Mountain range"],
-    ["Rockies",-115,42,"Mountain range"],["Great Dividing Range",147,-30,"Mountain range"],
-    ["Sahara",10,23,"Desert"],["Arabian Desert",45,25,"Desert"],["Gobi",105,43,"Desert"],
-    ["Kalahari",22,-23,"Desert"],["Atacama",-69,-23,"Desert"],["Amazon Basin",-60,-5,"Basin"],
-    ["Tibetan Plateau",88,32,"Plateau"]
-  ],
+
   straits: [
-    ["Strait of Hormuz",56.5,26.6,"Persian Gulf ↔ Gulf of Oman"],
-    ["Strait of Malacca",100,3,"Andaman Sea ↔ South China Sea"],
-    ["Bab-el-Mandeb",43.3,12.6,"Red Sea ↔ Gulf of Aden"],
-    ["Gibraltar",-5.6,35.9,"Atlantic ↔ Mediterranean"],
-    ["Bosporus",29.1,41.1,"Black Sea ↔ Sea of Marmara"],
-    ["Dardanelles",26.3,40.2,"Aegean Sea ↔ Sea of Marmara"],
-    ["Bering Strait",-169,65.8,"Arctic ↔ Pacific"],
-    ["Dover Strait",1.3,51,"English Channel"],
-    ["Taiwan Strait",119.5,24,"South China Sea"],
-    ["Palk Strait",79.8,9.8,"Bay of Bengal"],
-    ["Sunda Strait",105.8,-5.9,"Java Sea ↔ Indian Ocean"],
-    ["Lombok Strait",116,-8.5,"Bali Sea ↔ Indian Ocean"]
+    ["Strait of Hormuz","Persian Gulf ↔ Gulf of Oman","Iran–Oman/UAE vicinity","Major oil-shipping chokepoint"],
+    ["Strait of Malacca","Andaman Sea ↔ South China Sea","Malaysia–Indonesia–Singapore","Major Indo-Pacific trade route"],
+    ["Bab-el-Mandeb","Red Sea ↔ Gulf of Aden","Yemen–Djibouti/Eritrea","Gateway to Suez route"],
+    ["Bosporus","Black Sea ↔ Sea of Marmara","Türkiye","Separates European and Asian Türkiye"],
+    ["Dardanelles","Aegean Sea ↔ Sea of Marmara","Türkiye","Access to Black Sea through Turkish Straits"],
+    ["Strait of Gibraltar","Atlantic ↔ Mediterranean","Spain–Morocco","Gateway between Atlantic and Mediterranean"],
+    ["Bering Strait","Arctic Ocean ↔ Pacific","Russia–United States","Separates Asia and North America"],
+    ["Taiwan Strait","East China Sea ↔ South China Sea","China–Taiwan","Strategic East Asian waterway"],
+    ["Korea Strait","East China Sea ↔ Sea of Japan/East Sea","Korea–Japan","Northeast Asian maritime route"],
+    ["Dover Strait","English Channel","United Kingdom–France","Narrowest part of English Channel"],
+    ["Palk Strait","Bay of Bengal","India–Sri Lanka","South Asian strait"],
+    ["Sunda Strait","Java Sea ↔ Indian Ocean","Indonesia","Between Java and Sumatra"],
+    ["Lombok Strait","Bali Sea ↔ Indian Ocean","Indonesia","Deep Indonesian passage"],
+    ["Makassar Strait","Celebes Sea ↔ Java Sea","Indonesia","Between Borneo and Sulawesi"],
+    ["Torres Strait","Arafura Sea ↔ Coral Sea","Australia–Papua New Guinea","Between Australia and New Guinea"],
   ],
-  hotspots: [
-    ["South China Sea",114,13,"Indo-Pacific / maritime geography"],
-    ["West Asia",44,29,"Energy + geopolitics"],["Central Asia",68,43,"Landlocked states + connectivity"],
-    ["Arctic",0,82,"Sea routes + resources"],["Horn of Africa",48,9,"Red Sea / Gulf of Aden"],
-    ["Sahel",0,15,"Africa physical + geopolitical region"],["Indo-Pacific",120,5,"Maritime strategy"],
-    ["Eastern Mediterranean",34,35,"Energy + strategic geography"]
+
+  seas: [
+    ["Mediterranean Sea","Atlantic-connected marginal sea","Europe–Africa–Asia"],
+    ["Black Sea","Atlantic-connected inland sea","Eastern Europe–West Asia"],
+    ["Red Sea","Indian Ocean marginal sea","Northeast Africa–Arabia"],
+    ["Arabian Sea","Northern Indian Ocean","India–Arabian Peninsula–East Africa"],
+    ["South China Sea","Western Pacific marginal sea","Southeast Asia"],
+    ["East China Sea","Western Pacific marginal sea","China–Korea–Japan region"],
+    ["Sea of Japan / East Sea","Western Pacific marginal sea","Japan–Korean Peninsula–Russia"],
+    ["Caribbean Sea","Atlantic marginal sea","Caribbean–Central America–South America"],
+    ["North Sea","Atlantic marginal sea","Northwestern Europe"],
+    ["Baltic Sea","Northern European sea","Northern Europe"],
+    ["Bering Sea","North Pacific marginal sea","Russia–Alaska"],
+    ["Coral Sea","South Pacific marginal sea","Australia–Melanesia"],
+    ["Tasman Sea","South Pacific sea","Australia–New Zealand"],
   ],
-  resources: [
-    ["Persian Gulf",51,27,"Petroleum and natural gas"],["West Siberia",75,60,"Hydrocarbons"],
-    ["North Sea",2,57,"Offshore hydrocarbons"],["Gulf of Mexico",-90,24,"Offshore hydrocarbons"],
-    ["Great Plains",-100,40,"Agricultural belt"],["Pampas",-62,-35,"Agricultural belt"]
-  ]
+
+  gulfs: [
+    ["Gulf of Mexico","Atlantic","United States–Mexico–Cuba"],
+    ["Gulf of Guinea","Atlantic","West Africa"],
+    ["Persian Gulf","Indian Ocean system","Iran–Arabian Peninsula"],
+    ["Gulf of Oman","Arabian Sea system","Iran–Oman–UAE/Pakistan vicinity"],
+    ["Gulf of Aden","Indian Ocean system","Yemen–Somalia/Djibouti"],
+    ["Gulf of Thailand","South China Sea","Thailand–Cambodia–Vietnam–Malaysia"],
+    ["Gulf of Mannar","Indian Ocean","India–Sri Lanka"],
+    ["Gulf of California","Pacific","Mexico"],
+    ["Gulf of Bothnia","Baltic Sea","Sweden–Finland"],
+  ],
+
+  canals: [
+    ["Suez Canal","Egypt","Mediterranean Sea ↔ Red Sea","Europe–Asia maritime shortcut"],
+    ["Panama Canal","Panama","Atlantic ↔ Pacific","Interoceanic canal"],
+    ["Kiel Canal","Germany","North Sea ↔ Baltic Sea","European maritime shortcut"],
+    ["Corinth Canal","Greece","Gulf of Corinth ↔ Saronic Gulf","Cuts across the Isthmus of Corinth"],
+  ],
+
+  deserts: [
+    ["Sahara","Africa","North Africa","Largest hot desert"],
+    ["Arabian Desert","Asia","Arabian Peninsula","Arid West Asia"],
+    ["Gobi","Asia","Mongolia–China","Cold desert"],
+    ["Taklamakan","Asia","Xinjiang, China","Tarim Basin desert"],
+    ["Thar","Asia","India–Pakistan","Monsoon-influenced desert"],
+    ["Karakum","Asia","Turkmenistan","Central Asian desert"],
+    ["Kyzylkum","Asia","Uzbekistan–Kazakhstan","Central Asian desert"],
+    ["Atacama","South America","Chile–Peru region","Extremely arid coastal desert"],
+    ["Patagonian Desert","South America","Argentina","Cold desert"],
+    ["Namib","Africa","Namibia–Angola–South Africa region","Coastal desert"],
+    ["Kalahari","Africa","Botswana–Namibia–South Africa","Semi-arid region"],
+    ["Great Victoria Desert","Australia","Western/Southern Australia","Australian desert"],
+    ["Great Sandy Desert","Australia","Western Australia","Australian desert"],
+    ["Mojave","North America","United States","Southwestern US"],
+  ],
+
+  lakes: [
+    ["Caspian Sea","Europe/Asia","Largest enclosed inland water body by area"],
+    ["Lake Baikal","Asia","Russia","Deep freshwater lake"],
+    ["Lake Victoria","Africa","Tanzania–Uganda–Kenya","Major Nile-system lake"],
+    ["Lake Tanganyika","Africa","Tanzania–DR Congo–Burundi–Zambia","Very deep African lake"],
+    ["Lake Superior","North America","United States–Canada","Largest Great Lake by area"],
+    ["Lake Titicaca","South America","Peru–Bolivia","High-altitude navigable lake"],
+    ["Aral Sea","Asia","Kazakhstan–Uzbekistan","Major environmental-change case study"],
+    ["Dead Sea","Asia","Israel/West Bank–Jordan region","Hypersaline lake"],
+  ],
 };
 
-const QUIZ = [
-  ["Which strait connects the Persian Gulf with the Gulf of Oman?",["Malacca","Hormuz","Gibraltar","Bering"],1,"Strait of Hormuz"],
-  ["Bab-el-Mandeb connects the Red Sea with which body?",["Gulf of Aden","Persian Gulf","Black Sea","South China Sea"],0,"Gulf of Aden"],
-  ["The Strait of Malacca lies between the Malay Peninsula and which island?",["Java","Borneo","Sumatra","Sri Lanka"],2,"Sumatra"],
-  ["Which range is commonly used as part of the Europe–Asia boundary?",["Andes","Ural","Atlas","Rockies"],1,"Ural Mountains"],
-  ["Which desert lies mainly in Mongolia and northern China?",["Sahara","Gobi","Kalahari","Atacama"],1,"Gobi"],
-  ["Bosporus connects the Black Sea with which sea?",["Aegean","Red Sea","Sea of Marmara","Mediterranean"],2,"Sea of Marmara"],
-  ["Which mountain system runs along western South America?",["Alps","Andes","Himalayas","Tien Shan"],1,"Andes"],
-  ["Palk Strait separates India and which country?",["Indonesia","Sri Lanka","Myanmar","Thailand"],1,"Sri Lanka"]
+export const WORLD_RESOURCES = [
+  ["Persian Gulf","Petroleum & natural gas","West Asia","Hormuz is the key chokepoint"],
+  ["North Sea","Petroleum & natural gas","Europe","Offshore resources"],
+  ["Gulf of Mexico","Petroleum & natural gas","North America","Offshore production"],
+  ["West Siberia","Petroleum & natural gas","Russia","Major Eurasian hydrocarbon province"],
+  ["Middle East","Petroleum & natural gas","West Asia","Major global hydrocarbon region"],
+  ["Silesia","Coal","Poland/Czechia region","European coal belt"],
+  ["Appalachian Basin","Coal","United States","Major North American coal province"],
+  ["Bowen Basin","Coal","Australia","Important Australian coal region"],
+  ["Pilbara","Iron ore","Australia","Major iron-ore province"],
+  ["Carajás","Iron ore","Brazil","Major iron-ore province"],
+  ["Copperbelt","Copper","Zambia–DR Congo","Major copper/cobalt belt"],
+  ["Atacama","Copper","Chile","Major global copper region"],
+  ["Lithium Triangle","Lithium","Argentina–Bolivia–Chile","Major salt-flat lithium region"],
+  ["Guiana Shield","Bauxite/iron ore","South America","Resource-rich shield region"],
 ];
 
-const norm = x => String(x || "").trim().toLowerCase();
+export const WORLD_UPSC_HOTSPOTS = [
+  ["Strait of Hormuz","West Asia","Energy security + maritime chokepoint"],
+  ["Strait of Malacca","Southeast Asia","Trade route + Indo-Pacific"],
+  ["Bab-el-Mandeb","Red Sea region","Suez route + maritime security"],
+  ["Suez Canal","Egypt","Europe–Asia trade route"],
+  ["Panama Canal","Central America","Atlantic–Pacific connectivity"],
+  ["South China Sea","Southeast Asia","Trade, resources + geopolitics"],
+  ["Taiwan Strait","East Asia","Strategic maritime geography"],
+  ["Arctic","Polar region","New routes + resources + climate"],
+  ["Black Sea","Europe–West Asia","Trade, security + riverine geography"],
+  ["Horn of Africa","Northeast Africa","Red Sea/Gulf of Aden gateway"],
+  ["Sahel","Africa","Desertification + security + climate"],
+  ["Great Lakes of Africa","East/Central Africa","Water, population + resources"],
+  ["Andes","South America","Climate, glaciers + minerals"],
+  ["Amazon Basin","South America","Biodiversity + carbon cycle"],
+  ["Caspian region","Central Asia","Energy + transport corridors"],
+];
 
-function project(lon,lat,w,h,p=15){
-  return [p+((lon+180)/360)*(w-p*2),p+((90-lat)/180)*(h-p*2)];
-}
+export const WORLD_ACTIVE_RECALL = [
+  ["Strait of Hormuz","Which waterway connects the Persian Gulf with the Gulf of Oman?"],
+  ["Strait of Malacca","Which strait is a major maritime route between the Indian and Pacific Ocean systems?"],
+  ["Bab-el-Mandeb","Which strait links the Red Sea with the Gulf of Aden?"],
+  ["Strait of Gibraltar","Which strait connects the Atlantic Ocean with the Mediterranean Sea?"],
+  ["Bering Strait","Which strait separates Russia from Alaska?"],
+  ["Suez Canal","Which canal connects the Mediterranean Sea with the Red Sea?"],
+  ["Panama Canal","Which canal connects the Atlantic and Pacific maritime systems?"],
+  ["Atacama","Which South American desert is famous for extreme aridity?"],
+  ["Gobi","Which major desert lies across Mongolia and northern China?"],
+  ["Andes","Which mountain system runs along the western margin of South America?"],
+  ["Danube","Which major European river flows into the Black Sea?"],
+  ["Amazon","Which major South American river drains into the Atlantic Ocean?"],
+  ["Mekong","Which major Southeast Asian river flows through multiple mainland Southeast Asian countries?"],
+  ["Caspian Sea","Which enclosed water body is the world's largest inland water body by area?"],
+  ["Lake Baikal","Which Russian lake is famous for exceptional depth and freshwater volume?"],
+];
 
-function ringPath(r,w,h){
-  return r.map(([lon,lat],i)=>{
-    const [x,y]=project(lon,lat,w,h);
-    return `${i?"L":"M"}${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(" ")+" Z";
-}
+export const WORLD_QUIZ = [
+  {
+    q:"Which strait connects the Persian Gulf with the Gulf of Oman?",
+    o:["Malacca","Hormuz","Gibraltar","Bering"],
+    a:1,
+    e:"The Strait of Hormuz is the gateway between the Persian Gulf and Gulf of Oman."
+  },
+  {
+    q:"Bab-el-Mandeb connects the Red Sea with the:",
+    o:["Gulf of Aden","Persian Gulf","Bay of Bengal","Black Sea"],
+    a:0,
+    e:"It lies at the southern entrance of the Red Sea."
+  },
+  {
+    q:"The Suez Canal connects the Mediterranean Sea with the:",
+    o:["Arabian Sea","Red Sea","Black Sea","Caspian Sea"],
+    a:1,
+    e:"The canal provides the maritime link between the Mediterranean and Red Sea."
+  },
+  {
+    q:"Which mountain system lies along the western edge of South America?",
+    o:["Rockies","Andes","Alps","Atlas"],
+    a:1,
+    e:"The Andes form the dominant mountain chain along western South America."
+  },
+  {
+    q:"The Atacama Desert is mainly associated with:",
+    o:["Chile","Egypt","Mongolia","Australia"],
+    a:0,
+    e:"The Atacama is principally in northern Chile, with extension toward Peru."
+  },
+  {
+    q:"Which river flows into the Black Sea?",
+    o:["Danube","Nile","Mekong","Orange"],
+    a:0,
+    e:"The Danube empties into the Black Sea delta."
+  },
+  {
+    q:"The Strait of Malacca lies between:",
+    o:["Spain and Morocco","Malaysia and Sumatra/Indonesia","Russia and Alaska","India and Sri Lanka"],
+    a:1,
+    e:"It is the major passage between the Malay Peninsula and Sumatra."
+  },
+  {
+    q:"Lake Baikal is located in:",
+    o:["Russia","Canada","Peru","Kenya"],
+    a:0,
+    e:"Lake Baikal is in southern Siberia, Russia."
+  },
+  {
+    q:"The Gobi Desert extends across:",
+    o:["Mongolia and China","India and Pakistan","Namibia and Botswana","Chile and Peru"],
+    a:0,
+    e:"The Gobi occupies southern Mongolia and northern China."
+  },
+  {
+    q:"The Panama Canal links the Atlantic and:",
+    o:["Indian Ocean","Pacific Ocean","Arctic Ocean","Southern Ocean"],
+    a:1,
+    e:"It provides an interoceanic route between Atlantic and Pacific systems."
+  },
+  {
+    q:"The Copperbelt is strongly associated with:",
+    o:["Zambia and DR Congo","Spain and Portugal","Canada and USA","India and Nepal"],
+    a:0,
+    e:"The Central African Copperbelt spans Zambia and the DR Congo region."
+  },
+  {
+    q:"The Lithium Triangle is located mainly in:",
+    o:["South America","Central Africa","Southeast Asia","Eastern Europe"],
+    a:0,
+    e:"It broadly refers to lithium-rich salt-flat regions of Argentina, Bolivia and Chile."
+  },
+];
 
-function geometryPath(g,w,h){
-  if(!g) return "";
-  if(g.type==="Polygon") return g.coordinates.map(r=>ringPath(r,w,h)).join(" ");
-  if(g.type==="MultiPolygon") return g.coordinates.flatMap(p=>p.map(r=>ringPath(r,w,h))).join(" ");
-  return "";
-}
+export const WORLD_LEARNING_MODES = [
+  {id:"countries",label:"Countries & Capitals",icon:"🌐"},
+  {id:"mountains",label:"Mountains & Peaks",icon:"⛰️"},
+  {id:"rivers",label:"Rivers",icon:"🌊"},
+  {id:"straits",label:"Straits & Chokepoints",icon:"🚢"},
+  {id:"seas",label:"Seas & Gulfs",icon:"🌍"},
+  {id:"deserts",label:"Deserts",icon:"🏜️"},
+  {id:"lakes",label:"Lakes",icon:"💧"},
+  {id:"resources",label:"Resources",icon:"⛏️"},
+  {id:"hotspots",label:"UPSC Hotspots",icon:"📍"},
+];
 
-function featureId(f){
-  const p=f?.properties||{};
-  const raw=p["ISO3166-1-Alpha-2"]||p.ISO_A2||p.ISO_A2_EH;
-  if(raw && raw!=="-99") return String(raw).toUpperCase();
-  const n=norm(p.ADMIN||p.NAME||p.name);
-  return Object.values(META).find(x=>norm(x.name)===n)?.id||null;
-}
+export const WORLD_STATS = {
+  countryEntries: WORLD_COUNTRIES.length,
+  mountainEntries: WORLD_PHYSICAL_FEATURES.mountains.length,
+  riverEntries: WORLD_PHYSICAL_FEATURES.rivers.length,
+  straitEntries: WORLD_PHYSICAL_FEATURES.straits.length,
+  seaEntries: WORLD_PHYSICAL_FEATURES.seas.length,
+  gulfEntries: WORLD_PHYSICAL_FEATURES.gulfs.length,
+  canalEntries: WORLD_PHYSICAL_FEATURES.canals.length,
+  desertEntries: WORLD_PHYSICAL_FEATURES.deserts.length,
+  lakeEntries: WORLD_PHYSICAL_FEATURES.lakes.length,
+  resourceEntries: WORLD_RESOURCES.length,
+  hotspotEntries: WORLD_UPSC_HOTSPOTS.length,
+};
 
-export default function WorldMapPage(){
-  const [geo,setGeo]=useState(null),[error,setError]=useState(""),[loading,setLoading]=useState(true);
-  const [layer,setLayer]=useState("countries"),[continent,setContinent]=useState("All");
-  const [query,setQuery]=useState(""),[selected,setSelected]=useState(null);
-  const [mode,setMode]=useState("explore"),[theme,setTheme]=useState("dark");
-  const [recall,setRecall]=useState(0),[revealed,setRevealed]=useState(false);
-  const [quiz,setQuiz]=useState(0),[answer,setAnswer]=useState(null),[score,setScore]=useState(0);
-  const [mastered,setMastered]=useState({});
-
-  const W=1100,H=560;
-
-  useEffect(()=>{
-    try{
-      const t=localStorage.getItem("sambhav-world-theme");
-      const p=localStorage.getItem("sambhav-world-progress");
-      if(t==="light"||t==="dark")setTheme(t);
-      if(p)setMastered(JSON.parse(p));
-    }catch{}
-  },[]);
-
-  useEffect(()=>{
-    try{
-      localStorage.setItem("sambhav-world-theme",theme);
-      localStorage.setItem("sambhav-world-progress",JSON.stringify(mastered));
-    }catch{}
-  },[theme,mastered]);
-
-  useEffect(()=>{
-    let stop=false;
-    fetch(WORLD_GEOJSON_URL,{cache:"force-cache"})
-      .then(r=>{if(!r.ok)throw new Error(`World map request failed (${r.status})`);return r.json()})
-      .then(j=>{if(!stop)setGeo(j)})
-      .catch(e=>{if(!stop)setError(e.message||"World map could not be loaded.")})
-      .finally(()=>{if(!stop)setLoading(false)});
-    return()=>{stop=true};
-  },[]);
-
-  const features=useMemo(()=>Array.isArray(geo?.features)?geo.features.map(f=>({f,id:featureId(f)})).filter(x=>x.id):[],[geo]);
-
-  const countries=useMemo(()=>{
-    const q=norm(query);
-    return Object.values(META).filter(c=>
-      (continent==="All"||c.continent===continent)&&
-      (!q||norm(c.name).includes(q)||norm(c.capital).includes(q)||norm(c.id).includes(q))
-    );
-  },[query,continent]);
-
-  const selectedCountry=selected?META[selected]:null;
-  const q=QUIZ[quiz];
-
-  function mark(key){setMastered(p=>({...p,[key]:Date.now()}))}
-  function chooseQuiz(i){if(answer!==null)return;setAnswer(i);if(i===q[2])setScore(s=>s+1)}
-
-  const light=theme==="light";
-
-  return <main className={light?"world light":"world"}>
-    <style jsx global>{`
-      :root{--bg:#07111f;--panel:#0d1a2b;--panel2:#12243a;--text:#edf5ff;--muted:#91a6bd;--border:rgba(255,255,255,.1);--accent:#65a8ff;--green:#70dfbd;--land:#1b3047;--active:#294c6e;--sel:#3d82c7;--water:#06101c}
-      .world.light{--bg:#f4f7fb;--panel:#fff;--panel2:#eef4fa;--text:#10243a;--muted:#63758a;--border:rgba(15,35,58,.11);--land:#d7e3ee;--active:#b9d5ed;--sel:#6ba5d8;--water:#e8f0f8}
-      *{box-sizing:border-box}.world{min-height:100vh;background:radial-gradient(circle at 10% 0%,rgba(67,139,226,.16),transparent 28%),var(--bg);color:var(--text);padding:22px;font-family:Inter,system-ui,sans-serif}.shell{max-width:1500px;margin:auto}
-      .head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#397cc9,#55cda9);font-weight:900;font-size:22px;color:white}.kicker{font-size:10px;letter-spacing:.16em;color:var(--green);font-weight:900}.title{font-size:28px;font-weight:900;letter-spacing:-.04em;margin:2px 0}.sub{font-size:12px;color:var(--muted)}.actions{display:flex;gap:7px;flex-wrap:wrap}
-      button{font:inherit}.btn{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:11px;font-weight:800}.btn.active{background:rgba(101,168,255,.14);border-color:rgba(101,168,255,.4);color:var(--accent)}
-      .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px}.stat b{font-size:18px;display:block}.stat span{font-size:9px;color:var(--muted)}
-      .grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:14px}.card{background:var(--panel);border:1px solid var(--border);border-radius:17px;box-shadow:0 18px 55px rgba(0,0,0,.14);overflow:hidden}.top{padding:13px;border-bottom:1px solid var(--border);display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab{border:1px solid var(--border);background:transparent;color:var(--muted);padding:8px 10px;border-radius:9px;font-size:10px;font-weight:900;cursor:pointer}.tab.active{color:var(--accent);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}
-      .map{padding:8px;background:var(--water);position:relative}.svg{width:100%;display:block}.side{padding:14px;display:flex;flex-direction:column;gap:11px}.input{width:100%;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:10px;padding:11px;outline:none}.chips{display:flex;gap:5px;flex-wrap:wrap}.chip{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:999px;padding:6px 8px;font-size:9px;font-weight:800;cursor:pointer}.chip.active{color:var(--text);background:rgba(101,168,255,.13);border-color:rgba(101,168,255,.4)}
-      .label{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.1em}.list{max-height:350px;overflow:auto;display:flex;flex-direction:column;gap:5px}.item{padding:9px;border-radius:9px;background:var(--panel2);border:1px solid transparent;cursor:pointer}.item:hover{border-color:var(--border)}.name{font-size:11px;font-weight:900}.small{font-size:9px;color:var(--muted);margin-top:2px}.code{float:right;color:var(--accent);font-size:9px;font-weight:900}
-      .bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}.box{padding:16px;min-height:180px}.box h3{font-size:14px;margin:0 0 7px}.box p{font-size:11px;line-height:1.6;color:var(--muted);margin:0}.recall{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px}.recall-name{font-size:19px;font-weight:900;margin:5px 0}.options button{width:100%;text-align:left;margin-top:6px;padding:9px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:10px}.correct{background:rgba(70,210,155,.13)!important;border-color:rgba(70,210,155,.55)!important}.wrong{background:rgba(255,100,110,.13)!important;border-color:rgba(255,100,110,.55)!important}.maplabel{fill:var(--text);font-size:8px;font-weight:800;paint-order:stroke;stroke:var(--water);stroke-width:3px}.point{fill:var(--accent);stroke:var(--bg);stroke-width:2;cursor:pointer}.note{font-size:9px;color:var(--muted);line-height:1.5}.error{text-align:center;padding:70px 20px;color:var(--muted)}
-      @media(max-width:950px){.grid{grid-template-columns:1fr}.bottom{grid-template-columns:1fr}.head{align-items:flex-start}}@media(max-width:600px){.world{padding:10px}.title{font-size:22px}.stats{grid-template-columns:repeat(2,1fr)}.map{overflow:hidden}.map svg{min-width:650px}.map{overflow-x:auto}}
-    `}</style>
-
-    <div className="shell">
-      <header className="head">
-        <div className="brand"><div className="logo">◎</div><div><div className="kicker">SAMBHAV UPSC • GEOGRAPHY INTELLIGENCE</div><div className="title">WORLD MAP</div><div className="sub">Explore the world • Learn locations • Master UPSC mapping</div></div></div>
-        <div className="actions">
-          <button className={`btn ${mode==="explore"?"active":""}`} onClick={()=>setMode("explore")}>Explore</button>
-          <button className={`btn ${mode==="recall"?"active":""}`} onClick={()=>setMode("recall")}>Active Recall</button>
-          <button className={`btn ${mode==="quiz"?"active":""}`} onClick={()=>setMode("quiz")}>Map Quiz</button>
-          <button className="btn" onClick={()=>setTheme(light?"dark":"light")}>{light?"Dark":"Light"}</button>
-        </div>
-      </header>
-
-      <div className="stats">
-        <div className="stat"><b>{Object.keys(META).length}+</b><span>Country intelligence</span></div>
-        <div className="stat"><b>{POINTS.straits.length}</b><span>Strategic straits</span></div>
-        <div className="stat"><b>{POINTS.physical.length}</b><span>Physical features</span></div>
-        <div className="stat"><b>{Object.keys(mastered).length}</b><span>Items mastered</span></div>
-      </div>
-
-      <div className="grid">
-        <section className="card">
-          <div className="top">
-            <div className="tabs">
-              {["countries","capitals","physical","straits","hotspots","resources"].map(x=>
-                <button key={x} className={`tab ${layer===x?"active":""}`} onClick={()=>setLayer(x)}>
-                  {x==="countries"?"◎ Countries":x==="capitals"?"⌖ Capitals":x==="physical"?"△ Physical":x==="straits"?"⇆ Straits":x==="hotspots"?"✦ UPSC Hotspots":"◆ Resources"}
-                </button>
-              )}
-            </div>
-            <div className="kicker">{continent.toUpperCase()}</div>
-          </div>
-
-          <div className="map">
-            {loading && <div className="error">Loading world country boundaries…</div>}
-            {!loading && error && <div className="error"><b>World map unavailable</b><p>{error}</p></div>}
-            {!loading && !error && <svg className="svg" viewBox={`0 0 ${W} ${H}`} aria-label="Interactive world map">
-              <rect width={W} height={H} fill="var(--water)"/>
-              {features.map(({f,id})=>{
-                const c=META[id];
-                const fill=selected===id?"var(--sel)":(continent!=="All"&&c?.continent===continent?"var(--active)":"var(--land)");
-                return <path key={id+JSON.stringify(f.geometry).slice(0,20)} d={geometryPath(f.geometry,W,H)} fill={fill} stroke="rgba(255,255,255,.16)" strokeWidth=".55" onClick={()=>setSelected(id)} style={{cursor:"pointer"}}><title>{c?.name||id}</title></path>
-              })}
-              {layer!=="countries" && POINTS[layer]?.map((p,i)=>{
-                const [x,y]=project(p[1],p[2],W,H);
-                return <g key={p[0]+i} onClick={()=>setQuery(p[0])}><circle className="point" cx={x} cy={y} r="4"/><text className="maplabel" x={x+6} y={y-6}>{p[0]}</text><title>{p[0]} — {p[3]||""}</title></g>
-              })}
-            </svg>}
-          </div>
-        </section>
-
-        <aside className="card side">
-          {mode==="recall" ? <div>
-            <div className="label">Active Recall</div>
-            <div className="recall" style={{marginTop:8}}>
-              <div className="kicker">{POINTS.straits[recall%POINTS.straits.length][3]}</div>
-              <div className="recall-name">{POINTS.straits[recall%POINTS.straits.length][0]}</div>
-              <div className="note">{revealed?"Locate and explain its adjoining seas/countries on the map.":"Think of the location before revealing."}</div>
-              {revealed&&<div className="small" style={{marginTop:9}}>Coordinates are used only for the map position; the learning task is location recognition.</div>}
-            </div>
-            <div className="actions" style={{marginTop:9}}>
-              <button className="btn" onClick={()=>setRevealed(v=>!v)}>{revealed?"Hide":"Reveal"}</button>
-              <button className="btn active" onClick={()=>{mark("recall-"+POINTS.straits[recall%POINTS.straits.length][0]);setRevealed(false);setRecall(i=>i+1)}}>I KNEW IT</button>
-            </div>
-          </div> : mode==="quiz" ? <div>
-            <div className="label">Prelims Map Quiz</div>
-            <div className="recall" style={{marginTop:8}}>
-              <div className="recall-name" style={{fontSize:14}}>{q[0]}</div>
-              <div className="options">{q[1].map((o,i)=><button key={o} className={answer!==null&&i===q[2]?"correct":answer===i?"wrong":""} onClick={()=>chooseQuiz(i)}>{String.fromCharCode(65+i)}. {o}</button>)}</div>
-              {answer!==null&&<div className="note" style={{marginTop:9}}>Correct location/concept: <b>{q[3]}</b></div>}
-            </div>
-            <div className="actions" style={{marginTop:9}}><button className="btn active" onClick={()=>{setAnswer(null);setQuiz(i=>(i+1)%QUIZ.length)}}>Next Question</button><span className="btn">Score: {score}</span></div>
-          </div> : <>
-            <input className="input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search country, capital or map feature…"/>
-            <div className="chips">{CONTINENTS.map(x=><button key={x} className={`chip ${continent===x?"active":""}`} onClick={()=>setContinent(x)}>{x}</button>)}</div>
-            {selectedCountry&&<div className="recall">
-              <div className="label">Selected country</div>
-              <div className="recall-name">{selectedCountry.name}</div>
-              <div className="note"><b>Capital:</b> {selectedCountry.capital}<br/><b>Continent:</b> {selectedCountry.continent}<br/><b>ISO:</b> {selectedCountry.id}</div>
-              <button className="btn active" style={{marginTop:10,width:"100%"}} onClick={()=>mark("country-"+selectedCountry.id)}>Mark Mastered</button>
-            </div>}
-            <div className="label">Countries • {countries.length}</div>
-            <div className="list">{countries.slice(0,100).map(c=><div className="item" key={c.id} onClick={()=>setSelected(c.id)}><span className="code">{c.id}</span><div className="name">{c.name}</div><div className="small">Capital: {c.capital} • {c.continent}</div></div>)}</div>
-          </>}
-        </aside>
-      </div>
-
-      <div className="bottom">
-        <section className="card box"><h3>UPSC Mapping Workflow</h3><p>Locate → identify neighbours → identify adjoining sea/ocean → understand physical setting → connect strategic relevance → solve a map-based question.</p><button className="btn active" style={{marginTop:14}} onClick={()=>{setLayer("straits");setMode("explore")}}>Practice Strategic Straits</button></section>
-        <section className="card box"><h3>Physical Geography</h3><p>Major mountain systems, deserts, plateaus and basins are available as location-first map objects. Use the Physical layer for rapid revision.</p><button className="btn active" style={{marginTop:14}} onClick={()=>{setLayer("physical");setMode("explore")}}>Open Physical Layer</button></section>
-        <section className="card box"><h3>Active Recall + Quiz</h3><p>Use Active Recall for location memory and Map Quiz for UPSC-style practice. Mastered items are saved in browser storage.</p><button className="btn active" style={{marginTop:14}} onClick={()=>setMode("recall")}>Start Recall</button></section>
-      </div>
-    </div>
-  </main>;
-}
+export default {
+  WORLD_COUNTRIES,
+  WORLD_PHYSICAL_FEATURES,
+  WORLD_RESOURCES,
+  WORLD_UPSC_HOTSPOTS,
+  WORLD_ACTIVE_RECALL,
+  WORLD_QUIZ,
+  WORLD_LEARNING_MODES,
+  WORLD_STATS,
+};
