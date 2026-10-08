@@ -1,3 +1,5 @@
+"use client";
+
 // WORLD MAP — UPSC-focused data layer
 // Structured for Countries, Physical Geography, Chokepoints,
 // Resources, UPSC Hotspots, Active Recall and Quiz.
@@ -375,8 +377,6 @@ const WORLD_STATS = {
 
 
 
-
-"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
