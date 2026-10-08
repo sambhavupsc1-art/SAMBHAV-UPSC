@@ -318,7 +318,7 @@ const MODES = [
     short: "Monsoon geography",
     icon: "☼",
     key: "climate",
-  },,
+  },
   {
     id: "mapping2026",
     title: "Mapping Class 2026",
