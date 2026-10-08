@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState } from "react";
    KEEP YOUR EXISTING DATA IMPORT PATH HERE
    ============================================================ */
 
-import { STATE_META, FEATURE_INDEX } from "./data";
+import { STATE_META, FEATURE_INDEX, MAPPING_CLASS_2026, MAPPING_CLASS_NOTES_2026 } from "./data";
 
 /* ============================================================
    GEOJSON
@@ -318,6 +318,13 @@ const MODES = [
     short: "Monsoon geography",
     icon: "☼",
     key: "climate",
+  },,
+  {
+    id: "mapping2026",
+    title: "Mapping Class 2026",
+    short: "Prelims map revision",
+    icon: "◎",
+    key: "mapping2026",
   },
 ];
 
@@ -1529,9 +1536,43 @@ function getModeAccent(mode) {
     agriculture: "#7f9b50",
     coastal: "#4b8ca3",
     climate: "#b46f50",
+    mapping2026: "#8b6f47",
   };
 
   return map[mode] || "#b08a42";
+}
+
+/* ============================================================
+   MAPPING CLASS 2026 — source-aligned learning deck
+   ============================================================ */
+
+const MAPPING_CLASS_SECTIONS = [
+  { id: "rivers", label: "Rivers", icon: "≈" },
+  { id: "relief", label: "Ranges", icon: "△" },
+  { id: "passes", label: "Passes", icon: "⌁" },
+  { id: "ecology", label: "Parks / Tiger", icon: "♧" },
+  { id: "wetlands", label: "Wetlands", icon: "≈" },
+  { id: "biosphereReserves", label: "Biosphere", icon: "◌" },
+  { id: "soils", label: "Soils", icon: "◆" },
+  { id: "unesco", label: "UNESCO", icon: "◇" },
+  { id: "ports", label: "Ports", icon: "⚓" },
+];
+
+function mappingStateName(value) {
+  return normalizeName(value).replace(/\bstate\b/g, "").trim();
+}
+
+function mappingStateId(knowledge, stateName) {
+  const wanted = mappingStateName(stateName);
+  const found = Object.entries(knowledge).find(([, state]) => mappingStateName(state?.name) === wanted);
+  return found?.[0] || null;
+}
+
+function mappingEntries(category) {
+  return Object.entries(MAPPING_CLASS_2026?.[category] || {}).map(([name, states]) => ({
+    name,
+    states: Array.isArray(states) ? states : [],
+  }));
 }
 
 /* ============================================================
@@ -1572,6 +1613,14 @@ export default function BharatDarshanPage() {
   const [progress, setProgress] = useState({});
 
   const [reportFilter, setReportFilter] = useState("all");
+
+  const [mappingCategory, setMappingCategory] = useState("rivers");
+  const [mappingSearch, setMappingSearch] = useState("");
+  const [mappingRecallIndex, setMappingRecallIndex] = useState(0);
+  const [mappingRecallRevealed, setMappingRecallRevealed] = useState(false);
+  const [mappingQuizIndex, setMappingQuizIndex] = useState(0);
+  const [mappingQuizAnswer, setMappingQuizAnswer] = useState(null);
+  const [mappingQuizScore, setMappingQuizScore] = useState(0);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -1916,6 +1965,8 @@ export default function BharatDarshanPage() {
         return "Coastal India";
       case "climate":
         return "Climate & Monsoon";
+      case "mapping2026":
+        return "Mapping Class 2026";
       default:
         return "State Overview";
     }
@@ -2336,6 +2387,8 @@ export default function BharatDarshanPage() {
         return state.coastal;
       case "climate":
         return [state.climate];
+      case "mapping2026":
+        return [];
       default:
         return [
           ...state.rivers,
@@ -3151,6 +3204,104 @@ export default function BharatDarshanPage() {
         </div>
 
         {/* ====================================================
+            MAPPING CLASS 2026
+        ==================================================== */}
+        {mode === "mapping2026" ? (() => {
+          const entries = mappingEntries(mappingCategory);
+          const filteredEntries = entries.filter((entry) => {
+            const haystack = `${entry.name} ${entry.states.join(" ")}`.toLowerCase();
+            return haystack.includes(mappingSearch.toLowerCase().trim());
+          });
+          const recallPool = entries.length ? entries : [{ name: "No item", states: [] }];
+          const recallItem = recallPool[mappingRecallIndex % recallPool.length];
+          const quizPool = entries.length ? entries : [{ name: "No item", states: [] }];
+          const quizItem = quizPool[mappingQuizIndex % quizPool.length];
+          const quizCorrect = quizItem.states[0] || "—";
+          const quizOptions = [quizCorrect, ...Object.values(knowledge).map((state) => state?.name).filter((name) => name && name !== quizCorrect && !quizItem.states.includes(name)).slice(0, 3)];
+          const sourceNotes = Array.isArray(MAPPING_CLASS_NOTES_2026) ? MAPPING_CLASS_NOTES_2026 : [];
+
+          return (
+            <section style={{ marginBottom: 16, padding: 16, borderRadius: 22, border: `1px solid ${ui.line}`, background: ui.surface, boxShadow: ui.shadow }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 8, fontWeight: 950, letterSpacing: "1.4px", color: modeAccent }}>MAPPING CLASS • 2026 PRELIMS</div>
+                  <h2 style={{ margin: "6px 0 3px", fontSize: 22, letterSpacing: "-0.8px" }}>India Map Revision Deck</h2>
+                  <div style={{ color: ui.muted, fontSize: 10, lineHeight: 1.55 }}>Source-aligned map associations from the uploaded Mapping Class 2026 material, organised for active recall and Prelims revision.</div>
+                </div>
+                <div style={{ padding: "7px 10px", borderRadius: 999, background: `${modeAccent}12`, border: `1px solid ${modeAccent}45`, color: modeAccent, fontSize: 8, fontWeight: 950 }}>
+                  {Object.values(MAPPING_CLASS_2026 || {}).reduce((n, group) => n + Object.keys(group || {}).length, 0)} mapped items
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 7, overflowX: "auto", padding: "14px 0 10px" }}>
+                {MAPPING_CLASS_SECTIONS.map((section) => {
+                  const active = mappingCategory === section.id;
+                  const count = Object.keys(MAPPING_CLASS_2026?.[section.id] || {}).length;
+                  return (
+                    <button key={section.id} type="button" onClick={() => { setMappingCategory(section.id); setMappingSearch(""); setMappingRecallIndex(0); setMappingRecallRevealed(false); setMappingQuizIndex(0); setMappingQuizAnswer(null); setMappingQuizScore(0); }} style={{ flex: "0 0 auto", border: `1px solid ${active ? modeAccent : ui.line}`, background: active ? `${modeAccent}15` : ui.surface2, color: ui.text, borderRadius: 12, padding: "8px 10px", cursor: "pointer", textAlign: "left" }}>
+                      <div style={{ fontSize: 8, fontWeight: 950 }}>{section.icon} {section.label}</div>
+                      <div style={{ marginTop: 3, color: ui.muted, fontSize: 7 }}>{count} items</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(270px, .65fr)", gap: 12 }}>
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 9 }}>
+                    <input value={mappingSearch} onChange={(e) => setMappingSearch(e.target.value)} placeholder="Search mapped feature or state…" style={{ flex: 1, minWidth: 0, border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 11, padding: "9px 11px", outline: "none", fontSize: 9 }} />
+                    <span style={{ fontSize: 8, color: ui.muted, whiteSpace: "nowrap" }}>{filteredEntries.length} results</span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8, maxHeight: 390, overflowY: "auto", paddingRight: 2 }}>
+                    {filteredEntries.map((entry) => (
+                      <button key={entry.name} type="button" onClick={() => { const id = mappingStateId(knowledge, entry.states[0]); if (id) setSelectedId(id); setSelectedMapFeature(null); }} style={{ border: `1px solid ${ui.line}`, background: ui.surface2, color: ui.text, borderRadius: 13, padding: 11, textAlign: "left", cursor: "pointer" }}>
+                        <div style={{ fontSize: 10, fontWeight: 950 }}>{entry.name}</div>
+                        <div style={{ marginTop: 7, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {entry.states.map((state) => <span key={state} style={{ padding: "4px 6px", borderRadius: 999, border: `1px solid ${modeAccent}35`, background: `${modeAccent}0d`, color: ui.text, fontSize: 7, fontWeight: 800 }}>{state}</span>)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ padding: 13, borderRadius: 15, border: `1px solid ${ui.line}`, background: ui.surface2 }}>
+                    <div style={{ fontSize: 8, color: modeAccent, fontWeight: 950, letterSpacing: ".9px" }}>ACTIVE RECALL</div>
+                    <div style={{ marginTop: 8, fontSize: 12, fontWeight: 900 }}>Where is {recallItem.name}?</div>
+                    {mappingRecallRevealed ? <div style={{ marginTop: 8, color: ui.text, fontSize: 9, lineHeight: 1.55 }}>{recallItem.states.join(", ") || "No state association in the source dataset."}</div> : <div style={{ marginTop: 8, color: ui.muted, fontSize: 9 }}>Think first. Then reveal the mapped states.</div>}
+                    <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
+                      <button type="button" onClick={() => setMappingRecallRevealed(true)} style={{ border: 0, borderRadius: 9, padding: "8px 10px", background: modeAccent, color: "#111", fontWeight: 900, fontSize: 8, cursor: "pointer" }}>REVEAL</button>
+                      <button type="button" onClick={() => { setMappingRecallIndex((v) => (v + 1) % recallPool.length); setMappingRecallRevealed(false); }} style={{ border: `1px solid ${ui.line}`, borderRadius: 9, padding: "8px 10px", background: ui.surface, color: ui.text, fontWeight: 900, fontSize: 8, cursor: "pointer" }}>NEXT</button>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: 13, borderRadius: 15, border: `1px solid ${ui.line}`, background: ui.surface2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><div style={{ fontSize: 8, color: modeAccent, fontWeight: 950, letterSpacing: ".9px" }}>QUICK MAP QUIZ</div><div style={{ fontSize: 8, color: ui.muted, fontWeight: 900 }}>Score {mappingQuizScore}</div></div>
+                    <div style={{ marginTop: 8, fontSize: 10, fontWeight: 900 }}>Which state is linked with {quizItem.name}?</div>
+                    <div style={{ display: "grid", gap: 5, marginTop: 9 }}>
+                      {quizOptions.map((state) => {
+                        const selected = mappingQuizAnswer === state;
+                        const correct = state === quizCorrect;
+                        const answered = Boolean(mappingQuizAnswer);
+                        return <button key={state} type="button" onClick={() => { if (!answered) { setMappingQuizAnswer(state); if (correct) setMappingQuizScore((v) => v + 1); } }} style={{ border: `1px solid ${selected ? (correct ? modeAccent : "#b55") : ui.line}`, background: selected ? (correct ? `${modeAccent}18` : "#b5511a") : ui.surface, color: ui.text, borderRadius: 9, padding: "7px 9px", textAlign: "left", fontSize: 8, fontWeight: 800, cursor: answered ? "default" : "pointer" }}>{state}{answered && correct ? " ✓" : ""}</button>;
+                      })}
+                    </div>
+                    <button type="button" onClick={() => { setMappingQuizIndex((v) => (v + 1) % quizPool.length); setMappingQuizAnswer(null); }} style={{ marginTop: 8, border: `1px solid ${ui.line}`, borderRadius: 9, padding: "7px 10px", background: ui.surface, color: ui.text, fontWeight: 900, fontSize: 8, cursor: "pointer" }}>NEXT QUESTION</button>
+                    <div style={{ marginTop: 6, color: ui.muted, fontSize: 7 }}>Quiz uses mapped state associations; no invented coordinates are used.</div>
+                  </div>
+                </div>
+              </div>
+
+              {sourceNotes.length ? <div style={{ marginTop: 12, padding: 11, borderRadius: 13, border: `1px dashed ${ui.line}`, background: ui.surface2 }}>
+                <div style={{ fontSize: 7, fontWeight: 950, color: modeAccent, letterSpacing: ".8px" }}>SOURCE NOTES</div>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 17, color: ui.muted, fontSize: 8, lineHeight: 1.55 }}>{sourceNotes.map((note) => <li key={note}>{note}</li>)}</ul>
+              </div> : null}
+            </section>
+          );
+        })() : null}
+
+        {/* ====================================================
             FILTERS
         ==================================================== */}
 
@@ -3948,6 +4099,7 @@ export default function BharatDarshanPage() {
                   ) : null}
 
                   {mode !== "explore" &&
+                  mode !== "mapping2026" &&
                   !Object.values(knowledge).some((state) =>
                     (state.geoLayers?.[getGeoLayerKey(mode)] || []).length
                   ) &&
