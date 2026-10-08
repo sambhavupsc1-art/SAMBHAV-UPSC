@@ -1196,6 +1196,243 @@ const STATE_META = {
   },
 };
 
+/* ============================================================
+   BHARAT DARSHAN — MAPPING CLASS 2026 ENHANCEMENT
+   Source basis: user-provided "FINAL MAPPING CLASS FOR 2026 PRELIMS.pdf"
+   Integration strategy: augment existing STATE_META; do not replace
+   existing map geometry, state IDs, or existing geography data.
+   ============================================================ */
+
+export const MAPPING_CLASS_2026 = {
+  rivers: {
+    "Ganga": ["Uttarakhand", "Uttar Pradesh", "Bihar", "Jharkhand", "West Bengal"],
+    "Yamuna": ["Uttarakhand", "Himachal Pradesh", "Haryana", "Delhi", "Uttar Pradesh"],
+    "Indus": ["Ladakh"],
+    "Jhelum": ["Jammu & Kashmir"],
+    "Chenab": ["Jammu & Kashmir", "Himachal Pradesh"],
+    "Ravi": ["Himachal Pradesh", "Punjab"],
+    "Beas": ["Himachal Pradesh", "Punjab"],
+    "Sutlej": ["Himachal Pradesh", "Punjab"],
+    "Brahmaputra": ["Arunachal Pradesh", "Assam"],
+    "Godavari": ["Maharashtra", "Telangana", "Andhra Pradesh"],
+    "Krishna": ["Maharashtra", "Karnataka", "Telangana", "Andhra Pradesh"],
+    "Tungabhadra": ["Karnataka", "Telangana"],
+    "Narmada": ["Madhya Pradesh", "Maharashtra", "Gujarat"],
+    "Tapi": ["Madhya Pradesh", "Maharashtra", "Gujarat"],
+    "Mahanadi": ["Chhattisgarh", "Odisha"],
+    "Kaveri": ["Karnataka", "Tamil Nadu"],
+    "Chambal": ["Madhya Pradesh", "Rajasthan", "Uttar Pradesh"],
+    "Betwa": ["Madhya Pradesh", "Uttar Pradesh"],
+    "Mahi": ["Madhya Pradesh", "Rajasthan", "Gujarat"],
+  },
+
+  relief: {
+    "Karakoram": ["Ladakh", "Jammu & Kashmir"],
+    "Ladakh Range": ["Ladakh"],
+    "Zanskar Range": ["Ladakh", "Jammu & Kashmir"],
+    "Pir Panjal": ["Jammu & Kashmir", "Himachal Pradesh"],
+    "Shivalik": ["Jammu & Kashmir", "Himachal Pradesh", "Uttarakhand", "Haryana", "Punjab"],
+    "Aravalli Range": ["Rajasthan", "Haryana", "Gujarat"],
+    "Vindhya Range": ["Madhya Pradesh", "Uttar Pradesh"],
+    "Satpura Range": ["Madhya Pradesh", "Maharashtra"],
+    "Western Ghats": ["Gujarat", "Maharashtra", "Goa", "Karnataka", "Kerala", "Tamil Nadu"],
+    "Eastern Ghats": ["Odisha", "Andhra Pradesh", "Tamil Nadu"],
+    "Nilgiri Hills": ["Tamil Nadu", "Kerala", "Karnataka"],
+  },
+
+  passes: {
+    "Zoji La": ["Jammu & Kashmir", "Ladakh"],
+    "Fotu La": ["Ladakh"],
+    "Khardung La": ["Ladakh"],
+    "Nathu La": ["Sikkim"],
+    "Rohtang Pass": ["Himachal Pradesh"],
+    "Shipki La": ["Himachal Pradesh"],
+    "Sela Pass": ["Arunachal Pradesh"],
+  },
+
+  ecology: {
+    "Dampa Tiger Reserve": ["Mizoram"],
+    "Tadoba-Andhari Tiger Reserve": ["Maharashtra"],
+    "Kawal Tiger Reserve": ["Telangana"],
+    "Amrabad Tiger Reserve": ["Telangana"],
+    "Periyar Tiger Reserve": ["Kerala"],
+    "Parambikulam Tiger Reserve": ["Kerala"],
+    "Kaziranga National Park": ["Assam"],
+    "Manas National Park": ["Assam"],
+    "Dibru-Saikhowa National Park": ["Assam"],
+    "Keibul Lamjao National Park": ["Manipur"],
+    "Khangchendzonga National Park": ["Sikkim"],
+    "Great Himalayan National Park": ["Himachal Pradesh"],
+    "Nanda Devi National Park": ["Uttarakhand"],
+    "Valley of Flowers National Park": ["Uttarakhand"],
+    "Dudhwa National Park": ["Uttar Pradesh"],
+    "Jim Corbett National Park": ["Uttarakhand"],
+    "Sundarbans National Park": ["West Bengal"],
+    "Similipal National Park": ["Odisha"],
+    "Bhitarkanika National Park": ["Odisha"],
+    "Bandipur National Park": ["Karnataka"],
+    "Nagarahole National Park": ["Karnataka"],
+    "Gir National Park": ["Gujarat"],
+    "Ranthambore National Park": ["Rajasthan"],
+    "Keoladeo National Park": ["Rajasthan"],
+    "Desert National Park": ["Rajasthan"],
+    "Kanha National Park": ["Madhya Pradesh"],
+    "Bandhavgarh National Park": ["Madhya Pradesh"],
+    "Pench National Park": ["Madhya Pradesh"],
+    "Gulf of Mannar Marine National Park": ["Tamil Nadu"],
+    "Mahatma Gandhi Marine National Park": ["Andaman & Nicobar Islands"],
+    "Campbell Bay National Park": ["Andaman & Nicobar Islands"],
+  },
+
+  wetlands: {
+    "Vembanad": ["Kerala"],
+    "Sasthamkotta": ["Kerala"],
+    "Ashtamudi": ["Kerala"],
+  },
+
+  biosphereReserves: {
+    "Cold Desert": ["Himachal Pradesh"],
+    "Nanda Devi": ["Uttarakhand"],
+    "Khangchendzonga": ["Sikkim"],
+    "Dihang-Dibang": ["Arunachal Pradesh"],
+    "Manas": ["Assam"],
+    "Dibru-Saikhowa": ["Assam"],
+    "Nokrek": ["Meghalaya"],
+    "Great Rann of Kutch": ["Gujarat"],
+    "Panna": ["Madhya Pradesh"],
+    "Pachmarhi": ["Madhya Pradesh"],
+    "Achanakmar-Amarkantak": ["Chhattisgarh", "Madhya Pradesh"],
+    "Similipal": ["Odisha"],
+    "Sundarbans": ["West Bengal"],
+    "Seshachalam Hills": ["Andhra Pradesh"],
+    "Nilgiri": ["Tamil Nadu", "Kerala", "Karnataka"],
+    "Agasthyamalai": ["Kerala", "Tamil Nadu"],
+    "Gulf of Mannar": ["Tamil Nadu"],
+    "Great Nicobar": ["Andaman & Nicobar Islands"],
+  },
+
+  soils: {
+    "Black Soil": ["Madhya Pradesh", "Maharashtra", "Gujarat", "Karnataka", "Telangana"],
+    "Red Soil": ["Odisha", "Chhattisgarh", "Jharkhand", "Karnataka", "Tamil Nadu", "Andhra Pradesh"],
+    "Laterite Soil": ["Kerala", "Karnataka", "Goa", "Maharashtra", "Odisha", "Tamil Nadu"],
+    "Desert Soil": ["Rajasthan", "Gujarat"],
+    "Mountain Soil": ["Himachal Pradesh", "Uttarakhand", "Jammu & Kashmir", "Ladakh", "Sikkim", "Arunachal Pradesh"],
+  },
+
+  unesco: {
+    "Dholavira": ["Gujarat"],
+    "Rani-ki-Vav": ["Gujarat"],
+    "Hill Forts of Rajasthan": ["Rajasthan"],
+    "Jantar Mantar, Jaipur": ["Rajasthan"],
+    "Agra Fort": ["Uttar Pradesh"],
+    "Taj Mahal": ["Uttar Pradesh"],
+    "Nalanda Mahavihara": ["Bihar"],
+    "Mahabodhi Temple Complex": ["Bihar"],
+    "Ajanta Caves": ["Maharashtra"],
+    "Ellora Caves": ["Maharashtra"],
+    "Elephanta Caves": ["Maharashtra"],
+    "Chhatrapati Shivaji Terminus": ["Maharashtra"],
+    "Churches and Convents of Goa": ["Goa"],
+    "Group of Monuments at Hampi": ["Karnataka"],
+    "Group of Monuments at Pattadakal": ["Karnataka"],
+    "Khangchendzonga National Park": ["Sikkim"],
+    "Kaziranga National Park": ["Assam"],
+    "Sundarbans National Park": ["West Bengal"],
+    "Konark Sun Temple": ["Odisha"],
+    "Khajuraho Group of Monuments": ["Madhya Pradesh"],
+    "Great Himalayan National Park": ["Himachal Pradesh"],
+    "Nilgiri Mountain Railway": ["Tamil Nadu"],
+    "Darjeeling Himalayan Railway": ["West Bengal"],
+  },
+
+  ports: {
+    "Kandla": ["Gujarat"],
+    "Mumbai": ["Maharashtra"],
+    "Mormugao": ["Goa"],
+    "New Mangalore": ["Karnataka"],
+    "Kochi": ["Kerala"],
+    "Chennai": ["Tamil Nadu"],
+    "Visakhapatnam": ["Andhra Pradesh"],
+    "Paradip": ["Odisha"],
+    "Kolkata": ["West Bengal"],
+    "Port Blair": ["Andaman & Nicobar Islands"],
+  },
+};
+
+export const MAPPING_CLASS_NOTES_2026 = [
+  "Kerala: the source notes two tiger reserves — Periyar and Parambikulam.",
+  "Kerala wetlands highlighted in the source: Vembanad, Sasthamkotta and Ashtamudi.",
+  "The source uses map-based state association as the primary learning method.",
+];
+
+const MAPPING_STATE_ALIASES_2026 = {
+  "Andaman & Nicobar Islands": "AN",
+  "Andhra Pradesh": "AP",
+  "Arunachal Pradesh": "AR",
+  "Assam": "AS",
+  "Bihar": "BR",
+  "Chhattisgarh": "CG",
+  "Goa": "GA",
+  "Gujarat": "GJ",
+  "Haryana": "HR",
+  "Himachal Pradesh": "HP",
+  "Jammu & Kashmir": "JK",
+  "Jharkhand": "JH",
+  "Karnataka": "KA",
+  "Kerala": "KL",
+  "Ladakh": "LA",
+  "Madhya Pradesh": "MP",
+  "Maharashtra": "MH",
+  "Manipur": "MN",
+  "Meghalaya": "ML",
+  "Mizoram": "MZ",
+  "Nagaland": "NL",
+  "Odisha": "OD",
+  "Punjab": "PB",
+  "Rajasthan": "RJ",
+  "Sikkim": "SK",
+  "Tamil Nadu": "TN",
+  "Telangana": "TS",
+  "Tripura": "TR",
+  "Uttar Pradesh": "UP",
+  "Uttarakhand": "UK",
+  "West Bengal": "WB",
+  "Delhi": "DL",
+};
+
+function addMappingUnique2026(target, values) {
+  const out = Array.isArray(target) ? [...target] : [];
+  for (const value of values || []) {
+    if (value && !out.includes(value)) out.push(value);
+  }
+  return out;
+}
+
+function mergeMappingClass2026() {
+  for (const [category, entries] of Object.entries(MAPPING_CLASS_2026)) {
+    for (const [item, stateNames] of Object.entries(entries)) {
+      for (const stateName of stateNames) {
+        const id = MAPPING_STATE_ALIASES_2026[stateName];
+        if (!id || !STATE_META[id]) continue;
+
+        if (category === "rivers") {
+          STATE_META[id].rivers = addMappingUnique2026(STATE_META[id].rivers, [item]);
+        } else if (category === "relief" || category === "passes") {
+          STATE_META[id].relief = addMappingUnique2026(STATE_META[id].relief, [item]);
+        } else if (category === "ecology" || category === "wetlands" || category === "biosphereReserves") {
+          STATE_META[id].ecology = addMappingUnique2026(STATE_META[id].ecology, [item]);
+        } else if (category === "unesco" || category === "ports") {
+          STATE_META[id].places = addMappingUnique2026(STATE_META[id].places, [item]);
+        } else if (category === "soils") {
+          STATE_META[id].facts = addMappingUnique2026(STATE_META[id].facts, [item]);
+        }
+      }
+    }
+  }
+}
+
+mergeMappingClass2026();
+
 export const FEATURE_CATEGORIES = {
   rivers: "Rivers / Water",
   relief: "Mountains / Passes / Relief",
