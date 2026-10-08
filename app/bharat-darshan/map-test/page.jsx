@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const QUESTIONS = [
   {
@@ -26,24 +26,7 @@ const QUESTIONS = [
     category: "Seas",
     difficulty: "Medium",
     question:
-      "Which of the following countries are associated with the Black Sea?",
-    options: [
-      "Turkey, Bulgaria, Romania, Ukraine, Russia and Georgia",
-      "Iran, Iraq, Kuwait and Saudi Arabia",
-      "India, Sri Lanka, Maldives and Myanmar",
-      "Spain, France, Italy and Greece",
-    ],
-    answer: 0,
-    explanation:
-      "The Black Sea has littoral countries including Turkey, Bulgaria, Romania, Ukraine, Russia and Georgia.",
-    source: "Mapping Class 2026 source material",
-  },
-  {
-    id: 3,
-    scope: "World",
-    category: "Seas",
-    difficulty: "Medium",
-    question: "Which group contains the littoral countries of the Caspian Sea?",
+      "Which group contains the littoral countries of the Caspian Sea?",
     options: [
       "Russia, Kazakhstan, Turkmenistan, Iran and Azerbaijan",
       "India, Pakistan, Iran, Iraq and Kuwait",
@@ -56,11 +39,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 4,
+    id: 3,
     scope: "World",
     category: "Rivers",
     difficulty: "Easy",
-    question: "The Mekong River passes through which of the following countries?",
+    question:
+      "The Mekong River passes through which of the following countries?",
     options: [
       "China, Myanmar, Laos, Thailand, Cambodia and Vietnam",
       "India, Nepal, Bhutan and Bangladesh",
@@ -73,7 +57,7 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 5,
+    id: 4,
     scope: "World",
     category: "Countries",
     difficulty: "Easy",
@@ -90,7 +74,7 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 6,
+    id: 5,
     scope: "World",
     category: "Countries",
     difficulty: "Easy",
@@ -107,11 +91,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 7,
+    id: 6,
     scope: "World",
     category: "Routes",
     difficulty: "Medium",
-    question: "The Northern Sea Route is primarily associated with which region?",
+    question:
+      "The Northern Sea Route is primarily associated with which region?",
     options: [
       "Arctic coast of Russia",
       "Southern coast of Australia",
@@ -124,7 +109,7 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 8,
+    id: 7,
     scope: "World",
     category: "Lakes",
     difficulty: "Medium",
@@ -136,11 +121,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 9,
+    id: 8,
     scope: "World",
     category: "Islands",
     difficulty: "Medium",
-    question: "Réunion is an overseas department/region of which country?",
+    question:
+      "Réunion is an overseas department/region of which country?",
     options: ["France", "Portugal", "Spain", "United Kingdom"],
     answer: 0,
     explanation:
@@ -148,23 +134,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 10,
-    scope: "World",
-    category: "Hotspots",
-    difficulty: "Medium",
-    question: "Donbas is a region associated with which country?",
-    options: ["Ukraine", "Romania", "Poland", "Belarus"],
-    answer: 0,
-    explanation:
-      "Donbas is a major historical and geopolitical region of eastern Ukraine.",
-    source: "Mapping Class 2026 source material",
-  },
-  {
-    id: 11,
+    id: 9,
     scope: "India",
     category: "Rivers",
     difficulty: "Easy",
-    question: "The Indus River system is primarily associated with which region?",
+    question:
+      "The Indus River system is primarily associated with which region?",
     options: [
       "Northwestern Indian subcontinent",
       "Peninsular eastern India",
@@ -177,11 +152,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 12,
+    id: 10,
     scope: "India",
     category: "Rivers",
     difficulty: "Medium",
-    question: "Vishnu Prayag is associated with which tributary of the Alaknanda?",
+    question:
+      "Vishnu Prayag is associated with which tributary of the Alaknanda?",
     options: ["Dhauliganga", "Pindar", "Mandakini", "Bhagirathi"],
     answer: 0,
     explanation:
@@ -189,11 +165,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 13,
+    id: 11,
     scope: "India",
     category: "Rivers",
     difficulty: "Medium",
-    question: "Karnaprayag is associated with the confluence of Alaknanda and:",
+    question:
+      "Karnaprayag is associated with the confluence of Alaknanda and:",
     options: ["Pindar", "Dhauliganga", "Mandakini", "Bhagirathi"],
     answer: 0,
     explanation:
@@ -201,11 +178,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 14,
+    id: 12,
     scope: "India",
     category: "Rivers",
     difficulty: "Medium",
-    question: "Devprayag is associated with the confluence of Alaknanda and:",
+    question:
+      "Devprayag is associated with the confluence of Alaknanda and:",
     options: ["Bhagirathi", "Pindar", "Dhauliganga", "Yamuna"],
     answer: 0,
     explanation:
@@ -213,23 +191,30 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 15,
+    id: 13,
     scope: "India",
     category: "Rivers",
     difficulty: "Medium",
-    question: "The Brahmaputra receives the Dibang in which broad region?",
-    options: ["Arunachal Pradesh", "Gujarat", "Kerala", "Rajasthan"],
+    question:
+      "The Brahmaputra receives the Dibang in which broad region?",
+    options: [
+      "Arunachal Pradesh",
+      "Gujarat",
+      "Kerala",
+      "Rajasthan",
+    ],
     answer: 0,
     explanation:
       "The Dibang is an important tributary associated with the Brahmaputra system in Arunachal Pradesh.",
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 16,
+    id: 14,
     scope: "India",
     category: "Passes",
     difficulty: "Easy",
-    question: "Zoji La is an important pass connecting which broad regions?",
+    question:
+      "Zoji La is an important pass connecting which broad regions?",
     options: [
       "Kashmir Valley and Ladakh",
       "Kerala and Tamil Nadu",
@@ -242,7 +227,7 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 17,
+    id: 15,
     scope: "India",
     category: "Wetlands",
     difficulty: "Easy",
@@ -260,7 +245,7 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material, page 52",
   },
   {
-    id: 18,
+    id: 16,
     scope: "India",
     category: "Ecology",
     difficulty: "Medium",
@@ -274,27 +259,33 @@ const QUESTIONS = [
     ],
     answer: 0,
     explanation:
-      "This question preserves the source note exactly as written; it is not presented as an independently verified correction.",
+      "This preserves the source note exactly as written; it is not presented as an independently verified correction.",
     source: "Mapping Class 2026 source material, page 52",
   },
   {
-    id: 19,
+    id: 17,
     scope: "India",
     category: "UNESCO",
     difficulty: "Easy",
     question: "Dholavira is located in which Indian state?",
-    options: ["Gujarat", "Rajasthan", "Madhya Pradesh", "Maharashtra"],
+    options: [
+      "Gujarat",
+      "Rajasthan",
+      "Madhya Pradesh",
+      "Maharashtra",
+    ],
     answer: 0,
     explanation:
       "Dholavira is an archaeological site in Gujarat and a UNESCO World Heritage Site.",
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 20,
+    id: 18,
     scope: "India",
     category: "Biosphere",
     difficulty: "Easy",
-    question: "Nilgiri Biosphere Reserve is associated with which region?",
+    question:
+      "Nilgiri Biosphere Reserve is associated with which region?",
     options: [
       "Western Ghats",
       "Eastern Himalayas only",
@@ -307,11 +298,12 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 21,
+    id: 19,
     scope: "India",
     category: "Ports",
     difficulty: "Easy",
-    question: "Kandla is an important port associated with which state?",
+    question:
+      "Kandla is an important port associated with which state?",
     options: ["Gujarat", "Odisha", "Kerala", "Tamil Nadu"],
     answer: 0,
     explanation:
@@ -319,26 +311,65 @@ const QUESTIONS = [
     source: "Mapping Class 2026 source material",
   },
   {
-    id: 22,
+    id: 20,
     scope: "India",
     category: "Soils",
     difficulty: "Easy",
-    question: "Which soil type is strongly associated with the Deccan Trap region?",
-    options: ["Black soil", "Laterite soil", "Desert soil", "Mountain soil"],
+    question:
+      "Which soil type is strongly associated with the Deccan Trap region?",
+    options: [
+      "Black soil",
+      "Laterite soil",
+      "Desert soil",
+      "Mountain soil",
+    ],
     answer: 0,
     explanation:
       "Black soil is strongly associated with basaltic Deccan Trap areas.",
     source: "Mapping Class 2026 source material",
   },
+  {
+    id: 21,
+    scope: "World",
+    category: "Hotspots",
+    difficulty: "Medium",
+    question: "Donbas is a region associated with which country?",
+    options: ["Ukraine", "Romania", "Poland", "Belarus"],
+    answer: 0,
+    explanation:
+      "Donbas is a major historical and geopolitical region of eastern Ukraine.",
+    source: "Mapping Class 2026 source material",
+  },
+  {
+    id: 22,
+    scope: "World",
+    category: "Seas",
+    difficulty: "Medium",
+    question:
+      "Which group contains Black Sea littoral countries?",
+    options: [
+      "Turkey, Bulgaria, Romania, Ukraine, Russia and Georgia",
+      "Iran, Iraq, Kuwait and Saudi Arabia",
+      "India, Sri Lanka, Maldives and Myanmar",
+      "Spain, France, Italy and Greece",
+    ],
+    answer: 0,
+    explanation:
+      "The Black Sea has littoral countries including Turkey, Bulgaria, Romania, Ukraine, Russia and Georgia.",
+    source: "Mapping Class 2026 source material",
+  },
 ];
 
-const categories = ["All", ...new Set(QUESTIONS.map((q) => q.category))];
+const categories = [
+  "All",
+  ...Array.from(new Set(QUESTIONS.map((q) => q.category))),
+];
 
 export default function MapPrelimsTest() {
   const [scope, setScope] = useState("All");
   const [category, setCategory] = useState("All");
   const [difficulty, setDifficulty] = useState("All");
-  const [questionCount, setQuestionCount] = useState(10);
+  const [count, setCount] = useState(10);
 
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -348,26 +379,36 @@ export default function MapPrelimsTest() {
   const [timeLeft, setTimeLeft] = useState(0);
 
   const filteredQuestions = useMemo(() => {
-    return QUESTIONS.filter((q) => {
-      const scopeMatch = scope === "All" || q.scope === scope;
-      const categoryMatch =
-        category === "All" || q.category === category;
-      const difficultyMatch =
-        difficulty === "All" || q.difficulty === difficulty;
-
-      return scopeMatch && categoryMatch && difficultyMatch;
-    });
+    return QUESTIONS.filter(
+      (q) =>
+        (scope === "All" || q.scope === scope) &&
+        (category === "All" || q.category === category) &&
+        (difficulty === "All" || q.difficulty === difficulty)
+    );
   }, [scope, category, difficulty]);
 
-  function shuffle(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  }
+  useEffect(() => {
+    if (!started || submitted || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((time) => {
+        if (time <= 1) {
+          clearInterval(timer);
+          setSubmitted(true);
+          return 0;
+        }
+
+        return time - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [started, submitted, timeLeft]);
 
   function startTest() {
-    const selected = shuffle(filteredQuestions).slice(
-      0,
-      Math.min(questionCount, filteredQuestions.length)
-    );
+    const selected = [...filteredQuestions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.min(count, filteredQuestions.length));
 
     setQuestions(selected);
     setAnswers({});
@@ -375,19 +416,6 @@ export default function MapPrelimsTest() {
     setSubmitted(false);
     setStarted(true);
     setTimeLeft(selected.length * 60);
-  }
-
-  function selectAnswer(optionIndex) {
-    if (submitted) return;
-
-    setAnswers((prev) => ({
-      ...prev,
-      [questions[current].id]: optionIndex,
-    }));
-  }
-
-  function submitTest() {
-    setSubmitted(true);
   }
 
   function getResult() {
@@ -407,407 +435,1574 @@ export default function MapPrelimsTest() {
       }
     });
 
-    const score = correct * 2 - wrong * 0.66;
-    const accuracy =
-      correct + wrong === 0
-        ? 0
-        : (correct / (correct + wrong)) * 100;
-
     return {
       correct,
       wrong,
       unanswered,
-      score,
-      accuracy,
+      score: correct * 2 - wrong * 0.66,
+      accuracy:
+        correct + wrong === 0
+          ? 0
+          : (correct / (correct + wrong)) * 100,
     };
   }
 
-  const result = submitted ? getResult() : null;
-  const question = questions[current];
-
   if (!started) {
     return (
-      <main className="min-h-screen bg-[#07111f] text-white p-5 sm:p-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8">
-            <div className="text-xs font-bold tracking-[0.2em] text-emerald-300">
-              BHARAT DARSHAN • MAP INTELLIGENCE
-            </div>
-
-            <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-              Map Prelims Test
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              UPSC-style map practice based on the Mapping Class 2026
-              material. This is a practice test, not an authentic UPSC PYQ
-              test.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-[#0d1a2b] p-5 sm:p-7">
-            <div className="grid gap-5 md:grid-cols-3">
-              <Filter
-                label="Scope"
-                value={scope}
-                onChange={setScope}
-                options={["All", "India", "World"]}
-              />
-
-              <Filter
-                label="Category"
-                value={category}
-                onChange={setCategory}
-                options={categories}
-              />
-
-              <Filter
-                label="Difficulty"
-                value={difficulty}
-                onChange={setDifficulty}
-                options={["All", "Easy", "Medium", "Hard"]}
-              />
-            </div>
-
-            <div className="mt-6">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-                Number of Questions
-              </p>
-
-              <div className="flex flex-wrap gap-2">
-                {[10, 20, 30].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setQuestionCount(n)}
-                    className={`rounded-xl px-5 py-3 text-sm font-bold ${
-                      questionCount === n
-                        ? "bg-emerald-400 text-slate-950"
-                        : "bg-white/5 text-slate-300"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-7 grid gap-3 sm:grid-cols-3">
-              <Info label="Marking" value="+2 / -0.66" />
-              <Info label="Mode" value="Practice" />
-              <Info
-                label="Available"
-                value={`${filteredQuestions.length} Questions`}
-              />
-            </div>
-
-            <button
-              onClick={startTest}
-              disabled={filteredQuestions.length === 0}
-              className="mt-7 w-full rounded-2xl bg-emerald-400 px-5 py-4 text-sm font-black text-slate-950 disabled:opacity-40"
-            >
-              START MAP TEST →
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5 text-xs leading-6 text-slate-400">
-            <b className="text-amber-300">Important:</b> These are
-            practice questions derived from the mapping material. Authentic
-            UPSC PYQs will be integrated separately through Prelims
-            Intelligence.
-          </div>
-        </div>
-      </main>
+      <SetupScreen
+        scope={scope}
+        setScope={setScope}
+        category={category}
+        setCategory={setCategory}
+        difficulty={difficulty}
+        setDifficulty={setDifficulty}
+        count={count}
+        setCount={setCount}
+        categories={categories}
+        filteredQuestions={filteredQuestions}
+        startTest={startTest}
+      />
     );
   }
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-[#07111f] text-white p-5 sm:p-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-3xl border border-white/10 bg-[#0d1a2b] p-6 sm:p-8">
-            <div className="text-xs font-bold tracking-[0.2em] text-emerald-300">
-              TEST COMPLETE
-            </div>
-
-            <h1 className="mt-2 text-3xl font-black">
-              Map Test Result
-            </h1>
-
-            <div className="mt-7 grid gap-3 sm:grid-cols-4">
-              <ResultCard label="Score" value={result.score.toFixed(2)} />
-              <ResultCard label="Correct" value={result.correct} />
-              <ResultCard label="Wrong" value={result.wrong} />
-              <ResultCard label="Accuracy" value={`${result.accuracy.toFixed(1)}%`} />
-            </div>
-
-            <div className="mt-3 rounded-2xl bg-white/5 p-4 text-sm text-slate-400">
-              Unanswered:{" "}
-              <span className="font-bold text-white">
-                {result.unanswered}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {questions.map((q, index) => {
-              const selected = answers[q.id];
-
-              return (
-                <div
-                  key={q.id}
-                  className="rounded-2xl border border-white/10 bg-[#0d1a2b] p-5"
-                >
-                  <div className="text-xs font-bold text-slate-500">
-                    Q{index + 1} • {q.scope} • {q.category}
-                  </div>
-
-                  <h3 className="mt-2 text-sm font-bold leading-6">
-                    {q.question}
-                  </h3>
-
-                  <div className="mt-3 text-sm">
-                    <p className="text-slate-400">
-                      Your answer:{" "}
-                      <span
-                        className={
-                          selected === undefined
-                            ? "text-amber-300"
-                            : selected === q.answer
-                            ? "text-emerald-300"
-                            : "text-red-300"
-                        }
-                      >
-                        {selected === undefined
-                          ? "Not answered"
-                          : q.options[selected]}
-                      </span>
-                    </p>
-
-                    <p className="mt-1 text-slate-400">
-                      Correct answer:{" "}
-                      <span className="font-semibold text-emerald-300">
-                        {q.options[q.answer]}
-                      </span>
-                    </p>
-
-                    <p className="mt-3 text-xs leading-5 text-slate-500">
-                      {q.explanation}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => {
-              setStarted(false);
-              setSubmitted(false);
-            }}
-            className="mt-6 w-full rounded-2xl bg-emerald-400 px-5 py-4 text-sm font-black text-slate-950"
-          >
-            RETAKE / CHANGE TEST
-          </button>
-        </div>
-      </main>
+      <ResultScreen
+        questions={questions}
+        answers={answers}
+        getResult={getResult}
+        reset={() => {
+          setStarted(false);
+          setSubmitted(false);
+        }}
+      />
     );
   }
 
+  const q = questions[current];
+
   return (
-    <main className="min-h-screen bg-[#07111f] text-white p-4 sm:p-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <main className="bd-test">
+      <style jsx global>{styles}</style>
+
+      <div className="bd-shell">
+        <header className="test-top">
           <div>
-            <div className="text-xs font-bold text-emerald-300">
-              MAP PRELIMS TEST • PRACTICE
+            <div className="eyebrow">
+              BHARAT DARSHAN • MAP PRELIMS
             </div>
 
-            <h1 className="mt-1 text-lg font-black sm:text-xl">
-              Question {current + 1} of {questions.length}
-            </h1>
+            <h1>Map Prelims Test</h1>
+
+            <p>Practice Mode • Mapping Class 2026</p>
           </div>
 
-          <div className="rounded-xl bg-red-400/10 px-4 py-2 text-sm font-black text-red-300">
-            {formatTime(timeLeft)}
+          <div className="timer">
+            <span>TIME LEFT</span>
+            <strong>{formatTime(timeLeft)}</strong>
           </div>
+        </header>
+
+        <div className="progress-info">
+          <span>
+            Question {current + 1} of {questions.length}
+          </span>
+
+          <span>
+            {Object.keys(answers).length} answered
+          </span>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
-          <section className="rounded-3xl border border-white/10 bg-[#0d1a2b] p-5 sm:p-7">
-            <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-              <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-emerald-300">
-                {question.scope}
-              </span>
+        <div className="progress-bar">
+          <div
+            style={{
+              width: `${((current + 1) / questions.length) * 100}%`,
+            }}
+          />
+        </div>
 
-              <span className="rounded-full bg-white/5 px-3 py-1 text-slate-400">
-                {question.category}
-              </span>
-
-              <span className="rounded-full bg-white/5 px-3 py-1 text-slate-400">
-                {question.difficulty}
-              </span>
+        <section className="test-layout">
+          <article className="question-card">
+            <div className="question-meta">
+              <span className="pill blue">{q.scope}</span>
+              <span className="pill">{q.category}</span>
+              <span className="pill">{q.difficulty}</span>
+              <span className="pill purple">PRACTICE</span>
             </div>
 
-            <h2 className="mt-6 text-lg font-bold leading-8 sm:text-xl">
-              {question.question}
-            </h2>
+            <div className="question-number">
+              QUESTION {String(current + 1).padStart(2, "0")}
+            </div>
 
-            <div className="mt-6 space-y-3">
-              {question.options.map((option, index) => {
-                const selected = answers[question.id] === index;
+            <h2>{q.question}</h2>
+
+            <div className="options">
+              {q.options.map((option, index) => {
+                const selected = answers[q.id] === index;
 
                 return (
                   <button
                     key={option}
-                    onClick={() => selectAnswer(index)}
-                    className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left text-sm transition ${
-                      selected
-                        ? "border-emerald-300 bg-emerald-300/10 text-emerald-200"
-                        : "border-white/10 bg-white/[.025] text-slate-300 hover:border-white/20"
+                    onClick={() =>
+                      setAnswers((prev) => ({
+                        ...prev,
+                        [q.id]: index,
+                      }))
+                    }
+                    className={`option ${
+                      selected ? "selected" : ""
                     }`}
                   >
-                    <span className="font-black">
-                      {String.fromCharCode(65 + index)}.
+                    <span className="option-letter">
+                      {String.fromCharCode(65 + index)}
                     </span>
 
                     <span>{option}</span>
+
+                    <b>{selected ? "✓" : ""}</b>
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-7 flex gap-3">
+            <div className="question-actions">
               <button
+                className="ghost-btn"
                 disabled={current === 0}
-                onClick={() => setCurrent((v) => v - 1)}
-                className="rounded-xl bg-white/5 px-5 py-3 text-xs font-bold disabled:opacity-30"
+                onClick={() =>
+                  setCurrent((value) => value - 1)
+                }
               >
-                ← PREVIOUS
+                ← Previous
               </button>
 
               {current < questions.length - 1 ? (
                 <button
-                  onClick={() => setCurrent((v) => v + 1)}
-                  className="ml-auto rounded-xl bg-emerald-400 px-5 py-3 text-xs font-black text-slate-950"
+                  className="primary-btn"
+                  onClick={() =>
+                    setCurrent((value) => value + 1)
+                  }
                 >
-                  NEXT →
+                  Next Question →
                 </button>
               ) : (
                 <button
-                  onClick={submitTest}
-                  className="ml-auto rounded-xl bg-emerald-400 px-5 py-3 text-xs font-black text-slate-950"
+                  className="submit-btn"
+                  onClick={() => setSubmitted(true)}
                 >
-                  SUBMIT TEST
+                  Submit Test
                 </button>
               )}
             </div>
-          </section>
+          </article>
 
-          <aside className="rounded-3xl border border-white/10 bg-[#0d1a2b] p-5">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Question Palette
-            </div>
-
-            <div className="mt-4 grid grid-cols-5 gap-2">
-              {questions.map((q, index) => {
-                const answered = answers[q.id] !== undefined;
-
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => setCurrent(index)}
-                    className={`h-10 rounded-lg text-xs font-black ${
-                      index === current
-                        ? "bg-emerald-400 text-slate-950"
-                        : answered
-                        ? "bg-emerald-400/20 text-emerald-300"
-                        : "bg-white/5 text-slate-400"
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 rounded-2xl bg-white/5 p-4 text-xs leading-5 text-slate-500">
+          <aside className="palette-card">
+            <div className="side-title">
               <div>
-                Answered:{" "}
-                <b className="text-emerald-300">
-                  {Object.keys(answers).length}
-                </b>
+                <div className="eyebrow">TEST CONTROL</div>
+                <h3>Question Palette</h3>
+              </div>
+
+              <span>{questions.length}</span>
+            </div>
+
+            <div className="palette">
+              {questions.map((question, index) => (
+                <button
+                  key={question.id}
+                  onClick={() => setCurrent(index)}
+                  className={`
+                    ${index === current ? "active" : ""}
+                    ${
+                      answers[question.id] !== undefined
+                        ? "answered"
+                        : ""
+                    }
+                  `}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            <div className="legend">
+              <div>
+                <i className="dot current-dot" />
+                Current
               </div>
 
               <div>
-                Remaining:{" "}
-                <b className="text-white">
-                  {questions.length - Object.keys(answers).length}
-                </b>
+                <i className="dot answered-dot" />
+                Answered
               </div>
+
+              <div>
+                <i className="dot" />
+                Unanswered
+              </div>
+            </div>
+
+            <div className="marking-box">
+              <b>MARKING SCHEME</b>
+
+              <span>
+                <strong>+2</strong> Correct
+              </span>
+
+              <span>
+                <strong>-0.66</strong> Wrong
+              </span>
+
+              <span>
+                <strong>0</strong> Unanswered
+              </span>
             </div>
           </aside>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function SetupScreen({
+  scope,
+  setScope,
+  category,
+  setCategory,
+  difficulty,
+  setDifficulty,
+  count,
+  setCount,
+  categories,
+  filteredQuestions,
+  startTest,
+}) {
+  return (
+    <main className="bd-test">
+      <style jsx global>{styles}</style>
+
+      <div className="bd-shell">
+        <header className="setup-head">
+          <div className="eyebrow">
+            SAMBHAV UPSC • BHARAT DARSHAN
+          </div>
+
+          <h1>Map Prelims Test</h1>
+
+          <p>Practice • Analyse • Improve</p>
+        </header>
+
+        <section className="hero-card">
+          <div className="hero-icon">🎯</div>
+
+          <div>
+            <span className="practice-badge">
+              PRACTICE MODE
+            </span>
+
+            <h2>Map Intelligence Challenge</h2>
+
+            <p>
+              UPSC-style map practice based on the Mapping Class
+              2026 material. Authentic PYQs remain separate.
+            </p>
+          </div>
+        </section>
+
+        <section className="setup-grid">
+          <div className="setup-panel">
+            <Step
+              number="01"
+              title="Choose your scope"
+              subtitle="India, World or Mixed"
+            />
+
+            <div className="segmented">
+              {["All", "India", "World"].map((item) => (
+                <button
+                  key={item}
+                  className={scope === item ? "active" : ""}
+                  onClick={() => setScope(item)}
+                >
+                  {item === "All" ? "Mixed" : item}
+                </button>
+              ))}
+            </div>
+
+            <Step
+              number="02"
+              title="Choose category"
+              subtitle="Filter the mapping topic"
+              extra
+            />
+
+            <select
+              value={category}
+              onChange={(event) =>
+                setCategory(event.target.value)
+              }
+            >
+              {categories.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <Step
+              number="03"
+              title="Difficulty"
+              subtitle="Set your challenge level"
+              extra
+            />
+
+            <div className="segmented four">
+              {["All", "Easy", "Medium", "Hard"].map(
+                (item) => (
+                  <button
+                    key={item}
+                    className={
+                      difficulty === item ? "active" : ""
+                    }
+                    onClick={() =>
+                      setDifficulty(item)
+                    }
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          <div className="setup-panel">
+            <Step
+              number="04"
+              title="Test length"
+              subtitle="Select number of questions"
+            />
+
+            <div className="length-grid">
+              {[10, 20, 30].map((number) => (
+                <button
+                  key={number}
+                  className={
+                    count === number ? "active" : ""
+                  }
+                  onClick={() => setCount(number)}
+                >
+                  <strong>{number}</strong>
+                  <span>Questions</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="stats-grid">
+              <div>
+                <strong>{filteredQuestions.length}</strong>
+                <span>Available</span>
+              </div>
+
+              <div>
+                <strong>+2 / −0.66</strong>
+                <span>Marking</span>
+              </div>
+
+              <div>
+                <strong>
+                  {Math.min(
+                    count,
+                    filteredQuestions.length
+                  )}{" "}
+                  min
+                </strong>
+                <span>Timer</span>
+              </div>
+            </div>
+
+            <button
+              className="start-button"
+              disabled={!filteredQuestions.length}
+              onClick={startTest}
+            >
+              <span>START MAP TEST</span>
+              <strong>→</strong>
+            </button>
+
+            <div className="source-note">
+              <b>i</b>
+
+              <span>
+                <strong>Practice only.</strong>{" "}
+                Authentic UPSC PYQs will be integrated later
+                through Prelims Intelligence.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="roadmap">
+          <div className="eyebrow">
+            BHARAT DARSHAN TEST ROADMAP
+          </div>
+
+          <div className="roadmap-grid">
+            <div className="road active">
+              <span>01</span>
+              <strong>Map Practice</strong>
+              <small>Available now</small>
+            </div>
+
+            <div className="road">
+              <span>02</span>
+              <strong>Prelims Intelligence</strong>
+              <small>Authentic PYQs</small>
+            </div>
+
+            <div className="road">
+              <span>03</span>
+              <strong>Map PYQ Integration</strong>
+              <small>Coming later</small>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function Step({
+  number,
+  title,
+  subtitle,
+  extra = false,
+}) {
+  return (
+    <div className={`step ${extra ? "extra-space" : ""}`}>
+      <span>{number}</span>
+
+      <div>
+        <strong>{title}</strong>
+        <small>{subtitle}</small>
+      </div>
+    </div>
+  );
+}
+
+function ResultScreen({
+  questions,
+  answers,
+  getResult,
+  reset,
+}) {
+  const result = getResult();
+
+  return (
+    <main className="bd-test">
+      <style jsx global>{styles}</style>
+
+      <div className="bd-shell">
+        <header className="setup-head">
+          <div className="eyebrow">
+            BHARAT DARSHAN • TEST RESULT
+          </div>
+
+          <h1>Map Test Analysis</h1>
+
+          <p>
+            Practice performance • Review your mapping mistakes
+          </p>
+        </header>
+
+        <section className="result-hero">
+          <div className="score-circle">
+            <strong>
+              {result.score.toFixed(1)}
+            </strong>
+
+            <span>SCORE</span>
+          </div>
+
+          <div>
+            <span className="practice-badge">
+              TEST COMPLETE
+            </span>
+
+            <h2>
+              {result.accuracy >= 70
+                ? "Strong Mapping Performance"
+                : "Keep Building Your Map Recall"}
+            </h2>
+
+            <p>
+              Review incorrect questions below for active
+              revision.
+            </p>
+          </div>
+        </section>
+
+        <div className="result-stats">
+          <ResultStat
+            label="Correct"
+            value={result.correct}
+            type="green"
+          />
+
+          <ResultStat
+            label="Wrong"
+            value={result.wrong}
+            type="red"
+          />
+
+          <ResultStat
+            label="Unanswered"
+            value={result.unanswered}
+          />
+
+          <ResultStat
+            label="Accuracy"
+            value={`${result.accuracy.toFixed(1)}%`}
+          />
+        </div>
+
+        <section className="review-section">
+          <div className="eyebrow">REVIEW</div>
+
+          <h2>Question Analysis</h2>
+
+          {questions.map((question, index) => {
+            const selected = answers[question.id];
+
+            const correct =
+              selected === question.answer;
+
+            return (
+              <article
+                key={question.id}
+                className={`review-card ${
+                  correct
+                    ? "correct-card"
+                    : selected === undefined
+                    ? "skip-card"
+                    : "wrong-card"
+                }`}
+              >
+                <div className="review-number">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+
+                <div>
+                  <div className="question-meta">
+                    <span className="pill">
+                      {question.scope}
+                    </span>
+
+                    <span className="pill">
+                      {question.category}
+                    </span>
+                  </div>
+
+                  <h3>{question.question}</h3>
+
+                  <div className="answer-row">
+                    <span>Your answer</span>
+
+                    <strong>
+                      {selected === undefined
+                        ? "Not answered"
+                        : question.options[selected]}
+                    </strong>
+                  </div>
+
+                  <div className="answer-row">
+                    <span>Correct answer</span>
+
+                    <strong className="green-text">
+                      {question.options[
+                        question.answer
+                      ]}
+                    </strong>
+                  </div>
+
+                  <p className="explanation">
+                    {question.explanation}
+                  </p>
+
+                  <small className="source">
+                    Source: {question.source}
+                  </small>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <div className="result-actions">
+          <button
+            className="ghost-btn"
+            onClick={reset}
+          >
+            ← Change Test
+          </button>
+
+          <button
+            className="primary-btn"
+            onClick={() =>
+              window.location.reload()
+            }
+          >
+            Retake Test →
+          </button>
         </div>
       </div>
     </main>
   );
 }
 
-function Filter({ label, value, onChange, options }) {
+function ResultStat({
+  label,
+  value,
+  type,
+}) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">
-        {label}
-      </span>
+    <div>
+      <span>{label}</span>
 
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-[#07111f] px-3 py-3 text-sm text-white outline-none"
+      <strong
+        className={
+          type === "green"
+            ? "green-text"
+            : type === "red"
+            ? "red-text"
+            : ""
+        }
       >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className="rounded-2xl bg-white/5 p-4">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-        {label}
-      </div>
-
-      <div className="mt-1 text-sm font-black">
         {value}
-      </div>
-    </div>
-  );
-}
-
-function ResultCard({ label, value }) {
-  return (
-    <div className="rounded-2xl bg-white/5 p-4">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-        {label}
-      </div>
-
-      <div className="mt-1 text-2xl font-black">
-        {value}
-      </div>
+      </strong>
     </div>
   );
 }
 
 function formatTime(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
 
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(
+  return `${String(minutes).padStart(
     2,
     "0"
-  )}`;
+  )}:${String(remaining).padStart(2, "0")}`;
 }
+
+const styles = `
+* {
+  box-sizing: border-box;
+}
+
+.bd-test {
+  min-height: 100vh;
+  padding: 28px;
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(54,125,214,.18),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(56,196,151,.12),
+      transparent 28%
+    ),
+    #07111f;
+  color: #edf5ff;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.bd-shell {
+  max-width: 1180px;
+  margin: auto;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: .18em;
+  color: #70dfbd;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setup-head {
+  text-align: center;
+  padding: 32px 0 26px;
+}
+
+.setup-head h1 {
+  font-size: 42px;
+  line-height: 1.05;
+  margin: 9px 0 8px;
+  font-weight: 950;
+  letter-spacing: -.05em;
+}
+
+.setup-head p,
+.test-top p {
+  margin: 0;
+  color: #92a8c0;
+  font-size: 14px;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 25px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.05),
+      rgba(255,255,255,.015)
+    ),
+    #0d1a2b;
+  box-shadow: 0 24px 70px rgba(0,0,0,.24);
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  right: -80px;
+  top: -100px;
+  background: #8b63e8;
+  filter: blur(65px);
+  opacity: .15;
+}
+
+.hero-icon {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:17px;
+  background:rgba(155,108,255,.13);
+  border:1px solid rgba(155,108,255,.28);
+  font-size:27px;
+}
+
+.practice-badge {
+  display:inline-flex;
+  padding:5px 9px;
+  border-radius:999px;
+  background:rgba(155,108,255,.12);
+  border:1px solid rgba(155,108,255,.22);
+  color:#c5aaff;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+
+.hero-card h2 {
+  position:relative;
+  margin:7px 0;
+  font-size:25px;
+}
+
+.hero-card p {
+  position:relative;
+  margin:0;
+  color:#93a7bd;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.setup-grid {
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:18px;
+  margin-top:18px;
+}
+
+.setup-panel,
+.question-card,
+.palette-card,
+.review-section {
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.05),
+      rgba(255,255,255,.015)
+    ),
+    #0d1a2b;
+  box-shadow:0 24px 70px rgba(0,0,0,.2);
+}
+
+.setup-panel {
+  padding:24px;
+}
+
+.step {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.step.extra-space {
+  margin-top:23px;
+}
+
+.step > span {
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  background:rgba(101,168,255,.1);
+  color:#8ec2ff;
+  font-size:10px;
+  font-weight:900;
+}
+
+.step strong {
+  display:block;
+  font-size:13px;
+}
+
+.step small {
+  display:block;
+  margin-top:3px;
+  color:#657b93;
+  font-size:10px;
+}
+
+.segmented {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin-top:12px;
+}
+
+.segmented.four {
+  grid-template-columns:repeat(4,1fr);
+}
+
+.segmented button,
+.length-grid button {
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.035);
+  color:#9fb1c5;
+  border-radius:12px;
+  padding:11px 8px;
+  font-weight:800;
+  font-size:11px;
+  cursor:pointer;
+}
+
+.segmented button.active,
+.length-grid button.active {
+  background:rgba(112,223,189,.12);
+  border-color:rgba(112,223,189,.35);
+  color:#82e5c4;
+}
+
+select {
+  width:100%;
+  margin-top:12px;
+  border:1px solid rgba(255,255,255,.1);
+  background:#07111f;
+  color:#dce9f7;
+  border-radius:12px;
+  padding:12px;
+  font-size:12px;
+  outline:none;
+}
+
+.length-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:13px;
+}
+
+.length-grid button strong {
+  display:block;
+  font-size:19px;
+  color:#eaf3ff;
+}
+
+.length-grid button span {
+  display:block;
+  font-size:9px;
+  color:#647a91;
+}
+
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:20px;
+}
+
+.stats-grid div {
+  padding:13px;
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+}
+
+.stats-grid strong {
+  display:block;
+  font-size:13px;
+}
+
+.stats-grid span {
+  display:block;
+  margin-top:3px;
+  color:#647a91;
+  font-size:9px;
+}
+
+.start-button {
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:18px;
+  padding:15px 17px;
+  border:0;
+  border-radius:14px;
+  background:linear-gradient(
+    135deg,
+    #70dfbd,
+    #4dcba7
+  );
+  color:#06151b;
+  font-weight:950;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.start-button:disabled {
+  opacity:.4;
+}
+
+.source-note {
+  display:flex;
+  gap:9px;
+  margin-top:13px;
+  padding:12px;
+  border-radius:13px;
+  background:rgba(255,255,255,.025);
+  color:#6e849b;
+  font-size:10px;
+  line-height:1.5;
+}
+
+.source-note > b {
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(112,223,189,.1);
+  color:#70dfbd;
+  flex:none;
+}
+
+.source-note strong {
+  color:#9bb0c4;
+}
+
+.roadmap {
+  margin-top:18px;
+  padding:18px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;
+  background:rgba(255,255,255,.025);
+}
+
+.roadmap-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.road {
+  padding:12px;
+  border-radius:13px;
+  background:rgba(255,255,255,.025);
+  border:1px solid transparent;
+}
+
+.road.active {
+  border-color:rgba(112,223,189,.22);
+}
+
+.road span {
+  font-size:9px;
+  color:#61778e;
+}
+
+.road strong {
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+}
+
+.road small {
+  display:block;
+  margin-top:3px;
+  color:#60758c;
+  font-size:9px;
+}
+
+/* TEST SCREEN */
+
+.test-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  padding:18px 0;
+}
+
+.test-top h1 {
+  font-size:28px;
+  margin:7px 0 4px;
+}
+
+.timer {
+  min-width:120px;
+  padding:11px 16px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.035);
+  text-align:center;
+}
+
+.timer span {
+  display:block;
+  font-size:8px;
+  letter-spacing:.13em;
+  color:#667d94;
+  font-weight:900;
+}
+
+.timer strong {
+  display:block;
+  margin-top:2px;
+  font-size:20px;
+  color:#ff9a9a;
+}
+
+.progress-info {
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:7px;
+  color:#667d94;
+  font-size:10px;
+  font-weight:800;
+}
+
+.progress-bar {
+  height:4px;
+  border-radius:99px;
+  background:rgba(255,255,255,.06);
+  overflow:hidden;
+}
+
+.progress-bar > div {
+  height:100%;
+  border-radius:99px;
+  background:linear-gradient(
+    90deg,
+    #70dfbd,
+    #65a8ff
+  );
+  transition:.2s;
+}
+
+.test-layout {
+  display:grid;
+  grid-template-columns:1fr 280px;
+  gap:18px;
+  margin-top:16px;
+}
+
+.question-card {
+  padding:26px;
+}
+
+.question-meta {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+
+.pill {
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  color:#7f95ab;
+  font-size:9px;
+  font-weight:900;
+}
+
+.pill.blue {
+  color:#8ec2ff;
+  background:rgba(101,168,255,.08);
+  border-color:rgba(101,168,255,.2);
+}
+
+.pill.purple {
+  color:#c2a7ff;
+  background:rgba(155,108,255,.08);
+  border-color:rgba(155,108,255,.2);
+}
+
+.question-number {
+  margin-top:26px;
+  color:#5e748b;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+
+.question-card h2 {
+  margin:7px 0 0;
+  max-width:800px;
+  font-size:22px;
+  line-height:1.5;
+}
+
+.options {
+  display:grid;
+  gap:9px;
+  margin-top:25px;
+}
+
+.option {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:15px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:15px;
+  background:rgba(255,255,255,.025);
+  color:#b7c7d9;
+  text-align:left;
+  font-size:12px;
+  cursor:pointer;
+  transition:.15s;
+}
+
+.option:hover {
+  border-color:rgba(101,168,255,.3);
+  background:rgba(101,168,255,.04);
+}
+
+.option.selected {
+  border-color:rgba(112,223,189,.45);
+  background:rgba(112,223,189,.08);
+  color:#dffbf2;
+}
+
+.option-letter {
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:rgba(255,255,255,.05);
+  color:#748aa0;
+  font-weight:900;
+  flex:none;
+}
+
+.option.selected .option-letter {
+  background:#70dfbd;
+  color:#06151b;
+}
+
+.option b {
+  margin-left:auto;
+  color:#70dfbd;
+}
+
+.question-actions {
+  display:flex;
+  gap:9px;
+  margin-top:24px;
+}
+
+.ghost-btn,
+.primary-btn,
+.submit-btn {
+  border:0;
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.ghost-btn {
+  background:rgba(255,255,255,.05);
+  color:#8da2b8;
+}
+
+.ghost-btn:disabled {
+  opacity:.3;
+}
+
+.primary-btn {
+  margin-left:auto;
+  background:#70dfbd;
+  color:#06151b;
+}
+
+.submit-btn {
+  margin-left:auto;
+  background:#ff9b9b;
+  color:#210b0b;
+}
+
+.palette-card {
+  padding:20px;
+  height:max-content;
+}
+
+.side-title {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.side-title h3 {
+  margin:5px 0 0;
+  font-size:15px;
+}
+
+.side-title > span {
+  padding:6px 8px;
+  border-radius:9px;
+  background:rgba(255,255,255,.05);
+  font-size:10px;
+  color:#8da2b8;
+}
+
+.palette {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:7px;
+  margin-top:18px;
+}
+
+.palette button {
+  height:38px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:9px;
+  background:rgba(255,255,255,.025);
+  color:#71879d;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.palette button.answered {
+  background:rgba(112,223,189,.1);
+  border-color:rgba(112,223,189,.25);
+  color:#70dfbd;
+}
+
+.palette button.active {
+  background:#70dfbd;
+  color:#06151b;
+  border-color:#70dfbd;
+}
+
+.legend {
+  display:grid;
+  gap:7px;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.06);
+  font-size:9px;
+  color:#71879d;
+}
+
+.dot {
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#3b4b5c;
+  margin-right:6px;
+}
+
+.current-dot {
+  background:#70dfbd;
+}
+
+.answered-dot {
+  background:#3e927f;
+}
+
+.marking-box {
+  display:grid;
+  gap:6px;
+  margin-top:18px;
+  padding:13px;
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+  font-size:9px;
+  color:#657b92;
+}
+
+.marking-box b {
+  color:#b5c7d8;
+}
+
+.marking-box strong {
+  color:#70dfbd;
+  margin-right:4px;
+}
+
+/* RESULT */
+
+.result-hero {
+  display:flex;
+  align-items:center;
+  gap:20px;
+  padding:24px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.05),
+      rgba(255,255,255,.015)
+    ),
+    #0d1a2b;
+}
+
+.score-circle {
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  background:rgba(112,223,189,.08);
+  border:5px solid rgba(112,223,189,.25);
+  flex:none;
+}
+
+.score-circle strong {
+  font-size:25px;
+}
+
+.score-circle span {
+  font-size:8px;
+  color:#658098;
+  font-weight:900;
+}
+
+.result-hero h2 {
+  margin:7px 0;
+  font-size:23px;
+}
+
+.result-hero p {
+  margin:0;
+  color:#8ca2ba;
+  font-size:12px;
+}
+
+.result-stats {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:9px;
+  margin:16px 0;
+}
+
+.result-stats > div {
+  padding:17px;
+  border-radius:16px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.result-stats span {
+  display:block;
+  color:#657b92;
+  font-size:9px;
+}
+
+.result-stats strong {
+  display:block;
+  margin-top:5px;
+  font-size:20px;
+}
+
+.green-text {
+  color:#70dfbd !important;
+}
+
+.red-text {
+  color:#ff9b9b !important;
+}
+
+.review-section {
+  padding:20px;
+}
+
+.review-section > h2 {
+  margin:5px 0 15px;
+  font-size:20px;
+}
+
+.review-card {
+  display:grid;
+  grid-template-columns:42px 1fr;
+  gap:13px;
+  margin-top:12px;
+  padding:17px;
+  border-radius:16px;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.correct-card {
+  border-color:rgba(112,223,189,.18);
+}
+
+.wrong-card {
+  border-color:rgba(255,120,120,.18);
+}
+
+.review-number {
+  font-size:10px;
+  color:#667d94;
+  font-weight:900;
+}
+
+.review-card h3 {
+  margin:7px 0 12px;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.answer-row {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  font-size:10px;
+  color:#667d94;
+}
+
+.answer-row strong {
+  color:#a9bacb;
+  text-align:right;
+}
+
+.explanation {
+  margin:12px 0 4px;
+  color:#788da3;
+  font-size:10px;
+  line-height:1.6;
+}
+
+.source {
+  color:#526a82;
+  font-size:8px;
+}
+
+.result-actions {
+  display:flex;
+  gap:9px;
+  margin-top:20px;
+}
+
+/* MOBILE */
+
+@media(max-width:900px) {
+  .setup-grid,
+  .test-layout {
+    grid-template-columns:1fr;
+  }
+
+  .palette-card {
+    order:-1;
+  }
+
+  .roadmap-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:620px) {
+  .bd-test {
+    padding:14px;
+  }
+
+  .setup-head h1 {
+    font-size:32px;
+  }
+
+  .hero-card {
+    padding:18px;
+    align-items:flex-start;
+  }
+
+  .hero-icon {
+    width:52px;
+    height:52px;
+    font-size:23px;
+  }
+
+  .setup-panel,
+  .question-card,
+  .palette-card,
+  .review-section {
+    padding:17px;
+  }
+
+  .test-top h1 {
+    font-size:22px;
+  }
+
+  .timer {
+    min-width:100px;
+  }
+
+  .question-card h2 {
+    font-size:18px;
+  }
+
+  .result-stats {
+    grid-template-columns:1fr 1fr;
+  }
+
+  .result-hero {
+    align-items:flex-start;
+  }
+
+  .palette {
+    grid-template-columns:repeat(5,1fr);
+  }
+
+  .question-actions {
+    flex-wrap:wrap;
+  }
+}
+`;
