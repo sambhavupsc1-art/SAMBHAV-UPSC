@@ -578,6 +578,7 @@ export default function WorldMapPage() {
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState("");
   const [theme, setTheme] = useState("dark");
+  const [view, setView] = useState("cards");
   const [layer, setLayer] = useState("countries");
   const [continent, setContinent] = useState("All");
   const [query, setQuery] = useState("");
@@ -721,7 +722,7 @@ export default function WorldMapPage() {
       <style jsx global>{`
         :root{--wb:#07111f;--wp:#0d1a2b;--wp2:#12243a;--wt:#edf5ff;--wm:#91a6bd;--wbd:rgba(255,255,255,.1);--wa:#65a8ff;--wg:#70dfbd;--wl:#1b3047;--wac:#294c6e;--ws:#3d82c7;--ww:#06101c}
         .world.light{--wb:#f4f7fb;--wp:#fff;--wp2:#eef4fa;--wt:#10243a;--wm:#63758a;--wbd:rgba(15,35,58,.11);--wl:#d7e3ee;--wac:#b9d5ed;--ws:#6ba5d8;--ww:#e8f0f8}
-        .world,.world *{box-sizing:border-box}.world{min-height:100vh;padding:20px;background:radial-gradient(circle at 10% 0%,rgba(67,139,226,.16),transparent 28%),var(--wb);color:var(--wt);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wshell{max-width:1500px;margin:auto}.whead{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;color:#fff;font-weight:900;font-size:21px;background:linear-gradient(135deg,#397cc9,#55cda9)}.kick{color:var(--wg);font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.title{margin:2px 0;font-size:28px;line-height:1;font-weight:950;letter-spacing:-.04em}.sub{color:var(--wm);font-size:12px}.actions{display:flex;flex-wrap:wrap;gap:6px}.btn{border:1px solid var(--wbd);background:var(--wp);color:var(--wt);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:10px;font-weight:850}.btn.active{color:var(--wa);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}.stat,.card{background:var(--wp);border:1px solid var(--wbd);box-shadow:0 18px 55px rgba(0,0,0,.12)}.stat{border-radius:12px;padding:11px}.stat b{display:block;font-size:18px}.stat span{color:var(--wm);font-size:9px}.grid{display:grid;grid-template-columns:minmax(0,1fr) 355px;gap:13px}.card{overflow:hidden;border-radius:17px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--wbd)}.tabs{display:flex;flex-wrap:wrap;gap:5px}.tab{border:1px solid var(--wbd);background:transparent;color:var(--wm);border-radius:9px;padding:8px 9px;cursor:pointer;font-size:9px;font-weight:900}.tab.active{color:var(--wa);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.map{position:relative;overflow:auto;background:var(--ww)}.svg{display:block;width:100%;min-width:650px}.side{display:flex;flex-direction:column;gap:10px;padding:13px}.input{width:100%;border:1px solid var(--wbd);outline:none;border-radius:10px;padding:11px;background:var(--wp2);color:var(--wt);font-size:11px}.chips{display:flex;flex-wrap:wrap;gap:5px}.chip{border:1px solid var(--wbd);background:transparent;color:var(--wm);border-radius:999px;padding:6px 8px;cursor:pointer;font-size:9px;font-weight:800}.chip.active{color:var(--wt);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.label{color:var(--wm);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.list{display:flex;flex-direction:column;gap:5px;max-height:310px;overflow:auto}.item{border:1px solid transparent;border-radius:9px;padding:9px;background:var(--wp2);cursor:pointer}.item:hover{border-color:var(--wbd)}.itemname{font-size:11px;font-weight:900}.small,.note{color:var(--wm);font-size:9px;line-height:1.5}.selected{padding:12px;border-radius:12px;border:1px solid var(--wbd);background:var(--wp2)}.selectedname{margin:4px 0 7px;font-size:18px;font-weight:950}.bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:13px}.box{padding:15px;min-height:170px}.box h3{margin:0 0 7px;font-size:14px}.box p{margin:0;color:var(--wm);font-size:10px;line-height:1.65}.recall{padding:14px;border:1px solid var(--wbd);border-radius:12px;background:var(--wp2)}.recallname{margin:5px 0;font-size:20px;font-weight:950}.options{display:grid;gap:6px;margin-top:10px}.option{width:100%;text-align:left;border:1px solid var(--wbd);background:transparent;color:var(--wt);border-radius:9px;padding:9px;cursor:pointer;font-size:10px}.correct{background:rgba(70,210,155,.13)!important;border-color:rgba(70,210,155,.55)!important}.wrong{background:rgba(255,100,110,.13)!important;border-color:rgba(255,100,110,.55)!important}.maplabel{fill:var(--wt);font-size:7px;font-weight:850;paint-order:stroke;stroke:var(--ww);stroke-width:3px;pointer-events:none}.point{fill:var(--wa);stroke:var(--wb);stroke-width:2;cursor:pointer}.error{padding:70px 25px;text-align:center;color:var(--wm)}@media(max-width:950px){.grid,.bottom{grid-template-columns:1fr}.whead{align-items:flex-start}}@media(max-width:600px){.world{padding:9px}.title{font-size:22px}.stats{grid-template-columns:repeat(2,1fr)}}
+        .world,.world *{box-sizing:border-box}.world{min-height:100vh;padding:20px;background:radial-gradient(circle at 10% 0%,rgba(67,139,226,.16),transparent 28%),var(--wb);color:var(--wt);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wshell{max-width:1500px;margin:auto}.whead{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;color:#fff;font-weight:900;font-size:21px;background:linear-gradient(135deg,#397cc9,#55cda9)}.kick{color:var(--wg);font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.title{margin:2px 0;font-size:28px;line-height:1;font-weight:950;letter-spacing:-.04em}.sub{color:var(--wm);font-size:12px}.actions{display:flex;flex-wrap:wrap;gap:6px}.btn{border:1px solid var(--wbd);background:var(--wp);color:var(--wt);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:10px;font-weight:850}.btn.active{color:var(--wa);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:13px}.stat,.card{background:var(--wp);border:1px solid var(--wbd);box-shadow:0 18px 55px rgba(0,0,0,.12)}.stat{border-radius:12px;padding:11px}.stat b{display:block;font-size:18px}.stat span{color:var(--wm);font-size:9px}.grid{display:grid;grid-template-columns:minmax(0,1fr) 355px;gap:13px}.card{overflow:hidden;border-radius:17px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--wbd)}.tabs{display:flex;flex-wrap:wrap;gap:5px}.tab{border:1px solid var(--wbd);background:transparent;color:var(--wm);border-radius:9px;padding:8px 9px;cursor:pointer;font-size:9px;font-weight:900}.tab.active{color:var(--wa);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.map{position:relative;overflow:auto;background:var(--ww)}.svg{display:block;width:100%;min-width:650px}.side{display:flex;flex-direction:column;gap:10px;padding:13px}.input{width:100%;border:1px solid var(--wbd);outline:none;border-radius:10px;padding:11px;background:var(--wp2);color:var(--wt);font-size:11px}.chips{display:flex;flex-wrap:wrap;gap:5px}.chip{border:1px solid var(--wbd);background:transparent;color:var(--wm);border-radius:999px;padding:6px 8px;cursor:pointer;font-size:9px;font-weight:800}.chip.active{color:var(--wt);border-color:rgba(101,168,255,.4);background:rgba(101,168,255,.12)}.label{color:var(--wm);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.list{display:flex;flex-direction:column;gap:5px;max-height:310px;overflow:auto}.item{border:1px solid transparent;border-radius:9px;padding:9px;background:var(--wp2);cursor:pointer}.item:hover{border-color:var(--wbd)}.itemname{font-size:11px;font-weight:900}.small,.note{color:var(--wm);font-size:9px;line-height:1.5}.selected{padding:12px;border-radius:12px;border:1px solid var(--wbd);background:var(--wp2)}.selectedname{margin:4px 0 7px;font-size:18px;font-weight:950}.bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:13px}.box{padding:15px;min-height:170px}.box h3{margin:0 0 7px;font-size:14px}.box p{margin:0;color:var(--wm);font-size:10px;line-height:1.65}.recall{padding:14px;border:1px solid var(--wbd);border-radius:12px;background:var(--wp2)}.recallname{margin:5px 0;font-size:20px;font-weight:950}.options{display:grid;gap:6px;margin-top:10px}.option{width:100%;text-align:left;border:1px solid var(--wbd);background:transparent;color:var(--wt);border-radius:9px;padding:9px;cursor:pointer;font-size:10px}.correct{background:rgba(70,210,155,.13)!important;border-color:rgba(70,210,155,.55)!important}.wrong{background:rgba(255,100,110,.13)!important;border-color:rgba(255,100,110,.55)!important}.maplabel{fill:var(--wt);font-size:7px;font-weight:850;paint-order:stroke;stroke:var(--ww);stroke-width:3px;pointer-events:none}.point{fill:var(--wa);stroke:var(--wb);stroke-width:2;cursor:pointer}.error{padding:70px 25px;text-align:center;color:var(--wm)} .cardgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:13px}.modulecard{position:relative;min-height:155px;padding:18px;border:1px solid var(--wbd);border-radius:17px;background:linear-gradient(145deg,var(--wp),var(--wp2));cursor:pointer;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s}.modulecard:hover{transform:translateY(-2px);border-color:rgba(101,168,255,.45);box-shadow:0 18px 50px rgba(0,0,0,.18)}.moduleicon{font-size:28px;margin-bottom:12px}.moduletitle{font-size:16px;font-weight:950}.modulesub{margin-top:6px;color:var(--wm);font-size:10px;line-height:1.55}.modulearrow{position:absolute;right:16px;bottom:15px;color:var(--wa);font-weight:900}.modulewide{grid-column:1/-1}.backbtn{margin-bottom:10px}.cardhero{padding:18px;border:1px solid var(--wbd);border-radius:17px;background:linear-gradient(145deg,var(--wp),var(--wp2));margin-top:13px}.cardhero h2{margin:0;font-size:22px;font-weight:950}.cardhero p{margin:7px 0 0;color:var(--wm);font-size:10px;line-height:1.6}@media(max-width:600px){.cardgrid{grid-template-columns:1fr}.modulewide{grid-column:auto}}@media(max-width:950px){.grid,.bottom{grid-template-columns:1fr}.whead{align-items:flex-start}}@media(max-width:600px){.world{padding:9px}.title{font-size:22px}.stats{grid-template-columns:repeat(2,1fr)}}
       `}</style>
 
       <div className="wshell">
@@ -749,7 +750,10 @@ export default function WorldMapPage() {
           <div className="stat"><b>{Object.keys(mastered).length}</b><span>Items mastered</span></div>
         </section>
 
-        <div className="grid">
+        {view === "map" ? (
+          <>
+            <button className="btn backbtn" onClick={() => setView("cards")}>← Back to World Map</button>
+            <div className="grid">
           <section className="card">
             <div className="toolbar">
               <div className="tabs">
@@ -825,13 +829,65 @@ export default function WorldMapPage() {
               <div className="list">{countries.map(([name,capital,region])=><div className="item" key={`${name}-${capital}`} onClick={()=>setSelected(name)}><div className="itemname">{name}</div><div className="small">Capital: {capital} • {region}</div></div>)}</div>
             </>}
           </aside>
-        </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <section className="cardhero">
+              <div className="kick">WORLD GEOGRAPHY INTELLIGENCE</div>
+              <h2>Explore the World</h2>
+              <p>Select a module to open its interactive map, location intelligence, active recall or UPSC practice.</p>
+            </section>
 
-        <div className="bottom">
+            <section className="cardgrid">
+              {[
+                ["countries","🌍","Countries & Capitals","Countries, capitals, regions and map-based identification."],
+                ["mountains","🏔️","Mountains & Peaks","Major ranges, highlands and important physical locations."],
+                ["rivers","🌊","Rivers & Basins","Major rivers, sources, mouths and basin geography."],
+                ["straits","🚢","Straits & Chokepoints","Strategic straits, maritime connections and chokepoints."],
+                ["seas","🌐","Seas, Gulfs & Canals","Maritime geography, gulfs and major interoceanic canals."],
+                ["deserts","🏜️","Deserts","Major hot, cold and coastal deserts with location context."],
+                ["lakes","💧","Lakes","Important world lakes and their geographic significance."],
+                ["resources","⛏️","Resources","Petroleum, gas, coal, iron, copper and lithium regions."],
+                ["hotspots","📍","UPSC Hotspots","Strategic regions and current-affairs-linked geography."],
+              ].map(([id,icon,title,sub]) => (
+                <article key={id} className="modulecard" onClick={() => { setLayer(id); setMode("explore"); setView("map"); }}>
+                  <div className="moduleicon">{icon}</div>
+                  <div className="moduletitle">{title}</div>
+                  <div className="modulesub">{sub}</div>
+                  <div className="modulearrow">OPEN →</div>
+                </article>
+              ))}
+
+              <article className="modulecard" onClick={() => { setMode("recall"); setView("map"); }}>
+                <div className="moduleicon">🧠</div>
+                <div className="moduletitle">Active Recall</div>
+                <div className="modulesub">Reveal → I KNEW IT → NEXT with mastery tracking.</div>
+                <div className="modulearrow">START →</div>
+              </article>
+
+              <article className="modulecard" onClick={() => { setMode("quiz"); setView("map"); }}>
+                <div className="moduleicon">🎯</div>
+                <div className="moduletitle">Map Quiz</div>
+                <div className="modulesub">UPSC-style location questions with score and explanations.</div>
+                <div className="modulearrow">START →</div>
+              </article>
+
+              <article className="modulecard modulewide" onClick={() => { setMode("explore"); setLayer("hotspots"); setView("map"); }}>
+                <div className="moduleicon">✦</div>
+                <div className="moduletitle">World Mapping Intelligence</div>
+                <div className="modulesub">Connect physical geography, resources, maritime routes and strategic locations for Prelims and GS.</div>
+                <div className="modulearrow">EXPLORE WORLD →</div>
+              </article>
+            </section>
+          </>
+        )}
+
+        {view === "map" && <div className="bottom">
           <section className="card box"><h3>Physical Geography</h3><p>Mountains, rivers, seas, gulfs, deserts and lakes are organised as location-first map layers for UPSC revision.</p><button className="btn active" style={{marginTop:13}} onClick={()=>{setMode("explore");setLayer("mountains")}}>Open Physical Layer</button></section>
           <section className="card box"><h3>Strategic Geography</h3><p>Revise major straits, canals and maritime chokepoints with their adjoining regions and geographic connections.</p><button className="btn active" style={{marginTop:13}} onClick={()=>{setMode("explore");setLayer("straits")}}>Open Chokepoints</button></section>
           <section className="card box"><h3>Resources + Hotspots</h3><p>Connect resource geography with important world regions and UPSC-relevant strategic locations.</p><button className="btn active" style={{marginTop:13}} onClick={()=>{setMode("explore");setLayer("hotspots")}}>Open UPSC Hotspots</button></section>
-        </div>
+        </div>}
       </div>
     </main>
   );
