@@ -863,6 +863,22 @@ function extractHeadline(
   };
 }
 
+function inferTheHinduArticleType(headline, blockText) {
+  const title = String(headline || "").trim().toLowerCase();
+  const text = String(blockText || "").slice(0, 1800).toLowerCase();
+  const openingLines = text.split("\n").slice(0, 10).join(" ");
+
+  // Prefer explicit section labels/headline markers; avoid classifying a
+  // normal news story as an editorial merely because its body says "opinion".
+  const explicitEditorial = /(^|\b)(editorial|opinion|op-ed|leader|the hindu view|our view)(\b|[:|—-])/i.test(openingLines);
+  const titleEditorial = /^(editorial|opinion|op-ed|the hindu view|our view)\s*[:|—-]/i.test(String(headline || ""));
+  const commentaryHeadline = /\b(editorial|op-ed|opinion column)\b/i.test(title);
+
+  return explicitEditorial || titleEditorial || commentaryHeadline
+    ? "editorial"
+    : "important_article";
+}
+
 function createArticleCandidates(
   pdfText
 ) {
@@ -969,6 +985,9 @@ function createArticleCandidates(
         700
           ? subheadline
           : "",
+
+      article_type:
+        inferTheHinduArticleType(headline, text),
 
       content:
         text.slice(
@@ -1198,8 +1217,13 @@ async function processArticleWithAI(
                 content:
                   candidate.content,
 
+                article_type:
+                  candidate.article_type || "important_article",
+
                 report_type:
-                  "the_hindu_pdf",
+                  candidate.article_type === "editorial"
+                    ? "the_hindu_editorial"
+                    : "the_hindu_important_article",
               },
             ],
           }),
