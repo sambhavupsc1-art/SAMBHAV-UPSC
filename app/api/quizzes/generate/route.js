@@ -5,279 +5,185 @@ import {
   smartQuizDb,
 } from "../../../../lib/smartQuizServer";
 
-function shuffle(items) {
-  const result = [...items];
-
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-
-  return result;
-}
-
-function normalizeOptions(row) {
-  if (Array.isArray(row?.options)) {
-    return row.options;
-  }
-
-  if (typeof row?.options === "string") {
-    try {
-      const parsed = JSON.parse(row.options);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // Fall back to option columns.
-    }
-  }
-
-  return [
-    row?.option_a,
-    row?.option_b,
-    row?.option_c,
-    row?.option_d,
-  ].filter(
-    (option) =>
-      option !== null &&
-      option !== undefined &&
-      String(option).trim() !== ""
-  );
-}
-
-function hasUsableContent(row) {
-  return (
-    typeof row?.question === "string" &&
-    row.question.trim().length > 0 &&
-    normalizeOptions(row).length >= 2
-  );
-}
-
-function fail(error, status = 400, extra = {}) {
-  return NextResponse.json(
-    { success: false, error, ...extra },
-    { status }
-  );
-}
-
 export async function POST(request) {
   try {
     const user = await getSmartQuizUser(request);
 
     if (!user) {
-      return fail("Please log in to generate a quiz.", 401);
-    }
-
-    let body;
-
-    try {
-      body = await request.json();
-    } catch {
-      return fail("Request body must be valid JSON.");
-    }
-
-    const subject = String(body.subject ?? "all").trim();
-    const topic = String(body.topic ?? "all").trim();
-    const year = String(body.year ?? "all").trim();
-    const mode = String(body.mode ?? "practice").trim();
-
-    const hasQuestionIds = Array.isArray(body.questionIds);
-
-    const requestedIds = hasQuestionIds
-      ? body.questionIds.map((id) => String(id).trim())
-      : null;
-
-    const requestedCount = Number(
-      body.count ?? requestedIds?.length ?? 20
-    );
-
-    const allowedCounts = [10, 20, 30, 50, 75, 100];
-
-    const validCount = hasQuestionIds
-      ? Number.isInteger(requestedCount) &&
-        requestedCount >= 1 &&
-        requestedCount <= 100
-      : Number.isInteger(requestedCount) &&
-        allowedCounts.includes(requestedCount);
-
-    if (!validCount) {
-      return fail(
-        hasQuestionIds
-          ? "Question count must be between 1 and 100."
-          : "Question count must be 10, 20, 30, 50, 75 or 100."
+      return NextResponse.json(
+        { error: "Please log in to generate a quiz." },
+        { status: 401 }
       );
     }
+
+    const body = await request.json();
+
+    const mode = body.mode || "practice";
+    const subject = body.subject || "all";
+    const topic = body.topic || "all";
+    const year = body.year || "all";
+
+    const requestedCount = Number(body.count || body.totalQuestions || 20);
+    const count = Math.max(
+      1,
+      Math.min(100, Math.floor(requestedCount))
+    );
 
     if (!["practice", "exam", "mistake_retest"].includes(mode)) {
-      return fail("Invalid quiz mode.");
-    }
-
-    if (hasQuestionIds) {
-      if (
-        requestedIds.length === 0 ||
-        requestedIds.length > 100 ||
-        requestedIds.some(
-          (id) =>
-            !id ||
-            id === "undefined" ||
-            id === "null"
-        ) ||
-        new Set(requestedIds).size !== requestedIds.length
-      ) {
-        return fail(
-          "questionIds must contain 1–100 unique, valid IDs."
-        );
-      }
-
-      if (requestedCount !== requestedIds.length) {
-        return fail(
-          "count must match the number of questionIds."
-        );
-      }
-    }
-
-    // IMPORTANT:
-    // Load every database row. Do not filter by question content
-    // before matching IDs supplied by the Prelims test.
-    const rows = await smartQuizDb(
-      "prelims_pyqs",
-      "select=*&order=year.desc,id.asc"
-    );
-
-    if (!Array.isArray(rows)) {
-      throw new Error(
-        "Supabase did not return a valid question list."
+      return NextResponse.json(
+        { error: "Invalid quiz mode." },
+        { status: 400 }
       );
     }
 
-    // Match against every row, including rows whose question text,
-    // answer, or options need data cleanup.
-    const rowsById = new Map(
-      rows
-        .filter(
-          (row) =>
-            row?.id !== null &&
-            row?.id !== undefined
-        )
-        .map((row) => [String(row.id), row])
-    );
+    let questionRows = [];
 
-    let selectedRows = [];
+    if (mode === "mistake_retest") {
+      let mistakeQuery =
+        "select=question_id,subject,topic,correct_option" +
+        `&user_id=eq.${encodeURIComponent(String(user.id))}` +
+        "&is_resolved=eq.false" +
+        "&order=last_attempted_at.asc";
 
-    if (hasQuestionIds) {
-      const missingIds = requestedIds.filter(
-        (id) => !rowsById.has(id)
-      );
-
-      if (missingIds.length > 0) {
-        return fail(
-          "These selected IDs do not exist in the prelims_pyqs table. The Prelims API and database are using different question IDs.",
-          400,
-          {
-            missingQuestionIds: missingIds,
-            databaseRowCount: rows.length,
-          }
-        );
+      if (subject !== "all") {
+        mistakeQuery += `&subject=eq.${encodeURIComponent(subject)}`;
       }
 
-      // Preserve the exact order of questions selected by the test.
-      selectedRows = requestedIds.map(
-        (id) => rowsById.get(id)
+      if (topic !== "all") {
+        mistakeQuery += `&topic=eq.${encodeURIComponent(topic)}`;
+      }
+
+      const mistakes = await smartQuizDb(
+        "smart_quiz_mistakes",
+        mistakeQuery
       );
 
-      // The Prelims page already loaded the question content.
-      // Session creation only needs the selected database IDs.
-    } else {
-      let candidates = rows.filter(hasUsableContent);
-
-      candidates = candidates.filter((row) => {
-        const subjectMatches =
-          subject.toLowerCase() === "all" ||
-          String(row.subject || "General").toLowerCase() ===
-            subject.toLowerCase();
-
-        const topicMatches =
-          topic.toLowerCase() === "all" ||
-          String(row.topic || "General").toLowerCase() ===
-            topic.toLowerCase();
-
-        const yearMatches =
-          year.toLowerCase() === "all" ||
-          String(row.year ?? "") === year;
-
-        return subjectMatches && topicMatches && yearMatches;
-      });
-
-      if (mode === "mistake_retest") {
-        const mistakes = await smartQuizDb(
-          "smart_quiz_mistakes",
-          `select=question_id&user_id=eq.${encodeURIComponent(
-            String(user.id)
-          )}&is_resolved=eq.false`
-        );
-
-        const mistakeIds = new Set(
+      const mistakeIds = [
+        ...new Set(
           (Array.isArray(mistakes) ? mistakes : []).map(
             (item) => String(item.question_id)
           )
-        );
+        ),
+      ].slice(0, count);
 
-        candidates = candidates.filter((row) =>
-          mistakeIds.has(String(row.id))
+      if (mistakeIds.length === 0) {
+        return NextResponse.json(
+          { error: "No active mistakes found to retest." },
+          { status: 404 }
         );
       }
 
-      selectedRows = shuffle(candidates).slice(
-        0,
-        requestedCount
+      const idFilter = mistakeIds
+        .map((id) => encodeURIComponent(id))
+        .join(",");
+
+      questionRows = await smartQuizDb(
+        "prelims_pyqs",
+        `select=id,question,option_a,option_b,option_c,option_d,correct_option,explanation,explanation_hi,subject,topic,year` +
+          `&id=in.(${idFilter})`
+      );
+
+      const questionMap = new Map(
+        (Array.isArray(questionRows) ? questionRows : []).map(
+          (item) => [String(item.id), item]
+        )
+      );
+
+      questionRows = mistakeIds
+        .map((id) => questionMap.get(id))
+        .filter(Boolean);
+    } else {
+      let query =
+        "select=id,question,option_a,option_b,option_c,option_d,correct_option,explanation,explanation_hi,subject,topic,year";
+
+      const filters = [];
+
+      if (subject !== "all") {
+        filters.push(`subject=eq.${encodeURIComponent(subject)}`);
+      }
+
+      if (topic !== "all") {
+        filters.push(`topic=eq.${encodeURIComponent(topic)}`);
+      }
+
+      if (year !== "all") {
+        filters.push(`year=eq.${encodeURIComponent(String(year))}`);
+      }
+
+      query += filters.length ? `&${filters.join("&")}` : "";
+      query += `&limit=${Math.min(5000, count * 20)}`;
+
+      const rows = await smartQuizDb("prelims_pyqs", query);
+
+      const validRows = (Array.isArray(rows) ? rows : []).filter(
+        (item) =>
+          Number.isInteger(Number(item.correct_option)) &&
+          Number(item.correct_option) >= 0 &&
+          Number(item.correct_option) <= 3
+      );
+
+      // Shuffle candidates before selecting the requested count.
+      for (let i = validRows.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [validRows[i], validRows[j]] = [validRows[j], validRows[i]];
+      }
+
+      questionRows = validRows.slice(0, count);
+    }
+
+    if (!questionRows.length) {
+      return NextResponse.json(
+        { error: "No questions found for the selected filters." },
+        { status: 404 }
       );
     }
 
-    if (selectedRows.length === 0) {
-      return fail(
-        "No matching questions found for the selected filters.",
-        404
-      );
-    }
-
-    const sessionPayload = {
-      user_id: String(user.id),
-      mode,
-      subject:
-        subject.toLowerCase() === "all" ? null : subject,
-      topic:
-        topic.toLowerCase() === "all" ? null : topic,
-      total_questions: selectedRows.length,
-      status: "in_progress",
-    };
-
-    const inserted = await smartQuizDb(
+    const sessionRows = await smartQuizDb(
       "smart_quiz_sessions",
       "",
       {
         method: "POST",
-        body: sessionPayload,
+        body: {
+          user_id: String(user.id),
+          mode,
+          subject: subject === "all" ? null : subject,
+          topic: topic === "all" ? null : topic,
+          total_questions: questionRows.length,
+          attempted_questions: 0,
+          correct_answers: 0,
+          wrong_answers: 0,
+          score: 0,
+          accuracy: 0,
+          time_taken_seconds: 0,
+          status: "in_progress",
+        },
         headers: {
           Prefer: "return=representation",
         },
       }
     );
 
-    const session = Array.isArray(inserted)
-      ? inserted[0]
-      : null;
+    const session = Array.isArray(sessionRows)
+      ? sessionRows[0]
+      : sessionRows;
 
     if (!session?.id) {
-      throw new Error(
-        "Quiz session could not be created. Check the smart_quiz_sessions table and database permissions."
-      );
+      throw new Error("Unable to create quiz session.");
     }
 
-    const questions = selectedRows.map((row) => ({
-      id: String(row.id),
-      year: row.year ?? null,
-      subject: row.subject || "General",
-      topic: row.topic || "General",
-      question: row.question || "",
-      options: normalizeOptions(row),
+    const questions = questionRows.map((item) => ({
+      id: String(item.id),
+      question: item.question,
+      options: [
+        item.option_a,
+        item.option_b,
+        item.option_c,
+        item.option_d,
+      ],
+      subject: item.subject || "General",
+      topic: item.topic || "General",
+      year: item.year ?? null,
+      explanation: item.explanation_hi || item.explanation || "",
     }));
 
     return NextResponse.json({
@@ -291,11 +197,7 @@ export async function POST(request) {
     console.error("Quiz generation error:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          error?.message || "Unable to generate quiz.",
-      },
+      { error: error.message || "Unable to generate quiz." },
       { status: 500 }
     );
   }
