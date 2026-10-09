@@ -30,35 +30,57 @@ function isEthicsExample(item) {
   );
 }
 
-function getTodayIST() {
-  return new Intl.DateTimeFormat("en-CA", {
+function getISTDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).formatToParts(value);
+
+  const part = (type) =>
+    parts.find((entry) => entry.type === type)?.value || "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function getTodayIST() {
+  return getISTDateKey(new Date());
+}
+
+/**
+ * API versions may expose the article date under different field names.
+ * Prefer the editorial/publication date, then fall back to creation time.
+ */
+function getItemDate(item) {
+  return (
+    item?.date ||
+    item?.published_at ||
+    item?.publishedAt ||
+    item?.publication_date ||
+    item?.created_at ||
+    item?.createdAt ||
+    item?.updated_at ||
+    item?.updatedAt ||
+    null
+  );
 }
 
 function isTodayIST(value) {
   if (!value) return false;
 
-  const raw = String(value);
+  const raw = String(value).trim();
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+  // Date-only database values are already calendar dates; do not shift them
+  // through UTC and accidentally move them to the previous/next day.
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) {
     return raw === getTodayIST();
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return false;
 
-  return (
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(date) === getTodayIST()
-  );
+  return getISTDateKey(date) === getTodayIST();
 }
 
 export default function CurrentAffairsPage() {
@@ -268,7 +290,7 @@ export default function CurrentAffairsPage() {
   }, [news, activeSource]);
 
   const todayNews = useMemo(() => {
-    return news.filter((item) => isTodayIST(item?.date));
+    return news.filter((item) => isTodayIST(getItemDate(item)));
   }, [news]);
 
   const todaySourceFilteredNews = useMemo(() => {
@@ -406,29 +428,43 @@ export default function CurrentAffairsPage() {
   function formatDate(value) {
     if (!value) return "";
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
+    // A date-only value should be displayed as supplied, without timezone shift.
+    const raw = String(value).trim();
+    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) {
+      const [year, month, day] = raw.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day, 12));
+      return new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+      }).format(date);
     }
 
-    return date.toLocaleDateString("en-IN", {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return raw;
+
+    return new Intl.DateTimeFormat("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-    });
+      timeZone: "Asia/Kolkata",
+    }).format(date);
   }
 
   function getLatestDate() {
-    if (!news.length) return "Loading...";
+    if (loading && !news.length) return "Loading...";
+    if (!news.length) return formatDate(getTodayIST());
 
-    const latestToday = news.find((item) =>
-      isTodayIST(item?.date)
-    );
+    const datedItems = news
+      .map((item) => getItemDate(item))
+      .filter(Boolean)
+      .map((value) => ({ value, timestamp: new Date(value).getTime() }))
+      .filter((entry) => Number.isFinite(entry.timestamp))
+      .sort((a, b) => b.timestamp - a.timestamp);
 
-    return latestToday
-      ? formatDate(latestToday.date)
-      : formatDate(getTodayIST());
+    const latest = datedItems[0]?.value;
+    return latest ? formatDate(latest) : formatDate(getTodayIST());
   }
 
   return (
@@ -596,6 +632,7 @@ export default function CurrentAffairsPage() {
             </div>
 
             <button
+              type="button"
               className={
                 notificationsEnabled
                   ? "switch on"
@@ -622,6 +659,7 @@ export default function CurrentAffairsPage() {
 
               <div className="setting-buttons">
                 <button
+                  type="button"
                   className={
                     notificationLanguage === "hi"
                       ? "setting-btn active"
@@ -638,6 +676,7 @@ export default function CurrentAffairsPage() {
                 </button>
 
                 <button
+                  type="button"
                   className={
                     notificationLanguage === "en"
                       ? "setting-btn active"
@@ -668,6 +707,7 @@ export default function CurrentAffairsPage() {
               />
 
               <button
+                type="button"
                 className="save-time"
                 onClick={() =>
                   saveNotificationSettings({
@@ -2523,7 +2563,7 @@ function ArticleCard({
 
         <span className="meta">
           {item.subject || "UPSC Current Affairs"} •{" "}
-          {formatDate(item.date)}
+          {formatDate(getItemDate(item))}
         </span>
       </div>
 
