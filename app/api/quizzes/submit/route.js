@@ -1,17 +1,14 @@
+**File:** `app/api/quizzes/submit/route.js`
+
+```javascript
 import { NextResponse } from "next/server";
 import {
   getSmartQuizUser,
   smartQuizDb,
 } from "../../../../lib/smartQuizServer";
 
-// FIX: null, undefined aur empty values ko unanswered maana jayega.
-// Number(null) === 0 hota hai, isliye pehle empty values check karna zaroori hai.
 function optionIndex(value) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
@@ -37,11 +34,7 @@ export async function POST(request) {
     const sessionId = String(body.sessionId || "");
     const answers = body.answers;
 
-    if (
-      !sessionId ||
-      !Array.isArray(answers) ||
-      answers.length === 0
-    ) {
+    if (!sessionId || !Array.isArray(answers) || answers.length === 0) {
       return NextResponse.json(
         { error: "sessionId and answers are required." },
         { status: 400 }
@@ -84,8 +77,7 @@ export async function POST(request) {
         item.selectedOption ?? item.selected_option
       ),
       isBookmarked:
-        item.isBookmarked === true ||
-        item.is_bookmarked === true,
+        item.isBookmarked === true || item.is_bookmarked === true,
       timeTakenSeconds: Math.max(
         0,
         Math.min(86400, Number(item.timeTakenSeconds) || 0)
@@ -103,7 +95,6 @@ export async function POST(request) {
       );
     }
 
-    // Verify question IDs and answer keys from the database.
     const questionRows = await smartQuizDb(
       "prelims_pyqs",
       "select=id,question,subject,topic,correct_option,option_a,option_b,option_c,option_d"
@@ -117,6 +108,7 @@ export async function POST(request) {
     );
 
     const verified = [];
+    const invalidAnswerKeyIds = [];
 
     for (const answer of normalizedAnswers) {
       const question = questionMap.get(answer.questionId);
@@ -128,24 +120,22 @@ export async function POST(request) {
         );
       }
 
-      const rawCorrect = Number(question.correct_option);
+      const rawCorrect = question.correct_option;
 
+      // Database format: 0=A, 1=B, 2=C, 3=D.
       if (
-        !Number.isInteger(rawCorrect) ||
-        rawCorrect < 1 ||
-        rawCorrect > 4
+        rawCorrect === null ||
+        rawCorrect === undefined ||
+        rawCorrect === "" ||
+        !Number.isInteger(Number(rawCorrect)) ||
+        Number(rawCorrect) < 0 ||
+        Number(rawCorrect) > 3
       ) {
-        return NextResponse.json(
-          {
-            error: `Question ${answer.questionId} has no valid answer key.`,
-          },
-          { status: 422 }
-        );
+        invalidAnswerKeyIds.push(answer.questionId);
+        continue;
       }
 
-      // Database: 1=A, 2=B, 3=C, 4=D.
-      // Frontend: 0=A, 1=B, 2=C, 3=D.
-      const correctOption = rawCorrect - 1;
+      const correctOption = Number(rawCorrect);
       const isCorrect = answer.selectedOption === correctOption;
 
       verified.push({
@@ -156,6 +146,17 @@ export async function POST(request) {
         subject: question.subject || "General",
         topic: question.topic || "General",
       });
+    }
+
+    // Do not submit an ungradable quiz with zero valid answer keys.
+    if (verified.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No questions have valid answer keys. Please check the question data.",
+          invalidAnswerKeyIds,
+        },
+        { status: 422 }
+      );
     }
 
     const total = verified.length;
@@ -171,7 +172,6 @@ export async function POST(request) {
       Math.min(86400, Number(body.timeTakenSeconds) || 0)
     );
 
-    // Save verified answers for analytics and performance tracking.
     const responseRows = verified.map((item) => ({
       session_id: sessionId,
       user_id: String(user.id),
@@ -193,7 +193,6 @@ export async function POST(request) {
       },
     });
 
-    // Save or remove bookmarks belonging to this user.
     for (const item of verified) {
       const filter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
@@ -221,8 +220,6 @@ export async function POST(request) {
       }
     }
 
-    // Record wrong attempted answers; resolve previously active mistakes
-    // when the user answers a question correctly.
     for (const item of verified) {
       const userFilter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
@@ -266,10 +263,7 @@ export async function POST(request) {
             },
           });
         }
-      } else if (
-        item.isCorrect &&
-        Array.isArray(existing)
-      ) {
+      } else if (item.isCorrect && Array.isArray(existing)) {
         for (const mistake of existing) {
           await smartQuizDb(
             "smart_quiz_mistakes",
@@ -287,7 +281,6 @@ export async function POST(request) {
       }
     }
 
-    // Update aggregate question statistics.
     for (const item of verified) {
       const currentRows = await smartQuizDb(
         "smart_quiz_question_stats",
@@ -295,14 +288,10 @@ export async function POST(request) {
           "&select=total_attempts,correct_attempts"
       );
 
-      const current = Array.isArray(currentRows)
-        ? currentRows[0]
-        : null;
-
+      const current = Array.isArray(currentRows) ? currentRows[0] : null;
       const totalAttempts = Number(current?.total_attempts || 0) + 1;
       const correctAttempts =
-        Number(current?.correct_attempts || 0) +
-        (item.isCorrect ? 1 : 0);
+        Number(current?.correct_attempts || 0) + (item.isCorrect ? 1 : 0);
 
       await smartQuizDb(
         "smart_quiz_question_stats",
@@ -357,6 +346,8 @@ export async function POST(request) {
         score: Number(score.toFixed(2)),
         accuracy: Number(accuracy.toFixed(2)),
         timeTakenSeconds: elapsedSeconds,
+        skippedInvalidAnswerKeys: invalidAnswerKeyIds.length,
+        invalidAnswerKeyIds,
       },
     });
   } catch (error) {
@@ -368,3 +359,4 @@ export async function POST(request) {
     );
   }
 }
+```
