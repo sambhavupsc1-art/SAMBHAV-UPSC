@@ -1,34 +1,37 @@
+
 import { NextResponse } from "next/server";
 
-const TELEGRAM_BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
-const TELEGRAM_WEBHOOK_SECRET =
-  process.env.TELEGRAM_WEBHOOK_SECRET;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-// =========================================================
-// SAMBHAV UPSC OFFICIAL CHANNEL
-// =========================================================
-
-const TELEGRAM_CHANNEL =
-  "@SAMBHAVUPSC1";
-
-const TELEGRAM_CHANNEL_URL =
-  "https://t.me/SAMBHAVUPSC1";
-
-// =========================================================
-// SAMBHAV UPSC APP
-// =========================================================
-
+const TELEGRAM_CHANNEL = "@SAMBHAVUPSC1";
+const TELEGRAM_CHANNEL_URL = "https://t.me/SAMBHAVUPSC1";
 const SAMBHAV_APP_URL =
-  "https://sambhav-upsc.vercel.app/";
-
-// =========================================================
-// WELCOME IMAGE
-// =========================================================
-
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://sambhav-upsc.vercel.app";
 const WELCOME_IMAGE_URL =
   "https://sambhav-upsc.vercel.app/sambhav-welcome.png";
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function log(...args) {
+  console.log("[SAMBHAV TELEGRAM]", ...args);
+}
 
 /* =========================================================
    TELEGRAM API
@@ -36,460 +39,220 @@ const WELCOME_IMAGE_URL =
 
 async function telegramApi(method, body) {
   if (!TELEGRAM_BOT_TOKEN) {
-    console.error(
-      "TELEGRAM_BOT_TOKEN is missing"
-    );
-
-    return null;
+    throw new Error("TELEGRAM_BOT_TOKEN is missing");
   }
 
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify(body),
-
-        cache: "no-store",
-      }
-    );
-
-    const data = await response.json();
-
-    if (!data.ok) {
-      console.error(
-        `Telegram ${method} error:`,
-        data
-      );
-    }
-
-    return data;
-  } catch (error) {
-    console.error(
-      `Telegram ${method} request error:`,
-      error
-    );
-
-    return null;
-  }
-}
-
-/* =========================================================
-   SEND TEXT MESSAGE
-========================================================= */
-
-async function sendTelegramMessage(
-  chatId,
-  text,
-  replyMarkup = null
-) {
-  return telegramApi(
-    "sendMessage",
+  const response = await fetch(
+    `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
     {
-      chat_id: chatId,
-
-      text,
-
-      parse_mode: "HTML",
-
-      ...(replyMarkup
-        ? {
-            reply_markup: replyMarkup,
-          }
-        : {}),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
     }
   );
+
+  const data = await response.json();
+
+  if (!response.ok || !data?.ok) {
+    throw new Error(
+      `Telegram ${method}: ${JSON.stringify(data)}`
+    );
+  }
+
+  return data.result;
+}
+
+async function sendTelegramMessage(chatId, text, replyMarkup = null) {
+  return telegramApi("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+  });
+}
+
+async function answerCallback(callbackQueryId, text = "") {
+  try {
+    await telegramApi("answerCallbackQuery", {
+      callback_query_id: callbackQueryId,
+      ...(text ? { text } : {}),
+    });
+  } catch (error) {
+    log("CALLBACK ANSWER ERROR", error.message);
+  }
 }
 
 /* =========================================================
-   WELCOME MESSAGE
+   WELCOME
 ========================================================= */
 
 async function sendWelcomeMessage(chatId) {
   const caption = `
-<b>🇮🇳 Welcome to SAMBHAV UPSC</b>
+<b>Welcome to SAMBHAV UPSC</b>
 
-<b>Your focused UPSC preparation platform.</b>
+Your focused UPSC preparation platform.
 
 📚 <b>Daily Current Affairs</b>
 📝 <b>PYQ-Oriented Practice</b>
 🤖 <b>AI-Powered Mains Evaluation</b>
 📖 <b>Structured Study Material</b>
 📊 <b>Performance Tracking</b>
-🎯 <b>Prelims &amp; Mains Focus</b>
 
-<b>First, join our official Telegram channel.</b>
-
-<b>After joining the channel, you can open the SAMBHAV UPSC app.</b>
+First, join our official Telegram channel.
 `;
 
-  const replyMarkup = {
+  const keyboard = {
     inline_keyboard: [
       [
-        {
-          text: "📚 Current Affairs",
-          callback_data:
-            "info_current_affairs",
-        },
-
-        {
-          text: "📝 PYQ Practice",
-          callback_data:
-            "info_pyq",
-        },
+        { text: "📚 Current Affairs", callback_data: "info_current_affairs" },
+        { text: "📝 PYQ Practice", callback_data: "info_pyq" },
       ],
-
       [
-        {
-          text: "🤖 AI Evaluation",
-          callback_data:
-            "info_ai",
-        },
-
-        {
-          text: "📖 Study Material",
-          callback_data:
-            "info_material",
-        },
+        { text: "🤖 AI Evaluation", callback_data: "info_ai" },
+        { text: "📖 Study Material", callback_data: "info_material" },
       ],
-
       [
-        {
-          text: "📊 Performance",
-          callback_data:
-            "info_performance",
-        },
-
-        {
-          text: "💬 SAMBHAV UPSC Helpline",
-          url:
-            TELEGRAM_CHANNEL_URL,
-        },
+        { text: "📊 Performance", callback_data: "info_performance" },
       ],
-
       [
-        {
-          text: "📢 Join Official Channel",
-          url:
-            TELEGRAM_CHANNEL_URL,
-        },
+        { text: "📢 Join Official Channel", url: TELEGRAM_CHANNEL_URL },
       ],
-
       [
-        {
-          text: "✓ I Have Joined / Continue",
-          callback_data:
-            "verify_channel",
-        },
+        { text: "✓ I Have Joined / Continue", callback_data: "verify_channel" },
       ],
     ],
   };
 
   try {
-    const imageResponse =
-      await fetch(
-        WELCOME_IMAGE_URL,
-        {
-          cache: "no-store",
-        }
-      );
+    const imageResponse = await fetch(WELCOME_IMAGE_URL, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
 
     if (!imageResponse.ok) {
-      throw new Error(
-        `Welcome image fetch failed: ${imageResponse.status}`
-      );
+      throw new Error(`Welcome image HTTP ${imageResponse.status}`);
     }
 
-    const imageBlob =
-      await imageResponse.blob();
+    const blob = await imageResponse.blob();
+    const form = new FormData();
 
-    const formData =
-      new FormData();
+    form.append("chat_id", String(chatId));
+    form.append("photo", blob, "sambhav-welcome.png");
+    form.append("caption", caption);
+    form.append("parse_mode", "HTML");
+    form.append("reply_markup", JSON.stringify(keyboard));
 
-    formData.append(
-      "chat_id",
-      String(chatId)
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body: form,
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000),
+      }
     );
 
-    formData.append(
-      "photo",
-      imageBlob,
-      "sambhav-welcome.png"
-    );
+    const result = await response.json();
 
-    formData.append(
-      "caption",
-      caption
-    );
-
-    formData.append(
-      "parse_mode",
-      "HTML"
-    );
-
-    formData.append(
-      "reply_markup",
-      JSON.stringify(replyMarkup)
-    );
-
-    const response =
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-        {
-          method: "POST",
-
-          body: formData,
-
-          cache: "no-store",
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!data.ok) {
-      console.error(
-        "Telegram sendPhoto upload error:",
-        data
-      );
+    if (!response.ok || !result?.ok) {
+      throw new Error(JSON.stringify(result));
     }
-
-    return data;
   } catch (error) {
-    console.error(
-      "Telegram welcome image upload error:",
-      error
-    );
-
-    return sendTelegramMessage(
-      chatId,
-      caption,
-      replyMarkup
-    );
+    log("WELCOME PHOTO FAILED; SENDING TEXT", error.message);
+    await sendTelegramMessage(chatId, caption, keyboard);
   }
 }
 
 /* =========================================================
-   CHECK CHANNEL MEMBERSHIP
+   CHANNEL MEMBERSHIP
 ========================================================= */
 
-async function checkChannelMembership(
-  telegramUserId
-) {
-  const result =
-    await telegramApi(
-      "getChatMember",
-      {
-        chat_id:
-          TELEGRAM_CHANNEL,
+async function checkChannelMembership(userId) {
+  const member = await telegramApi("getChatMember", {
+    chat_id: TELEGRAM_CHANNEL,
+    user_id: userId,
+  });
 
-        user_id:
-          telegramUserId,
-      }
-    );
+  const status = member?.status;
 
-  if (!result?.ok) {
-    console.error(
-      "Membership verification failed:",
-      result
-    );
-
-    return null;
-  }
-
-  const member =
-    result.result;
-
-  const status =
-    member?.status;
-
-  if (
-    status === "creator" ||
-    status === "administrator" ||
-    status === "member"
-  ) {
+  if (["creator", "administrator", "member"].includes(status)) {
     return true;
   }
 
-  if (
-    status === "restricted" &&
-    member?.is_member === true
-  ) {
+  if (status === "restricted" && member?.is_member === true) {
     return true;
   }
 
   return false;
 }
 
-/* =========================================================
-   VERIFIED USER MESSAGE
-========================================================= */
-
 async function sendVerifiedMessage(chatId) {
   return sendTelegramMessage(
     chatId,
+    `<b>SAMBHAV UPSC</b>
 
-    `<b>🇮🇳 Welcome to SAMBHAV UPSC</b>
+✅ Channel verification successful.
 
-✅ <b>Channel verification successful.</b>
-
-Ab aap SAMBHAV UPSC app open karke signup kar sakte hain.
-
-📚 <b>Learn • Practice • Progress</b>`,
-
+Ab aap app open karke signup kar sakte hain.`,
     {
       inline_keyboard: [
-        [
-          {
-            text:
-              "🚀 Open SAMBHAV UPSC",
-
-            url:
-              SAMBHAV_APP_URL,
-          },
-        ],
+        [{ text: "🚀 Open SAMBHAV UPSC", url: SAMBHAV_APP_URL }],
       ],
     }
   );
 }
 
-/* =========================================================
-   NOT JOINED MESSAGE
-========================================================= */
-
-async function sendNotJoinedMessage(
-  chatId
-) {
+async function sendNotJoinedMessage(chatId) {
   return sendTelegramMessage(
     chatId,
+    `<b>SAMBHAV UPSC</b>
 
-    `<b>🔒 SAMBHAV UPSC</b>
+🔒 Official channel abhi join nahi hua hai.
 
-Aapne abhi official channel join nahi kiya hai.
-
-<b>Access continue karne ke liye pehle official channel join karein.</b>
-
-Channel join karne ke baad neeche diye gaye button par click karein.`,
-
+Channel join karne ke baad dobara verify karein.`,
     {
       inline_keyboard: [
-        [
-          {
-            text:
-              "📢 Join Official Channel",
-
-            url:
-              TELEGRAM_CHANNEL_URL,
-          },
-        ],
-
-        [
-          {
-            text:
-              "✓ I Have Joined / Continue",
-
-            callback_data:
-              "verify_channel",
-          },
-        ],
+        [{ text: "📢 Join Official Channel", url: TELEGRAM_CHANNEL_URL }],
+        [{ text: "✓ Verify Again", callback_data: "verify_channel" }],
       ],
     }
   );
 }
 
-/* =========================================================
-   VERIFICATION ERROR
-========================================================= */
-
-async function sendVerificationError(
-  chatId
-) {
+async function sendVerificationError(chatId) {
   return sendTelegramMessage(
     chatId,
-
-    `<b>⚠️ SAMBHAV UPSC</b>
-
-Channel membership verify nahi ho pa rahi.
-
-Please thodi der baad dobara try karein.`
+    "⚠️ Channel membership verify nahi ho pa rahi. Thodi der baad try karein. Channel ka bot-admin setup bhi check karein."
   );
 }
 
 /* =========================================================
-   INFO BUTTON RESPONSES
+   INFO BUTTONS
 ========================================================= */
 
-async function sendInfoMessage(
-  chatId,
-  type
-) {
+async function sendInfoMessage(chatId, type) {
   const messages = {
     info_current_affairs:
-      `<b>📚 Current Affairs</b>
-
-UPSC-oriented current affairs aur important developments ko focused preparation ke liye organize kiya gaya hai.`,
-
+      "<b>📚 Current Affairs</b>\n\nUPSC-oriented current affairs aur important developments.",
     info_pyq:
-      `<b>📝 PYQ Oriented Practice</b>
-
-Previous Year Questions ke through exam pattern, concepts aur question demand ko samajhne ke liye practice.`,
-
+      "<b>📝 PYQ Practice</b>\n\nPrevious Year Questions se exam pattern aur concepts ki practice.",
     info_ai:
-      `<b>🤖 AI Answer Evaluation</b>
-
-Mains answers ko structured evaluation ke through analyse karke improvement areas identify karne ka system.`,
-
+      "<b>🤖 AI Answer Evaluation</b>\n\nMains answers ka structured evaluation aur improvement feedback.",
     info_material:
-      `<b>📖 Study Material</b>
-
-UPSC preparation ke liye focused study resources aur subject-wise learning ecosystem.`,
-
+      "<b>📖 Study Material</b>\n\nUPSC ke liye focused subject-wise learning resources.",
     info_performance:
-      `<b>📊 Performance</b>
-
-Aapki preparation, practice aur progress ko ek focused dashboard ke through track karne ka ecosystem.`,
+      "<b>📊 Performance</b>\n\nPreparation aur practice progress ko track karne ka system.",
   };
-
-  const message =
-    messages[type];
-
-  if (!message) {
-    return sendTelegramMessage(
-      chatId,
-      "<b>SAMBHAV UPSC</b>"
-    );
-  }
 
   return sendTelegramMessage(
     chatId,
-    message,
-
+    messages[type] || "<b>SAMBHAV UPSC</b>",
     {
       inline_keyboard: [
-        [
-          {
-            text:
-              "📢 Official Channel",
-
-            url:
-              TELEGRAM_CHANNEL_URL,
-          },
-        ],
-
-        [
-          {
-            text:
-              "← Back",
-
-            callback_data:
-              "back_to_welcome",
-          },
-        ],
+        [{ text: "📢 Official Channel", url: TELEGRAM_CHANNEL_URL }],
+        [{ text: "← Back", callback_data: "back_to_welcome" }],
       ],
     }
   );
@@ -499,199 +262,133 @@ Aapki preparation, practice aur progress ko ek focused dashboard ke through trac
    THE HINDU PDF PROCESSOR
 ========================================================= */
 
-async function processTheHinduPdf(
-  chatId,
-  message
-) {
-  const document =
-    message?.document;
+async function processTheHinduPdf(chatId, message) {
+  const document = message?.document;
+  if (!document) return false;
 
-  if (!document) {
-    return false;
-  }
-
-  const fileName =
-    String(
-      document.file_name || ""
-    );
-
-  const mimeType =
-    String(
-      document.mime_type || ""
-    );
+  const fileName = String(document.file_name || "");
+  const mimeType = String(document.mime_type || "");
 
   const isPdf =
-    mimeType ===
-      "application/pdf" ||
-    fileName
-      .toLowerCase()
-      .endsWith(".pdf");
+    mimeType === "application/pdf" ||
+    fileName.toLowerCase().endsWith(".pdf");
 
-  if (!isPdf) {
-    return false;
+  if (!isPdf) return false;
+
+  log("PDF RECEIVED", {
+    fileName,
+    fileIdPresent: Boolean(document.file_id),
+    chatId,
+    messageId: message.message_id,
+  });
+
+  if (!TELEGRAM_WEBHOOK_SECRET) {
+    await sendTelegramMessage(
+      chatId,
+      "❌ Processor secret missing hai. Vercel environment variables check karein."
+    );
+    return true;
   }
 
-  console.log(
-    "THE HINDU PDF RECEIVED:",
-    {
-      fileName,
-      fileId:
-        document.file_id,
-      fileUniqueId:
-        document.file_unique_id,
-      chatId,
-      messageId:
-        message.message_id,
-    }
-  );
-
   try {
-    const processorUrl =
-      `${SAMBHAV_APP_URL.replace(
-        /\/$/,
-        ""
-      )}/api/current-affairs/the-hindu`;
-
-    const response =
-      await fetch(
-        processorUrl,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-sambhav-internal-secret":
-              TELEGRAM_WEBHOOK_SECRET,
-          },
-
-          body: JSON.stringify({
-            file_id:
-              document.file_id,
-
-            file_unique_id:
-              document.file_unique_id,
-
-            file_name:
-              fileName,
-
-            mime_type:
-              mimeType,
-
-            telegram_chat_id:
-              chatId,
-
-            telegram_message_id:
-              message.message_id,
-
-            telegram_date:
-              message.date || null,
-          }),
-
-          cache: "no-store",
-        }
-      );
-
-    const resultText =
-      await response.text();
-
-    console.log(
-      "THE HINDU PROCESSOR RESPONSE:",
-      {
-        status:
-          response.status,
-
-        body:
-          resultText.slice(
-            0,
-            3000
-          ),
-      }
+    await sendTelegramMessage(
+      chatId,
+      "📄 <b>The Hindu PDF received</b>\n\nProcessing request bheji ja rahi hai. Complete result ke liye neeche diye gaye status ko dekhein."
     );
 
-    if (!response.ok) {
+    const processorUrl =
+      `${SAMBHAV_APP_URL.replace(/\/$/, "")}/api/current-affairs/the-hindu`;
+
+    const response = await fetch(processorUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-sambhav-internal-secret": TELEGRAM_WEBHOOK_SECRET,
+      },
+      body: JSON.stringify({
+        file_id: document.file_id,
+        file_unique_id: document.file_unique_id,
+        file_name: fileName,
+        mime_type: mimeType,
+        telegram_chat_id: chatId,
+        telegram_message_id: message.message_id,
+        telegram_date: message.date || null,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(240000),
+    });
+
+    const raw = await response.text();
+
+    let result;
+    try {
+      result = raw ? JSON.parse(raw) : {};
+    } catch {
+      result = { error: raw };
+    }
+
+    log("PROCESSOR RESPONSE", {
+      status: response.status,
+      result,
+    });
+
+    if (!response.ok || result?.ok === false) {
       await sendTelegramMessage(
         chatId,
-
-        `⚠️ <b>The Hindu PDF received</b>
-
-PDF receive ho gaya, lekin processing start nahi ho paayi.
-
-Server response:
-<code>${escapeHtml(
-          resultText.slice(
-            0,
-            500
-          )
+        `❌ <b>The Hindu processing failed</b>\n\nHTTP: ${response.status}\n<code>${escapeHtml(
+          String(result?.error || result?.reason || raw || "Unknown error").slice(0, 700)
         )}</code>`
       );
+      return true;
+    }
 
+    if (result?.duplicatePdf) {
+      await sendTelegramMessage(
+        chatId,
+        `ℹ️ <b>PDF already processed</b>\n\nDate: ${escapeHtml(result.date || "N/A")}\nExisting articles: ${Number(result.existingArticles || 0)}`
+      );
+      return true;
+    }
+
+    const selected = Number(result?.selected || 0);
+    const processed = Number(result?.processed || 0);
+    const skipped = Number(result?.skipped || 0);
+    const failed = Number(result?.failed || 0);
+
+    if (selected === 0) {
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ <b>PDF processing finished, but no articles were selected.</b>\n\nDate: ${escapeHtml(result.date || "N/A")}\nCandidates: ${Number(result.candidates || 0)}\n\nHeadline extraction logs check karein.`
+      );
       return true;
     }
 
     await sendTelegramMessage(
       chatId,
-
-      `✅ <b>The Hindu PDF received</b>
-
-Processing start kar di gayi hai:
-
-• PDF date verification
-• Article extraction
-• UPSC relevance filtering
-• Duplicate / same-event check
-• Hindi + English analysis
-• Supabase save`
+      `📚 <b>The Hindu processing report</b>\n\n` +
+        `📅 Date: ${escapeHtml(result.date || "N/A")}\n` +
+        `🔎 Selected: ${selected}\n` +
+        `⚙️ AI processed: ${processed}\n` +
+        `⏭️ Skipped: ${skipped}\n` +
+        `❌ Failed: ${failed}\n\n` +
+        (failed
+          ? "Failed articles ke liye Vercel Runtime Logs check karein."
+          : "Processor ne processing complete report return ki hai.")
     );
 
     return true;
   } catch (error) {
-    console.error(
-      "THE HINDU PDF PROCESSING ERROR:",
-      error
-    );
+    log("PDF PROCESSING ERROR", error.message);
 
     await sendTelegramMessage(
       chatId,
-
-      `<b>❌ The Hindu PDF processing error</b>
-
-PDF receive ho gaya tha, lekin processing ke waqt error aa gaya.
-
-Please server logs check karein.`
+      `❌ <b>The Hindu request failed or timed out</b>\n\n<code>${escapeHtml(
+        String(error?.message || "Unknown error").slice(0, 700)
+      )}</code>\n\nVercel Runtime Logs check karein. Timeout hone par zaroori nahi ki processor ne kaam rok diya ho.`
     );
 
     return true;
   }
-}
-
-/* =========================================================
-   HTML ESCAPE
-========================================================= */
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
 }
 
 /* =========================================================
@@ -700,130 +397,51 @@ function escapeHtml(value) {
 
 export async function POST(request) {
   try {
-    /* -----------------------------------------------------
-       WEBHOOK SECURITY
-    ----------------------------------------------------- */
-
-    const secret =
-      request.headers.get(
-        "x-telegram-bot-api-secret-token"
-      );
+    const suppliedSecret = request.headers.get(
+      "x-telegram-bot-api-secret-token"
+    );
 
     if (
       !TELEGRAM_WEBHOOK_SECRET ||
-      secret !==
-        TELEGRAM_WEBHOOK_SECRET
+      suppliedSecret !== TELEGRAM_WEBHOOK_SECRET
     ) {
-      console.error(
-        "Telegram webhook unauthorized request"
-      );
+      log("UNAUTHORIZED WEBHOOK REQUEST");
 
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Unauthorized",
-        },
-        {
-          status: 401,
-        }
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    /* -----------------------------------------------------
-       READ TELEGRAM UPDATE
-    ----------------------------------------------------- */
+    const update = await request.json();
 
-    const update =
-      await request.json();
+    /* Callback buttons */
 
-    /* =====================================================
-       CALLBACK QUERY
-    ===================================================== */
+    const callback = update?.callback_query;
 
-    const callbackQuery =
-      update?.callback_query;
+    if (callback) {
+      const chatId = callback.message?.chat?.id;
+      const userId = callback.from?.id;
+      const action = callback.data;
 
-    if (callbackQuery) {
-      const callbackData =
-        callbackQuery.data;
+      await answerCallback(callback.id);
 
-      const chatId =
-        callbackQuery.message
-          ?.chat?.id;
+      if (action === "verify_channel" && chatId && userId) {
+        try {
+          const isMember = await checkChannelMembership(userId);
 
-      const telegramUser =
-        callbackQuery.from;
-
-      /* ---------------------------------------------------
-         VERIFY CHANNEL
-      --------------------------------------------------- */
-
-      if (
-        callbackData ===
-          "verify_channel" &&
-        chatId &&
-        telegramUser?.id
-      ) {
-        await telegramApi(
-          "answerCallbackQuery",
-          {
-            callback_query_id:
-              callbackQuery.id,
+          if (isMember) {
+            await sendVerifiedMessage(chatId);
+          } else {
+            await sendNotJoinedMessage(chatId);
           }
-        );
-
-        const isMember =
-          await checkChannelMembership(
-            telegramUser.id
-          );
-
-        /* -----------------------------------------------
-           VERIFICATION ERROR
-        ----------------------------------------------- */
-
-        if (
-          isMember === null
-        ) {
-          await sendVerificationError(
-            chatId
-          );
-
-          return NextResponse.json({
-            ok: true,
-          });
+        } catch (error) {
+          log("MEMBERSHIP CHECK FAILED", error.message);
+          await sendVerificationError(chatId);
         }
 
-        /* -----------------------------------------------
-           NOT JOINED
-        ----------------------------------------------- */
-
-        if (!isMember) {
-          await sendNotJoinedMessage(
-            chatId
-          );
-
-          return NextResponse.json({
-            ok: true,
-          });
-        }
-
-        /* -----------------------------------------------
-           JOINED
-        ----------------------------------------------- */
-
-        await sendVerifiedMessage(
-          chatId
-        );
-
-        return NextResponse.json({
-          ok: true,
-        });
+        return NextResponse.json({ ok: true });
       }
-
-      /* ---------------------------------------------------
-         INFORMATION BUTTONS
-      --------------------------------------------------- */
 
       if (
         [
@@ -832,163 +450,86 @@ export async function POST(request) {
           "info_ai",
           "info_material",
           "info_performance",
-        ].includes(callbackData) &&
+        ].includes(action) &&
         chatId
       ) {
-        await telegramApi(
-          "answerCallbackQuery",
-          {
-            callback_query_id:
-              callbackQuery.id,
-          }
-        );
-
-        await sendInfoMessage(
-          chatId,
-          callbackData
-        );
-
-        return NextResponse.json({
-          ok: true,
-        });
+        await sendInfoMessage(chatId, action);
+        return NextResponse.json({ ok: true });
       }
 
-      /* ---------------------------------------------------
-         BACK TO WELCOME
-      --------------------------------------------------- */
-
-      if (
-        callbackData ===
-          "back_to_welcome" &&
-        chatId
-      ) {
-        await telegramApi(
-          "answerCallbackQuery",
-          {
-            callback_query_id:
-              callbackQuery.id,
-          }
-        );
-
-        await sendWelcomeMessage(
-          chatId
-        );
-
-        return NextResponse.json({
-          ok: true,
-        });
+      if (action === "back_to_welcome" && chatId) {
+        await sendWelcomeMessage(chatId);
+        return NextResponse.json({ ok: true });
       }
 
-      return NextResponse.json({
-        ok: true,
-      });
+      return NextResponse.json({ ok: true });
     }
 
-    /* =====================================================
-       NORMAL TELEGRAM MESSAGE
-    ===================================================== */
+    /* Normal messages */
 
-    const message =
-      update?.message;
+    const message = update?.message;
 
-    if (
-      !message?.from ||
-      !message?.chat?.id
-    ) {
-      return NextResponse.json({
-        ok: true,
-      });
+    if (!message?.chat?.id || !message?.from) {
+      return NextResponse.json({ ok: true });
     }
 
-    const chatId =
-      message.chat.id;
+    const chatId = message.chat.id;
 
-    /* =====================================================
-       THE HINDU PDF
-    ===================================================== */
+    /* The Hindu PDF */
 
-    if (
-      message.document
-    ) {
-      const handled =
-        await processTheHinduPdf(
-          chatId,
-          message
-        );
+    if (message.document) {
+      const handled = await processTheHinduPdf(chatId, message);
 
       if (handled) {
         return NextResponse.json({
           ok: true,
-          type:
-            "the_hindu_pdf",
+          type: "the_hindu_pdf",
         });
       }
-    }
 
-    /* =====================================================
-       NORMAL TEXT
-    ===================================================== */
-
-    const text =
-      message.text || "";
-
-    /* =====================================================
-       /START
-    ===================================================== */
-
-    if (
-      text.startsWith("/start")
-    ) {
-      await sendWelcomeMessage(
-        chatId
+      await sendTelegramMessage(
+        chatId,
+        "⚠️ PDF document receive hua, lekin file PDF ke roop mein identify nahi hui. Please original PDF file bhejein."
       );
 
-      return NextResponse.json({
-        ok: true,
-      });
+      return NextResponse.json({ ok: true });
     }
 
-    /* =====================================================
-       IGNORE OTHER MESSAGES
-    ===================================================== */
+    /* /start */
 
-    return NextResponse.json({
-      ok: true,
-    });
+    const text = String(message.text || "");
+
+    if (text.startsWith("/start")) {
+      await sendWelcomeMessage(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error(
-      "Telegram webhook error:",
-      error
-    );
+    log("WEBHOOK FATAL ERROR", error.message);
 
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Internal server error",
+        error: "Internal server error",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
 
 /* =========================================================
-   GET — WEBHOOK HEALTH CHECK
+   GET — HEALTH CHECK
 ========================================================= */
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
-
-    service:
-      "SAMBHAV UPSC Telegram Webhook",
-
-    channel:
-      TELEGRAM_CHANNEL,
-
-    app:
-      SAMBHAV_APP_URL,
+    service: "SAMBHAV UPSC Telegram Webhook",
+    channel: TELEGRAM_CHANNEL,
+    app: SAMBHAV_APP_URL,
+    processor:
+      `${SAMBHAV_APP_URL.replace(/\/$/, "")}/api/current-affairs/the-hindu`,
+    status: "ready",
   });
 }
