@@ -17,37 +17,24 @@ function shuffle(items) {
 }
 
 function normalizeOptions(row) {
-  if (Array.isArray(row.options)) {
-    return row.options.filter(
-      (option) =>
-        option !== null &&
-        option !== undefined &&
-        String(option).trim() !== ""
-    );
+  if (Array.isArray(row?.options)) {
+    return row.options;
   }
 
-  if (typeof row.options === "string") {
+  if (typeof row?.options === "string") {
     try {
       const parsed = JSON.parse(row.options);
-
-      if (Array.isArray(parsed)) {
-        return parsed.filter(
-          (option) =>
-            option !== null &&
-            option !== undefined &&
-            String(option).trim() !== ""
-        );
-      }
+      if (Array.isArray(parsed)) return parsed;
     } catch {
-      // Fall back to individual option columns.
+      // Fall back to option columns.
     }
   }
 
   return [
-    row.option_a,
-    row.option_b,
-    row.option_c,
-    row.option_d,
+    row?.option_a,
+    row?.option_b,
+    row?.option_c,
+    row?.option_d,
   ].filter(
     (option) =>
       option !== null &&
@@ -56,7 +43,7 @@ function normalizeOptions(row) {
   );
 }
 
-function hasValidQuestionContent(row) {
+function hasUsableContent(row) {
   return (
     typeof row?.question === "string" &&
     row.question.trim().length > 0 &&
@@ -64,7 +51,7 @@ function hasValidQuestionContent(row) {
   );
 }
 
-function jsonError(error, status = 400, extra = {}) {
+function fail(error, status = 400, extra = {}) {
   return NextResponse.json(
     { success: false, error, ...extra },
     { status }
@@ -76,7 +63,7 @@ export async function POST(request) {
     const user = await getSmartQuizUser(request);
 
     if (!user) {
-      return jsonError("Please log in to generate a quiz.", 401);
+      return fail("Please log in to generate a quiz.", 401);
     }
 
     let body;
@@ -84,7 +71,7 @@ export async function POST(request) {
     try {
       body = await request.json();
     } catch {
-      return jsonError("Request body must be valid JSON.");
+      return fail("Request body must be valid JSON.");
     }
 
     const subject = String(body.subject ?? "all").trim();
@@ -112,7 +99,7 @@ export async function POST(request) {
         allowedCounts.includes(requestedCount);
 
     if (!validCount) {
-      return jsonError(
+      return fail(
         hasQuestionIds
           ? "Question count must be between 1 and 100."
           : "Question count must be 10, 20, 30, 50, 75 or 100."
@@ -120,7 +107,7 @@ export async function POST(request) {
     }
 
     if (!["practice", "exam", "mistake_retest"].includes(mode)) {
-      return jsonError("Invalid quiz mode.");
+      return fail("Invalid quiz mode.");
     }
 
     if (hasQuestionIds) {
@@ -135,18 +122,21 @@ export async function POST(request) {
         ) ||
         new Set(requestedIds).size !== requestedIds.length
       ) {
-        return jsonError(
+        return fail(
           "questionIds must contain 1–100 unique, valid IDs."
         );
       }
 
       if (requestedCount !== requestedIds.length) {
-        return jsonError(
+        return fail(
           "count must match the number of questionIds."
         );
       }
     }
 
+    // IMPORTANT:
+    // Load every database row. Do not filter by question content
+    // before matching IDs supplied by the Prelims test.
     const rows = await smartQuizDb(
       "prelims_pyqs",
       "select=*&order=year.desc,id.asc"
@@ -158,10 +148,16 @@ export async function POST(request) {
       );
     }
 
-    // Match IDs against ALL database rows, not only rows
-    // that pass answer/options validation.
+    // Match against every row, including rows whose question text,
+    // answer, or options need data cleanup.
     const rowsById = new Map(
-      rows.map((row) => [String(row.id), row])
+      rows
+        .filter(
+          (row) =>
+            row?.id !== null &&
+            row?.id !== undefined
+        )
+        .map((row) => [String(row.id), row])
     );
 
     let selectedRows = [];
@@ -172,32 +168,27 @@ export async function POST(request) {
       );
 
       if (missingIds.length > 0) {
-        return jsonError(
-          "These question IDs do not exist in prelims_pyqs. Check the IDs returned by the Prelims API.",
+        return fail(
+          "These selected IDs do not exist in the prelims_pyqs table. The Prelims API and database are using different question IDs.",
           400,
-          { missingQuestionIds: missingIds }
+          {
+            missingQuestionIds: missingIds,
+            databaseRowCount: rows.length,
+          }
         );
       }
 
+      // Preserve the exact order of questions selected by the test.
       selectedRows = requestedIds.map(
         (id) => rowsById.get(id)
       );
 
-      const invalidQuestions = selectedRows
-        .filter((row) => !hasValidQuestionContent(row))
-        .map((row) => String(row.id));
-
-      if (invalidQuestions.length > 0) {
-        return jsonError(
-          "Some selected database questions have missing question text or fewer than two options. Fix these rows in prelims_pyqs.",
-          422,
-          { invalidQuestionIds: invalidQuestions }
-        );
-      }
+      // The Prelims page already loaded the question content.
+      // Session creation only needs the selected database IDs.
     } else {
-      let candidates = rows.filter((row) => {
-        if (!hasValidQuestionContent(row)) return false;
+      let candidates = rows.filter(hasUsableContent);
 
+      candidates = candidates.filter((row) => {
         const subjectMatches =
           subject.toLowerCase() === "all" ||
           String(row.subject || "General").toLowerCase() ===
@@ -241,8 +232,8 @@ export async function POST(request) {
     }
 
     if (selectedRows.length === 0) {
-      return jsonError(
-        "No valid questions were found for the selected filters.",
+      return fail(
+        "No matching questions found for the selected filters.",
         404
       );
     }
@@ -250,8 +241,10 @@ export async function POST(request) {
     const sessionPayload = {
       user_id: String(user.id),
       mode,
-      subject: subject.toLowerCase() === "all" ? null : subject,
-      topic: topic.toLowerCase() === "all" ? null : topic,
+      subject:
+        subject.toLowerCase() === "all" ? null : subject,
+      topic:
+        topic.toLowerCase() === "all" ? null : topic,
       total_questions: selectedRows.length,
       status: "in_progress",
     };
@@ -274,7 +267,7 @@ export async function POST(request) {
 
     if (!session?.id) {
       throw new Error(
-        "Quiz session could not be created. Check smart_quiz_sessions database permissions and configuration."
+        "Quiz session could not be created. Check the smart_quiz_sessions table and database permissions."
       );
     }
 
@@ -283,7 +276,7 @@ export async function POST(request) {
       year: row.year ?? null,
       subject: row.subject || "General",
       topic: row.topic || "General",
-      question: row.question,
+      question: row.question || "",
       options: normalizeOptions(row),
     }));
 
