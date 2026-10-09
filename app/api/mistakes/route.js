@@ -47,7 +47,11 @@ export async function GET(request) {
       query += `&topic=eq.${encodeURIComponent(topic)}`;
     }
 
-    const rows = await smartQuizDb("smart_quiz_mistakes", query);
+    const rows = await smartQuizDb(
+      "smart_quiz_mistakes",
+      query
+    );
+
     const mistakes = Array.isArray(rows) ? rows : [];
 
     if (mistakes.length === 0) {
@@ -62,7 +66,9 @@ export async function GET(request) {
     }
 
     const questionIds = [
-      ...new Set(mistakes.map((item) => String(item.question_id))),
+      ...new Set(
+        mistakes.map((item) => String(item.question_id))
+      ),
     ];
 
     const questionFilter = questionIds
@@ -75,18 +81,20 @@ export async function GET(request) {
     );
 
     const questionMap = new Map(
-      (Array.isArray(questionRows) ? questionRows : []).map((question) => [
-        String(question.id),
-        question,
-      ])
+      (Array.isArray(questionRows) ? questionRows : []).map(
+        (question) => [String(question.id), question]
+      )
     );
 
     const enriched = mistakes.map((mistake) => {
-      const question = questionMap.get(String(mistake.question_id));
+      const question = questionMap.get(
+        String(mistake.question_id)
+      );
 
       return {
         ...mistake,
-        question: question?.question || "Question data unavailable",
+        question:
+          question?.question || "Question data unavailable",
         options: question
           ? [
               question.option_a,
@@ -105,13 +113,20 @@ export async function GET(request) {
           question?.explanation ||
           "",
         year: question?.year ?? null,
-        subject: mistake.subject || question?.subject || "General",
-        topic: mistake.topic || question?.topic || "General",
+        subject:
+          mistake.subject || question?.subject || "General",
+        topic:
+          mistake.topic || question?.topic || "General",
       };
     });
 
-    const active = enriched.filter((item) => !item.is_resolved).length;
-    const resolved = enriched.filter((item) => item.is_resolved).length;
+    const active = enriched.filter(
+      (item) => !item.is_resolved
+    ).length;
+
+    const resolved = enriched.filter(
+      (item) => item.is_resolved
+    ).length;
 
     return NextResponse.json({
       mistakes: enriched,
