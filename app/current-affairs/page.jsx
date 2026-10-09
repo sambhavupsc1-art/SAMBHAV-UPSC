@@ -2726,6 +2726,52 @@ export default function CurrentAffairsPage() {
         html[data-sambhav-theme="dark"] .ca-page .inline-analysis-card .source-link { background:#222735 !important; }
         html[data-sambhav-theme="dark"] .ca-page .inline-analysis-card .source-link { color:#a9c9ff !important; }
         html[data-sambhav-theme="dark"] .ca-page .inline-analysis-card .close { background:#252a36 !important; color:#f2f4f8 !important; }
+        /* Fix white source/filter panel in dark mode */
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap,
+        html[data-sambhav-theme="dark"] .ca-page .notification-panel,
+        html[data-sambhav-theme="dark"] .ca-page .source-panel,
+        html[data-sambhav-theme="dark"] .ca-page .filters-panel,
+        html[data-sambhav-theme="dark"] .ca-page .filter-panel,
+        html[data-sambhav-theme="dark"] .ca-page .monthly-panel,
+        html[data-sambhav-theme="dark"] .ca-page .stats-card,
+        html[data-sambhav-theme="dark"] .ca-page .source-tabs-wrap {
+          background:#171a24 !important;
+          color:#f1f4fa !important;
+          border-color:rgba(255,255,255,.13) !important;
+          box-shadow:0 12px 32px rgba(0,0,0,.25) !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap * { color:inherit; }
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-eyebrow,
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-note { color:#aeb8c9 !important; }
+        html[data-sambhav-theme="dark"] .ca-page .source-tab {
+          background:#202533 !important;
+          color:#e6eaf2 !important;
+          border-color:#353d4f !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-tab.active {
+          background:#d8b965 !important;
+          color:#171923 !important;
+          border-color:#d8b965 !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-tab.active .source-tab-sub,
+        html[data-sambhav-theme="dark"] .ca-page .source-tab.active .source-tab-count {
+          background:rgba(23,25,35,.12) !important;
+          color:#171923 !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-tab-sub,
+        html[data-sambhav-theme="dark"] .ca-page .source-tab-count {
+          background:#303748 !important;
+          color:#d9dfeb !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap button,
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap [role="button"] {
+          color:#e6eaf2;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap [style*="background: rgb(255, 255, 255)"],
+        html[data-sambhav-theme="dark"] .ca-page .source-nav-wrap [style*="background-color: rgb(255, 255, 255)"] {
+          background:#171a24 !important;
+          color:#f1f4fa !important;
+        }
         @media (max-width:640px) {
           .ca-theme-toggle { min-height:38px; padding:0 10px; }
           .ca-page .ca-hero-actions { gap:8px; }
