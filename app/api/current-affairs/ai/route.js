@@ -99,44 +99,29 @@ function cleanJson(text) {
    GEMINI PROMPT
 ========================================================= */
 
-function inferTheHinduArticleType(item) {
-  const explicit = String(
-    item?.article_type || item?.category || item?.section || ""
-  ).toLowerCase();
-
-  if (/editorial|op[- ]?ed|opinion/.test(explicit)) return "editorial";
-  if (/important[_ -]?article|important[_ -]?news|news[_ -]?article/.test(explicit)) {
-    return "important_article";
-  }
-
+function inferArticleType(item) {
+  const explicit = String(item?.article_type || item?.category || "").toLowerCase();
   const reportType = String(item?.report_type || "").toLowerCase();
-  if (reportType.includes("editorial")) return "editorial";
-  if (reportType.includes("the_hindu_important_article")) return "important_article";
-
-  const headline = String(item?.original_headline || item?.title || "").toLowerCase().trim();
-  if (/(^|\b)(editorial|op[- ]?ed|opinion)(\b|:)/i.test(headline)) return "editorial";
-  return "important_article";
+  const section = String(item?.section || "").toLowerCase();
+  if (explicit.includes("editorial") || reportType.includes("editorial") || section.includes("editorial")) return "editorial";
+  if (explicit.includes("important_article") || explicit.includes("important article") || reportType.includes("important_article") || reportType.includes("important article")) return "important_article";
+  if (reportType.includes("ethics")) return "ethics";
+  return "general";
 }
 
+
 function buildPrompt(item) {
-  const articleType = inferTheHinduArticleType(item);
-  const isTheHindu = /the hindu/i.test(String(item?.source_name || "")) ||
-    String(item?.report_type || "").toLowerCase().includes("the_hindu_");
-  const isEthics =
-    String(item?.report_type || "")
-      .toLowerCase()
-      .includes("ethics");
+  const articleType = inferArticleType(item);
+  const isEthics = articleType === "ethics";
+  const isEditorial = articleType === "editorial";
+  const isImportantArticle = articleType === "important_article";
 
   const input = {
     index: 0,
 
     title: String(
-      item?.original_headline || item?.title || ""
+      item?.title || ""
     ).slice(0, 500),
-
-    original_headline: String(item?.original_headline || item?.title || "").slice(0, 500),
-    original_subheadline: String(item?.original_subheadline || item?.subheadline || "").slice(0, 700),
-    article_type: articleType,
 
     date: item?.date || "",
 
@@ -153,6 +138,8 @@ function buildPrompt(item) {
 
     report_type:
       item?.report_type || "",
+
+    article_type: articleType,
 
     source_type:
       item?.source_type || "",
@@ -211,35 +198,25 @@ Focus on:
 
 Only use an ethics angle when supported by the article.
 `
-    : `
+    : isEditorial
+      ? `
+This is a THE HINDU EDITORIAL.
+
+Treat it as an editorial argument, not merely a news summary.
+Create balanced bilingual analysis covering: context and central thesis; significance for UPSC; key arguments and evidence actually present in the article; constitutional, governance, social, economic, environmental or international-relations implications where relevant; counter-view and limitations; implementation challenges; practical way forward; and a concise UPSC-ready introduction and conclusion.
+Use clear headings inside mains_analysis_hi and mains_analysis_en. Do not invent facts, data, arguments, quotations, or a counter-view that is not reasonably grounded in the supplied text.
+`
+      : isImportantArticle
+        ? `
+This is an IMPORTANT THE HINDU NEWS ARTICLE.
+
+Explain what happened, why it matters for UPSC, verified facts from the supplied text, implications, challenges and way forward where relevant. Do not force an editorial opinion structure onto straight news.
+`
+        : `
 This is a normal CURRENT AFFAIRS article.
 
 Focus on UPSC relevance.
 `
-}
-
-${
-  isTheHindu && !isEthics
-    ? articleType === "editorial"
-      ? `
-THE HINDU EDITORIAL MODE — DO NOT CHANGE THIS CATEGORY.
-Identify the author's central thesis and distinguish opinion from verified fact.
-In mains_analysis_hi and mains_analysis_en, structure the analysis with clear labels:
-1. Context / संदर्भ
-2. Central Argument / मुख्य तर्क
-3. Significance for UPSC / UPSC महत्व
-4. Key Arguments and Implications / प्रमुख तर्क एवं प्रभाव
-5. Counter-view / प्रतितर्क
-6. Challenges and Limitations / चुनौतियाँ एवं सीमाएँ
-7. Way Forward / आगे की राह
-8. UPSC-ready Conclusion / निष्कर्ष
-Where supported, provide a concise UPSC-ready introduction and conclusion within the relevant fields. Do not invent the author's position or facts.
-`
-      : `
-THE HINDU IMPORTANT NEWS ARTICLE MODE — DO NOT CHANGE THIS CATEGORY.
-Prioritise what happened, the verified facts, context, significance, prelims-relevant facts and mains implications. Do not present a news report as an editorial. Use only facts supported by the article.
-`
-    : ""
 }
 
 =========================================================
@@ -556,10 +533,6 @@ function normalizeArticle(
   article,
   input
 ) {
-  const articleType = inferTheHinduArticleType(input);
-  const isEthics = String(input?.report_type || "").toLowerCase().includes("ethics");
-  const isTheHindu = /the hindu/i.test(String(input?.source_name || "")) ||
-    String(input?.report_type || "").toLowerCase().includes("the_hindu_");
   const titleEn = String(
     article?.title_en ||
       input?.title ||
@@ -735,26 +708,20 @@ function normalizeArticle(
       ).trim(),
 
     report_type:
-      isTheHindu && !isEthics
-        ? articleType === "editorial"
-          ? "the_hindu_editorial"
-          : "the_hindu_important_article"
-        : String(
-            input?.report_type ||
-              article?.report_type ||
-              ""
-          ).trim(),
+      inferArticleType(input) === "editorial"
+        ? "the_hindu_editorial"
+        : inferArticleType(input) === "important_article"
+          ? "the_hindu_important_article"
+          : String(
+              input?.report_type ||
+                article?.report_type ||
+                ""
+            ).trim(),
 
     tags:
-      isTheHindu && !isEthics
-        ? [
-            articleType === "editorial" ? "Editorial" : "Important Article",
-            String(article?.gs || "").trim(),
-            String(article?.tags || "").trim(),
-          ].filter(Boolean).join(", ")
-        : String(
-            article?.tags || ""
-          ).trim(),
+      String(
+        article?.tags || ""
+      ).trim(),
 
     important_place:
       String(
@@ -786,10 +753,7 @@ function normalizeArticle(
           ""
       ).trim(),
 
-    is_important:
-      isTheHindu && !isEthics
-        ? articleType === "important_article"
-        : Boolean(article?.is_important),
+    is_important: false,
   };
 }
 
