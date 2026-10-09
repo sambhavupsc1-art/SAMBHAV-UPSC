@@ -12,6 +12,15 @@ export default function SmartQuizInsights() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [theme, setTheme] = useState("light");
+  const [retestQuestions, setRetestQuestions] = useState([]);
+  const [retestSessionId, setRetestSessionId] = useState("");
+  const [retestAnswers, setRetestAnswers] = useState({});
+  const [retestBookmarks, setRetestBookmarks] = useState({});
+  const [retestLoading, setRetestLoading] = useState(false);
+  const [retestSubmitting, setRetestSubmitting] = useState(false);
+  const [retestError, setRetestError] = useState("");
+  const [retestResult, setRetestResult] = useState(null);
+  const [retestStartedAt, setRetestStartedAt] = useState(0);
 
   // Follow the existing SAMBHAV UPSC theme toggle.
   useEffect(() => {
@@ -99,6 +108,87 @@ export default function SmartQuizInsights() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const startMistakeRetest = async () => {
+    setRetestLoading(true);
+    setRetestError("");
+    setRetestResult(null);
+    setRetestQuestions([]);
+    setRetestAnswers({});
+    setRetestBookmarks({});
+    setRetestSessionId("");
+
+    try {
+      const response = await fetch("/api/quizzes/generate", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "mistake_retest",
+          subject: filterSubject,
+          topic: "all",
+          count: Math.max(1, Math.min(100, mistakes.length)),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.sessionId || !Array.isArray(data.questions)) {
+        throw new Error(data.error || "Could not start a mistake retest.");
+      }
+      if (!data.questions.length) {
+        throw new Error("No active mistakes are available for retesting.");
+      }
+      setRetestSessionId(String(data.sessionId));
+      setRetestQuestions(data.questions);
+      setRetestStartedAt(Date.now());
+    } catch (err) {
+      setRetestError(err.message || "Unable to start mistake retest.");
+    } finally {
+      setRetestLoading(false);
+    }
+  };
+
+  const submitMistakeRetest = async () => {
+    if (!retestSessionId || !retestQuestions.length) return;
+    setRetestSubmitting(true);
+    setRetestError("");
+
+    try {
+      const answers = retestQuestions.map((question) => ({
+        questionId: String(question.id),
+        selectedOption: Object.prototype.hasOwnProperty.call(retestAnswers, String(question.id))
+          ? retestAnswers[String(question.id)]
+          : null,
+        isBookmarked: Boolean(retestBookmarks[String(question.id)]),
+        timeTakenSeconds: 0,
+      }));
+
+      const response = await fetch("/api/mistakes/retest", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "mistake_retest",
+          sessionId: retestSessionId,
+          answers,
+          timeTakenSeconds: Math.max(0, Math.round((Date.now() - retestStartedAt) / 1000)),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Could not submit mistake retest.");
+      }
+      setRetestResult(data.summary || {});
+      setRetestQuestions([]);
+      setRetestSessionId("");
+      await loadData();
+    } catch (err) {
+      setRetestError(err.message || "Unable to submit mistake retest.");
+    } finally {
+      setRetestSubmitting(false);
+    }
+  };
 
   const subjects = [
     ...new Set(
@@ -600,6 +690,78 @@ export default function SmartQuizInsights() {
             ))}
           </select>
         </div>
+
+        {!showResolved && (
+          <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={startMistakeRetest}
+              disabled={retestLoading || mistakes.length === 0}
+              style={{
+                ...buttonStyle,
+                borderColor: ui.gold,
+                background: dark ? "#292416" : "#fff8e5",
+                color: dark ? "#f0d88f" : "#765719",
+                opacity: retestLoading || mistakes.length === 0 ? 0.6 : 1,
+                cursor: retestLoading || mistakes.length === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              {retestLoading ? "Preparing retest…" : "Start Mistake Retest"}
+            </button>
+            <span style={labelStyle}>{mistakes.length} active mistake{mistakes.length === 1 ? "" : "s"}</span>
+          </div>
+        )}
+
+        {retestError && (
+          <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 10, border: `1px solid ${dark ? "#643333" : "#f3caca"}`, background: dark ? "#321e1e" : "#fff0f0", color: dark ? "#ffb8b8" : "#a32626", fontSize: 13, lineHeight: 1.6 }}>
+            {retestError}
+          </div>
+        )}
+
+        {retestResult && (
+          <div role="status" style={{ marginTop: 12, padding: 14, borderRadius: 12, border: `1px solid ${ui.border}`, background: ui.muted, color: ui.text }}>
+            <strong>Mistake retest submitted</strong>
+            <div style={{ marginTop: 6, fontSize: 13, color: ui.secondary }}>
+              Correct: {retestResult.correct ?? 0} · Wrong: {retestResult.wrong ?? 0} · Accuracy: {retestResult.accuracy ?? 0}%
+            </div>
+            <button type="button" onClick={() => { setRetestResult(null); loadData(); }} style={{ ...buttonStyle, marginTop: 10 }}>Refresh notebook</button>
+          </div>
+        )}
+
+        {retestQuestions.length > 0 && (
+          <div style={{ ...panelStyle, marginTop: 14, background: ui.muted }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <h4 style={{ margin: 0, color: ui.text, fontSize: 17 }}>Mistake Retest</h4>
+                <p style={{ margin: "5px 0 0", ...labelStyle }}>{retestQuestions.length} questions · Correct answers resolve active mistakes</p>
+              </div>
+              <button type="button" onClick={() => { setRetestQuestions([]); setRetestSessionId(""); setRetestAnswers({}); setRetestBookmarks({}); setRetestError(""); }} style={buttonStyle}>Cancel</button>
+            </div>
+            <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
+              {retestQuestions.map((question, index) => (
+                <article key={question.id} style={{ border: `1px solid ${ui.border}`, borderRadius: 12, padding: 14, background: ui.card }}>
+                  <div style={{ fontSize: 11, color: ui.gold, fontWeight: 800, marginBottom: 8 }}>QUESTION {index + 1} OF {retestQuestions.length}</div>
+                  <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.7, color: ui.text }}>{question.question}</p>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {(question.options || []).map((option, optionIndex) => (
+                      <label key={optionIndex} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: 10, border: `1px solid ${retestAnswers[String(question.id)] === optionIndex ? ui.gold : ui.border}`, borderRadius: 10, cursor: "pointer", color: ui.text, background: retestAnswers[String(question.id)] === optionIndex ? (dark ? "#292416" : "#fff8e5") : ui.card }}>
+                        <input type="radio" name={`retest-${question.id}`} checked={retestAnswers[String(question.id)] === optionIndex} onChange={() => setRetestAnswers((previous) => ({ ...previous, [String(question.id)]: optionIndex }))} />
+                        <span>{String.fromCharCode(65 + optionIndex)}. {option}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, color: ui.secondary, fontSize: 12 }}>
+                    <input type="checkbox" checked={Boolean(retestBookmarks[String(question.id)])} onChange={(event) => setRetestBookmarks((previous) => ({ ...previous, [String(question.id)]: event.target.checked }))} />
+                    Bookmark this question
+                  </label>
+                </article>
+              ))}
+            </div>
+            <button type="button" disabled={retestSubmitting} onClick={submitMistakeRetest} style={{ ...buttonStyle, marginTop: 16, borderColor: ui.gold, background: dark ? "#292416" : "#fff8e5", color: dark ? "#f0d88f" : "#765719", opacity: retestSubmitting ? 0.6 : 1 }}>
+              {retestSubmitting ? "Submitting…" : "Submit Mistake Retest"}
+            </button>
+          </div>
+        )}
 
         {mistakes.length === 0 ? (
           <div
