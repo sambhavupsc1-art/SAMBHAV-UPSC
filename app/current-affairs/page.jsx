@@ -89,6 +89,7 @@ export default function CurrentAffairsPage() {
   const [active, setActive] = useState("Today");
   const [activeSource, setActiveSource] = useState("all");
   const [language, setLanguage] = useState("hi");
+  const [theme, setTheme] = useState("light");
   const [news, setNews] = useState([]);
   const [important, setImportant] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -105,6 +106,19 @@ export default function CurrentAffairsPage() {
   const [notificationMessage, setNotificationMessage] = useState("");
 
   const hi = language === "hi";
+
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("sambhav-theme");
+      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.sambhavTheme = theme;
+    document.documentElement.style.colorScheme = theme;
+    try { localStorage.setItem("sambhav-theme", theme); } catch {}
+  }, [theme]);
 
   useEffect(() => {
     loadCurrentAffairs();
@@ -498,6 +512,16 @@ export default function CurrentAffairsPage() {
           </div>
 
           <div className="ca-hero-actions">
+            <button
+              type="button"
+              className="ca-theme-toggle"
+              onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              title={theme === "dark" ? "Light theme" : "Dark theme"}
+            >
+              <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
+              <span>{theme === "dark" ? "Light" : "Dark"}</span>
+            </button>
             <div className="ca-hero-action-card ca-language-card">
               <span>{hi ? "भाषा" : "Language"}</span>
 
@@ -566,11 +590,11 @@ export default function CurrentAffairsPage() {
             SAMBHAV UPSC • DAILY INTELLIGENCE
           </span>
 
-          <h2>
-            {hi
-              ? "आज की खबरें नहीं, UPSC के लिए सही खबरें।"
-              : "Not just news. The right news for UPSC."}
-          </h2>
+          {!hi && (
+            <h2>
+              Not just news. The right news for UPSC.
+            </h2>
+          )}
 
           <p>
             {hi
@@ -2498,6 +2522,91 @@ export default function CurrentAffairsPage() {
         iframe {
           max-width: 100%;
           height: auto;
+        }
+
+
+        /* SAMBHAV UPSC shared premium theme: warm ivory, charcoal and muted gold */
+        .ca-page {
+          --ca-page: #f5f2eb;
+          --ca-surface: #fffdf9;
+          --ca-text: #101010;
+          --ca-muted: #77736b;
+          --ca-border: rgba(16,16,16,.09);
+          --ca-soft: #f0ece3;
+          --ca-gold: #dfc477;
+          background: var(--ca-page) !important;
+          color: var(--ca-text) !important;
+          transition: background .2s ease, color .2s ease;
+        }
+        .ca-theme-toggle {
+          display:inline-flex; align-items:center; justify-content:center; gap:7px;
+          min-height:40px; padding:0 13px; border-radius:13px;
+          border:1px solid var(--ca-border); background:var(--ca-surface);
+          color:var(--ca-text); font-size:12px; font-weight:800; cursor:pointer;
+          box-shadow:0 4px 14px rgba(16,16,16,.06); transition:transform .16s ease;
+        }
+        .ca-theme-toggle:hover { transform:translateY(-1px); }
+        .ca-theme-toggle span:first-child { font-size:16px; color:#b89445; }
+        .ca-page .page-back-button { background:var(--ca-surface); color:var(--ca-text); border-color:var(--ca-border); }
+        .ca-page .section-heading,
+        .ca-page .notification-panel,
+        .ca-page .news-card,
+        .ca-page .article-card,
+        .ca-page .special-card,
+        .ca-page .special-section,
+        .ca-page .filter-chip,
+        .ca-page .source-tab,
+        .ca-page .ca-hero-action-card,
+        .ca-page .ca-date-card,
+        .ca-page .ca-language-card,
+        .ca-page .important-card,
+        .ca-page .empty-state,
+        .ca-page .error-card {
+          color:var(--ca-text);
+        }
+        .ca-page button { transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease; }
+        .ca-page .ca-premium-hero { box-shadow:0 16px 34px rgba(16,16,16,.12); }
+        .ca-page .news-list > *, .ca-page .special-section, .ca-page .notification-panel { border-color:var(--ca-border); }
+        html[data-sambhav-theme="dark"] .ca-page {
+          --ca-page:#0b0b0b; --ca-surface:#151515; --ca-text:#f5f2eb;
+          --ca-muted:#aaa59a; --ca-border:rgba(255,255,255,.10);
+          --ca-soft:#202020; --ca-gold:#dfc477;
+          background:#0b0b0b !important; color:#f5f2eb !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page .page-back-button,
+        html[data-sambhav-theme="dark"] .ca-page .ca-hero-action-card,
+        html[data-sambhav-theme="dark"] .ca-page .ca-date-card,
+        html[data-sambhav-theme="dark"] .ca-page .ca-language-card,
+        html[data-sambhav-theme="dark"] .ca-page .news-card,
+        html[data-sambhav-theme="dark"] .ca-page .article-card,
+        html[data-sambhav-theme="dark"] .ca-page .special-card,
+        html[data-sambhav-theme="dark"] .ca-page .special-section,
+        html[data-sambhav-theme="dark"] .ca-page .notification-panel,
+        html[data-sambhav-theme="dark"] .ca-page .section-heading,
+        html[data-sambhav-theme="dark"] .ca-page .empty-state,
+        html[data-sambhav-theme="dark"] .ca-page .error-card,
+        html[data-sambhav-theme="dark"] .ca-page input,
+        html[data-sambhav-theme="dark"] .ca-page select,
+        html[data-sambhav-theme="dark"] .ca-page textarea {
+          background:#151515 !important; color:#f5f2eb !important; border-color:rgba(255,255,255,.11) !important;
+        }
+        html[data-sambhav-theme="dark"] .ca-page p,
+        html[data-sambhav-theme="dark"] .ca-page small,
+        html[data-sambhav-theme="dark"] .ca-page label,
+        html[data-sambhav-theme="dark"] .ca-page .muted,
+        html[data-sambhav-theme="dark"] .ca-page .section-subtitle { color:#aaa59a; }
+        html[data-sambhav-theme="dark"] .ca-page .filter-row button,
+        html[data-sambhav-theme="dark"] .ca-page .source-row button,
+        html[data-sambhav-theme="dark"] .ca-page .ca-theme-toggle {
+          background:#151515; color:#f5f2eb; border-color:rgba(255,255,255,.12);
+        }
+        html[data-sambhav-theme="dark"] .ca-page .ca-theme-toggle { background:#202020; }
+        html[data-sambhav-theme="dark"] .ca-page .premium-box { background:#292316; color:#f5f2eb; border-color:rgba(223,196,119,.25); }
+        html[data-sambhav-theme="dark"] .ca-page .content-block { background:#111; color:#f5f2eb; border-color:rgba(255,255,255,.09); }
+        @media (max-width:640px) {
+          .ca-theme-toggle { min-height:36px; padding:0 10px; }
+          .ca-theme-toggle span:last-child { display:none; }
+          .ca-page { padding-left:12px !important; padding-right:12px !important; }
         }
       `}</style>
     </main>
