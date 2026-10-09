@@ -99,22 +99,11 @@ function cleanJson(text) {
    GEMINI PROMPT
 ========================================================= */
 
-function inferArticleType(item) {
-  const explicit = String(item?.article_type || item?.category || "").toLowerCase();
-  const reportType = String(item?.report_type || "").toLowerCase();
-  const section = String(item?.section || "").toLowerCase();
-  if (explicit.includes("editorial") || reportType.includes("editorial") || section.includes("editorial")) return "editorial";
-  if (explicit.includes("important_article") || explicit.includes("important article") || reportType.includes("important_article") || reportType.includes("important article")) return "important_article";
-  if (reportType.includes("ethics")) return "ethics";
-  return "general";
-}
-
-
 function buildPrompt(item) {
-  const articleType = inferArticleType(item);
-  const isEthics = articleType === "ethics";
-  const isEditorial = articleType === "editorial";
-  const isImportantArticle = articleType === "important_article";
+  const isEthics =
+    String(item?.report_type || "")
+      .toLowerCase()
+      .includes("ethics");
 
   const input = {
     index: 0,
@@ -138,8 +127,6 @@ function buildPrompt(item) {
 
     report_type:
       item?.report_type || "",
-
-    article_type: articleType,
 
     source_type:
       item?.source_type || "",
@@ -198,21 +185,7 @@ Focus on:
 
 Only use an ethics angle when supported by the article.
 `
-    : isEditorial
-      ? `
-This is a THE HINDU EDITORIAL.
-
-Treat it as an editorial argument, not merely a news summary.
-Create balanced bilingual analysis covering: context and central thesis; significance for UPSC; key arguments and evidence actually present in the article; constitutional, governance, social, economic, environmental or international-relations implications where relevant; counter-view and limitations; implementation challenges; practical way forward; and a concise UPSC-ready introduction and conclusion.
-Use clear headings inside mains_analysis_hi and mains_analysis_en. Do not invent facts, data, arguments, quotations, or a counter-view that is not reasonably grounded in the supplied text.
-`
-      : isImportantArticle
-        ? `
-This is an IMPORTANT THE HINDU NEWS ARTICLE.
-
-Explain what happened, why it matters for UPSC, verified facts from the supplied text, implications, challenges and way forward where relevant. Do not force an editorial opinion structure onto straight news.
-`
-        : `
+    : `
 This is a normal CURRENT AFFAIRS article.
 
 Focus on UPSC relevance.
@@ -708,15 +681,11 @@ function normalizeArticle(
       ).trim(),
 
     report_type:
-      inferArticleType(input) === "editorial"
-        ? "the_hindu_editorial"
-        : inferArticleType(input) === "important_article"
-          ? "the_hindu_important_article"
-          : String(
-              input?.report_type ||
-                article?.report_type ||
-                ""
-            ).trim(),
+      String(
+        input?.report_type ||
+          article?.report_type ||
+          ""
+      ).trim(),
 
     tags:
       String(
@@ -1092,11 +1061,16 @@ async function processArticle(
       Array.isArray(duplicates) &&
       duplicates.length > 0
     ) {
+      console.log("CURRENT AFFAIRS ARTICLE SKIPPED", {
+        articleNumber,
+        title: article.title_en || article.title_hi || input?.title || "",
+        reason: "same-source-url-and-date",
+        existingId: duplicates[0]?.id || null,
+      });
       return {
         created: 0,
         skipped: 1,
-        reason:
-          "same-source-url-and-date",
+        reason: "same-source-url-and-date",
       };
     }
   }
@@ -1111,15 +1085,19 @@ async function processArticle(
     );
 
   if (sameEvent) {
+    console.log("CURRENT AFFAIRS ARTICLE SKIPPED", {
+      articleNumber,
+      title: article.title_en || article.title_hi || input?.title || "",
+      reason: "same-event-cross-source",
+      duplicateId: sameEvent.id || null,
+      duplicateSource: sameEvent.source_name || null,
+    });
     return {
       created: 0,
       skipped: 1,
-      reason:
-        "same-event-cross-source",
-      duplicate_id:
-        sameEvent.id,
-      duplicate_source:
-        sameEvent.source_name,
+      reason: "same-event-cross-source",
+      duplicate_id: sameEvent.id,
+      duplicate_source: sameEvent.source_name,
     };
   }
 
@@ -1131,6 +1109,13 @@ async function processArticle(
     article,
     articleNumber
   );
+
+  console.log("CURRENT AFFAIRS ARTICLE SAVED", {
+    articleNumber,
+    title: article.title_en || article.title_hi || input?.title || "",
+    date: article.date,
+    source_url: article.source_url,
+  });
 
   return {
     created: 1,
