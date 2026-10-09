@@ -1,6 +1,3 @@
-**File:** `app/api/quizzes/submit/route.js`
-
-```javascript
 import { NextResponse } from "next/server";
 import {
   getSmartQuizUser,
@@ -121,21 +118,22 @@ export async function POST(request) {
       }
 
       const rawCorrect = question.correct_option;
+      const numericCorrect = Number(rawCorrect);
 
-      // Database format: 0=A, 1=B, 2=C, 3=D.
+      // Database answer format: 0=A, 1=B, 2=C, 3=D.
       if (
         rawCorrect === null ||
         rawCorrect === undefined ||
         rawCorrect === "" ||
-        !Number.isInteger(Number(rawCorrect)) ||
-        Number(rawCorrect) < 0 ||
-        Number(rawCorrect) > 3
+        !Number.isInteger(numericCorrect) ||
+        numericCorrect < 0 ||
+        numericCorrect > 3
       ) {
         invalidAnswerKeyIds.push(answer.questionId);
         continue;
       }
 
-      const correctOption = Number(rawCorrect);
+      const correctOption = numericCorrect;
       const isCorrect = answer.selectedOption === correctOption;
 
       verified.push({
@@ -148,11 +146,11 @@ export async function POST(request) {
       });
     }
 
-    // Do not submit an ungradable quiz with zero valid answer keys.
     if (verified.length === 0) {
       return NextResponse.json(
         {
-          error: "No questions have valid answer keys. Please check the question data.",
+          error:
+            "No questions have valid answer keys. Please check the question data.",
           invalidAnswerKeyIds,
         },
         { status: 422 }
@@ -160,9 +158,11 @@ export async function POST(request) {
     }
 
     const total = verified.length;
+
     const attempted = verified.filter(
       (item) => item.selectedOption !== null
     ).length;
+
     const correct = verified.filter((item) => item.isCorrect).length;
     const wrong = attempted - correct;
     const accuracy = attempted ? (correct / attempted) * 100 : 0;
@@ -172,6 +172,7 @@ export async function POST(request) {
       Math.min(86400, Number(body.timeTakenSeconds) || 0)
     );
 
+    // Save answers and grading results.
     const responseRows = verified.map((item) => ({
       session_id: sessionId,
       user_id: String(user.id),
@@ -193,6 +194,7 @@ export async function POST(request) {
       },
     });
 
+    // Save or remove bookmarks.
     for (const item of verified) {
       const filter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
@@ -220,6 +222,7 @@ export async function POST(request) {
       }
     }
 
+    // Track wrong answers and resolve corrected mistakes.
     for (const item of verified) {
       const userFilter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
@@ -281,6 +284,7 @@ export async function POST(request) {
       }
     }
 
+    // Update aggregate question statistics.
     for (const item of verified) {
       const currentRows = await smartQuizDb(
         "smart_quiz_question_stats",
@@ -289,9 +293,11 @@ export async function POST(request) {
       );
 
       const current = Array.isArray(currentRows) ? currentRows[0] : null;
+
       const totalAttempts = Number(current?.total_attempts || 0) + 1;
       const correctAttempts =
-        Number(current?.correct_attempts || 0) + (item.isCorrect ? 1 : 0);
+        Number(current?.correct_attempts || 0) +
+        (item.isCorrect ? 1 : 0);
 
       await smartQuizDb(
         "smart_quiz_question_stats",
@@ -359,4 +365,3 @@ export async function POST(request) {
     );
   }
 }
-```
