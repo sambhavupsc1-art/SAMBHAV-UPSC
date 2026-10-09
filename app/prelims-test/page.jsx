@@ -197,7 +197,7 @@ export default function PrelimsTestPage() {
 
         // Use the existing Supabase prelims_pyqs data.
         // Supabase stores options in option_a/option_b/option_c/option_d
-        // and the answer in correct_option (1=A, 2=B, 3=C, 4=D).
+        // and the answer in correct_option (0=A, 1=B, 2=C, 3=D).
         const mappedRows = rows.map((q, index) => {
           let answer = q?.answer;
 
@@ -210,10 +210,8 @@ export default function PrelimsTestPage() {
           ) {
             const numericAnswer = Number(q.correct_option);
 
-            answer =
-              numericAnswer >= 1 && numericAnswer <= 4
-                ? numericAnswer - 1
-                : numericAnswer;
+            // correct_option is zero-based in the database: 0=A, 1=B, 2=C, 3=D.
+            answer = numericAnswer;
           } else if (typeof answer === "string") {
             const normalized = answer.trim().toUpperCase();
             const answerMap = { A: 0, B: 1, C: 2, D: 3 };
