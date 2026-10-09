@@ -57,6 +57,7 @@ export default function PrelimsTestPage() {
   const [translationError, setTranslationError] = useState("");
 
   const [testQuestions, setTestQuestions] = useState([]);
+  const [smartQuizSessionId, setSmartQuizSessionId] = useState(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [marked, setMarked] = useState({});
@@ -562,7 +563,52 @@ export default function PrelimsTestPage() {
     };
   }, [answers, testQuestions]);
 
-  const startTest = () => {
+  const createSmartQuizSession = async (selectedQuestions) => {
+    if (
+      !Array.isArray(selectedQuestions) ||
+      selectedQuestions.length === 0 ||
+      selectedQuestions.some((q) => String(q?.id ?? "").startsWith("prelims-"))
+    ) {
+      setSmartQuizSessionId(null);
+      return null;
+    }
+
+    try {
+      const response = await fetch("/api/quizzes/generate", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          count: selectedQuestions.length,
+          questionIds: selectedQuestions.map((q) => String(q.id)),
+          subject: "all",
+          topic: "all",
+          year: "all",
+          mode: "practice",
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.sessionId) {
+        throw new Error(data?.error || "Smart Quiz session could not be created.");
+      }
+
+      const sessionId = String(data.sessionId);
+      setSmartQuizSessionId(sessionId);
+      return sessionId;
+    } catch (error) {
+      console.error("Smart Quiz session creation failed:", error);
+      setSmartQuizSessionId(null);
+      setError(
+        "Smart Quiz analytics connection failed: " +
+          (error?.message || "Unknown error")
+      );
+      return null;
+    }
+  };
+
+  const startTest = async () => {
     let eligible = (
       testType === "daily" ? questions : filteredQuestions
     ).filter(
@@ -631,6 +677,9 @@ export default function PrelimsTestPage() {
     const selectedDuration =
       testType === "daily" ? DAILY_SECONDS : TOTAL_SECONDS;
 
+    setSmartQuizSessionId(null);
+    await createSmartQuizSession(selected);
+
     const initialVisited = {};
     if (selected[0]?.id !== undefined) initialVisited[selected[0].id] = true;
 
@@ -654,7 +703,7 @@ export default function PrelimsTestPage() {
     setScreen("test");
   };
 
-  const startTestForDaily = () => {
+  const startTestForDaily = async () => {
     const eligible = questions.filter(
       (q) => Array.isArray(q.options) && q.options.length >= 2
     );
@@ -665,6 +714,8 @@ export default function PrelimsTestPage() {
     }
 
     const selected = shuffle(eligible).slice(0, 20);
+    setSmartQuizSessionId(null);
+    await createSmartQuizSession(selected);
     const initialVisited = {};
     if (selected[0]?.id !== undefined) initialVisited[selected[0].id] = true;
 
@@ -730,7 +781,7 @@ export default function PrelimsTestPage() {
     setScreen("test");
   };
 
-  const submitTest = (forced = false) => {
+  const submitTest = async (forced = false) => {
     if (submittingRef.current || screen !== "test") return;
 
     submittingRef.current = true;
@@ -738,27 +789,27 @@ export default function PrelimsTestPage() {
     setFinishedAt(Date.now());
     setScreen("result");
 
+    const liveAnswers = answersRef.current;
+    let liveCorrect = 0;
+    let liveWrong = 0;
+
+    testQuestions.forEach((q) => {
+      const chosen = liveAnswers[q.id];
+      if (chosen === undefined || chosen === null) return;
+      if (Number(chosen) === Number(q.answer)) liveCorrect += 1;
+      else liveWrong += 1;
+    });
+
+    const liveUnanswered = testQuestions.length - liveCorrect - liveWrong;
+    const liveScore = liveCorrect * MARKS_PER_QUESTION - liveWrong * NEGATIVE_MARKS;
+    const liveAccuracy = liveCorrect + liveWrong > 0
+      ? (liveCorrect / (liveCorrect + liveWrong)) * 100
+      : 0;
+    const timeUsed = Math.max(0, durationSeconds - remainingRef.current);
+
+    // Preserve the existing local result history.
     try {
       const history = JSON.parse(localStorage.getItem("sambhav-prelims-history") || "[]");
-
-      const liveAnswers = answersRef.current;
-      let liveCorrect = 0;
-      let liveWrong = 0;
-      testQuestions.forEach((q) => {
-        const chosen = liveAnswers[q.id];
-        if (chosen === undefined || chosen === null) return;
-        if (Number(chosen) === Number(q.answer)) liveCorrect += 1;
-        else liveWrong += 1;
-      });
-      const liveUnanswered = testQuestions.length - liveCorrect - liveWrong;
-      const liveScore =
-        liveCorrect * MARKS_PER_QUESTION -
-        liveWrong * NEGATIVE_MARKS;
-      const liveAccuracy =
-        liveCorrect + liveWrong > 0
-          ? (liveCorrect / (liveCorrect + liveWrong)) * 100
-          : 0;
-
       const entry = {
         id: Date.now(),
         date: new Date().toISOString(),
@@ -772,23 +823,60 @@ export default function PrelimsTestPage() {
         unanswered: liveUnanswered,
         score: Number(liveScore.toFixed(2)),
         accuracy: Number(liveAccuracy.toFixed(1)),
-        timeUsed: durationSeconds - remainingRef.current,
+        timeUsed,
         durationSeconds,
         questionIds: testQuestions.map((q) => q.id),
       };
-
       const nextHistory = [entry, ...history].slice(0, 20);
-      localStorage.setItem(
-        "sambhav-prelims-history",
-        JSON.stringify(nextHistory)
-      );
+      localStorage.setItem("sambhav-prelims-history", JSON.stringify(nextHistory));
       setHistory(nextHistory);
-    } catch {}
+    } catch (error) {
+      console.error("Local quiz history save failed:", error);
+    }
+
+    try { localStorage.removeItem(ACTIVE_ATTEMPT_KEY); } catch {}
+    setShowSubmitConfirm(false);
+
+    // Save the same questions and answers to Smart Quiz analytics.
+    let sessionId = smartQuizSessionId;
+    if (!sessionId) sessionId = await createSmartQuizSession(testQuestions);
+
+    if (!sessionId) {
+      setError("Test result is saved locally, but Smart Quiz analytics could not be connected. Check question IDs and the API response.");
+      return;
+    }
 
     try {
-      localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
-    } catch {}
-    setShowSubmitConfirm(false);
+      const response = await fetch("/api/quizzes/submit", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          timeTakenSeconds: timeUsed,
+          answers: testQuestions.map((q) => {
+            const chosen = liveAnswers[q.id];
+            return {
+              questionId: String(q.id),
+              selectedOption: chosen === undefined || chosen === null ? null : Number(chosen),
+              isBookmarked: Boolean(marked[q.id]),
+              timeTakenSeconds: 0,
+            };
+          }),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Unable to save Smart Quiz analytics.");
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("smart-quiz-updated"));
+      }
+    } catch (error) {
+      console.error("Smart Quiz submission failed:", error);
+      setError("Test result is saved locally, but Smart Quiz analytics could not be saved: " + (error?.message || "Unknown error"));
+    }
   };
 
   useEffect(() => {
