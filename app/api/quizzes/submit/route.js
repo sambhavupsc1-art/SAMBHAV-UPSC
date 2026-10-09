@@ -1,11 +1,20 @@
-
 import { NextResponse } from "next/server";
 import {
   getSmartQuizUser,
   smartQuizDb,
 } from "../../../../lib/smartQuizServer";
 
+// FIX: null, undefined aur empty values ko unanswered maana jayega.
+// Number(null) === 0 hota hai, isliye pehle empty values check karna zaroori hai.
 function optionIndex(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
   const number = Number(value);
 
   return Number.isInteger(number) && number >= 0 && number <= 3
@@ -74,7 +83,8 @@ export async function POST(request) {
       selectedOption: optionIndex(
         item.selectedOption ?? item.selected_option
       ),
-      isBookmarked: item.isBookmarked === true ||
+      isBookmarked:
+        item.isBookmarked === true ||
         item.is_bookmarked === true,
       timeTakenSeconds: Math.max(
         0,
@@ -93,7 +103,7 @@ export async function POST(request) {
       );
     }
 
-    // Verify question IDs and correct answers from the database.
+    // Verify question IDs and answer keys from the database.
     const questionRows = await smartQuizDb(
       "prelims_pyqs",
       "select=id,question,subject,topic,correct_option,option_a,option_b,option_c,option_d"
@@ -126,11 +136,15 @@ export async function POST(request) {
         rawCorrect > 4
       ) {
         return NextResponse.json(
-          { error: `Question ${answer.questionId} has no valid answer key.` },
+          {
+            error: `Question ${answer.questionId} has no valid answer key.`,
+          },
           { status: 422 }
         );
       }
 
+      // Database: 1=A, 2=B, 3=C, 4=D.
+      // Frontend: 0=A, 1=B, 2=C, 3=D.
       const correctOption = rawCorrect - 1;
       const isCorrect = answer.selectedOption === correctOption;
 
@@ -157,7 +171,7 @@ export async function POST(request) {
       Math.min(86400, Number(body.timeTakenSeconds) || 0)
     );
 
-    // Save each verified answer.
+    // Save verified answers for analytics and performance tracking.
     const responseRows = verified.map((item) => ({
       session_id: sessionId,
       user_id: String(user.id),
@@ -179,23 +193,27 @@ export async function POST(request) {
       },
     });
 
-    // Persist bookmarks belonging to this user.
+    // Save or remove bookmarks belonging to this user.
     for (const item of verified) {
       const filter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
         `&question_id=eq.${encodeURIComponent(item.questionId)}`;
 
       if (item.isBookmarked) {
-        await smartQuizDb("smart_quiz_bookmarks", "on_conflict=user_id,question_id", {
-          method: "POST",
-          body: {
-            user_id: String(user.id),
-            question_id: item.questionId,
-          },
-          headers: {
-            Prefer: "resolution=merge-duplicates,return=minimal",
-          },
-        });
+        await smartQuizDb(
+          "smart_quiz_bookmarks",
+          "on_conflict=user_id,question_id",
+          {
+            method: "POST",
+            body: {
+              user_id: String(user.id),
+              question_id: item.questionId,
+            },
+            headers: {
+              Prefer: "resolution=merge-duplicates,return=minimal",
+            },
+          }
+        );
       } else {
         await smartQuizDb("smart_quiz_bookmarks", filter, {
           method: "DELETE",
@@ -203,7 +221,8 @@ export async function POST(request) {
       }
     }
 
-    // Record wrong answers; correct answers resolve any active mistake.
+    // Record wrong attempted answers; resolve previously active mistakes
+    // when the user answers a question correctly.
     for (const item of verified) {
       const userFilter =
         `user_id=eq.${encodeURIComponent(String(user.id))}` +
@@ -247,7 +266,10 @@ export async function POST(request) {
             },
           });
         }
-      } else if (item.isCorrect && Array.isArray(existing)) {
+      } else if (
+        item.isCorrect &&
+        Array.isArray(existing)
+      ) {
         for (const mistake of existing) {
           await smartQuizDb(
             "smart_quiz_mistakes",
@@ -266,14 +288,16 @@ export async function POST(request) {
     }
 
     // Update aggregate question statistics.
-    // The later analytics step will use these aggregates for peer comparisons.
     for (const item of verified) {
       const currentRows = await smartQuizDb(
         "smart_quiz_question_stats",
-        `question_id=eq.${encodeURIComponent(item.questionId)}&select=total_attempts,correct_attempts`
+        `question_id=eq.${encodeURIComponent(item.questionId)}` +
+          "&select=total_attempts,correct_attempts"
       );
 
-      const current = Array.isArray(currentRows) ? currentRows[0] : null;
+      const current = Array.isArray(currentRows)
+        ? currentRows[0]
+        : null;
 
       const totalAttempts = Number(current?.total_attempts || 0) + 1;
       const correctAttempts =
