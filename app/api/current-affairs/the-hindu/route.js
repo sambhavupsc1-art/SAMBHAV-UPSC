@@ -758,19 +758,6 @@ function looksLikeHeadline(
   );
 }
 
-
-function inferTheHinduArticleType(headline, blockText = "") {
-  const title = String(headline || "").toLowerCase();
-  const text = String(blockText || "").slice(0, 1800).toLowerCase();
-  const editorialMarkers = [
-    /\beditorial\b/, /\bop[- ]?ed\b/, /\bleader\b/,
-    /\bthe hindu\s+editorial\b/, /\bopinion\s*:/
-  ];
-  if (editorialMarkers.some((pattern) => pattern.test(title))) return "the_hindu_editorial";
-  if (editorialMarkers.some((pattern) => pattern.test(text))) return "the_hindu_editorial";
-  return "the_hindu_important_article";
-}
-
 /* =========================================================
    CANDIDATE EXTRACTION
 ========================================================= */
@@ -991,9 +978,6 @@ function createArticleCandidates(
 
       relevanceScore:
         score,
-
-      article_type:
-        inferTheHinduArticleType(headline, text),
     });
   }
 
@@ -1175,84 +1159,75 @@ async function processArticleWithAI(
   date,
   sourceUrl
 ) {
-  const response =
-    await fetch(
-      `${SAMBHAV_APP_URL.replace(
-        /\/$/,
-        ""
-      )}/api/current-affairs/ai`,
+  const baseUrl = String(SAMBHAV_APP_URL || "").replace(/\/$/, "");
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL is not configured.");
+  }
+
+  const endpoint = `${baseUrl}/api/current-affairs/ai`;
+  const payload = {
+    items: [
       {
-        method:
-          "POST",
+        title: candidate.original_headline,
+        original_headline: candidate.original_headline,
+        original_subheadline: candidate.original_subheadline || "",
+        date,
+        source_name: "The Hindu",
+        source_url: sourceUrl,
+        content: candidate.content,
+        report_type: "the_hindu_pdf",
+      },
+    ],
+  };
 
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
+  logStep("AI API REQUEST", {
+    endpoint,
+    title: candidate.original_headline,
+    contentLength: String(candidate.content || "").length,
+  });
 
-        body:
-          JSON.stringify({
-            items: [
-              {
-                title:
-                  candidate.original_headline,
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
 
-                original_headline:
-                  candidate.original_headline,
-
-                original_subheadline:
-                  candidate.original_subheadline,
-
-                date,
-
-                source_name:
-                  "The Hindu",
-
-                source_url:
-                  sourceUrl,
-
-                content:
-                  candidate.content,
-
-                article_type:
-                  candidate.article_type || "the_hindu_important_article",
-
-                report_type:
-                  candidate.article_type || "the_hindu_important_article",
-              },
-            ],
-          }),
-      }
-    );
-
-  const text =
-    await response.text();
-
-  let data = null;
-
+  const responseText = await response.text();
+  let data;
   try {
-    data =
-      text
-        ? JSON.parse(
-            text
-          )
-        : null;
+    data = responseText ? JSON.parse(responseText) : null;
   } catch {
-    data = null;
+    throw new Error(`AI route returned invalid JSON (HTTP ${response.status}): ${responseText.slice(0, 1200)}`);
   }
 
-  if (
-    !response.ok
-  ) {
-    throw new Error(
-      `AI route failed: ${response.status} ${text.slice(
-        0,
-        1500
-      )}`
-    );
+  logStep("AI API RESPONSE", {
+    status: response.status,
+    ok: response.ok,
+    success: data?.success,
+    received: data?.articles_received,
+    created: data?.articles_created,
+    skipped: data?.articles_skipped,
+    failed: data?.failed_batches,
+    errors: data?.failed_articles,
+  });
+
+  if (!response.ok || data?.success === false) {
+    throw new Error(`AI route failed (HTTP ${response.status}): ${JSON.stringify(data).slice(0, 1800)}`);
   }
 
-  return data;
+  const created = Number(data?.articles_created || 0);
+  const skipped = Number(data?.articles_skipped || 0);
+  const failed = Number(data?.failed_batches || 0);
+
+  if (created > 0) {
+    return { status: "processed", created, skipped, response: data };
+  }
+  if (skipped > 0 && failed === 0) {
+    return { status: "skipped", reason: "ai-route-reported-duplicate", created, skipped, response: data };
+  }
+
+  throw new Error(`AI route did not create an article: ${JSON.stringify(data).slice(0, 1500)}`);
 }
 
 /* =========================================================
@@ -1340,40 +1315,9 @@ async function processSelectedArticles(
           continue;
         }
 
-        /*
-         * Same-event duplicate.
-         */
-        const duplicate =
-          findDuplicateLocal(
-            candidate.original_headline,
-            existingRows
-          );
-
-        if (
-          duplicate
-        ) {
-          results[index] = {
-            title:
-              candidate.original_headline,
-
-            status:
-              "skipped",
-
-            reason:
-              "same-event-already-exists",
-
-            existingTitle:
-              duplicate.title,
-
-            existingSource:
-              duplicate.source_name,
-
-            similarity:
-              duplicate.similarity,
-          };
-
-          continue;
-        }
+        // Do not use the local fuzzy-title check here: PDF extraction can
+        // produce truncated headlines, which can falsely match unrelated rows.
+        // The AI route performs exact URL/date and cross-source duplicate checks.
 
         const aiResult =
           await processArticleWithAI(
@@ -1383,18 +1327,21 @@ async function processSelectedArticles(
           );
 
         results[index] = {
-          title:
-            candidate.original_headline,
-
-          status:
-            "processed",
-
-          ai:
-            aiResult,
+          title: candidate.original_headline,
+          status: aiResult.status,
+          reason: aiResult.reason || "created",
+          created: aiResult.created || 0,
+          skipped: aiResult.skipped || 0,
         };
 
         logStep(
-          `AI ARTICLE ${index + 1}/${selected.length} COMPLETE`
+          `AI ARTICLE ${index + 1}/${selected.length} COMPLETE`,
+          {
+            status: aiResult.status,
+            reason: aiResult.reason || "created",
+            created: aiResult.created || 0,
+            skipped: aiResult.skipped || 0,
+          }
         );
       } catch (error) {
         console.error(
@@ -1636,12 +1583,9 @@ export async function POST(
         verifiedDate
       );
 
-    /*
-     * Do not stop the entire PDF because some articles from this
-     * Telegram file already exist. Existing articles are filtered
-     * individually below by source URL and same-event similarity;
-     * newly discovered eligible articles can still be processed.
-     */
+    // Re-processing the same PDF is allowed so previously skipped/new
+    // articles can be retried. Per-article exact URL checks below prevent
+    // duplicates, while the AI route also checks cross-source duplicates.
 
     /* -----------------------------------------
        ARTICLE EXTRACTION
@@ -1822,6 +1766,8 @@ export async function POST(
         skipped,
 
         failed,
+        skipReasons: results.filter(x => x?.status === "skipped").map(x => ({ title: x.title, reason: x.reason })),
+        failures: results.filter(x => x?.status === "failed").map(x => ({ title: x.title, error: x.error })),
       }
     );
 
