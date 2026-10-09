@@ -758,6 +758,19 @@ function looksLikeHeadline(
   );
 }
 
+
+function inferTheHinduArticleType(headline, blockText = "") {
+  const title = String(headline || "").toLowerCase();
+  const text = String(blockText || "").slice(0, 1800).toLowerCase();
+  const editorialMarkers = [
+    /\beditorial\b/, /\bop[- ]?ed\b/, /\bleader\b/,
+    /\bthe hindu\s+editorial\b/, /\bopinion\s*:/
+  ];
+  if (editorialMarkers.some((pattern) => pattern.test(title))) return "the_hindu_editorial";
+  if (editorialMarkers.some((pattern) => pattern.test(text))) return "the_hindu_editorial";
+  return "the_hindu_important_article";
+}
+
 /* =========================================================
    CANDIDATE EXTRACTION
 ========================================================= */
@@ -861,22 +874,6 @@ function extractHeadline(
     headline: "",
     subheadline: "",
   };
-}
-
-function inferTheHinduArticleType(headline, blockText) {
-  const title = String(headline || "").trim().toLowerCase();
-  const text = String(blockText || "").slice(0, 1800).toLowerCase();
-  const openingLines = text.split("\n").slice(0, 10).join(" ");
-
-  // Prefer explicit section labels/headline markers; avoid classifying a
-  // normal news story as an editorial merely because its body says "opinion".
-  const explicitEditorial = /(^|\b)(editorial|opinion|op-ed|leader|the hindu view|our view)(\b|[:|—-])/i.test(openingLines);
-  const titleEditorial = /^(editorial|opinion|op-ed|the hindu view|our view)\s*[:|—-]/i.test(String(headline || ""));
-  const commentaryHeadline = /\b(editorial|op-ed|opinion column)\b/i.test(title);
-
-  return explicitEditorial || titleEditorial || commentaryHeadline
-    ? "editorial"
-    : "important_article";
 }
 
 function createArticleCandidates(
@@ -986,9 +983,6 @@ function createArticleCandidates(
           ? subheadline
           : "",
 
-      article_type:
-        inferTheHinduArticleType(headline, text),
-
       content:
         text.slice(
           0,
@@ -997,6 +991,9 @@ function createArticleCandidates(
 
       relevanceScore:
         score,
+
+      article_type:
+        inferTheHinduArticleType(headline, text),
     });
   }
 
@@ -1218,12 +1215,10 @@ async function processArticleWithAI(
                   candidate.content,
 
                 article_type:
-                  candidate.article_type || "important_article",
+                  candidate.article_type || "the_hindu_important_article",
 
                 report_type:
-                  candidate.article_type === "editorial"
-                    ? "the_hindu_editorial"
-                    : "the_hindu_important_article",
+                  candidate.article_type || "the_hindu_important_article",
               },
             ],
           }),
@@ -1642,57 +1637,11 @@ export async function POST(
       );
 
     /*
-     * If this PDF was already processed,
-     * detect it through its Telegram marker.
+     * Do not stop the entire PDF because some articles from this
+     * Telegram file already exist. Existing articles are filtered
+     * individually below by source URL and same-event similarity;
+     * newly discovered eligible articles can still be processed.
      */
-    const marker =
-      `/the-hindu/${fileUniqueId}#`;
-
-    const existingPdfRows =
-      existingRows.filter(
-        row =>
-          String(
-            row?.source_url ||
-              ""
-          ).includes(
-            marker
-          )
-      );
-
-    if (
-      existingPdfRows.length >
-      0
-    ) {
-      logStep(
-        "PDF ALREADY PROCESSED",
-        {
-          date:
-            verifiedDate,
-
-          existing:
-            existingPdfRows.length,
-        }
-      );
-
-      return NextResponse.json({
-        ok: true,
-
-        processed:
-          true,
-
-        duplicatePdf:
-          true,
-
-        reason:
-          "pdf-already-processed",
-
-        date:
-          verifiedDate,
-
-        existingArticles:
-          existingPdfRows.length,
-      });
-    }
 
     /* -----------------------------------------
        ARTICLE EXTRACTION
