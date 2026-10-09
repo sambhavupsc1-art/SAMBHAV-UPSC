@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import SmartQuizInsights from "./SmartQuizInsights";
 
 const TEST_OPTIONS = [20, 30, 50, 75, 100];
 const MARKS_PER_QUESTION = 2;
@@ -1811,6 +1812,8 @@ export default function PrelimsTestPage() {
             </div>
           )}
         </section>
+
+        <SmartQuizInsights />
 
       </div>
     </main>
