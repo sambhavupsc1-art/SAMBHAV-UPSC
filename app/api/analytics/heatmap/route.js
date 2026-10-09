@@ -56,8 +56,10 @@ export async function GET(request) {
       const group = groups.get(key);
 
       // Unanswered questions do not affect accuracy.
-      if (response.selected_option === null ||
-          response.selected_option === undefined) {
+      if (
+        response.selected_option === null ||
+        response.selected_option === undefined
+      ) {
         continue;
       }
 
@@ -95,7 +97,9 @@ export async function GET(request) {
     const topics = Array.from(groups.values())
       .map((item) => {
         const accuracy = item.attempted
-          ? Number(((item.correct / item.attempted) * 100).toFixed(2))
+          ? Number(
+              ((item.correct / item.attempted) * 100).toFixed(2)
+            )
           : 0;
 
         return {
@@ -127,7 +131,9 @@ export async function GET(request) {
     const subjects = Array.from(subjectMap.values())
       .map((item) => {
         const accuracy = item.attempted
-          ? Number(((item.correct / item.attempted) * 100).toFixed(2))
+          ? Number(
+              ((item.correct / item.attempted) * 100).toFixed(2)
+            )
           : 0;
 
         return {
