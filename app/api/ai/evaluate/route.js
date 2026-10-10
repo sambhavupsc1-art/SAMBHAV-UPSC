@@ -171,6 +171,64 @@ Only discuss points actually present in the answer.
 
 Do not invent quotations or claims made by the candidate.
 
+
+ADVANCED EXAMINER EVALUATION LAYER:
+
+QUESTION DEMAND MAPPING:
+- Decompose the question into the core demand and distinct sub-demands.
+- For each demand, compare the examiner's expectation with explicit evidence in the candidate's answer.
+- Use status exactly as one of: "Met", "Partial", or "Missing".
+- Justify every status from the readable answer. Do not infer absent content.
+
+INTRODUCTION, BODY AND CONCLUSION:
+- Evaluate these independently and provide specific improvements only where useful.
+- Evaluate paragraph/argument blocks for logic, coverage, analysis, repetition and relevance.
+- Distinguish conceptual errors from language or presentation issues.
+
+KEYWORD AUDIT:
+- Identify effective keywords actually used.
+- Identify missing high-value terms and specify where to insert them and why.
+- Identify incorrect, vague or superficial terminology and propose corrections.
+- Avoid keyword stuffing and generic fixed keyword lists.
+
+VISUAL ANALYSIS:
+- Inspect all supplied answer images for actual diagrams, flowcharts, maps, tables, timelines or figures.
+- Assess existing visuals for correctness, relevance, labels, readability and integration with the written answer.
+- Recommend a new visual only when it genuinely improves understanding or compresses a complex relationship.
+- For each recommended visual, specify exact placement, purpose, type, required labels, relevance, priority ("Essential", "Beneficial", or "Optional") and estimated space ("Small", "Medium", or "Large").
+- If no visual would materially help, set no_additional_diagram_needed to true and explicitly say "No additional diagram is necessary for this question."
+- Never claim to have inspected visual details that are not readable.
+
+EVIDENCE AUDIT:
+- Identify where reliable evidence would strengthen an argument.
+- Suggest an example, statistic, judgment, report, scheme or committee only when sufficiently confident it is accurate and relevant.
+- If current or exact facts cannot be verified, state that verification is needed. Never fabricate a citation, statistic or official marking scheme.
+
+SCORING:
+- Preserve the existing marks scale and maximum marks.
+- Provide criterion-wise marks whose maximums add up to the question's maximum marks, without duplicate scoring or double penalties.
+- Score the answer against the question and rubric, not by subtracting arbitrary penalties from a perfect score.
+- Keep marks plausible and avoid false precision. State that the score is an AI estimate, not an official UPSC score.
+- Do not award marks merely for decorative visuals, headings, or keyword quantity.
+
+SENTENCE-LEVEL IMPROVEMENT:
+- Quote only short, readable exact passages from the candidate's answer.
+- For each selected passage, state the problem, improved version and reason.
+- Do not fabricate a candidate quotation. If exact wording is unclear, describe the issue without quoting.
+
+MODEL ANSWER:
+- Provide a complete, question-specific model answer in the dominant language detected from the candidate's answer.
+- Respect the provided word limit as closely as possible and cover every identified demand.
+- Include a text-based visual only when it genuinely helps.
+- Do not present the model answer as official UPSC material.
+- If the question or answer lacks enough context, disclose the limitation.
+
+FINAL PRIORITIES:
+- List the three to five highest-impact improvements in priority order.
+- Each major criticism must state what is wrong, why it matters, where it occurs, and how to correct it.
+- For a strong answer, identify genuine refinements without inventing faults.
+- Adapt all evaluation text to the candidate's dominant language. Keep JSON field names unchanged.
+
 Return ONLY valid JSON matching the supplied schema.
 `;
 
@@ -571,6 +629,174 @@ const EVALUATION_SCHEMA = {
       },
     },
 
+
+    demand_mapping: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          demand: { type: "string" },
+          examiner_expectation: { type: "string" },
+          answer_evidence: { type: "string" },
+          status: { type: "string" },
+          justification: { type: "string" },
+        },
+        required: [
+          "demand",
+          "examiner_expectation",
+          "answer_evidence",
+          "status",
+          "justification",
+        ],
+      },
+    },
+
+    keyword_audit: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        correctly_used: { type: "array", items: { type: "string" } },
+        missing_keywords: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              keyword: { type: "string" },
+              why_it_matters: { type: "string" },
+              insertion_point: { type: "string" },
+              priority: { type: "string" },
+            },
+            required: ["keyword", "why_it_matters", "insertion_point", "priority"],
+          },
+        },
+        weak_or_incorrect: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              term_or_passage: { type: "string" },
+              issue: { type: "string" },
+              correction: { type: "string" },
+            },
+            required: ["term_or_passage", "issue", "correction"],
+          },
+        },
+      },
+      required: ["correctly_used", "missing_keywords", "weak_or_incorrect"],
+    },
+
+    visual_analysis: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        existing_visuals: { type: "array", items: { type: "string" } },
+        opportunities: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              location_in_answer: { type: "string" },
+              purpose: { type: "string" },
+              recommended_type: { type: "string" },
+              required_labels: { type: "array", items: { type: "string" } },
+              examiner_relevance: { type: "string" },
+              priority: { type: "string" },
+              estimated_space: { type: "string" },
+              text_diagram: { type: "string" },
+            },
+            required: [
+              "location_in_answer",
+              "purpose",
+              "recommended_type",
+              "required_labels",
+              "examiner_relevance",
+              "priority",
+              "estimated_space",
+              "text_diagram",
+            ],
+          },
+        },
+        no_additional_diagram_needed: { type: "boolean" },
+        overall_assessment: { type: "string" },
+      },
+      required: [
+        "existing_visuals",
+        "opportunities",
+        "no_additional_diagram_needed",
+        "overall_assessment",
+      ],
+    },
+
+    evidence_audit: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        missing_evidence: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              argument_to_support: { type: "string" },
+              evidence_type: { type: "string" },
+              suggested_example: { type: "string" },
+              insertion_point: { type: "string" },
+              priority: { type: "string" },
+              verification_status: { type: "string" },
+            },
+            required: [
+              "argument_to_support",
+              "evidence_type",
+              "suggested_example",
+              "insertion_point",
+              "priority",
+              "verification_status",
+            ],
+          },
+        },
+        verification_notes: { type: "array", items: { type: "string" } },
+      },
+      required: ["missing_evidence", "verification_notes"],
+    },
+
+    marks_breakdown: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          criterion: { type: "string" },
+          awarded: { type: "number" },
+          maximum: { type: "number" },
+          rationale: { type: "string" },
+        },
+        required: ["criterion", "awarded", "maximum", "rationale"],
+      },
+    },
+
+    sentence_improvements: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          original: { type: "string" },
+          problem: { type: "string" },
+          improved: { type: "string" },
+          reason: { type: "string" },
+        },
+        required: ["original", "problem", "improved", "reason"],
+      },
+    },
+
+    model_answer: { type: "string" },
+    quality_level: { type: "string" },
+    word_count_assessment: { type: "string" },
+
     examiner_summary: {
       type: "string",
     },
@@ -592,6 +818,15 @@ const EVALUATION_SCHEMA = {
     "answer_structure",
     "model_framework",
     "improvement_plan",
+    "demand_mapping",
+    "keyword_audit",
+    "visual_analysis",
+    "evidence_audit",
+    "marks_breakdown",
+    "sentence_improvements",
+    "model_answer",
+    "quality_level",
+    "word_count_assessment",
     "examiner_summary",
   ],
 };
@@ -1112,7 +1347,7 @@ export async function POST(request) {
      */
 
     const userPrompt = `
-Evaluate this UPSC Civil Services Examination Mains handwritten answer.
+Evaluate this UPSC Civil Services Examination Mains handwritten answer using the advanced examiner evaluation layer.
 
 QUESTION:
 ${question}
@@ -1132,45 +1367,27 @@ ${wordLimit}
 NUMBER OF ANSWER PAGES:
 ${imageFiles.length}
 
-The supplied images are pages of ONE continuous answer.
+The supplied images are pages of ONE continuous answer, in the order provided.
+Read every page before evaluating. Reconstruct only text that can reasonably be read.
+Flag uncertain handwriting/OCR and do not invent the candidate's wording.
 
-Read all pages in order.
+MANDATORY EVALUATION:
+1. Decode the directive, core demand, sub-demands, scope, expected approach and common traps.
+2. Map every demand to the actual answer evidence and classify it as Met, Partial or Missing.
+3. Evaluate introduction, body argument blocks, and conclusion separately.
+4. Audit correct, missing, weak, or incorrect keywords with exact insertion points.
+5. Inspect any visible diagrams, flowcharts, maps, tables or figures. Evaluate existing visuals and recommend only useful additions, with placement, labels, purpose, priority and estimated space.
+6. Explicitly state when no additional diagram is necessary.
+7. Audit relevant data, constitutional references, judgments, reports, schemes, examples and case studies. Never fabricate evidence; mark uncertain facts as needing verification.
+8. Assess analytical depth, balance, logic, repetition, relevance, word-limit discipline and factual accuracy.
+9. Provide criterion-wise marks that are consistent with the existing rubric and add up to no more than ${marks}. Avoid double-counting.
+10. Give sentence-level improvements only for readable exact passages.
+11. Provide three to five prioritized improvements and a complete improved model answer within approximately ${wordLimit} words.
+12. Detect the dominant language from the handwritten answer and write all human-readable evaluation fields in that language.
+13. The model answer is an AI-generated suggested answer, not an official UPSC model answer.
+14. The final score must be between 0 and ${marks}; it is an estimated AI assessment, not an official UPSC score.
 
-Do not evaluate pages independently.
-
-First understand the question and directive.
-
-Then compare the actual answer against the question demand.
-
-Evaluate:
-- demand fulfilment
-- relevance
-- content
-- analysis
-- dimensions
-- structure
-- introduction
-- body
-- examples
-- data
-- factual accuracy
-- conclusion
-- balance
-- current affairs linkage where relevant
-- constitutional/institutional references where relevant
-- word-limit discipline
-
-Do not invent unreadable text.
-
-Do not invent facts.
-
-Do not reward handwriting quality itself.
-
-Do not artificially inflate marks.
-
-The final score must be between 0 and ${marks}.
-
-Give practical feedback useful for the next UPSC Mains answer.
+Return every field required by the JSON schema. For fields with no applicable findings, return an empty array or an appropriate concise explanation rather than omitting the field.
 `;
 
     const input = [
