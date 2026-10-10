@@ -89,11 +89,57 @@ function Metric({ label, value, detail, icon }) {
   </Card>;
 }
 
+function normalizeImageList(value) {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return values.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
+}
+
+function CopyImageCard({ title, subtitle, images, empty, theme }) {
+  const list = normalizeImageList(images);
+  const colors = theme === "dark"
+    ? { background: "#1b1e21", border: "#34383c", muted: "#b0b3b7", text: "#f4f1e9", imageBg: "#111315" }
+    : { background: "#fffdf9", border: "#e5e1d8", muted: "#77736b", text: "#171717", imageBg: "#f5f2eb" };
+  return (
+    <Card style={{ padding: 14, background: colors.background, borderColor: colors.border }}>
+      <Eyebrow>{title}</Eyebrow>
+      <p style={{ fontSize: 11, color: colors.muted, lineHeight: 1.5, margin: "6px 0 12px" }}>{subtitle}</p>
+      {list.length ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 9 }}>
+          {list.map((src, index) => (
+            <a key={`${src}-${index}`} href={src} target="_blank" rel="noreferrer" style={{ display: "block", border: `1px solid ${colors.border}`, borderRadius: 12, overflow: "hidden", background: colors.imageBg, color: colors.text, textDecoration: "none" }}>
+              <img src={src} alt={`${title}, page ${index + 1}`} loading="lazy" style={{ width: "100%", height: 260, objectFit: "contain", display: "block", background: colors.imageBg }} />
+              <div style={{ padding: "8px 9px", fontSize: 10, fontWeight: 800 }}>Page {index + 1} · Tap to open</div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div style={{ border: `1px dashed ${colors.border}`, borderRadius: 13, background: colors.imageBg, minHeight: 210, padding: 18, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", gap: 8 }}>
+          <div aria-hidden="true" style={{ fontSize: 28 }}>▧</div>
+          <div style={{ fontSize: 12, fontWeight: 850, color: colors.text }}>Copy image not available</div>
+          <div style={{ fontSize: 10, lineHeight: 1.6, color: colors.muted }}>{empty}</div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function AIEvaluationBenchmarkPage() {
   const [records, setRecords] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("sambhav-theme");
+      if (saved === "dark" || saved === "light") setTheme(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { window.localStorage.setItem("sambhav-theme", theme); } catch {}
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,9 +190,26 @@ export default function AIEvaluationBenchmarkPage() {
   const mutedText = { color: palette.muted, fontSize: 12, lineHeight: 1.65 };
 
   return (
-    <main style={{ minHeight: "100vh", background: palette.page, color: palette.text, padding: "22px 14px 54px", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>
+    <main data-theme={theme} style={{
+      minHeight: "100vh",
+      background: theme === "dark" ? "#111315" : "#f5f2eb",
+      color: theme === "dark" ? "#f4f1e9" : "#171717",
+      padding: "18px 14px 54px",
+      fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      colorScheme: theme,
+      "--sambhav-page": theme === "dark" ? "#111315" : "#f5f2eb",
+      "--sambhav-surface": theme === "dark" ? "#1b1e21" : "#fffdf9",
+      "--sambhav-text": theme === "dark" ? "#f4f1e9" : "#171717",
+      "--sambhav-muted": theme === "dark" ? "#b0b3b7" : "#77736b",
+      "--sambhav-border": theme === "dark" ? "#34383c" : "#e5e1d8",
+    }}>
       <div style={{ maxWidth: 1050, margin: "0 auto" }}>
-        <a href="/premium/home" style={{ display: "inline-block", color: palette.muted, fontSize: 12, fontWeight: 800, textDecoration: "none", marginBottom: 22 }}>← Back to dashboard</a>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 }}>
+          <a href="/premium/home" style={{ display: "inline-block", color: palette.muted, fontSize: 12, fontWeight: 800, textDecoration: "none" }}>← Back to dashboard</a>
+          <button type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} style={{ border: `1px solid ${palette.border}`, borderRadius: 999, background: palette.surface, color: palette.text, padding: "9px 12px", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 850, cursor: "pointer" }}>
+            <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>{theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+        </div>
 
         <header style={{ marginBottom: 22 }}>
           <Eyebrow><span style={{ color: palette.gold }}>SAMBHAV UPSC · TRUST & TRANSPARENCY</span></Eyebrow>
@@ -195,6 +258,23 @@ export default function AIEvaluationBenchmarkPage() {
             <div style={{ background: palette.page, borderRadius: 14, padding: 14, marginTop: 13 }}>
               <Eyebrow>QUESTION · {selected.subject || "Subject not specified"} · {selected.question_type || "Type not specified"}</Eyebrow>
               <div style={{ fontSize: 13, lineHeight: 1.7, fontWeight: 750, marginTop: 7 }}>{selected.question || "Question not supplied in this record."}</div>
+            </div>
+            <SectionTitle note="Compare the original handwritten answer with the institute/reference-checked copy, where both images are available and consented.">Original Copy vs Institute-Checked Copy</SectionTitle>
+            <div style={{ ...grid, marginTop: 12 }}>
+              <CopyImageCard
+                title="YOUR ORIGINAL ANSWER COPY"
+                subtitle="Aspirant's submitted handwritten answer"
+                images={selected.candidate_copy_images || selected.candidate_image_urls || selected.answer_image_urls || selected.candidate_copy_image_url || selected.answer_image_url}
+                empty="Original answer-copy images are not attached to this published benchmark record."
+                theme={theme}
+              />
+              <CopyImageCard
+                title="INSTITUTE / HUMAN-CHECKED COPY"
+                subtitle="Reference copy with examiner markings"
+                images={selected.institute_copy_images || selected.human_copy_images || selected.reference_copy_image_urls || selected.institute_copy_image_url || selected.human_copy_image_url}
+                empty="Institute/reference-checked copy images are not attached to this published benchmark record."
+                theme={theme}
+              />
             </div>
             <div style={{ ...grid, marginTop: 12 }}>
               <Card style={{ padding: 15 }}>
