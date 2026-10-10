@@ -31,6 +31,62 @@ export default function PYQPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("sambhav-theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        setTheme(savedTheme);
+      }
+    } catch (themeError) {
+      console.warn("Theme preference could not be loaded.", themeError);
+    }
+  }, []);
+
+  useEffect(() => {
+    const palette = theme === "dark"
+      ? {
+          "--sambhav-page": "#0b0b0b",
+          "--sambhav-dark-surface": "#050505",
+          "--sambhav-text": "#f5f2eb",
+          "--sambhav-muted": "#aaa59a",
+          "--sambhav-muted-strong": "#c4c0b8",
+          "--sambhav-surface": "#151515",
+          "--sambhav-input": "#101010",
+          "--sambhav-border": "rgba(255,255,255,.10)",
+          "--sambhav-track": "#2b2b2b",
+          "--sambhav-soft": "#202020",
+          "--sambhav-soft-text": "#dedad2"
+        }
+      : {
+          "--sambhav-page": "#f5f2eb",
+          "--sambhav-dark-surface": "#101010",
+          "--sambhav-text": "#101010",
+          "--sambhav-muted": "#77736b",
+          "--sambhav-muted-strong": "#555149",
+          "--sambhav-surface": "#fffdf9",
+          "--sambhav-input": "#faf8f3",
+          "--sambhav-border": "rgba(16,16,16,.09)",
+          "--sambhav-track": "#e7e2d9",
+          "--sambhav-soft": "#f0ece4",
+          "--sambhav-soft-text": "#37342e"
+        };
+    Object.entries(palette).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value);
+    });
+    document.documentElement.dataset.sambhavTheme = theme;
+    document.documentElement.style.colorScheme = theme;
+    try {
+      localStorage.setItem("sambhav-theme", theme);
+    } catch (themeError) {
+      console.warn("Theme preference could not be saved.", themeError);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((current) => current === "dark" ? "light" : "dark");
+  };
 
   const [section, setSection] = useState("prelims");
 
@@ -1190,7 +1246,7 @@ export default function PYQPage() {
         />
 
         <main
-          style={styles.page}
+          style={{ ...styles.page, background: "var(--sambhav-page)", color: "var(--sambhav-text)" }}
         >
           <div
             style={
@@ -1226,7 +1282,7 @@ export default function PYQPage() {
         />
 
         <main
-          style={styles.page}
+          style={{ ...styles.page, background: "var(--sambhav-page)", color: "var(--sambhav-text)" }}
         >
           <div
             style={
@@ -1287,7 +1343,7 @@ export default function PYQPage() {
         />
 
         <main
-          style={styles.page}
+          style={{ ...styles.page, background: "var(--sambhav-page)", color: "var(--sambhav-text)" }}
         >
           <div
             style={
@@ -1337,7 +1393,7 @@ export default function PYQPage() {
       />
 
       <main
-        style={styles.page}
+        style={{ ...styles.page, background: "var(--sambhav-page)", color: "var(--sambhav-text)" }}
       >
         <div
           style={
@@ -1375,6 +1431,15 @@ export default function PYQPage() {
                 Questions
               </div>
             </div>
+            <button
+              type="button"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              onClick={toggleTheme}
+              style={styles.themeButton}
+            >
+              {theme === "dark" ? "☀" : "☾"}
+            </button>
           </header>
 
           <div
@@ -2237,6 +2302,23 @@ export default function PYQPage() {
                   </span>
                 </div>
               </section>
+
+              <button
+                type="button"
+                onClick={() => router.push("/answer/history")}
+                style={styles.historyButton}
+              >
+                <span style={styles.historyButtonIcon}>↗</span>
+                <span style={{ flex: 1, textAlign: "left" }}>
+                  <span style={{ display: "block", fontSize: "13px", fontWeight: 900 }}>
+                    My Evaluated Answers
+                  </span>
+                  <span style={{ display: "block", marginTop: "4px", fontSize: "10px", opacity: 0.72, fontWeight: 600 }}>
+                    Review your scores, transcripts and examiner feedback
+                  </span>
+                </span>
+                <span aria-hidden="true" style={{ fontSize: "18px" }}>›</span>
+              </button>
 
               <section
                 style={
@@ -3460,9 +3542,9 @@ function ExplanationPanel({
             borderRadius: "13px",
             border: "1px solid #e3e3e0",
             background:
-              isFirst || !onPrevious ? "#f8f8f6" : "#fff",
+              isFirst || !onPrevious ? "#f8f8f6" : "var(--sambhav-surface)",
             color:
-              isFirst || !onPrevious ? "#aaa" : "#111",
+              isFirst || !onPrevious ? "#aaa" : "var(--sambhav-dark-surface)",
             fontSize: "12px",
             fontWeight: "800",
             cursor:
@@ -3479,8 +3561,8 @@ function ExplanationPanel({
             padding: "12px 20px",
             borderRadius: "13px",
             border: 0,
-            background: "#111",
-            color: "#fff",
+            background: "var(--sambhav-dark-surface)",
+            color: "var(--sambhav-surface)",
             fontSize: "12px",
             fontWeight: "800",
             cursor: "pointer",
@@ -3599,8 +3681,8 @@ function EmptyState({
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f5f5f3",
-    color: "#111",
+    background: "var(--sambhav-page)",
+    color: "var(--sambhav-dark-surface)",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
   },
@@ -3617,7 +3699,7 @@ const styles = {
     margin: "70px auto",
     padding: "30px",
     textAlign: "center",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "24px",
@@ -3631,7 +3713,7 @@ const styles = {
   },
 
   muted: {
-    color: "#777",
+    color: "var(--sambhav-muted)",
     fontSize: "13px",
     lineHeight: "1.5",
     marginTop: "8px",
@@ -3648,15 +3730,61 @@ const styles = {
     width: "42px",
     height: "42px",
     borderRadius: "14px",
-    border:
-      "1px solid #e4e4e2",
-    background: "#fff",
+    border: "1px solid var(--sambhav-border)",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-text)",
     fontSize: "20px",
     cursor: "pointer",
+    flexShrink: 0,
+  },
+
+  themeButton: {
+    width: "40px",
+    height: "40px",
+    marginLeft: "auto",
+    borderRadius: "13px",
+    border: "1px solid var(--sambhav-border)",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-text)",
+    fontSize: "18px",
+    fontWeight: "900",
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+
+  historyButton: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    boxSizing: "border-box",
+    padding: "16px",
+    margin: "-10px 0 22px",
+    border: "1px solid rgba(223,196,119,.34)",
+    borderRadius: "19px",
+    background: "var(--sambhav-dark-surface)",
+    color: "#fff",
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: "0 10px 24px rgba(16,16,16,.10)",
+  },
+
+  historyButtonIcon: {
+    width: "40px",
+    height: "40px",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "13px",
+    background: "rgba(223,196,119,.13)",
+    color: "#dfc477",
+    fontSize: "21px",
+    fontWeight: "900",
   },
 
   subtitle: {
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontSize: "11px",
     marginTop: "3px",
   },
@@ -3666,7 +3794,7 @@ const styles = {
     gridTemplateColumns:
       "1fr 1fr",
     gap: "8px",
-    background: "#e9e9e6",
+    background: "var(--sambhav-soft)",
     padding: "5px",
     borderRadius: "16px",
     marginBottom: "14px",
@@ -3683,13 +3811,13 @@ const styles = {
   },
 
   activeTab: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
   },
 
   hero: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     borderRadius: "25px",
     padding: "24px",
     marginBottom: "16px",
@@ -3720,7 +3848,7 @@ const styles = {
   /* SEARCH */
 
   searchCard: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "20px",
@@ -3744,7 +3872,7 @@ const styles = {
       "1px solid #ddd",
     outline: "none",
     fontSize: "13px",
-    background: "#fafafa",
+    background: "var(--sambhav-input)",
   },
 
   searchActions: {
@@ -3757,8 +3885,8 @@ const styles = {
   filterButton: {
     border:
       "1px solid #ddd",
-    background: "#fff",
-    color: "#333",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-text)",
     borderRadius: "11px",
     padding:
       "9px 12px",
@@ -3768,15 +3896,15 @@ const styles = {
   },
 
   filterButtonActive: {
-    background: "#111",
-    color: "#fff",
-    borderColor: "#111",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
+    borderColor: "var(--sambhav-dark-surface)",
   },
 
   clearButton: {
     border: 0,
-    background: "#f0f0ee",
-    color: "#555",
+    background: "var(--sambhav-soft)",
+    color: "var(--sambhav-muted-strong)",
     borderRadius: "11px",
     padding:
       "9px 12px",
@@ -3786,7 +3914,7 @@ const styles = {
   },
 
   savingText: {
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontSize: "10px",
     marginTop: "8px",
   },
@@ -3794,8 +3922,8 @@ const styles = {
   /* PREMIUM */
 
   premiumSection: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     borderRadius: "18px",
     marginBottom: "16px",
     overflow: "hidden",
@@ -3804,8 +3932,8 @@ const styles = {
   premiumMainButton: {
     width: "100%",
     border: 0,
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     display: "flex",
     alignItems: "center",
     justifyContent:
@@ -3841,7 +3969,7 @@ const styles = {
   },
 
   premiumMainSubtitle: {
-    color: "#999",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     marginTop: "3px",
   },
@@ -3863,7 +3991,7 @@ const styles = {
   },
 
   premiumInfo: {
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     marginBottom: "8px",
   },
@@ -3885,7 +4013,7 @@ const styles = {
     border:
       "1px solid #2c2c2c",
     background: "#1a1a1a",
-    color: "#fff",
+    color: "var(--sambhav-surface)",
     borderRadius: "11px",
     padding:
       "10px 11px",
@@ -3894,9 +4022,9 @@ const styles = {
   },
 
   premiumTopicActive: {
-    background: "#fff",
-    color: "#111",
-    borderColor: "#fff",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-dark-surface)",
+    borderColor: "var(--sambhav-surface)",
   },
 
   premiumTopicName: {
@@ -3940,7 +4068,7 @@ const styles = {
   },
 
   selectedPremiumMeta: {
-    color: "#999",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     marginTop: "3px",
   },
@@ -3952,7 +4080,7 @@ const styles = {
     border:
       "1px solid #333",
     background: "#1b1b1b",
-    color: "#fff",
+    color: "var(--sambhav-surface)",
     fontSize: "17px",
     lineHeight: "1",
     cursor: "pointer",
@@ -3975,7 +4103,7 @@ const styles = {
   },
 
   premiumEmpty: {
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontSize: "10px",
     padding:
       "4px 0",
@@ -3984,7 +4112,7 @@ const styles = {
   /* FILTER */
 
   filterCard: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "20px",
@@ -4011,7 +4139,7 @@ const styles = {
     borderRadius: "13px",
     border:
       "1px solid #ddd",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     fontWeight: "600",
   },
 
@@ -4020,7 +4148,7 @@ const styles = {
     gridTemplateColumns:
       "1fr 1fr",
     gap: "8px",
-    background: "#f0f0ee",
+    background: "var(--sambhav-soft)",
     padding: "4px",
     borderRadius: "13px",
     marginTop: "12px",
@@ -4035,13 +4163,13 @@ const styles = {
       "10px 8px",
     fontWeight: "700",
     fontSize: "12px",
-    color: "#666",
+    color: "var(--sambhav-muted-strong)",
     cursor: "pointer",
   },
 
   gs4ActiveTab: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
   },
 
   statsRow: {
@@ -4051,14 +4179,14 @@ const styles = {
     alignItems: "center",
     marginTop: "12px",
     fontSize: "12px",
-    color: "#777",
+    color: "var(--sambhav-muted)",
   },
 
   primary: {
     border: 0,
     borderRadius: "12px",
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     padding:
       "11px 15px",
     fontWeight: "700",
@@ -4068,8 +4196,8 @@ const styles = {
   primaryLight: {
     border: 0,
     borderRadius: "12px",
-    background: "#fff",
-    color: "#111",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-dark-surface)",
     padding:
       "11px 18px",
     fontWeight: "700",
@@ -4087,7 +4215,7 @@ const styles = {
   },
 
   questionCard: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "19px",
@@ -4096,7 +4224,7 @@ const styles = {
   },
 
   mainsCard: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "19px",
@@ -4106,7 +4234,7 @@ const styles = {
 
   meta: {
     fontSize: "10px",
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontWeight: "700",
     textTransform:
       "uppercase",
@@ -4121,7 +4249,7 @@ const styles = {
   },
 
   answerHint: {
-    color: "#999",
+    color: "var(--sambhav-muted)",
     fontSize: "11px",
     marginTop: "10px",
   },
@@ -4145,7 +4273,7 @@ const styles = {
   smallButton: {
     border:
       "1px solid #ddd",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     borderRadius: "10px",
     padding:
       "8px 11px",
@@ -4157,7 +4285,7 @@ const styles = {
   statusSelect: {
     border:
       "1px solid #ddd",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     borderRadius: "10px",
     padding:
       "8px 10px",
@@ -4166,7 +4294,7 @@ const styles = {
   },
 
   practiceHeader: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border: "1px solid #e5e5e3",
     borderRadius: "18px",
     padding: "14px",
@@ -4187,7 +4315,7 @@ const styles = {
 
   practiceProgressPercent: {
     fontSize: "9px",
-    color: "#888",
+    color: "var(--sambhav-muted)",
     marginTop: "3px",
     fontWeight: "700",
   },
@@ -4224,8 +4352,8 @@ const styles = {
     height: "22px",
     border: 0,
     borderRadius: "7px",
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     fontSize: "9px",
     fontWeight: "900",
     cursor: "pointer",
@@ -4236,17 +4364,17 @@ const styles = {
     height: "36px",
     borderRadius: "11px",
     border: "1px solid #ddd",
-    background: "#fff",
-    color: "#111",
+    background: "var(--sambhav-surface)",
+    color: "var(--sambhav-dark-surface)",
     fontSize: "19px",
     fontWeight: "800",
     cursor: "pointer",
   },
 
   gridButtonActive: {
-    background: "#111",
-    color: "#fff",
-    borderColor: "#111",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
+    borderColor: "var(--sambhav-dark-surface)",
   },
 
   progressTrack: {
@@ -4260,7 +4388,7 @@ const styles = {
 
   progressFill: {
     height: "100%",
-    background: "#111",
+    background: "var(--sambhav-dark-surface)",
     borderRadius: "999px",
     transition: "width 300ms ease",
   },
@@ -4275,7 +4403,7 @@ const styles = {
   practiceExitButton: {
     border: 0,
     background: "transparent",
-    color: "#777",
+    color: "var(--sambhav-muted)",
     padding: "3px 0",
     fontSize: "10px",
     fontWeight: "800",
@@ -4283,7 +4411,7 @@ const styles = {
   },
 
   timerState: {
-    color: "#999",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     fontWeight: "700",
   },
@@ -4304,7 +4432,7 @@ const styles = {
   },
 
   questionGridSubtitle: {
-    color: "#888",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     marginTop: "2px",
   },
@@ -4322,22 +4450,22 @@ const styles = {
     minHeight: "38px",
     borderRadius: "9px",
     border: "1px solid #ddd",
-    background: "#fafafa",
-    color: "#333",
+    background: "var(--sambhav-input)",
+    color: "var(--sambhav-text)",
     fontSize: "10px",
     fontWeight: "800",
     cursor: "pointer",
   },
 
   gridQuestionActive: {
-    background: "#111",
-    color: "#fff",
-    borderColor: "#111",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
+    borderColor: "var(--sambhav-dark-surface)",
   },
 
   gridQuestionAnswered: {
-    background: "#e9e9e6",
-    color: "#111",
+    background: "var(--sambhav-soft)",
+    color: "var(--sambhav-dark-surface)",
     borderColor: "#ccc",
   },
 
@@ -4346,7 +4474,7 @@ const styles = {
     flexWrap: "wrap",
     gap: "10px",
     marginTop: "11px",
-    color: "#777",
+    color: "var(--sambhav-muted)",
     fontSize: "9px",
     fontWeight: "700",
   },
@@ -4365,7 +4493,7 @@ const styles = {
   },
 
   legendCurrent: {
-    background: "#111",
+    background: "var(--sambhav-dark-surface)",
   },
 
   legendAnswered: {
@@ -4373,7 +4501,7 @@ const styles = {
   },
 
   legendUnanswered: {
-    background: "#fafafa",
+    background: "var(--sambhav-input)",
     border: "1px solid #ccc",
   },
 
@@ -4412,7 +4540,7 @@ const styles = {
     borderRadius: "13px",
     border:
       "1px solid #e2e2e0",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     cursor: "pointer",
     fontSize: "12px",
   },
@@ -4420,13 +4548,13 @@ const styles = {
   correct: {
     border:
       "1px solid #111",
-    background: "#f0f0ee",
+    background: "var(--sambhav-soft)",
   },
 
   wrong: {
     border:
       "1px solid #777",
-    background: "#f5f5f3",
+    background: "var(--sambhav-page)",
   },
 
   translationRow: {
@@ -4443,14 +4571,14 @@ const styles = {
     gap: "3px",
     padding: "3px",
     borderRadius: "11px",
-    background: "#e9e9e6",
+    background: "var(--sambhav-soft)",
     border: "1px solid #ddd",
   },
 
   translationOption: {
     border: 0,
     background: "transparent",
-    color: "#555",
+    color: "var(--sambhav-muted-strong)",
     borderRadius: "8px",
     padding: "7px 11px",
     fontSize: "11px",
@@ -4459,19 +4587,19 @@ const styles = {
   },
 
   translationOptionActive: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
   },
 
   translationLabel: {
-    color: "#777",
+    color: "var(--sambhav-muted)",
     fontSize: "10px",
     fontWeight: "700",
   },
 
   translationError: {
-    color: "#777",
-    background: "#f0f0ee",
+    color: "var(--sambhav-muted)",
+    background: "var(--sambhav-soft)",
     borderRadius: "9px",
     padding: "8px 10px",
     fontSize: "10px",
@@ -4482,7 +4610,7 @@ const styles = {
     marginTop: "16px",
     padding: "16px",
     borderRadius: "16px",
-    background: "#f5f5f3",
+    background: "var(--sambhav-page)",
     border: "1px solid #e3e3e0",
     fontSize: "12px",
     lineHeight: "1.6",
@@ -4500,19 +4628,19 @@ const styles = {
   },
 
   explanationStatusCorrect: {
-    color: "#111",
+    color: "var(--sambhav-dark-surface)",
   },
 
   explanationStatusWrong: {
-    color: "#555",
+    color: "var(--sambhav-muted-strong)",
   },
 
   explanationStatusDot: {
     width: "24px",
     height: "24px",
     borderRadius: "50%",
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4529,11 +4657,11 @@ const styles = {
     fontSize: "13px",
     fontWeight: "900",
     marginBottom: "8px",
-    color: "#111",
+    color: "var(--sambhav-dark-surface)",
   },
 
   explanationBody: {
-    color: "#333",
+    color: "var(--sambhav-text)",
   },
 
   explanationParagraph: {
@@ -4551,7 +4679,7 @@ const styles = {
     fontSize: "12px",
     fontWeight: "900",
     marginBottom: "9px",
-    color: "#111",
+    color: "var(--sambhav-dark-surface)",
   },
 
   keywordList: {
@@ -4565,7 +4693,7 @@ const styles = {
     gap: "7px",
     padding: "8px 9px",
     borderRadius: "10px",
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border: "1px solid #e2e2df",
   },
 
@@ -4587,12 +4715,12 @@ const styles = {
   },
 
   keywordMeaning: {
-    color: "#666",
+    color: "var(--sambhav-muted-strong)",
   },
 
   resultCard: {
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     borderRadius: "24px",
     padding: "25px",
     textAlign: "center",
@@ -4614,7 +4742,7 @@ const styles = {
   },
 
   infoCard: {
-    background: "#fff",
+    background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
     borderRadius: "20px",
@@ -4630,8 +4758,8 @@ const styles = {
     height: "40px",
     minWidth: "40px",
     borderRadius: "13px",
-    background: "#111",
-    color: "#fff",
+    background: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-surface)",
     display: "flex",
     alignItems: "center",
     justifyContent:
