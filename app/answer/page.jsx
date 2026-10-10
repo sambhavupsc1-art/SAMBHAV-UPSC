@@ -1189,6 +1189,161 @@ ${details}`
               />
             </EvaluationSection>
 
+            <EvaluationSection title="12. Demand Mapping Audit">
+              {(evaluation.demand_mapping || []).length > 0 ? (
+                (evaluation.demand_mapping || []).map((item, index) => (
+                  <div key={index} style={styles.advancedAuditCard}>
+                    <div style={styles.advancedAuditHeader}>
+                      <strong>{item.demand || `Demand ${index + 1}`}</strong>
+                      <span style={styles.advancedStatus}>{item.status || "Not specified"}</span>
+                    </div>
+                    <InfoBlock title="Examiner expects" text={item.examiner_expectation} />
+                    <InfoBlock title="Evidence in your answer" text={item.answer_evidence} />
+                    <InfoBlock title="Justification" text={item.justification} />
+                  </div>
+                ))
+              ) : (
+                <InfoBlock text="Demand mapping details are not available in this evaluation response." />
+              )}
+            </EvaluationSection>
+
+            <EvaluationSection title="13. Advanced Keyword Audit">
+              <ArrayBlock
+                title="Correctly Used Keywords"
+                items={evaluation.keyword_audit?.correctly_used}
+              />
+              {(evaluation.keyword_audit?.missing_keywords || []).length > 0 && (
+                <div style={styles.advancedSubsection}>
+                  <div style={styles.arrayTitle}>Missing High-Value Keywords</div>
+                  {evaluation.keyword_audit.missing_keywords.map((item, index) => (
+                    <div key={index} style={styles.advancedAuditCard}>
+                      <div style={styles.advancedAuditHeader}>
+                        <strong>{item.keyword}</strong>
+                        <span style={styles.advancedStatus}>{item.priority || "Priority not specified"}</span>
+                      </div>
+                      <InfoBlock title="Why it matters" text={item.why_it_matters} />
+                      <InfoBlock title="Exact insertion point" text={item.insertion_point} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(evaluation.keyword_audit?.weak_or_incorrect || []).length > 0 && (
+                <div style={styles.advancedSubsection}>
+                  <div style={styles.arrayTitle}>Weak or Incorrect Terminology</div>
+                  {evaluation.keyword_audit.weak_or_incorrect.map((item, index) => (
+                    <div key={index} style={styles.advancedAuditCard}>
+                      <strong>{item.term_or_passage}</strong>
+                      <InfoBlock title="Issue" text={item.issue} />
+                      <InfoBlock title="Suggested correction" text={item.correction} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </EvaluationSection>
+
+            <EvaluationSection title="14. Diagram & Visual Audit">
+              <InfoBlock
+                title="Overall assessment"
+                text={evaluation.visual_analysis?.overall_assessment}
+              />
+              <ArrayBlock
+                title="Visuals Already Present"
+                items={evaluation.visual_analysis?.existing_visuals}
+              />
+              {evaluation.visual_analysis?.no_additional_diagram_needed && (
+                <div style={styles.advancedNotice}>
+                  No additional diagram is necessary for this question.
+                </div>
+              )}
+              {(evaluation.visual_analysis?.opportunities || []).map((item, index) => (
+                <div key={index} style={styles.advancedAuditCard}>
+                  <div style={styles.advancedAuditHeader}>
+                    <strong>Visual opportunity {index + 1}: {item.recommended_type}</strong>
+                    <span style={styles.advancedStatus}>{item.priority || "Optional"}</span>
+                  </div>
+                  <InfoBlock title="Where to place it" text={item.location_in_answer} />
+                  <InfoBlock title="Purpose" text={item.purpose} />
+                  <ArrayBlock title="Required labels" items={item.required_labels} />
+                  <InfoBlock title="Examiner relevance" text={item.examiner_relevance} />
+                  <InfoBlock title="Estimated space" text={item.estimated_space} />
+                  {item.text_diagram && (
+                    <div style={styles.advancedSubsection}>
+                      <div style={styles.arrayTitle}>Reproducible text diagram</div>
+                      <pre style={styles.textDiagram}>{item.text_diagram}</pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </EvaluationSection>
+
+            <EvaluationSection title="15. Evidence & Examples Audit">
+              <ArrayBlock
+                title="Verification Notes"
+                items={evaluation.evidence_audit?.verification_notes}
+              />
+              {(evaluation.evidence_audit?.missing_evidence || []).length > 0 ? (
+                evaluation.evidence_audit.missing_evidence.map((item, index) => (
+                  <div key={index} style={styles.advancedAuditCard}>
+                    <div style={styles.advancedAuditHeader}>
+                      <strong>{item.evidence_type || "Evidence opportunity"}</strong>
+                      <span style={styles.advancedStatus}>{item.priority || "Optional"}</span>
+                    </div>
+                    <InfoBlock title="Argument to support" text={item.argument_to_support} />
+                    <InfoBlock title="Suggested example / evidence" text={item.suggested_example} />
+                    <InfoBlock title="Insertion point" text={item.insertion_point} />
+                    <InfoBlock title="Verification status" text={item.verification_status} />
+                  </div>
+                ))
+              ) : (
+                <InfoBlock text="No additional evidence opportunities were returned." />
+              )}
+            </EvaluationSection>
+
+            <EvaluationSection title="16. Criterion-wise Marks Breakdown">
+              {(evaluation.marks_breakdown || []).length > 0 ? (
+                evaluation.marks_breakdown.map((item, index) => (
+                  <div key={index} style={styles.advancedAuditCard}>
+                    <div style={styles.advancedAuditHeader}>
+                      <strong>{item.criterion}</strong>
+                      <span style={styles.advancedMark}>{item.awarded ?? 0} / {item.maximum ?? 0}</span>
+                    </div>
+                    <InfoBlock title="Rationale" text={item.rationale} />
+                  </div>
+                ))
+              ) : (
+                <InfoBlock text="Criterion-wise marks breakdown is not available in this response." />
+              )}
+              <div style={styles.advancedNotice}>
+                AI-estimated marks are indicative, not an official UPSC score.
+              </div>
+            </EvaluationSection>
+
+            <EvaluationSection title="17. Sentence-level Improvements">
+              {(evaluation.sentence_improvements || []).length > 0 ? (
+                evaluation.sentence_improvements.map((item, index) => (
+                  <div key={index} style={styles.advancedAuditCard}>
+                    <InfoBlock title="Original wording" text={item.original} />
+                    <InfoBlock title="Problem" text={item.problem} />
+                    <InfoBlock title="Improved version" text={item.improved} />
+                    <InfoBlock title="Why this is better" text={item.reason} />
+                  </div>
+                ))
+              ) : (
+                <InfoBlock text="No sentence-level corrections were returned. The model may have found no specific passage to revise or the field may be unavailable." />
+              )}
+            </EvaluationSection>
+
+            <EvaluationSection title="18. Improved Model Answer">
+              <div style={styles.advancedNotice}>
+                This is an AI-generated practice answer, not an official UPSC model answer.
+              </div>
+              <InfoBlock title="Answer quality level" text={evaluation.quality_level} />
+              <InfoBlock title="Word-limit assessment" text={evaluation.word_count_assessment} />
+              <div style={styles.modelAnswerText}>
+                {evaluation.model_answer || "A model answer was not returned in this evaluation."}
+              </div>
+            </EvaluationSection>
+
             <section
               style={styles.examinerCard}
             >
@@ -2386,6 +2541,84 @@ const styles = {
     padding: "11px 15px",
     fontWeight: "700",
     cursor: "pointer",
+  },
+
+  advancedAuditCard: {
+    border: "1px solid #e4e4e0",
+    borderRadius: "13px",
+    padding: "12px",
+    marginTop: "9px",
+    background: "#fff",
+  },
+
+  advancedAuditHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "10px",
+    flexWrap: "wrap",
+    fontSize: "12px",
+    lineHeight: "1.45",
+  },
+
+  advancedStatus: {
+    display: "inline-block",
+    borderRadius: "7px",
+    background: "#f0f0ee",
+    color: "#444",
+    padding: "4px 7px",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  advancedMark: {
+    display: "inline-block",
+    borderRadius: "7px",
+    background: "#111",
+    color: "#fff",
+    padding: "5px 8px",
+    fontSize: "10px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
+  },
+
+  advancedSubsection: {
+    marginTop: "13px",
+  },
+
+  advancedNotice: {
+    marginTop: "10px",
+    padding: "11px 12px",
+    borderRadius: "11px",
+    background: "#f4f3ef",
+    color: "#555",
+    fontSize: "11px",
+    lineHeight: "1.55",
+  },
+
+  textDiagram: {
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    margin: "7px 0 0",
+    padding: "12px",
+    borderRadius: "10px",
+    background: "#f7f7f5",
+    border: "1px solid #e2e2df",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: "11px",
+    lineHeight: "1.55",
+    overflowX: "auto",
+  },
+
+  modelAnswerText: {
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    marginTop: "10px",
+    padding: "14px",
+    borderRadius: "13px",
+    background: "#f7f7f5",
+    fontSize: "12px",
+    lineHeight: "1.75",
   },
 
   muted: {
