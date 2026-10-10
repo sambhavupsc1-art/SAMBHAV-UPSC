@@ -14,6 +14,7 @@ export default function AnswerWritingPage() {
   const [previews, setPreviews] = useState([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState(null);
+  const [historySaveState, setHistorySaveState] = useState("idle");
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
@@ -429,6 +430,30 @@ ${details}`
               new Date().toISOString(),
           })
         );
+
+        // Save to the signed-in user's persistent account history. A history
+        // failure must never invalidate a successful AI evaluation.
+        setHistorySaveState("saving");
+        try {
+          const historyResponse = await fetch("/api/mains/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ questionData, evaluation: data.evaluation }),
+          });
+          const historyData = await historyResponse.json().catch(() => ({}));
+          if (historyResponse.ok && historyData.success) {
+            setHistorySaveState("saved");
+          } else if (historyResponse.status === 401) {
+            setHistorySaveState("signin");
+          } else {
+            console.error("Answer history save failed:", historyData);
+            setHistorySaveState("failed");
+          }
+        } catch (historyError) {
+          console.error("Answer history save failed:", historyError);
+          setHistorySaveState("failed");
+        }
       } catch (err) {
         console.error(
           "AI evaluation error:",
@@ -719,7 +744,23 @@ ${details}`
                   AI Mains Evaluation
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => router.push("/answer/history")}
+                style={styles.historyButton}
+              >
+                My Answers
+              </button>
             </header>
+
+            {historySaveState !== "idle" && (
+              <div style={styles.historyNotice}>
+                {historySaveState === "saving" && "Saving this evaluation to your history…"}
+                {historySaveState === "saved" && "✓ Evaluation saved to My Evaluated Answers."}
+                {historySaveState === "signin" && "Evaluation complete. Sign in to save it to your account history."}
+                {historySaveState === "failed" && "Evaluation complete, but history could not be saved. Check the database setup."}
+              </div>
+            )}
 
             <section
               style={styles.scoreCard}
@@ -1442,6 +1483,14 @@ ${details}`
             </div>
           </header>
 
+          <button
+            type="button"
+            onClick={() => router.push("/answer/history")}
+            style={{ ...styles.historyButton, marginBottom: "14px" }}
+          >
+            My Evaluated Answers
+          </button>
+
           {/* QUESTION */}
 
           <section
@@ -1959,6 +2008,30 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     marginBottom: "16px",
+  },
+
+  historyButton: {
+    marginLeft: "auto",
+    border: "1px solid #deded9",
+    borderRadius: "10px",
+    background: "#fff",
+    color: "#222",
+    padding: "10px 12px",
+    fontSize: "11px",
+    fontWeight: "800",
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+
+  historyNotice: {
+    border: "1px solid #e4e4df",
+    borderRadius: "11px",
+    padding: "10px 12px",
+    marginBottom: "12px",
+    background: "#f7f7f4",
+    color: "#454540",
+    fontSize: "11px",
+    lineHeight: "1.5",
   },
 
   backButton: {
