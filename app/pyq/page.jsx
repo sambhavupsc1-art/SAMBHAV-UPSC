@@ -3688,10 +3688,10 @@ const styles = {
   },
 
   container: {
-    maxWidth: "760px",
+    maxWidth: "860px",
     margin: "0 auto",
     padding:
-      "18px 16px 40px",
+      "22px 18px 54px",
   },
 
   loadingBox: {
@@ -3723,13 +3723,13 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "13px",
-    marginBottom: "18px",
+    marginBottom: "22px",
   },
 
   back: {
     width: "42px",
     height: "42px",
-    borderRadius: "14px",
+    borderRadius: "15px",
     border: "1px solid var(--sambhav-border)",
     background: "var(--sambhav-surface)",
     color: "var(--sambhav-text)",
@@ -3794,58 +3794,70 @@ const styles = {
     gridTemplateColumns:
       "1fr 1fr",
     gap: "8px",
-    background: "var(--sambhav-soft)",
-    padding: "5px",
-    borderRadius: "16px",
-    marginBottom: "14px",
+    background: "var(--sambhav-surface)",
+    border: "1px solid var(--sambhav-border)",
+    padding: "6px",
+    borderRadius: "19px",
+    marginBottom: "18px",
+    boxShadow: "0 12px 30px rgba(0,0,0,.08)",
   },
 
   tab: {
     border: 0,
     background: "transparent",
     color: "var(--sambhav-soft-text)",
-    borderRadius: "12px",
-    padding: "12px",
-    fontWeight: "700",
+    borderRadius: "14px",
+    padding: "14px 12px",
+    fontWeight: "800",
+    fontSize: "12px",
+    transition: "all .2s ease",
     cursor: "pointer",
     WebkitAppearance: "none",
     appearance: "none",
   },
 
   activeTab: {
-    background: "var(--sambhav-dark-surface)",
-    color: "#ffffff",
-    border: "1px solid rgba(223,196,119,.18)",
+    background: "linear-gradient(135deg, #dfc477 0%, #b89445 100%)",
+    color: "#15120a",
+    border: "1px solid rgba(223,196,119,.55)",
+    boxShadow: "0 6px 18px rgba(184,148,69,.22)",
   },
 
   hero: {
-    background: "var(--sambhav-dark-surface)",
+    position: "relative",
+    overflow: "hidden",
+    background: "radial-gradient(circle at 92% 8%, rgba(223,196,119,.20), transparent 28%), linear-gradient(135deg, #101010 0%, #171715 62%, #24211a 100%)",
     color: "#ffffff",
-    borderRadius: "25px",
-    padding: "24px",
-    marginBottom: "16px",
+    border: "1px solid rgba(223,196,119,.20)",
+    borderRadius: "30px",
+    padding: "clamp(25px, 5vw, 38px)",
+    marginBottom: "20px",
+    boxShadow: "0 22px 55px rgba(0,0,0,.20)",
   },
 
   heroSmall: {
-    color: "#aaa",
+    color: "#dfc477",
     fontSize: "10px",
-    letterSpacing: "1.4px",
-    fontWeight: "700",
+    letterSpacing: "1.8px",
+    fontWeight: "900",
+    textTransform: "uppercase",
   },
 
   heroTitle: {
-    fontSize: "27px",
-    lineHeight: "1.15",
-    letterSpacing:
-      "-0.8px",
-    margin: "12px 0",
+    fontSize: "clamp(29px, 6vw, 43px)",
+    lineHeight: "1.06",
+    letterSpacing: "-1.5px",
+    fontWeight: "900",
+    margin: "15px 0 13px",
+    maxWidth: "620px",
   },
 
   heroText: {
-    color: "#bcbcbc",
-    fontSize: "13px",
-    lineHeight: "1.5",
+    color: "#c8c6c0",
+    fontSize: "14px",
+    lineHeight: "1.75",
     margin: 0,
+    maxWidth: "650px",
   },
 
   /* SEARCH */
@@ -3854,9 +3866,10 @@ const styles = {
     background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
-    borderRadius: "20px",
-    padding: "16px",
-    marginBottom: "10px",
+    borderRadius: "23px",
+    padding: "19px",
+    marginBottom: "13px",
+    boxShadow: "0 10px 30px rgba(0,0,0,.045)",
   },
 
   searchTitle: {
@@ -4118,9 +4131,10 @@ const styles = {
     background: "var(--sambhav-surface)",
     border:
       "1px solid #e5e5e3",
-    borderRadius: "20px",
-    padding: "16px",
-    marginBottom: "25px",
+    borderRadius: "23px",
+    padding: "19px",
+    marginBottom: "22px",
+    boxShadow: "0 10px 30px rgba(0,0,0,.045)",
   },
 
   filterTitle: {
@@ -4452,8 +4466,9 @@ const styles = {
   gridQuestion: {
     minHeight: "38px",
     borderRadius: "9px",
-    border: "1px solid #ddd",
+    border: "1px solid var(--sambhav-border)",
     background: "var(--sambhav-input)",
+    color: "var(--sambhav-text)",
     color: "var(--sambhav-text)",
     fontSize: "10px",
     fontWeight: "800",
@@ -4747,8 +4762,9 @@ const styles = {
   infoCard: {
     background: "var(--sambhav-surface)",
     border:
-      "1px solid #e5e5e3",
-    borderRadius: "20px",
+      "1px solid var(--sambhav-border)",
+    borderRadius: "23px",
+    boxShadow: "0 10px 28px rgba(0,0,0,.055)",
     padding: "18px",
     display: "flex",
     gap: "13px",
