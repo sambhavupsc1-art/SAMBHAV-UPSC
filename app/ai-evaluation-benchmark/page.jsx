@@ -242,6 +242,56 @@ export default function AIEvaluationBenchmarkPage() {
         </div>
         {!records.length && !loading && !error && <p style={{ ...mutedText, fontSize: 10, margin: "8px 2px 20px" }}>Metric cards are intentionally blank until verified data exists. No synthetic or illustrative numbers are presented as results.</p>}
 
+        {/* Copy image comparison stays visible even while the benchmark dataset is empty. */}
+        <Card style={{ marginTop: 20 }}>
+          <SectionTitle note="The same answer can be reviewed against the institute/reference-marked copy. Images appear only when eligible records include consented image URLs.">
+            Copy Image Comparison
+          </SectionTitle>
+          <div style={grid}>
+            {[
+              {
+                title: "Your Original Answer Copy",
+                subtitle: "Candidate handwritten answer",
+                images: selected?.candidate_copy_images,
+                empty: "Candidate copy image not available yet.",
+              },
+              {
+                title: "Institute / Human-Checked Copy",
+                subtitle: "Reference evaluator's checked copy",
+                images: selected?.institute_copy_images,
+                empty: "Institute-checked copy image not available yet.",
+              },
+            ].map((item) => {
+              const images = Array.isArray(item.images)
+                ? item.images.map((entry) => typeof entry === "string" ? entry : entry?.url).filter((url) => typeof url === "string" && /^https:\/\//i.test(url))
+                : [];
+              return (
+                <article key={item.title} style={{ border: `1px solid ${palette.border}`, borderRadius: 16, padding: 12, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900 }}>{item.title}</div>
+                  <p style={{ ...mutedText, fontSize: 10, margin: "4px 0 10px" }}>{item.subtitle}</p>
+                  {images.length ? (
+                    <div style={{ display: "grid", gap: 9 }}>
+                      {images.map((src, index) => (
+                        <a key={`${item.title}-${index}`} href={src} target="_blank" rel="noreferrer" style={{ display: "block", borderRadius: 11, overflow: "hidden", border: `1px solid ${palette.border}` }}>
+                          <img src={src} alt={`${item.title}, page ${index + 1}`} loading="lazy" style={{ width: "100%", height: "auto", display: "block", objectFit: "contain", background: palette.page }} />
+                          <div style={{ padding: 8, fontSize: 10, fontWeight: 800, color: palette.text }}>Open page {index + 1} ↗</div>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ minHeight: 175, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center", border: `1px dashed ${palette.border}`, borderRadius: 12, padding: 14, background: palette.page }}>
+                      <span aria-hidden="true" style={{ fontSize: 31 }}>▧</span>
+                      <strong style={{ fontSize: 12 }}>{item.empty}</strong>
+                      <span style={{ color: palette.muted, fontSize: 10, lineHeight: 1.5 }}>A consented image URL must be added to a verified benchmark record.</span>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          <p style={{ ...mutedText, fontSize: 10, margin: "10px 0 0" }}>For privacy, only copy images explicitly approved for public benchmark display should be added here.</p>
+        </Card>
+
         {records.length > 0 && selected && <>
           <div style={{ marginTop: 22, marginBottom: 10 }}><Eyebrow>AGGREGATE SCORE SNAPSHOT</Eyebrow></div>
           <div style={smallGrid}>
