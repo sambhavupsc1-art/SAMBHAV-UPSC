@@ -3802,17 +3802,20 @@ const styles = {
 
   tab: {
     border: 0,
-    background:
-      "transparent",
+    background: "transparent",
+    color: "var(--sambhav-soft-text)",
     borderRadius: "12px",
     padding: "12px",
     fontWeight: "700",
     cursor: "pointer",
+    WebkitAppearance: "none",
+    appearance: "none",
   },
 
   activeTab: {
     background: "var(--sambhav-dark-surface)",
     color: "#ffffff",
+    border: "1px solid rgba(223,196,119,.18)",
   },
 
   hero: {
