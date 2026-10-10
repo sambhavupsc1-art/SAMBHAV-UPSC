@@ -61,7 +61,7 @@ export async function GET() {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/ai_evaluation_benchmark?verification_status=eq.verified&consent_public=eq.true&is_public=eq.true&select=id,question,subject,question_type,candidate_answer,maximum_marks,human_score,human_feedback,ai_score,ai_feedback,human_dimensions,ai_dimensions,rubric_version,ai_model_version,evaluated_at,published_at&order=published_at.desc&limit=500`,
+      `${SUPABASE_URL}/rest/v1/ai_evaluation_benchmark?verification_status=eq.verified&consent_public=eq.true&is_public=eq.true&select=id,question,subject,question_type,candidate_answer,candidate_copy_images,institute_copy_images,maximum_marks,human_score,human_feedback,ai_score,ai_feedback,human_dimensions,ai_dimensions,rubric_version,ai_model_version,evaluated_at,published_at&order=published_at.desc&limit=500`,
       {
         headers: {
           apikey: SUPABASE_SECRET_KEY,
@@ -79,7 +79,7 @@ export async function GET() {
         records: [],
         dataStatus: "collecting",
         message: "Benchmark data being collected",
-      });
+      }, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     const rows = await response.json();
