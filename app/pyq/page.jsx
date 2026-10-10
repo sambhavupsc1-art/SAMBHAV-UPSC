@@ -3562,7 +3562,7 @@ function ExplanationPanel({
             borderRadius: "13px",
             border: 0,
             background: "var(--sambhav-dark-surface)",
-            color: "var(--sambhav-surface)",
+            color: "#ffffff",
             fontSize: "12px",
             fontWeight: "800",
             cursor: "pointer",
@@ -3682,7 +3682,7 @@ const styles = {
   page: {
     minHeight: "100vh",
     background: "var(--sambhav-page)",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
   },
@@ -3812,12 +3812,12 @@ const styles = {
 
   activeTab: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
   },
 
   hero: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderRadius: "25px",
     padding: "24px",
     marginBottom: "16px",
@@ -3897,7 +3897,7 @@ const styles = {
 
   filterButtonActive: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderColor: "var(--sambhav-dark-surface)",
   },
 
@@ -3923,7 +3923,7 @@ const styles = {
 
   premiumSection: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderRadius: "18px",
     marginBottom: "16px",
     overflow: "hidden",
@@ -3933,7 +3933,7 @@ const styles = {
     width: "100%",
     border: 0,
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent:
@@ -4013,7 +4013,7 @@ const styles = {
     border:
       "1px solid #2c2c2c",
     background: "#1a1a1a",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderRadius: "11px",
     padding:
       "10px 11px",
@@ -4023,7 +4023,7 @@ const styles = {
 
   premiumTopicActive: {
     background: "var(--sambhav-surface)",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
     borderColor: "var(--sambhav-surface)",
   },
 
@@ -4080,7 +4080,7 @@ const styles = {
     border:
       "1px solid #333",
     background: "#1b1b1b",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     fontSize: "17px",
     lineHeight: "1",
     cursor: "pointer",
@@ -4169,7 +4169,7 @@ const styles = {
 
   gs4ActiveTab: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
   },
 
   statsRow: {
@@ -4186,7 +4186,7 @@ const styles = {
     border: 0,
     borderRadius: "12px",
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     padding:
       "11px 15px",
     fontWeight: "700",
@@ -4197,7 +4197,7 @@ const styles = {
     border: 0,
     borderRadius: "12px",
     background: "var(--sambhav-surface)",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
     padding:
       "11px 18px",
     fontWeight: "700",
@@ -4353,7 +4353,7 @@ const styles = {
     border: 0,
     borderRadius: "7px",
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     fontSize: "9px",
     fontWeight: "900",
     cursor: "pointer",
@@ -4365,7 +4365,7 @@ const styles = {
     borderRadius: "11px",
     border: "1px solid #ddd",
     background: "var(--sambhav-surface)",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
     fontSize: "19px",
     fontWeight: "800",
     cursor: "pointer",
@@ -4373,7 +4373,7 @@ const styles = {
 
   gridButtonActive: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderColor: "var(--sambhav-dark-surface)",
   },
 
@@ -4459,13 +4459,13 @@ const styles = {
 
   gridQuestionActive: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderColor: "var(--sambhav-dark-surface)",
   },
 
   gridQuestionAnswered: {
     background: "var(--sambhav-soft)",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
     borderColor: "#ccc",
   },
 
@@ -4588,7 +4588,7 @@ const styles = {
 
   translationOptionActive: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
   },
 
   translationLabel: {
@@ -4628,7 +4628,7 @@ const styles = {
   },
 
   explanationStatusCorrect: {
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
   },
 
   explanationStatusWrong: {
@@ -4640,7 +4640,7 @@ const styles = {
     height: "24px",
     borderRadius: "50%",
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4657,7 +4657,7 @@ const styles = {
     fontSize: "13px",
     fontWeight: "900",
     marginBottom: "8px",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
   },
 
   explanationBody: {
@@ -4679,7 +4679,7 @@ const styles = {
     fontSize: "12px",
     fontWeight: "900",
     marginBottom: "9px",
-    color: "var(--sambhav-dark-surface)",
+    color: "var(--sambhav-text)",
   },
 
   keywordList: {
@@ -4720,7 +4720,7 @@ const styles = {
 
   resultCard: {
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     borderRadius: "24px",
     padding: "25px",
     textAlign: "center",
@@ -4759,7 +4759,7 @@ const styles = {
     minWidth: "40px",
     borderRadius: "13px",
     background: "var(--sambhav-dark-surface)",
-    color: "var(--sambhav-surface)",
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent:
