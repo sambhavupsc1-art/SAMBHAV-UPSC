@@ -115,6 +115,8 @@ function mapPYQ(row, index, sourceIndex) {
 
     year: Number(row.year),
 
+    question_number: row.question_number || row.question_no || row.q_no || null,
+
     paper: String(row.paper || "").trim(),
 
     topic: row.topic
