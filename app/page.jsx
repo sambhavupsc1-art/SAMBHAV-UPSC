@@ -2208,8 +2208,36 @@ export default function Home() {
             ))}
           </nav>
 
-          {/* Hero */}
-          <section style={{ textAlign: "center", marginBottom: "48px", padding: "34px 22px 32px", borderRadius: "26px", background: preview.heroBg, border: `1px solid ${preview.heroBorder}`, boxShadow: darkPreview ? "0 18px 50px rgba(0,0,0,0.20)" : "0 18px 45px rgba(31,42,55,0.07)" }}>
+          {/* AI Evaluation Trust Benchmark Hero — dashboard only */}
+          <section
+            role="link"
+            tabIndex={0}
+            aria-label="Open AI Evaluation Trust Benchmark"
+            onClick={() => {
+              window.location.href = "/ai-evaluation-benchmark";
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                window.location.href = "/ai-evaluation-benchmark";
+              }
+            }}
+            style={{
+              textAlign: "center",
+              marginBottom: "48px",
+              padding: "34px 22px 32px",
+              borderRadius: "26px",
+              background: preview.premiumBg,
+              border: `1px solid ${preview.premiumBorder}`,
+              boxShadow: darkPreview
+                ? "0 18px 50px rgba(0,0,0,0.20)"
+                : "0 18px 45px rgba(31,42,55,0.07)",
+              cursor: "pointer",
+              position: "relative",
+              overflow: "hidden",
+              outlineOffset: "4px",
+            }}
+          >
             <div
               style={{
                 display: "inline-flex",
@@ -2226,35 +2254,97 @@ export default function Home() {
                 letterSpacing: "1.7px",
               }}
             >
-              ✦ YOUR SAMBHAV WORKSPACE
+              ✦ TRUST & VALIDATION
             </div>
 
             <h1
               style={{
                 margin: "18px auto 0",
-                maxWidth: "620px",
-                fontSize: "clamp(34px, 7vw, 58px)",
-                lineHeight: 1.02,
-                letterSpacing: "-2.4px",
+                maxWidth: "650px",
+                fontSize: "clamp(32px, 7vw, 54px)",
+                lineHeight: 1.05,
+                letterSpacing: "-2px",
                 fontWeight: 950,
               }}
             >
-              Prepare with clarity.
+              AI vs Human.
               <br />
-              <span style={{ color: preview.gold }}>Perform with SAMBHAV.</span>
+              <span style={{ color: preview.gold }}>
+                Measure the Difference.
+              </span>
             </h1>
 
             <p
               style={{
-                maxWidth: "520px",
+                maxWidth: "540px",
                 margin: "20px auto 0",
                 color: preview.heroMuted,
                 fontSize: "13px",
-                lineHeight: 1.7,
+                lineHeight: 1.8,
               }}
             >
-              Your complete UPSC preparation ecosystem — designed for focused,
-              structured and consistent preparation.
+              Explore SAMBHAV UPSC's AI Evaluation Trust Benchmark through
+              verified human comparisons, score agreement, and a transparent
+              evaluation methodology.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                gap: "8px",
+                marginTop: "22px",
+              }}
+            >
+              {["Human Comparison", "Score Agreement", "Transparent Methodology"].map(
+                (item) => (
+                  <span
+                    key={item}
+                    style={{
+                      padding: "9px 12px",
+                      borderRadius: "999px",
+                      background: preview.card,
+                      border: `1px solid ${preview.line}`,
+                      color: preview.text,
+                      fontSize: "9px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {item}
+                  </span>
+                )
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                marginTop: "25px",
+                padding: "13px 19px",
+                borderRadius: "14px",
+                background: preview.buttonBg,
+                color: preview.buttonText,
+                fontSize: "11px",
+                fontWeight: 900,
+              }}
+            >
+              Explore Benchmark <span aria-hidden="true">→</span>
+            </div>
+
+            <p
+              style={{
+                margin: "13px 0 0",
+                color: preview.soft,
+                fontSize: "9px",
+                lineHeight: 1.6,
+              }}
+            >
+              Benchmark results depend on verified records; no unverified
+              accuracy claims are displayed.
             </p>
           </section>
 
