@@ -57,6 +57,13 @@ If handwriting is unclear:
 - explicitly mention uncertainty
 - evaluate only what can reasonably be read
 
+TRANSCRIPTION FOR THE CANDIDATE'S HISTORY:
+- Return a top-level JSON field named candidate_answer_transcription.
+- Transcribe the candidate's readable answer across all pages in order, preserving paragraph breaks where practical.
+- Do not include the question in this transcription.
+- Mark genuinely unreadable words as [unclear] / [अस्पष्ट] according to the dominant language.
+- Never fill gaps with guessed content or silently improve the candidate's wording.
+
 Evaluate at genuine UPSC Mains level.
 
 Do not give arbitrary praise.
@@ -797,6 +804,10 @@ const EVALUATION_SCHEMA = {
     quality_level: { type: "string" },
     word_count_assessment: { type: "string" },
 
+    candidate_answer_transcription: {
+      type: "string",
+    },
+
     examiner_summary: {
       type: "string",
     },
@@ -827,6 +838,7 @@ const EVALUATION_SCHEMA = {
     "model_answer",
     "quality_level",
     "word_count_assessment",
+    "candidate_answer_transcription",
     "examiner_summary",
   ],
 };
@@ -1370,6 +1382,7 @@ ${imageFiles.length}
 The supplied images are pages of ONE continuous answer, in the order provided.
 Read every page before evaluating. Reconstruct only text that can reasonably be read.
 Flag uncertain handwriting/OCR and do not invent the candidate's wording.
+Include the full readable transcription in candidate_answer_transcription. Keep it separate from the question, model answer and examiner feedback. Use [unclear] / [अस्पष्ट] for unreadable words instead of guessing.
 
 MANDATORY EVALUATION:
 1. Decode the directive, core demand, sub-demands, scope, expected approach and common traps.
