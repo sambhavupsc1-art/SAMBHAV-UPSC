@@ -631,6 +631,17 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
+        :global(html) { scroll-behavior: smooth; }
+        :global(button), :global(input), :global(select), :global(textarea) { font: inherit; }
+        :global(button) { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, opacity .16s ease; }
+        :global(button:hover:not(:disabled)) { transform: translateY(-1px); }
+        :global(button:focus-visible), :global(input:focus-visible), :global(select:focus-visible), :global(textarea:focus-visible) { outline: 2px solid #c4a45d; outline-offset: 3px; }
+        :global(button:disabled) { opacity: .58; cursor: not-allowed !important; }
+        .sambhav-user-card { border-radius: 20px !important; border: 1px solid rgba(25,25,25,.09) !important; box-shadow: 0 8px 22px rgba(20,20,20,.045) !important; transition: transform .18s ease, box-shadow .18s ease !important; }
+        .sambhav-user-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(20,20,20,.08) !important; }
+        .sambhav-user-identity { min-width: 0; }
+        .sambhav-content-upload { box-shadow: 0 16px 36px rgba(20,20,20,.055) !important; }
+        .sambhav-content-upload input, .sambhav-content-upload select, .sambhav-content-upload textarea { border-radius: 12px !important; }
         @media (max-width: 760px) {
           .sambhav-content-upload { padding: 16px !important; }
           .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
@@ -2525,6 +2536,7 @@ function PendingUserCard({
   return (
     <div
       style={styles.userCard}
+      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -2629,6 +2641,7 @@ function JoinedUserCard({
           ? styles.premiumUserCard
           : {}),
       }}
+      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -2709,6 +2722,7 @@ function BannedUserCard({
   return (
     <div
       style={styles.userCard}
+      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -3209,17 +3223,17 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg,#f6f6f3 0%,#eeeeeb 100%)",
+      "radial-gradient(circle at 8% 0%,rgba(214,189,121,.16),transparent 26%),linear-gradient(180deg,#f7f5ef 0%,#eeece5 100%)",
     color: "#111",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
-      "24px 16px 60px",
+      "22px 18px 64px",
   },
 
   container: {
     width: "100%",
-    maxWidth: "1240px",
+    maxWidth: "1320px",
     margin: "0 auto",
   },
 
@@ -3230,7 +3244,7 @@ const styles = {
     alignItems: "center",
     gap: "20px",
     marginBottom:
-      "28px",
+      "24px",
   },
 
   headerRight: {
@@ -4168,10 +4182,10 @@ const styles = {
 
   premiumOverview: {
     background:
-      "linear-gradient(135deg,#171717,#292929)",
+      "linear-gradient(135deg,#0d0e12 0%,#191a20 58%,#26251f 100%)",
     color: "#fff",
-    borderRadius: "23px",
-    padding: "25px",
+    borderRadius: "26px",
+    padding: "28px",
     marginBottom: "15px",
     display: "flex",
     justifyContent:
@@ -4264,12 +4278,12 @@ const styles = {
     whiteSpace: "nowrap",
   },
   contentUploadSection: {
-    background: "#fff",
-    border: "1px solid #e6e9ef",
-    borderRadius: "20px",
-    padding: "24px",
+    background: "#fffdf8",
+    border: "1px solid rgba(155,123,47,.18)",
+    borderRadius: "24px",
+    padding: "25px",
     margin: "0 0 22px",
-    boxShadow: "0 8px 28px rgba(20,30,50,.045)",
+    boxShadow: "0 16px 38px rgba(20,20,18,.065)",
     scrollMarginTop: "20px",
   },
   contentUploadHeader: {
