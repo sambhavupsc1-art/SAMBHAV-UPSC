@@ -2073,6 +2073,65 @@ export default function CurrentAffairsPage() {
           margin-bottom: 0;
         }
 
+        .ca-exam-section {
+          margin-top: 22px;
+          min-width: 0;
+        }
+
+        .ca-exam-section > h3 {
+          margin: 0 0 12px;
+          padding: 12px 14px;
+          border-left: 3px solid #b89445;
+          border-radius: 0 10px 10px 0;
+          background: var(--ca-soft, #f5f6f8);
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+
+        .ca-exam-section .content-block {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+          word-break: normal;
+          line-height: 1.85;
+        }
+
+        .ca-exam-main .content-block {
+          padding: 18px;
+        }
+
+        .ca-exam-subsection {
+          margin-top: 14px;
+          min-width: 0;
+        }
+
+        .ca-exam-subsection > strong,
+        .ca-exam-question > strong {
+          display: block;
+          margin: 0 0 9px;
+        }
+
+        .ca-exam-question {
+          margin-top: 14px;
+          padding: 16px;
+          border: 1px solid var(--ca-border, #dfe3e8);
+          border-radius: 13px;
+          background: var(--ca-soft, #f5f6f8);
+          min-width: 0;
+        }
+
+        .ca-exam-question .content-block {
+          background: transparent !important;
+          border: 0 !important;
+          padding: 0 !important;
+        }
+
+        html[data-sambhav-theme="dark"] .ca-exam-section > h3,
+        html[data-sambhav-theme="dark"] .ca-exam-question {
+          background: #222735;
+          color: #edf0f6;
+          border-color: rgba(255,255,255,.12);
+        }
+
         .modal-important {
           margin-top: 12px;
         }
@@ -3204,11 +3263,6 @@ function ArticleModal({
       : item.ethics_angle_en) ||
     "";
 
-  const isTheHindu =
-    String(item?.source_name || "")
-      .toLowerCase()
-      .includes("the hindu");
-
   return (
     <div
       className={
@@ -3242,21 +3296,6 @@ function ArticleModal({
           Source: {item.source_name || "Not specified"}
         </p>
 
-        {isTheHindu &&
-          item.headline_image_url && (
-            <div className="the-hindu-headline-cut">
-              <div className="the-hindu-headline-label">
-                THE HINDU
-              </div>
-
-              <img
-                src={item.headline_image_url}
-                alt="The Hindu newspaper headline"
-                className="the-hindu-headline-image"
-                loading="lazy"
-              />
-            </div>
-          )}
 
         {item.source_url && (
           <a
@@ -3272,100 +3311,83 @@ function ArticleModal({
         )}
 
         {why && (
-          <>
-            <h3>Why in News</h3>
-            <p>{why}</p>
-          </>
+          <section className="ca-exam-section">
+            <h3>{hi ? "1. खबर में क्यों?" : "1. Why in News"}</h3>
+            <div className="content-block">{why}</div>
+          </section>
         )}
 
         {background && (
-          <>
-            <h3>Background</h3>
-            <p>{background}</p>
-          </>
-        )}
-
-        {facts && (
-          <>
-            <h3>Key Facts</h3>
-            <div className="content-block">
-              {facts}
-            </div>
-          </>
-        )}
-
-        {prelims && (
-          <>
-            <h3>Prelims Focus</h3>
-            <div className="content-block">
-              {prelims}
-            </div>
-          </>
+          <section className="ca-exam-section">
+            <h3>{hi ? "2. पृष्ठभूमि एवं संदर्भ" : "2. Background & Context"}</h3>
+            <div className="content-block">{background}</div>
+          </section>
         )}
 
         {mains && (
-          <>
-            <h3>Mains Analysis</h3>
-            <div
-              className="content-block ca-mains-analysis-content"
-              style={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}
-            >
+          <section className="ca-exam-section ca-exam-main">
+            <h3>{hi ? "3. विस्तृत UPSC विश्लेषण" : "3. Detailed UPSC Analysis"}</h3>
+            <div className="content-block ca-mains-analysis-content">
               {mains}
             </div>
-          </>
+          </section>
+        )}
+
+        {(prelims || facts || mcq) && (
+          <section className="ca-exam-section">
+            <h3>{hi ? "4. Prelims Booster" : "4. Prelims Booster"}</h3>
+            {prelims && <div className="content-block">{prelims}</div>}
+            {facts && (
+              <div className="ca-exam-subsection">
+                <strong>{hi ? "त्वरित तथ्य" : "Key Facts"}</strong>
+                <div className="content-block">{facts}</div>
+              </div>
+            )}
+            {mcq && (
+              <div className="ca-exam-question">
+                <strong>{hi ? "अभ्यास MCQ" : "Practice MCQ"}</strong>
+                <div className="content-block">{mcq}</div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {(mainsQuestion || premium || pyqs) && (
+          <section className="ca-exam-section">
+            <h3>{hi ? "5. Mains Answer Enrichment" : "5. Mains Answer Enrichment"}</h3>
+            {mainsQuestion && (
+              <div className="ca-exam-subsection">
+                <strong>{hi ? "संभावित Mains प्रश्न" : "Probable Mains Question"}</strong>
+                <div className="content-block">{mainsQuestion}</div>
+              </div>
+            )}
+            {premium && (
+              <div className="premium-box">
+                <strong>{hi ? "उत्तर में उपयोगी तथ्य" : "Answer Enrichment Fact"}</strong>
+                <p>{premium}</p>
+              </div>
+            )}
+            {pyqs && (
+              <div className="ca-exam-subsection">
+                <strong>{hi ? "संबंधित वास्तविक UPSC PYQ" : "Related Authentic UPSC PYQ"}</strong>
+                <div className="content-block">{pyqs}</div>
+              </div>
+            )}
+          </section>
         )}
 
         {item.static_link && (
-          <>
-            <h3>Static Link</h3>
-            <p>{item.static_link}</p>
-          </>
-        )}
-
-        {pyqs && (
-          <>
-            <h3>Related PYQs</h3>
-            <div className="content-block">
-              {pyqs}
-            </div>
-          </>
-        )}
-
-        {mcq && (
-          <>
-            <h3>Possible Prelims MCQ</h3>
-            <div className="content-block">
-              {mcq}
-            </div>
-          </>
-        )}
-
-        {mainsQuestion && (
-          <>
-            <h3>Possible Mains Question</h3>
-
-            <div className="content-block">
-              {mainsQuestion}
-            </div>
-          </>
+          <section className="ca-exam-section">
+            <h3>{hi ? "6. Static Syllabus Link" : "6. Static Syllabus Link"}</h3>
+            <div className="content-block">{item.static_link}</div>
+          </section>
         )}
 
         {ethics && (
-          <>
+          <section className="ca-exam-section">
             <h3>GS-IV Ethics</h3>
-
-            <div className="content-block">
-              {ethics}
-            </div>
-          </>
-        )}
-
-        {premium && (
-          <div className="premium-box">
-            <strong>🔥 Premium Fact</strong>
-
-            <p>{premium}</p>
-          </div>
+            <div className="content-block">{ethics}</div>
+          </section>
         )}
 
         <button
