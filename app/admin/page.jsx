@@ -631,17 +631,6 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
-        :global(html) { scroll-behavior: smooth; }
-        :global(button), :global(input), :global(select), :global(textarea) { font: inherit; }
-        :global(button) { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, opacity .16s ease; }
-        :global(button:hover:not(:disabled)) { transform: translateY(-1px); }
-        :global(button:focus-visible), :global(input:focus-visible), :global(select:focus-visible), :global(textarea:focus-visible) { outline: 2px solid #c4a45d; outline-offset: 3px; }
-        :global(button:disabled) { opacity: .58; cursor: not-allowed !important; }
-        .sambhav-user-card { border-radius: 20px !important; border: 1px solid rgba(25,25,25,.09) !important; box-shadow: 0 8px 22px rgba(20,20,20,.045) !important; transition: transform .18s ease, box-shadow .18s ease !important; }
-        .sambhav-user-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(20,20,20,.08) !important; }
-        .sambhav-user-identity { min-width: 0; }
-        .sambhav-content-upload { box-shadow: 0 16px 36px rgba(20,20,20,.055) !important; }
-        .sambhav-content-upload input, .sambhav-content-upload select, .sambhav-content-upload textarea { border-radius: 12px !important; }
         @media (max-width: 760px) {
           .sambhav-content-upload { padding: 16px !important; }
           .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
@@ -989,6 +978,36 @@ export default function AdminPage() {
         .sambhav-quick-actions button i { font-style:normal; color:#858b98; font-size:20px; }
         @media(max-width:850px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr); } }
         @media(max-width:520px) { .sambhav-command-panel { padding:14px; } .sambhav-donut-layout { gap:14px; } .sambhav-donut { width:118px; height:118px; flex-basis:118px; } .sambhav-donut:before { inset:10px; } .sambhav-legend { min-width:110px; } }
+
+        /* SAMBHAV dashboard-aligned polish: compact records, accessible controls, responsive metrics. */
+        .sambhav-page button, .sambhav-page input, .sambhav-page select, .sambhav-page textarea { font: inherit; }
+        .sambhav-page button { transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; }
+        .sambhav-page button:not(:disabled):hover { transform: translateY(-1px); }
+        .sambhav-page button:focus-visible, .sambhav-page input:focus-visible, .sambhav-page select:focus-visible, .sambhav-page textarea:focus-visible { outline: 3px solid rgba(160,125,50,.34); outline-offset: 2px; }
+        .sambhav-overview { background: rgba(255,253,249,.94) !important; border-color: #e5dece !important; box-shadow: 0 12px 34px rgba(42,35,20,.055) !important; }
+        .sambhav-overview-metric, .sambhav-overview-content-card { background: #fffdf9 !important; border-color: #e9e2d3 !important; }
+        .sambhav-overview-dot.purple { background: #a58a4a !important; }
+        .sambhav-overview-dot.blue { background: #9c8a64 !important; }
+        .sambhav-overview-dot.green { background: #64856c !important; }
+        .sambhav-overview-dot.red { background: #b87568 !important; }
+        .sambhav-overview-dot.amber { background: #c7a85d !important; }
+        .sambhav-user-card-actions button { min-height: 36px; padding: 8px 12px !important; border-radius: 10px !important; font-size: 12px !important; }
+        .sambhav-account-details { gap: 8px !important; }
+        .sambhav-info-item { min-width: 0; border-radius: 10px !important; }
+        .sambhav-content-upload { border: 1px solid #e5dece !important; box-shadow: 0 12px 34px rgba(42,35,20,.045); }
+        .sambhav-command-panel { border-color: #e5dece !important; box-shadow: 0 8px 24px rgba(42,35,20,.035); }
+        @media (max-width: 900px) {
+          .sambhav-overview-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+          .sambhav-overview-content-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+        }
+        @media (max-width: 600px) {
+          .sambhav-overview { padding: 15px !important; border-radius: 17px !important; }
+          .sambhav-overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+          .sambhav-overview-content-grid { grid-template-columns: 1fr !important; }
+          .sambhav-overview-heading { align-items: flex-start !important; }
+          .sambhav-overview-updated { margin-left: 0 !important; width: 100%; }
+          .sambhav-user-card-actions { gap: 8px !important; }
+        }
 
             `}</style>
 
@@ -2536,7 +2555,6 @@ function PendingUserCard({
   return (
     <div
       style={styles.userCard}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -2641,7 +2659,6 @@ function JoinedUserCard({
           ? styles.premiumUserCard
           : {}),
       }}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -2722,7 +2739,6 @@ function BannedUserCard({
   return (
     <div
       style={styles.userCard}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
@@ -3223,17 +3239,17 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at 8% 0%,rgba(214,189,121,.16),transparent 26%),linear-gradient(180deg,#f7f5ef 0%,#eeece5 100%)",
-    color: "#111",
+      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#f5f2eb 0%,#eeeae1 100%)",
+    color: "#171613",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
-      "22px 18px 64px",
+      "24px 16px 60px",
   },
 
   container: {
     width: "100%",
-    maxWidth: "1320px",
+    maxWidth: "1360px",
     margin: "0 auto",
   },
 
@@ -3244,7 +3260,7 @@ const styles = {
     alignItems: "center",
     gap: "20px",
     marginBottom:
-      "24px",
+      "28px",
   },
 
   headerRight: {
@@ -3863,10 +3879,10 @@ const styles = {
   ======================================================= */
 
   userCard: {
-    padding: "22px 24px",
-    borderBottom:
-      "1px solid #ecebe7",
-    background: "#fff",
+    padding: "14px 16px",
+    borderBottom: "1px solid #e9e4d8",
+    background: "#fffdf9",
+    transition: "background .18s ease, box-shadow .18s ease",
   },
 
   premiumUserCard: {
@@ -3880,30 +3896,30 @@ const styles = {
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: "17px",
+    gap: "10px",
   },
 
   userMain: {
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: "17px",
+    gap: "10px",
     minWidth: 0,
   },
 
   userIdentity: {
     width: "100%",
     display: "flex",
-    alignItems: "flex-start",
-    gap: "14px",
+    alignItems: "center",
+    gap: "11px",
     minWidth: 0,
   },
 
   avatar: {
-    width: "48px",
-    height: "48px",
+    width: "40px",
+    height: "40px",
     flexShrink: 0,
-    borderRadius: "14px",
+    borderRadius: "12px",
     background:
       "linear-gradient(145deg,#111,#333)",
     color: "#fff",
@@ -4182,10 +4198,10 @@ const styles = {
 
   premiumOverview: {
     background:
-      "linear-gradient(135deg,#0d0e12 0%,#191a20 58%,#26251f 100%)",
+      "linear-gradient(135deg,#171717,#292929)",
     color: "#fff",
-    borderRadius: "26px",
-    padding: "28px",
+    borderRadius: "23px",
+    padding: "25px",
     marginBottom: "15px",
     display: "flex",
     justifyContent:
@@ -4278,12 +4294,12 @@ const styles = {
     whiteSpace: "nowrap",
   },
   contentUploadSection: {
-    background: "#fffdf8",
-    border: "1px solid rgba(155,123,47,.18)",
-    borderRadius: "24px",
-    padding: "25px",
+    background: "#fff",
+    border: "1px solid #e6e9ef",
+    borderRadius: "20px",
+    padding: "24px",
     margin: "0 0 22px",
-    boxShadow: "0 16px 38px rgba(20,20,18,.065)",
+    boxShadow: "0 8px 28px rgba(20,30,50,.045)",
     scrollMarginTop: "20px",
   },
   contentUploadHeader: {
