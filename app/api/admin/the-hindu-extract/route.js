@@ -142,6 +142,8 @@ async function storage(path, options = {}) {
 function normalizeWhitespace(value) {
   return String(value || "")
     .replace(/\r/g, "")
+    // Join words split by a PDF line-wrap hyphen (e.g. "govern-\nment").
+    .replace(/-\n(?=[a-z])/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -283,13 +285,12 @@ function score(text) {
 function looksHeadline(value) {
   const text = cleanText(value);
 
-  if (text.length < 20 || text.length > 220) {
-    return false;
-  }
+  if (text.length < 24 || text.length > 180) return false;
+  if (!/[a-z]{3}/i.test(text)) return false;
+  if (text.split(/\s+/).length < 4) return false;
 
   const normalized = text.toLowerCase();
-
-  return ![
+  if ([
     "the hindu",
     "advertisement",
     "advertising",
@@ -301,7 +302,13 @@ function looksHeadline(value) {
     "page ",
     "copyright",
     "all rights reserved",
-  ].some((term) => normalized.includes(term));
+  ].some((term) => normalized.includes(term))) return false;
+
+  // Reject typical mid-sentence PDF fragments that previously became headlines.
+  if (/[,:;\-]$/.test(text)) return false;
+  if (/\b(and|or|but|of|to|for|with|from|in|on|at|by|the|a|an|as)\.?$/i.test(text)) return false;
+  if (/^(and|or|but|of|to|for|with|from|in|on|at|by|the)\b/i.test(text)) return false;
+  return true;
 }
 
 function isBoilerplate(value) {
@@ -348,7 +355,7 @@ function splitTextIntoWindows(text) {
       continue;
     }
 
-    if (length + paragraph.length > 2600 && current.length) {
+    if (length + paragraph.length > 4200 && current.length) {
       windows.push(current.join("\n\n"));
       current = [];
       length = 0;
@@ -363,10 +370,10 @@ function splitTextIntoWindows(text) {
   }
 
   // Fallback for PDFs whose text has few paragraph breaks.
-  if (windows.length < 2 && normalized.length > 2600) {
+  if (windows.length < 2 && normalized.length > 4200) {
     const fallback = [];
-    const windowSize = 3200;
-    const stride = 2200;
+    const windowSize = 4800;
+    const stride = 3600;
 
     for (
       let start = 0;
@@ -395,18 +402,22 @@ function findHeadline(lines) {
 
   if (!candidates.length) return null;
 
-  // Prefer a meaningful headline over a short section label.
-  return candidates.sort((a, b) => {
-    const scoreA =
-      Math.min(a.length, 110) +
-      (/[,:?]/.test(a) ? 4 : 0);
+  // Prefer complete, headline-like lines over long sentence fragments.
+  function headlineScore(value) {
+    const words = value.split(/\s+/);
+    let points = Math.min(value.length, 100) / 5;
+    if (/^[A-Z“'“]/.test(value)) points += 2;
+    if (/[.!?]$/.test(value)) points -= 4;
+    if (/[,:;\-]$/.test(value)) points -= 10;
+    if (/\b(and|or|but|of|to|for|with|from|in|on|at|by|the|a|an|as)$/i.test(value)) points -= 12;
+    if (words.length >= 5 && words.length <= 18) points += 3;
+    if (words.length > 24) points -= 8;
+    return points;
+  }
 
-    const scoreB =
-      Math.min(b.length, 110) +
-      (/[,:?]/.test(b) ? 4 : 0);
-
-    return scoreB - scoreA;
-  })[0];
+  return candidates.sort(
+    (a, b) => headlineScore(b) - headlineScore(a)
+  )[0];
 }
 
 function candidatesFromText(text) {
@@ -462,16 +473,26 @@ function candidatesFromText(text) {
         normalizeForMatch(line) === normalizedHeadline
     );
 
-    const subheadline =
-      headlineIndex >= 0
-        ? lines[headlineIndex + 1] || ""
-        : "";
+    if (headlineIndex < 0) continue;
+
+    const articleLines = lines.slice(headlineIndex);
+    const articleText = articleLines.join("\n").trim();
+    const bodyText = articleLines.slice(1).join(" ").trim();
+
+    // Do not send tiny headline-only windows or obviously fragmented snippets to AI.
+    const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+    const sentenceCount = (bodyText.match(/[.!?](?:[”’"')\]]?)(?:\s|$)/g) || []).length;
+    const brokenLineCount = (bodyText.match(/(?:^|\s)[a-z]{1,3}[-,;:]?\s*$/gim) || []).length;
+    if (bodyText.length < 280 || wordCount < 45) continue;
+    if (brokenLineCount >= 5 && sentenceCount < 2) continue;
+
+    const subheadline = articleLines[1] || "";
 
     found.push({
       title: headline,
       original_headline: headline,
       original_subheadline: subheadline,
-      content: windowText.slice(0, 14000),
+      content: articleText.slice(0, 14000),
       relevanceScore,
     });
   }
