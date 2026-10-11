@@ -1,380 +1,461 @@
+"use client";
 
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import crypto from "crypto";
+import { useCallback, useEffect, useState } from "react";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+const METRICS = [
+  {
+    key: "users",
+    label: "Total Users",
+    note: "Registered accounts",
+    color: "blue",
+  },
+  {
+    key: "pending_users",
+    label: "Pending",
+    note: "Awaiting approval",
+    color: "amber",
+  },
+  {
+    key: "approved_users",
+    label: "Approved",
+    note: "Approved accounts",
+    color: "green",
+  },
+  {
+    key: "banned_users",
+    label: "Blocked",
+    note: "Restricted accounts",
+    color: "red",
+  },
+  {
+    key: "subscriptions",
+    label: "Subscriptions",
+    note: "Total subscription records",
+    color: "purple",
+  },
+];
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
+const CONTENT_METRICS = [
+  {
+    key: "current_affairs_items",
+    label: "Current Affairs",
+    note: "Database items",
+  },
+  {
+    key: "mains_evaluations",
+    label: "Mains Evaluations",
+    note: "Saved evaluation records",
+  },
+  {
+    key: "prelims_questions",
+    label: "Prelims Questions",
+    note: "Question records",
+  },
+];
 
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SECRET_KEY;
+function MetricCard({ item, metric }) {
+  const available = metric?.available === true;
 
-const AUTH_SESSION_SECRET =
-  process.env.AUTH_SESSION_SECRET;
+  return (
+    <article className="sco-metric">
+      <div className="sco-metric-label">
+        <span className={`sco-dot ${item.color}`} />
+        <span>{item.label}</span>
+      </div>
 
-const NO_STORE_HEADERS = {
-  "Cache-Control": "private, no-store, max-age=0",
-};
+      <strong className="sco-metric-number">
+        {!metric
+          ? "—"
+          : available
+            ? Number(metric.value).toLocaleString("en-IN")
+            : "N/A"}
+      </strong>
 
-function jsonResponse(body, status = 200) {
-  return NextResponse.json(body, {
-    status,
-    headers: NO_STORE_HEADERS,
-  });
-}
-
-/**
- * Verify the existing SAMBHAV signed session format:
- * payload.signature
- */
-function verifyEmailSession(token) {
-  try {
-    if (!token || !AUTH_SESSION_SECRET) {
-      return null;
-    }
-
-    const parts = token.split(".");
-
-    if (parts.length !== 2) {
-      return null;
-    }
-
-    const [payload, signature] = parts;
-
-    const expectedSignature = crypto
-      .createHmac("sha256", AUTH_SESSION_SECRET)
-      .update(payload)
-      .digest("base64url");
-
-    const receivedBuffer = Buffer.from(signature);
-    const expectedBuffer = Buffer.from(expectedSignature);
-
-    if (
-      receivedBuffer.length !== expectedBuffer.length ||
-      !crypto.timingSafeEqual(
-        receivedBuffer,
-        expectedBuffer
-      )
-    ) {
-      return null;
-    }
-
-    const session = JSON.parse(
-      Buffer.from(payload, "base64url").toString("utf8")
-    );
-
-    if (
-      !session?.userId ||
-      !session?.exp ||
-      !Number.isFinite(Number(session.exp)) ||
-      Date.now() > Number(session.exp)
-    ) {
-      return null;
-    }
-
-    return session;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Server-only Supabase REST request.
- * Never expose the service-role key to the browser.
- */
-async function supabaseRequest(path, options = {}) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error("SUPABASE_NOT_CONFIGURED");
-  }
-
-  const baseUrl = SUPABASE_URL.replace(/\/+$/, "");
-  const url = `${baseUrl}/rest/v1/${path}`;
-
-  return fetch(url, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      ...(options.headers || {}),
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(10000),
-  });
-}
-
-/**
- * Verify the signed-in user exists.
- * Uses the same cookie and users table as the existing admin API.
- */
-async function getCurrentUser(userId) {
-  const query = new URLSearchParams({
-    id: `eq.${userId}`,
-    select: "id,email,first_name,username",
-    limit: "1",
-  });
-
-  const response = await supabaseRequest(
-    `users?${query.toString()}`
+      <p>{item.note}</p>
+    </article>
   );
-
-  if (!response.ok) {
-    throw new Error("USER_LOOKUP_FAILED");
-  }
-
-  const users = await response.json();
-
-  return Array.isArray(users) && users.length
-    ? users[0]
-    : null;
 }
 
-/**
- * Admin authorization is based on:
- * admin_users.user_id = users.id
- * admin_users.is_active = true
- */
-async function getActiveAdmin(userId) {
-  const query = new URLSearchParams({
-    user_id: `eq.${userId}`,
-    is_active: "eq.true",
-    select: "id,user_id,first_name,username",
-    limit: "1",
-  });
+export default function AdminOverview() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [updatedAt, setUpdatedAt] = useState(null);
 
-  const response = await supabaseRequest(
-    `admin_users?${query.toString()}`
-  );
-
-  if (!response.ok) {
-    throw new Error("ADMIN_LOOKUP_FAILED");
-  }
-
-  const admins = await response.json();
-
-  return Array.isArray(admins) && admins.length
-    ? admins[0]
-    : null;
-}
-
-/**
- * Return an exact live row count using PostgREST HEAD.
- *
- * A failed query is represented as unavailable (null),
- * never as a genuine zero.
- */
-async function countRows(name, query) {
-  try {
-    const response = await supabaseRequest(
-      `${name}?${query}`,
-      {
-        method: "HEAD",
-        headers: {
-          Prefer: "count=exact",
-          Range: "0-0",
-        },
+  const loadOverview = useCallback(async (silent = false) => {
+    try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
-    );
 
-    if (!response.ok) {
-      console.error(
-        `[ADMIN OVERVIEW] Count unavailable: ${name}`,
-        response.status
-      );
+      setError("");
 
-      return {
-        value: null,
-        available: false,
-      };
+      const response = await fetch("/api/admin/overview", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.success !== true) {
+        throw new Error(
+          result.error || `Request failed (${response.status})`
+        );
+      }
+
+      setData(result);
+      setUpdatedAt(new Date());
+    } catch (err) {
+      console.error("Admin overview:", err);
+      setError(err.message || "Overview load nahi ho paya.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
 
-    const contentRange =
-      response.headers.get("content-range") || "";
+  useEffect(() => {
+    loadOverview();
 
-    const total = contentRange.split("/")[1];
+    const timer = setInterval(() => {
+      loadOverview(true);
+    }, 30000);
 
-    if (
-      !total ||
-      total === "*" ||
-      !Number.isSafeInteger(Number(total)) ||
-      Number(total) < 0
-    ) {
-      return {
-        value: null,
-        available: false,
-      };
-    }
+    return () => clearInterval(timer);
+  }, [loadOverview]);
 
-    return {
-      value: Number(total),
-      available: true,
-    };
-  } catch (error) {
-    console.error(
-      `[ADMIN OVERVIEW] Count request failed: ${name}`,
-      error?.name || "UnknownError"
-    );
+  const metrics = data?.metrics || {};
 
-    return {
-      value: null,
-      available: false,
-    };
-  }
-}
+  return (
+    <section className="sco-root">
+      <style jsx>{`
+        .sco-root {
+          width: 100%;
+          margin: 22px 0 28px;
+          color: #171717;
+        }
 
-export async function GET() {
-  try {
-    if (
-      !SUPABASE_URL ||
-      !SUPABASE_KEY ||
-      !AUTH_SESSION_SECRET
-    ) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Admin overview is not configured.",
-        },
-        500
-      );
-    }
+        .sco-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
 
-    // 1. Read the existing website session.
-    const cookieStore = await cookies();
+        .sco-eyebrow {
+          margin-bottom: 8px;
+          color: #8c867b;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
 
-    const token =
-      cookieStore.get("sambhav_session")?.value;
+        .sco-title {
+          margin: 0;
+          font-size: clamp(24px, 3vw, 32px);
+          line-height: 1.15;
+          letter-spacing: -1px;
+          font-weight: 760;
+        }
 
-    const session = verifyEmailSession(token);
+        .sco-subtitle {
+          margin: 7px 0 0;
+          color: #77746e;
+          font-size: 13px;
+          line-height: 1.5;
+        }
 
-    if (!session?.userId) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Authentication required.",
-        },
-        401
-      );
-    }
+        .sco-refresh {
+          padding: 10px 15px;
+          border: 1px solid #e4e1d9;
+          border-radius: 12px;
+          background: #fff;
+          color: #171717;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          cursor: pointer;
+        }
 
-    // 2. Verify that the account still exists.
-    const user = await getCurrentUser(session.userId);
+        .sco-refresh:disabled {
+          opacity: 0.55;
+          cursor: wait;
+        }
 
-    if (!user) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Account not found.",
-        },
-        401
-      );
-    }
+        .sco-status {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 9px;
+          padding: 11px 13px;
+          margin-bottom: 14px;
+          border: 1px solid #e6e9e0;
+          border-radius: 12px;
+          background: #fafbf7;
+          color: #466747;
+          font-size: 12px;
+        }
 
-    // 3. Require an active admin_users record.
-    const admin = await getActiveAdmin(user.id);
+        .sco-live-dot {
+          width: 7px;
+          height: 7px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #26955b;
+        }
 
-    if (!admin) {
-      return jsonResponse(
-        {
-          success: false,
-          error: "Admin access denied.",
-        },
-        403
-      );
-    }
+        .sco-updated {
+          margin-left: auto;
+          color: #8b8983;
+          font-size: 11px;
+        }
 
-    // 4. Fetch live database counts in parallel.
-    // These are counts, not fabricated analytics.
-    const definitions = [
-      ["users", "users", "select=id"],
-      [
-        "pending_users",
-        "users",
-        "status=eq.pending&select=id",
-      ],
-      [
-        "approved_users",
-        "users",
-        "status=eq.approved&select=id",
-      ],
-      [
-        "banned_users",
-        "users",
-        "status=eq.banned&select=id",
-      ],
-      [
-        "subscriptions",
-        "subscriptions",
-        "select=id",
-      ],
-      [
-        "current_affairs_items",
-        "current_affairs",
-        "select=id",
-      ],
-      [
-        "mains_evaluations",
-        "mains_answer_history",
-        "select=id",
-      ],
-      [
-        "prelims_questions",
-        "prelims_pyqs",
-        "select=id",
-      ],
-    ];
+        .sco-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 11px;
+        }
 
-    const results = await Promise.all(
-      definitions.map(async ([metric, table, query]) => [
-        metric,
-        await countRows(table, query),
-      ])
-    );
+        .sco-metric {
+          min-width: 0;
+          padding: 15px;
+          border: 1px solid #e9e7e0;
+          border-radius: 15px;
+          background: #fff;
+          transition: border-color 160ms ease;
+        }
 
-    const metrics = Object.fromEntries(results);
+        .sco-metric:hover {
+          border-color: #d4c6a4;
+        }
 
-    const unavailableMetrics = Object.entries(metrics)
-      .filter(([, result]) => !result.available)
-      .map(([metric]) => metric);
+        .sco-metric-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #66635d;
+          font-size: 12px;
+          font-weight: 650;
+        }
 
-    return jsonResponse({
-      success: true,
-      generated_at: new Date().toISOString(),
-      source: "live_supabase_counts",
-      admin: {
-        id: admin.id,
-        user_id: user.id,
-        email: user.email || null,
-        first_name:
-          admin.first_name || user.first_name || null,
-        username:
-          admin.username || user.username || null,
-      },
-      metrics,
-      unavailable_metrics: unavailableMetrics,
-      note:
-        "Counts represent live database rows. They do not represent unique active subscribers, verified revenue, feature usage, conversion rates, or application latency.",
-    });
-  } catch (error) {
-    console.error(
-      "[ADMIN OVERVIEW] Request failed:",
-      error?.message || "Unknown error"
-    );
+        .sco-dot {
+          width: 8px;
+          height: 8px;
+          flex-shrink: 0;
+          border-radius: 3px;
+        }
 
-    const isTimeout =
-      error?.name === "TimeoutError" ||
-      error?.name === "AbortError";
+        .sco-dot.blue { background: #4786db; }
+        .sco-dot.amber { background: #d49a35; }
+        .sco-dot.green { background: #299966; }
+        .sco-dot.red { background: #d65c55; }
+        .sco-dot.purple { background: #8863c9; }
 
-    return jsonResponse(
-      {
-        success: false,
-        error: isTimeout
-          ? "Admin overview request timed out."
-          : "Unable to load admin overview.",
-      },
-      isTimeout ? 504 : 500
-    );
-  }
+        .sco-metric-number {
+          display: block;
+          margin: 15px 0 6px;
+          font-size: 30px;
+          line-height: 1;
+          font-weight: 760;
+          letter-spacing: -1px;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .sco-metric p {
+          margin: 0;
+          color: #8a8881;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+
+        .sco-content-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 11px;
+          margin-top: 11px;
+        }
+
+        .sco-content-card {
+          padding: 15px 16px;
+          border: 1px solid #e9e7e0;
+          border-radius: 15px;
+          background: #fff;
+        }
+
+        .sco-content-label {
+          color: #65625c;
+          font-size: 12px;
+          font-weight: 650;
+        }
+
+        .sco-content-number {
+          display: block;
+          margin: 9px 0 5px;
+          font-size: 26px;
+          font-weight: 760;
+          letter-spacing: -0.7px;
+        }
+
+        .sco-content-note {
+          color: #898780;
+          font-size: 11px;
+        }
+
+        .sco-error {
+          padding: 13px;
+          margin-bottom: 12px;
+          border: 1px solid #f0d3cd;
+          border-radius: 12px;
+          background: #fff7f5;
+          color: #9e392f;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .sco-error button {
+          margin-left: 8px;
+          padding: 5px 9px;
+          border: 1px solid #e7c6c0;
+          border-radius: 7px;
+          background: #fff;
+          cursor: pointer;
+        }
+
+        .sco-warning {
+          margin: 12px 0 0;
+          color: #8a6a2b;
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 1050px) {
+          .sco-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 600px) {
+          .sco-heading {
+            align-items: flex-start;
+          }
+
+          .sco-title {
+            font-size: 25px;
+          }
+
+          .sco-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+          }
+
+          .sco-metric {
+            padding: 13px;
+            border-radius: 13px;
+          }
+
+          .sco-metric-number {
+            font-size: 27px;
+          }
+
+          .sco-content-grid {
+            grid-template-columns: 1fr;
+            gap: 9px;
+          }
+
+          .sco-updated {
+            width: 100%;
+            margin-left: 16px;
+          }
+        }
+      `}</style>
+
+      <div className="sco-heading">
+        <div>
+          <div className="sco-eyebrow">SAMBHAV / ADMIN</div>
+          <h2 className="sco-title">Platform Overview</h2>
+          <p className="sco-subtitle">
+            Live data from your SAMBHAV UPSC database
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="sco-refresh"
+          onClick={() => loadOverview()}
+          disabled={loading || refreshing}
+        >
+          {refreshing || loading ? "Loading..." : "↻ Refresh"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="sco-error" role="alert">
+          {error}
+          <button type="button" onClick={() => loadOverview()}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="sco-status">
+        <span className="sco-live-dot" />
+        <span>
+          {data ? "Live database counts" : "Connecting to database"}
+        </span>
+        {updatedAt && (
+          <span className="sco-updated">
+            Updated {updatedAt.toLocaleTimeString("en-IN")}
+          </span>
+        )}
+      </div>
+
+      <div className="sco-grid">
+        {METRICS.map((item) => (
+          <MetricCard
+            key={item.key}
+            item={item}
+            metric={metrics[item.key]}
+          />
+        ))}
+      </div>
+
+      <div className="sco-content-grid">
+        {CONTENT_METRICS.map((item) => {
+          const metric = metrics[item.key];
+
+          return (
+            <article className="sco-content-card" key={item.key}>
+              <div className="sco-content-label">{item.label}</div>
+              <strong className="sco-content-number">
+                {!metric
+                  ? "—"
+                  : metric.available
+                    ? Number(metric.value).toLocaleString("en-IN")
+                    : "N/A"}
+              </strong>
+              <div className="sco-content-note">{item.note}</div>
+            </article>
+          );
+        })}
+      </div>
+
+      {data?.unavailable_metrics?.length > 0 && (
+        <p className="sco-warning">
+          Some metrics could not be retrieved. Check the API response before
+          using those figures.
+        </p>
+      )}
+
+      <p className="sco-warning">
+        Subscription records are not the same as active subscribers or
+        verified revenue. These figures represent database row counts.
+      </p>
+    </section>
+  );
 }
