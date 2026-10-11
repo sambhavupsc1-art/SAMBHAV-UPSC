@@ -9,6 +9,12 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [admin, setAdmin] = useState(null);
 
+  // Live platform overview loaded from the server-authorized overview API.
+  const [overview, setOverview] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState("");
+  const [overviewUpdatedAt, setOverviewUpdatedAt] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
@@ -24,6 +30,47 @@ export default function AdminPage() {
 
   const [notificationCount, setNotificationCount] =
     useState(0);
+
+  /* =========================================================
+     ADMIN OVERVIEW API
+  ========================================================= */
+
+  async function loadOverview(silent = false) {
+    try {
+      if (!silent) setOverviewLoading(true);
+      setOverviewError("");
+
+      const response = await fetch("/api/admin/overview", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Overview load nahi ho paya.");
+      }
+
+      setOverview(data);
+      setOverviewUpdatedAt(new Date());
+    } catch (err) {
+      console.error("Admin overview error:", err);
+      setOverviewError(err.message || "Overview unavailable.");
+    } finally {
+      setOverviewLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadOverview();
+
+    const interval = setInterval(() => {
+      loadOverview(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   /* =========================================================
      INITIAL LOAD
@@ -494,6 +541,213 @@ export default function AdminPage() {
             font-size: 20px !important;
           }
         }
+
+        /* Compact premium live overview */
+        .sambhav-overview {
+          margin: 0 0 26px;
+          padding: 22px;
+          background: #fff;
+          border: 1px solid #e8e6df;
+          border-radius: 22px;
+          box-shadow: 0 8px 28px rgba(20, 22, 25, .035);
+          color: #171717;
+        }
+        .sambhav-overview-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+        .sambhav-overview-eyebrow {
+          margin-bottom: 7px;
+          color: #8c867b;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 1.8px;
+        }
+        .sambhav-overview-title {
+          margin: 0;
+          font-size: clamp(22px, 2.8vw, 29px);
+          line-height: 1.15;
+          letter-spacing: -.8px;
+          font-weight: 780;
+        }
+        .sambhav-overview-subtitle {
+          margin: 6px 0 0;
+          color: #77746e;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .sambhav-overview-refresh {
+          flex-shrink: 0;
+          padding: 10px 13px;
+          border: 1px solid #e4e1d9;
+          border-radius: 11px;
+          background: #fff;
+          color: #171717;
+          font-size: 11px;
+          font-weight: 750;
+          cursor: pointer;
+        }
+        .sambhav-overview-refresh:disabled {
+          opacity: .55;
+          cursor: wait;
+        }
+        .sambhav-overview-status {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 12px;
+          margin-bottom: 12px;
+          border: 1px solid #e6e9e0;
+          border-radius: 11px;
+          background: #fafbf7;
+          color: #466747;
+          font-size: 11px;
+        }
+        .sambhav-overview-live-dot {
+          width: 7px;
+          height: 7px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          background: #26955b;
+        }
+        .sambhav-overview-updated {
+          margin-left: auto;
+          color: #898780;
+          font-size: 10px;
+        }
+        .sambhav-overview-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .sambhav-overview-metric {
+          min-width: 0;
+          padding: 14px;
+          border: 1px solid #e9e7e0;
+          border-radius: 14px;
+          background: #fff;
+        }
+        .sambhav-overview-metric-label {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          color: #66635d;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .sambhav-overview-dot {
+          width: 7px;
+          height: 7px;
+          flex-shrink: 0;
+          border-radius: 3px;
+        }
+        .sambhav-overview-dot.blue { background: #4786db; }
+        .sambhav-overview-dot.amber { background: #d49a35; }
+        .sambhav-overview-dot.green { background: #299966; }
+        .sambhav-overview-dot.red { background: #d65c55; }
+        .sambhav-overview-dot.purple { background: #8863c9; }
+        .sambhav-overview-number {
+          display: block;
+          margin: 14px 0 6px;
+          font-size: clamp(24px, 2.5vw, 30px);
+          line-height: 1;
+          font-weight: 780;
+          letter-spacing: -.8px;
+          font-variant-numeric: tabular-nums;
+        }
+        .sambhav-overview-note {
+          margin: 0;
+          color: #8a8881;
+          font-size: 10px;
+          line-height: 1.5;
+        }
+        .sambhav-overview-content-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 10px;
+        }
+        .sambhav-overview-content-card {
+          padding: 14px 15px;
+          border: 1px solid #e9e7e0;
+          border-radius: 14px;
+          background: #faf9f6;
+        }
+        .sambhav-overview-content-label {
+          color: #65625c;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .sambhav-overview-content-number {
+          display: block;
+          margin: 8px 0 4px;
+          font-size: 24px;
+          font-weight: 780;
+          letter-spacing: -.6px;
+        }
+        .sambhav-overview-error {
+          padding: 11px 12px;
+          margin-bottom: 12px;
+          border: 1px solid #f0d3cd;
+          border-radius: 11px;
+          background: #fff7f5;
+          color: #9e392f;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+        .sambhav-overview-error button {
+          margin-left: 8px;
+          padding: 5px 8px;
+          border: 1px solid #e7c6c0;
+          border-radius: 7px;
+          background: #fff;
+          cursor: pointer;
+        }
+        .sambhav-overview-warning {
+          margin: 11px 0 0;
+          color: #8a6a2b;
+          font-size: 10px;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+          .sambhav-overview-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 600px) {
+          .sambhav-overview {
+            padding: 15px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+          }
+          .sambhav-overview-heading {
+            align-items: flex-start;
+          }
+          .sambhav-overview-title {
+            font-size: 24px;
+          }
+          .sambhav-overview-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+          }
+          .sambhav-overview-metric {
+            padding: 12px;
+            border-radius: 12px;
+          }
+          .sambhav-overview-content-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+          .sambhav-overview-updated {
+            width: 100%;
+            margin-left: 15px;
+          }
+        }
       `}</style>
 
       <div
@@ -765,6 +1019,106 @@ export default function AdminPage() {
             </button>
           </div>
         </header>
+
+        {/* =================================================
+            LIVE PLATFORM OVERVIEW
+        ================================================= */}
+
+        <section className="sambhav-overview">
+          <div className="sambhav-overview-heading">
+            <div>
+              <div className="sambhav-overview-eyebrow">SAMBHAV / ADMIN</div>
+              <h2 className="sambhav-overview-title">Platform Overview</h2>
+              <p className="sambhav-overview-subtitle">
+                Live counts from the SAMBHAV UPSC database
+              </p>
+            </div>
+            <button
+              type="button"
+              className="sambhav-overview-refresh"
+              onClick={() => loadOverview()}
+              disabled={overviewLoading}
+            >
+              {overviewLoading ? "Loading..." : "↻ Refresh"}
+            </button>
+          </div>
+
+          {overviewError && (
+            <div className="sambhav-overview-error" role="alert">
+              {overviewError}
+              <button type="button" onClick={() => loadOverview()}>Retry</button>
+            </div>
+          )}
+
+          <div className="sambhav-overview-status">
+            <span className="sambhav-overview-live-dot" />
+            <span>{overview ? "Live database counts" : "Connecting to database"}</span>
+            {overviewUpdatedAt && (
+              <span className="sambhav-overview-updated">
+                Updated {overviewUpdatedAt.toLocaleTimeString("en-IN")}
+              </span>
+            )}
+          </div>
+
+          <div className="sambhav-overview-grid">
+            {[
+              { key: "users", label: "Total Users", note: "Registered accounts", color: "blue" },
+              { key: "pending_users", label: "Pending", note: "Awaiting approval", color: "amber" },
+              { key: "approved_users", label: "Approved", note: "Approved accounts", color: "green" },
+              { key: "banned_users", label: "Blocked", note: "Restricted accounts", color: "red" },
+              { key: "subscriptions", label: "Subscriptions", note: "Total records, not active subscribers", color: "purple" },
+            ].map((item) => {
+              const metric = overview?.metrics?.[item.key];
+              return (
+                <article className="sambhav-overview-metric" key={item.key}>
+                  <div className="sambhav-overview-metric-label">
+                    <span className={`sambhav-overview-dot ${item.color}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  <strong className="sambhav-overview-number">
+                    {!metric ? "—" : metric.available === false ? "N/A" : Number(metric.value).toLocaleString("en-IN")}
+                  </strong>
+                  <p className="sambhav-overview-note">{item.note}</p>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="sambhav-overview-content-grid">
+            {[
+              { key: "current_affairs_items", label: "Current Affairs", note: "Database items" },
+              { key: "mains_evaluations", label: "Mains Evaluations", note: "Saved evaluation records" },
+              { key: "prelims_questions", label: "Prelims Questions", note: "Question records" },
+            ].map((item) => {
+              const metricAliases = {
+                current_affairs_items: ["current_affairs_items", "current_affairs"],
+                mains_evaluations: ["mains_evaluations", "mains_answer_history"],
+                prelims_questions: ["prelims_questions", "prelims_pyqs"],
+              };
+              const metric = (metricAliases[item.key] || [item.key])
+                .map((key) => overview?.metrics?.[key])
+                .find((value) => value !== undefined && value !== null);
+              return (
+                <article className="sambhav-overview-content-card" key={item.key}>
+                  <div className="sambhav-overview-content-label">{item.label}</div>
+                  <strong className="sambhav-overview-content-number">
+                    {!metric ? "—" : metric.available === false ? "N/A" : Number(metric.value).toLocaleString("en-IN")}
+                  </strong>
+                  <div className="sambhav-overview-note">{item.note}</div>
+                </article>
+              );
+            })}
+          </div>
+
+          {overview?.unavailable_metrics?.length > 0 && (
+            <p className="sambhav-overview-warning">
+              Some metrics are unavailable. Check the API response before relying on those figures.
+            </p>
+          )}
+          <p className="sambhav-overview-warning">
+            Counts are database row counts. Subscription records are not the same as active Premium users or verified revenue.
+          </p>
+        </section>
 
         {/* =================================================
             HERO
