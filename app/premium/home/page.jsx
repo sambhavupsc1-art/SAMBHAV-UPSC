@@ -35,9 +35,9 @@ const modules = [
   },
   {
     title: "Study Material",
-    subtitle: "GS • Notes • Revision",
+    subtitle: "Smart Library • GS • Notes • Revision",
     icon: "📚",
-    route: null,
+    route: "/study-materials",
   },
 ];
 
@@ -1319,19 +1319,21 @@ export default function PremiumHome() {
           {modules.map((module) => (
             <div
               key={module.title}
+              role={module.route ? "link" : undefined}
+              tabIndex={module.route ? 0 : undefined}
+              aria-label={module.route ? `Open ${module.title}` : undefined}
               style={{
                 ...styles.module,
-                opacity: module.route
-                  ? 1
-                  : 0.72,
-                cursor: module.route
-                  ? "pointer"
-                  : "default",
+                opacity: module.route ? 1 : 0.72,
+                cursor: module.route ? "pointer" : "default",
               }}
-              onClick={() =>
-                module.route &&
-                go(module.route)
-              }
+              onClick={() => module.route && go(module.route)}
+              onKeyDown={(event) => {
+                if (module.route && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  go(module.route);
+                }
+              }}
             >
               <div style={styles.icon}>
                 {module.icon}
