@@ -38,6 +38,16 @@ export default function AdminPage() {
   const [contentUploading, setContentUploading] = useState(false);
   const [contentUploadMessage, setContentUploadMessage] = useState("");
 
+  // Persistent Study Material content manager
+  const [libraryItems, setLibraryItems] = useState([]);
+  const [libraryFolders, setLibraryFolders] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryActionBusy, setLibraryActionBusy] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [libraryMessage, setLibraryMessage] = useState("");
+  const [librarySearch, setLibrarySearch] = useState("");
+
+
   // The Hindu newspaper extraction workflow
   const [hinduPdf, setHinduPdf] = useState(null);
   const [hinduDate, setHinduDate] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
@@ -92,6 +102,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadUsers();
+  }, []);
+
+  useEffect(() => {
+    loadContentLibrary();
   }, []);
 
   /* =========================================================
@@ -557,6 +571,88 @@ export default function AdminPage() {
       setContentUploadMessage(err.message || "Content upload failed.");
     } finally {
       setContentUploading(false);
+    }
+  }
+
+  async function loadContentLibrary() {
+    setLibraryLoading(true);
+    setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ action: "list" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Content library could not be loaded.");
+      }
+      setLibraryItems(Array.isArray(data.items) ? data.items : []);
+      setLibraryFolders(Array.isArray(data.folders) ? data.folders : []);
+    } catch (err) {
+      setLibraryMessage(err.message || "Content library could not be loaded.");
+    } finally {
+      setLibraryLoading(false);
+    }
+  }
+
+  async function createContentFolder(event) {
+    event.preventDefault();
+    const name = newFolderName.trim();
+    if (!name) {
+      setLibraryMessage("Enter a folder name first.");
+      return;
+    }
+    setLibraryActionBusy(true);
+    setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create-folder", name }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Folder could not be created.");
+      }
+      setNewFolderName("");
+      setLibraryMessage(`Folder “${data.name}” created in Supabase Storage.`);
+      await loadContentLibrary();
+    } catch (err) {
+      setLibraryMessage(err.message || "Folder could not be created.");
+    } finally {
+      setLibraryActionBusy(false);
+    }
+  }
+
+  async function deleteContentItem(item) {
+    if (!item?.id) return;
+    const confirmed = window.confirm(
+      `Delete “${item.title || "this content"}” from the Study Material library? This removes its database record and attempts to remove its stored file. This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setLibraryActionBusy(true);
+    setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete-content", id: item.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Content could not be deleted.");
+      }
+      setLibraryMessage(data.warning || `Deleted “${item.title || "content"}”.`);
+      await loadContentLibrary();
+    } catch (err) {
+      setLibraryMessage(err.message || "Content could not be deleted.");
+    } finally {
+      setLibraryActionBusy(false);
     }
   }
 
@@ -1644,6 +1740,93 @@ export default function AdminPage() {
           <div style={styles.contentUploadFootnote}>
             Note: this uploads a file to storage. Publishing it into a course or Current Affairs feed requires the corresponding content database integration.
           </div>
+        </section>
+
+        {/* =================================================
+            STUDY MATERIAL CONTENT STUDIO
+        ================================================= */}
+        <section id="sambhav-content-studio" className="sambhav-content-upload" style={{ ...styles.contentUploadSection, marginTop: 24 }}>
+          <div style={styles.contentUploadHeader}>
+            <div>
+              <div style={styles.contentUploadEyebrow}>ADMIN CONTROL CENTER</div>
+              <h2 style={styles.contentUploadTitle}>Content Studio</h2>
+              <p style={styles.contentUploadDescription}>
+                Create persistent storage folders, review published Study Material records, and remove content with confirmation.
+              </p>
+            </div>
+            <div style={styles.contentUploadIcon}>▤</div>
+          </div>
+
+          <form onSubmit={createContentFolder} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "end", marginBottom: 18 }}>
+            <label style={{ display: "block", minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+              Create folder
+              <input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                maxLength={60}
+                placeholder="e.g. Polity, Internal Security, Hindi Notes"
+                style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: "12px 13px", borderRadius: 10, border: "1px solid #d9d0bd", background: "#fffdf9", color: "#151515", fontSize: 13 }}
+              />
+            </label>
+            <button type="submit" disabled={libraryActionBusy} style={{ ...styles.headerButton, minHeight: 42, opacity: libraryActionBusy ? .65 : 1 }}>
+              {libraryActionBusy ? "Working…" : "+ Create Folder"}
+            </button>
+          </form>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+            <div style={{ flex: "1 1 220px", fontSize: 12, color: "#77736b" }}>
+              <strong style={{ color: "#151515" }}>{libraryFolders.length}</strong> folders · <strong style={{ color: "#151515" }}>{libraryItems.length}</strong> material records
+            </div>
+            <input
+              value={librarySearch}
+              onChange={(e) => setLibrarySearch(e.target.value)}
+              placeholder="Search content by title or subject…"
+              aria-label="Search content records"
+              style={{ flex: "1 1 220px", maxWidth: 360, padding: "10px 12px", borderRadius: 10, border: "1px solid #d9d0bd", background: "#fffdf9", color: "#151515", fontSize: 12 }}
+            />
+            <button type="button" onClick={loadContentLibrary} disabled={libraryLoading || libraryActionBusy} style={styles.headerButton}>
+              {libraryLoading ? "Refreshing…" : "↻ Refresh"}
+            </button>
+          </div>
+
+          {libraryFolders.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {libraryFolders.map((folder) => (
+                <span key={folder} style={{ border: "1px solid #e4dac6", background: "#f8f3e8", borderRadius: 999, padding: "7px 10px", color: "#5c4821", fontSize: 11, fontWeight: 800 }}>▰ {folder}</span>
+              ))}
+            </div>
+          )}
+
+          {libraryMessage && (
+            <div role="status" style={{ margin: "10px 0 14px", padding: "11px 13px", borderRadius: 10, background: "#f8f3e8", border: "1px solid #e4dac6", color: "#59471f", fontSize: 12, lineHeight: 1.5 }}>
+              {libraryMessage}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gap: 9 }}>
+            {libraryItems
+              .filter((item) => `${item.title || ""} ${item.subject || ""} ${item.category || ""} ${item.topic || ""}`.toLowerCase().includes(librarySearch.trim().toLowerCase()))
+              .map((item) => (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 13px", border: "1px solid #e8e0d0", borderRadius: 12, background: "#fffdf9" }}>
+                  <div style={{ width: 36, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "#171717", color: "#dfc477", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>PDF</div>
+                  <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 850, color: "#191919", overflowWrap: "anywhere" }}>{item.title || "Untitled content"}</div>
+                    <div style={{ marginTop: 4, fontSize: 11, color: "#77736b" }}>{[item.subject || item.category, item.topic, item.language, item.exam_type].filter(Boolean).join(" · ") || "Study Material"} · {item.published ? "Published" : "Draft"}</div>
+                  </div>
+                  <button type="button" disabled={libraryActionBusy} onClick={() => deleteContentItem(item)} style={{ border: "1px solid #e3b8b2", background: "#fff5f3", color: "#a52c24", borderRadius: 9, padding: "9px 11px", fontSize: 11, fontWeight: 850, cursor: libraryActionBusy ? "wait" : "pointer" }}>
+                    Delete Content
+                  </button>
+                </div>
+              ))}
+            {!libraryLoading && libraryItems.length === 0 && (
+              <div style={{ border: "1px dashed #d9d0bd", borderRadius: 12, padding: 20, color: "#77736b", textAlign: "center", fontSize: 12 }}>
+                No content records were returned. Refresh after uploading a Study Material file.
+              </div>
+            )}
+          </div>
+          <p style={{ margin: "14px 0 0", color: "#77736b", fontSize: 10, lineHeight: 1.6 }}>
+            Folder names are stored as placeholder objects under admin-folders/ in the configured Supabase bucket. Deleting a material removes its library record and attempts to clean up its stored file.
+          </p>
         </section>
 
         {/* =================================================
