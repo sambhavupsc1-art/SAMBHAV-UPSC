@@ -450,35 +450,102 @@ export default function AdminPage() {
 
   async function handleContentUpload(event) {
     event.preventDefault();
-    if (!contentTitle.trim() || !contentFile) {
+
+    // Keep a stable reference: React may clear currentTarget after the handler returns.
+    const form = event.currentTarget;
+    const file = contentFile;
+    const title = contentTitle.trim();
+
+    if (!title || !file) {
       setContentUploadMessage("Please add a title and choose a file.");
       return;
     }
 
-    setContentUploading(true);
-    setContentUploadMessage("");
-    try {
-      const formData = new FormData();
-      formData.append("file", contentFile);
-      formData.append("title", contentTitle.trim());
-      formData.append("category", contentCategory);
+    const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+    if (file.size <= 0) {
+      setContentUploadMessage("The selected file is empty.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setContentUploadMessage("File size must be 50 MB or less.");
+      return;
+    }
 
-      const response = await fetch("/api/admin/content-upload", {
+    setContentUploading(true);
+    setContentUploadMessage("Preparing secure upload…");
+
+    try {
+      // Ask the server to authenticate this admin and create a short-lived
+      // Supabase Storage signed-upload URL. File bytes do not pass through Vercel.
+      const signResponse = await fetch("/api/admin/content-upload", {
         method: "POST",
         credentials: "include",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sign",
+          fileName: file.name,
+          size: file.size,
+          contentType: file.type || "application/octet-stream",
+        }),
       });
-      const result = await response.json();
-      if (!response.ok || result.success !== true) {
-        throw new Error(result.error || "Content upload failed.");
+
+      const signResult = await signResponse.json().catch(() => ({}));
+      if (!signResponse.ok || signResult.success !== true || !signResult.uploadUrl || !signResult.path) {
+        throw new Error(signResult.error || "Could not prepare the secure upload.");
+      }
+
+      setContentUploadMessage("Uploading file to secure storage…");
+
+      // Upload directly from the browser to Supabase Storage.
+      const storageResponse = await fetch(signResult.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          apikey: signResult.anonKey,
+          "x-upsert": "false",
+        },
+        body: file,
+      });
+
+      if (!storageResponse.ok) {
+        const detail = await storageResponse.text().catch(() => "");
+        throw new Error(
+          `Storage upload failed (${storageResponse.status}). ${detail.slice(0, 250)}`
+        );
+      }
+
+      setContentUploadMessage("Saving Study Material details…");
+
+      const finalizeResponse = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "finalize",
+          title,
+          category: contentCategory,
+          path: signResult.path,
+          bucket: signResult.bucket,
+          fileName: file.name,
+          size: file.size,
+          contentType: file.type || "application/octet-stream",
+        }),
+      });
+
+      const finalizeResult = await finalizeResponse.json().catch(() => ({}));
+      if (!finalizeResponse.ok || finalizeResult.success !== true) {
+        throw new Error(
+          finalizeResult.error ||
+          "File uploaded, but Study Material details could not be saved."
+        );
       }
 
       setContentUploadMessage(
-        `Upload successful. Storage path: ${result.path || result.url || "saved"}`
+        `Upload successful. Storage path: ${finalizeResult.path || signResult.path}`
       );
       setContentFile(null);
       setContentTitle("");
-      event.currentTarget.reset();
+      form?.reset();
     } catch (err) {
       setContentUploadMessage(err.message || "Content upload failed.");
     } finally {
@@ -1387,7 +1454,7 @@ export default function AdminPage() {
               <div style={styles.contentUploadEyebrow}>CONTENT MANAGEMENT</div>
               <h2 style={styles.contentUploadTitle}>Upload Study Content</h2>
               <p style={styles.contentUploadDescription}>
-                Upload PDFs, notes, images or other study files to the configured admin storage bucket.
+                Upload PDFs, notes, images or other study files directly to secure storage (up to 50 MB).
               </p>
             </div>
             <div style={styles.contentUploadIcon}>↑</div>
@@ -1433,7 +1500,7 @@ export default function AdminPage() {
             <label style={styles.contentUploadDrop}>
               <span style={styles.contentUploadDropIcon}>↑</span>
               <strong>{contentFile ? contentFile.name : "Choose a file to upload"}</strong>
-              <small>Choose a file from your device</small>
+              <small>PDFs and study files up to 50 MB</small>
               <input
                 type="file"
                 required
@@ -1455,7 +1522,7 @@ export default function AdminPage() {
                 {contentUploading ? "Uploading..." : "Upload content"}
               </button>
               <span style={styles.contentUploadHint}>
-                Upload uses the authenticated /api/admin/content-upload endpoint.
+                Secure direct-to-storage upload · Maximum file size: 50 MB.
               </span>
             </div>
 
