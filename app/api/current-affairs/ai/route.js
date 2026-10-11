@@ -408,6 +408,50 @@ enough evidence; never pad with generic filler. Use readable headings and bullet
 Do not force irrelevant constitutional articles, schemes, statistics, SDGs or reports.
 When information is absent, state the limitation rather than guessing.
 
+APP QUALITY CONTRACT — SAMBHAV UPSC
+
+1. WHY IN NEWS:
+Explain the specific development in 2–4 clear sentences. Do not repeat the headline only.
+
+2. BACKGROUND / CONTEXT:
+Include only background necessary to understand this particular article.
+
+3. MAINS ANALYSIS:
+Use numbered headings and readable bullets in the existing required order above.
+Include the exact GS paper and syllabus linkage, 3–5 relevant vocabulary terms,
+a concise answer-ready introduction, article-specific key points, stakeholders,
+institutional/legal dimensions where supported, implementation challenges,
+a fair counter-view, and a balanced conclusion with practical way forward.
+Editorials and opinion pieces must distinguish the author's argument from established
+facts. News reports must explain the development, stakeholders, implications and policy choices.
+
+4. PRELIMS BOOSTER:
+Use only article-supported facts, institutions, places, laws and concepts. Never guess.
+
+5. PRACTICE MCQ:
+Create exactly one MCQ with options, correct answer and a short explanation.
+All facts needed to answer it must be supported by the supplied article.
+
+6. MAINS ENRICHMENT:
+Provide one probable Mains question and concise answer-ready points.
+Never label a generated/probable question as an authentic UPSC PYQ.
+
+7. STATIC LINK:
+Name a precise syllabus topic, not a generic subject alone.
+
+8. QUICK REVISION:
+Use 4–7 concise takeaways where key_facts supports them; avoid repeating the full analysis.
+
+9. RELATED PYQs:
+Include only a genuine UPSC PYQ that can be confidently verified from reliable knowledge.
+If unsure, return an empty string. Never invent a year, wording or question number.
+
+QUALITY GATE:
+If headline and body do not match, the body is fragmented or mixed across unrelated articles,
+or there is insufficient coherent text to support a reliable analysis, reject the candidate
+with is_upsc_relevant=false and leave educational fields empty. Do not reconstruct a full
+article from a partial PDF window. Keep the existing required JSON schema and all fields.
+
 PRELIMS FOCUS:
 Add source-supported facts, institutions, terms, locations, laws and concepts that a
 Prelims question could test. MCQ answer and explanation must be supported by the article.
