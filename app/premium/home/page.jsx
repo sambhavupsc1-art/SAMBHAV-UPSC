@@ -131,9 +131,9 @@ const styles = {
     overflow: "hidden",
     background: "#101010",
     color: "#fff",
-    borderRadius: "25px",
-    padding: "21px",
-    marginBottom: "17px",
+    borderRadius: "27px",
+    padding: "24px",
+    marginBottom: "18px",
     boxShadow: "0 16px 35px rgba(16,16,16,.15)",
   },
 
@@ -283,9 +283,9 @@ const styles = {
   module: {
     background: "var(--sambhav-surface)",
     border: "1px solid var(--sambhav-border)",
-    borderRadius: "20px",
-    padding: "15px",
-    minHeight: "125px",
+    borderRadius: "22px",
+    padding: "17px",
+    minHeight: "132px",
     boxSizing: "border-box",
     cursor: "pointer",
     boxShadow: "0 5px 16px rgba(16,16,16,.035)",
@@ -780,17 +780,17 @@ export default function PremiumHome() {
         nav: "rgba(21,21,21,.97)",
       }
     : {
-        page: "#f5f2eb",
+        page: "#f4f1e8",
         text: "#101010",
         muted: "#77736b",
-        surface: "#fffdf9",
+        surface: "#fffefa",
         border: "rgba(16,16,16,.08)",
         darkSurface: "#101010",
         darkText: "#ffffff",
         darkMuted: "#c4c4c4",
         track: "#e7e2d9",
         shadow: "0 8px 24px rgba(16,16,16,.07)",
-        nav: "rgba(255,253,249,.97)",
+        nav: "rgba(255,254,250,.97)",
       };
 
   const themed = {
@@ -1190,6 +1190,18 @@ export default function PremiumHome() {
 
   return (
     <main style={{ ...themed.page, ...rootThemeStyle }}>
+      <style jsx global>{`
+        :global(html) { scroll-behavior: smooth; }
+        :global(button) { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+        :global(button:hover:not(:disabled)) { transform: translateY(-1px); }
+        :global(button:focus-visible) { outline: 2px solid #dfc477; outline-offset: 3px; }
+        .sambhav-home-module { position: relative; overflow: hidden; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        .sambhav-home-module:after { content: ""; position: absolute; width: 86px; height: 86px; border-radius: 50%; right: -42px; bottom: -46px; background: rgba(223,196,119,.09); pointer-events: none; }
+        .sambhav-home-module:hover { transform: translateY(-3px); box-shadow: 0 13px 28px rgba(16,16,16,.09); border-color: rgba(184,148,69,.32) !important; }
+        @media (max-width: 430px) {
+          .sambhav-home-grid { gap: 9px !important; }
+        }
+      `}</style>
       <div style={styles.container}>
         <header style={styles.header}>
           <div>
