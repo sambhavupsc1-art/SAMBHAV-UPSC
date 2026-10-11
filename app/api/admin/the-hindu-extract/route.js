@@ -418,13 +418,16 @@ function candidatesFromText(text) {
 
     const relevanceScore = score(windowText);
 
-    // Avoid discarding articles solely because they have
-    // a weak keyword score. Editorial labels are useful too.
+    // This is only a broad candidate pre-filter, not the final UPSC decision.
+    // The AI route applies the strict syllabus-relevance gate before publishing.
     const hasEditorialSignal =
       /\b(editorial|opinion|op-ed|explained|analysis|interview|special report)\b/i
         .test(windowText);
+    const hasPolicyOrInstitutionSignal =
+      /\b(impact|scheme|policy|court|rights|government|report|data|law|act|commission|climate|economy|governance|security|health|education|agriculture|water|displacement|international|india|parliament|constitution)\b/i
+        .test(windowText);
 
-    if (relevanceScore < 2 && !hasEditorialSignal) {
+    if (relevanceScore < 1 && !hasEditorialSignal && !hasPolicyOrInstitutionSignal) {
       continue;
     }
 
@@ -588,7 +591,7 @@ async function processCandidate(candidate, date, index) {
       title: candidate.title,
       status: "skipped",
       skipped,
-      reason: "duplicate",
+      reason: data?.skipped_articles?.[0]?.reason || "duplicate_or_not_upsc_relevant",
     };
   }
 
