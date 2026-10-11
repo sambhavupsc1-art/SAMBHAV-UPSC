@@ -1991,22 +1991,25 @@ export default function CurrentAffairsPage() {
           font-weight: 950;
         }
 
+        /* Premium article section headings — preserve SAMBHAV's existing theme */
         .modal h3,
         .modal .analysis-section-heading {
           position: relative;
           display: flex;
           align-items: center;
           gap: 10px;
-          margin: 25px 0 11px;
+          margin: 25px 0 12px;
           padding: 0 0 9px;
-          font-size: 14px;
-          line-height: 1.45;
-          font-weight: 850;
-          letter-spacing: .035em;
-          color: var(--sambhav-text, #292820);
-          border-bottom: 1px solid var(--sambhav-border, rgba(90, 80, 55, .16));
+          color: var(--ca-text, #171717);
+          font-size: 13px;
+          line-height: 1.5;
+          font-weight: 900;
+          letter-spacing: .055em;
+          text-transform: uppercase;
+          border-bottom: 1px solid var(--ca-border, rgba(16,16,16,.10));
         }
 
+        .modal h3::before,
         .modal .analysis-section-heading::before {
           content: "";
           display: inline-block;
@@ -2014,34 +2017,86 @@ export default function CurrentAffairsPage() {
           width: 3px;
           height: 18px;
           border-radius: 4px;
-          background: var(--sambhav-accent, #b89b55);
+          background: var(--ca-gold, #b89445);
         }
 
+        .modal h3::after,
         .modal .analysis-section-heading::after {
           content: "";
           position: absolute;
-          bottom: -1px;
           left: 0;
+          bottom: -1px;
           width: 42px;
-          height: 1px;
-          background: var(--sambhav-accent, #b89b55);
-          opacity: .8;
+          height: 2px;
+          border-radius: 2px;
+          background: var(--ca-gold, #b89445);
+          opacity: .9;
+        }
+
+
+        .modal .analysis-rich-content { display: block; }
+        .modal .analysis-inline-heading {
+          display: flex; align-items: flex-start; gap: 9px;
+          margin: 18px 0 9px; padding: 10px 12px;
+          border: 1px solid var(--ca-border, rgba(16,16,16,.09));
+          border-left: 3px solid var(--ca-gold, #dfc477);
+          border-radius: 9px; background: var(--ca-soft, #f0ece3);
+          color: var(--ca-text, #101010); font-size: 14px;
+          line-height: 1.55; font-weight: 850; letter-spacing: 0;
+          overflow-wrap: anywhere;
+        }
+        .modal .analysis-content-paragraph { margin: 7px 0; white-space: pre-wrap; }
+        .modal .analysis-content-spacer { height: 5px; }
+        .modal .analysis-content-bullet {
+          display: grid; grid-template-columns: 12px minmax(0, 1fr);
+          gap: 5px; margin: 7px 0; line-height: 1.7; color: inherit;
+        }
+        .modal .analysis-content-bullet > span:first-child {
+          color: var(--ca-gold, #b89445); font-weight: 900;
+        }
+        html[data-sambhav-theme="dark"] .modal .analysis-inline-heading {
+          background: #202020; color: #f5f2eb; border-color: rgba(255,255,255,.12);
+          border-left-color: var(--ca-gold, #dfc477);
+        }
+        @media (max-width: 600px) {
+          .modal .analysis-inline-heading { margin: 15px 0 8px; padding: 9px 10px; font-size: 13px; }
         }
 
         .modal .content-block {
+          padding: 13px 15px;
+          border: 1px solid var(--ca-border, rgba(16,16,16,.08));
           border-radius: 12px;
-          padding: 13px 14px;
-          line-height: 1.75;
+          background: var(--ca-surface, #fffdf9);
+          color: var(--ca-text, #343434);
+          white-space: pre-wrap;
+          line-height: 1.8;
+          font-size: 14px;
         }
 
-        .modal .premium-box {
-          border-radius: 13px;
-          padding: 15px;
-        }
-
+        html[data-sambhav-theme="dark"] .modal h3,
         html[data-sambhav-theme="dark"] .modal .analysis-section-heading {
-          color: var(--sambhav-text, #f5f2eb);
-          border-bottom-color: var(--sambhav-border, rgba(255,255,255,.12));
+          color: var(--ca-text, #f5f2eb);
+          border-bottom-color: var(--ca-border, rgba(255,255,255,.12));
+        }
+
+        html[data-sambhav-theme="dark"] .modal .content-block {
+          background: #111;
+          color: #f5f2eb;
+          border-color: rgba(255,255,255,.09);
+        }
+
+        @media (max-width: 600px) {
+          .modal h3,
+          .modal .analysis-section-heading {
+            margin-top: 21px;
+            font-size: 12px;
+            letter-spacing: .045em;
+          }
+
+          .modal .content-block {
+            padding: 12px;
+            font-size: 13px;
+          }
         }
 
         .modal p {
@@ -3003,6 +3058,49 @@ function PremiumFacts({ news, language, hi }) {
   );
 }
 
+
+function renderAnalysisContent(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const text = String(value).replace(/\r\n?/g, "\n");
+  const lines = text.split("\n");
+  const headingPattern = /^\s*(?:(?:#{1,4})\s*)?(?:(\d{1,2}|[०-९]{1,2})[.)।:]\s*)?([^\n]{2,100}?)\s*$/u;
+  const headingTerms = /^(?:संदर्भ|सन्दर्भ|यूपीएससी के लिए महत्व|यूपीएससी हेतु महत्व|यूपीएससी शब्दावली|यूपीएससी-तैयार परिचय|मुख्य बिंदु|मुख्य बिन्दु|विश्लेषणात्मक दृष्टिकोण|काउंटर व्यू|निष्कर्ष|प्रस्तावना|परिचय|आगे की राह|उपाय|चुनौतियां|चुनौतियाँ|महत्व|पृष्ठभूमि|प्रभाव|कारण|समाधान|आलोचनात्मक विश्लेषण|सुझाव|way forward|context|significance for upsc|upsc vocab(?:ulary)?|upsc-ready introduction|key points|counter view|conclusion|introduction|background|challenges|impact|causes|solutions|critical analysis|recommendations?)(?:\s*[:：—-].*)?$/i;
+
+  return (
+    <div className="analysis-rich-content">
+      {lines.map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div className="analysis-content-spacer" key={`space-${index}`} />;
+
+        const clean = trimmed.replace(/^[-•*]\s*/, "");
+        const match = clean.match(headingPattern);
+        const candidate = match?.[2]?.replace(/[*_`]/g, "").trim() || clean;
+        const numberedHeading = /^(?:\d{1,2}|[०-९]{1,2})[.)।:]\s*\S/.test(clean);
+        const markdownHeading = /^#{1,4}\s+/.test(trimmed);
+        const boldHeading = /^\*\*[^*]{2,100}:?\*\*:?$/.test(trimmed);
+        const knownHeading = headingTerms.test(candidate.replace(/^\*\*|\*\*$/g, ""));
+        const shortLabel = trimmed.length <= 76 && /[:：]$/.test(trimmed) && !/[.!?।]$/.test(trimmed);
+        const isHeading = markdownHeading || boldHeading || knownHeading || (numberedHeading && trimmed.length <= 105) || shortLabel;
+
+        if (isHeading) {
+          const headingText = trimmed
+            .replace(/^#{1,4}\s+/, "")
+            .replace(/^\*\*(.*?)\*\*:?$/, "$1")
+            .trim();
+          return <h4 className="analysis-inline-heading" key={`heading-${index}`}>{headingText}</h4>;
+        }
+
+        if (/^[-•*]\s+/.test(trimmed)) {
+          return <div className="analysis-content-bullet" key={`bullet-${index}`}><span aria-hidden="true">•</span><span>{trimmed.replace(/^[-•*]\s+/, "")}</span></div>;
+        }
+
+        return <p className="analysis-content-paragraph" key={`line-${index}`}>{trimmed.replace(/^\*\*(.*?)\*\*$/, "$1")}</p>;
+      })}
+    </div>
+  );
+}
+
 function ArticleModal({
   item,
   language,
@@ -3146,86 +3244,86 @@ function ArticleModal({
 
         {why && (
           <>
-            <h3 className="analysis-section-heading">Why in News</h3>
+            <h3>Why in News</h3>
             <p>{why}</p>
           </>
         )}
 
         {background && (
           <>
-            <h3 className="analysis-section-heading">Background</h3>
+            <h3>Background</h3>
             <p>{background}</p>
           </>
         )}
 
         {facts && (
           <>
-            <h3 className="analysis-section-heading">Key Facts</h3>
+            <h3>Key Facts</h3>
             <div className="content-block">
-              {facts}
+              {renderAnalysisContent(facts)}
             </div>
           </>
         )}
 
         {prelims && (
           <>
-            <h3 className="analysis-section-heading">Prelims Focus</h3>
+            <h3>Prelims Focus</h3>
             <div className="content-block">
-              {prelims}
+              {renderAnalysisContent(prelims)}
             </div>
           </>
         )}
 
         {mains && (
           <>
-            <h3 className="analysis-section-heading">Mains Analysis</h3>
+            <h3>Mains Analysis</h3>
             <div className="content-block">
-              {mains}
+              {renderAnalysisContent(mains)}
             </div>
           </>
         )}
 
         {item.static_link && (
           <>
-            <h3 className="analysis-section-heading">Static Link</h3>
+            <h3>Static Link</h3>
             <p>{item.static_link}</p>
           </>
         )}
 
         {pyqs && (
           <>
-            <h3 className="analysis-section-heading">Related PYQs</h3>
+            <h3>Related PYQs</h3>
             <div className="content-block">
-              {pyqs}
+              {renderAnalysisContent(pyqs)}
             </div>
           </>
         )}
 
         {mcq && (
           <>
-            <h3 className="analysis-section-heading">Possible Prelims MCQ</h3>
+            <h3>Possible Prelims MCQ</h3>
             <div className="content-block">
-              {mcq}
+              {renderAnalysisContent(mcq)}
             </div>
           </>
         )}
 
         {mainsQuestion && (
           <>
-            <h3 className="analysis-section-heading">Possible Mains Question</h3>
+            <h3>Possible Mains Question</h3>
 
             <div className="content-block">
-              {mainsQuestion}
+              {renderAnalysisContent(mainsQuestion)}
             </div>
           </>
         )}
 
         {ethics && (
           <>
-            <h3 className="analysis-section-heading">GS-IV Ethics</h3>
+            <h3>GS-IV Ethics</h3>
 
             <div className="content-block">
-              {ethics}
+              {renderAnalysisContent(ethics)}
             </div>
           </>
         )}
