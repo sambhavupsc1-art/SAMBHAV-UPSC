@@ -136,6 +136,141 @@ export async function POST(request) {
       );
     }
 
+    if (body.action === "list") {
+      const materialsResponse = await restRequest(
+        "study_materials?select=id,title,category,subject,topic,language,exam_type,description,bucket,storage_path,published,created_at&order=created_at.desc&limit=500",
+        { method: "GET" }
+      );
+      if (!materialsResponse.ok) {
+        const detail = (await materialsResponse.text()).slice(0, 400);
+        return NextResponse.json(
+          { success: false, error: `Could not load Study Material records. ${detail}` },
+          { status: 502 }
+        );
+      }
+
+      const materials = await materialsResponse.json();
+      const foldersResponse = await storageRequest(
+        `object/list/${encodeURIComponent(BUCKET)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prefix: "admin-folders", limit: 1000, offset: 0, sortBy: { column: "name", order: "asc" } }),
+        }
+      );
+      let folders = [];
+      if (foldersResponse.ok) {
+        const entries = await foldersResponse.json();
+        folders = (Array.isArray(entries) ? entries : [])
+          .filter((entry) => entry && entry.id == null && entry.name && entry.name !== ".keep")
+          .map((entry) => String(entry.name))
+          .filter((name) => name !== "." && name !== "..");
+      }
+
+      return NextResponse.json({
+        success: true,
+        items: Array.isArray(materials) ? materials : [],
+        folders,
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (body.action === "create-folder") {
+      const rawName = String(body.name || "").trim();
+      const name = rawName
+        .normalize("NFKC")
+        .replace(/[\\/\\\\:*?"<>|#%{}^~[\\]`]/g, "-")
+        .replace(/\\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^[-.]+|[-.]+$/g, "")
+        .slice(0, 60);
+
+      if (!name || name.toLowerCase() === "admin-uploads" || name.toLowerCase() === "admin-folders") {
+        return NextResponse.json(
+          { success: false, error: "Enter a valid folder name (letters, numbers, spaces, hyphens and underscores)." },
+          { status: 400 }
+        );
+      }
+
+      const folderObjectPath = `admin-folders/${name}/.keep`;
+      const existing = await storageRequest(
+        `object/info/${encodeURIComponent(BUCKET)}/${encodedStoragePath(folderObjectPath)}`,
+        { method: "GET" }
+      );
+      if (existing.ok) {
+        return NextResponse.json({ success: false, error: "A folder with this name already exists." }, { status: 409 });
+      }
+
+      const created = await storageRequest(
+        `object/${encodeURIComponent(BUCKET)}/${encodedStoragePath(folderObjectPath)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "text/plain", "x-upsert": "false" },
+          body: "SAMBHAV UPSC folder marker",
+        }
+      );
+      if (!created.ok) {
+        const detail = (await created.text()).slice(0, 350);
+        return NextResponse.json(
+          { success: false, error: `Could not create folder marker in Supabase Storage. ${detail}` },
+          { status: 502 }
+        );
+      }
+      return NextResponse.json({ success: true, name, path: folderObjectPath, message: "Folder created." });
+    }
+
+    if (body.action === "delete-content") {
+      const id = String(body.id || "").trim();
+      if (!id || id.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+        return NextResponse.json({ success: false, error: "A valid content record ID is required." }, { status: 400 });
+      }
+
+      const lookup = await restRequest(
+        `study_materials?id=eq.${encodeURIComponent(id)}&select=id,title,bucket,storage_path&limit=1`,
+        { method: "GET" }
+      );
+      if (!lookup.ok) {
+        const detail = (await lookup.text()).slice(0, 300);
+        return NextResponse.json({ success: false, error: `Could not find content record. ${detail}` }, { status: 502 });
+      }
+      const rows = await lookup.json();
+      const item = rows?.[0];
+      if (!item) {
+        return NextResponse.json({ success: false, error: "Content record was not found; refresh the library." }, { status: 404 });
+      }
+
+      const deletedRecord = await restRequest(
+        `study_materials?id=eq.${encodeURIComponent(id)}`,
+        { method: "DELETE", headers: { Prefer: "return=representation" } }
+      );
+      if (!deletedRecord.ok) {
+        const detail = (await deletedRecord.text()).slice(0, 350);
+        return NextResponse.json({ success: false, error: `Database record could not be deleted. ${detail}` }, { status: 502 });
+      }
+
+      let warning = "";
+      if (item.bucket && item.storage_path) {
+        const removed = await storageRequest(
+          `object/${encodeURIComponent(item.bucket)}`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prefixes: [String(item.storage_path)] }),
+          }
+        );
+        if (!removed.ok) {
+          const detail = (await removed.text()).slice(0, 250);
+          warning = `Content record deleted from the library, but storage cleanup failed. Remove ${item.bucket}/${item.storage_path} manually. ${detail}`;
+        }
+      }
+      return NextResponse.json({
+        success: true,
+        deletedId: id,
+        title: item.title || "",
+        warning,
+        message: warning || "Content record and associated storage object deleted.",
+      });
+    }
+
     if (body.action === "sign") {
       if (!SUPABASE_ANON_KEY) {
         return NextResponse.json(
