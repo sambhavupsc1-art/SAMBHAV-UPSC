@@ -1909,11 +1909,15 @@ export default function Home() {
   PREMIUM STATUS
   ===================================================== */
 
+  // Admin access is granted only after the server-side admin check succeeds.
+  // Regular users still need a currently active, unexpired subscription.
   const isPremium =
-    subscription?.status === "active" &&
-    subscription?.expires_at &&
-    new Date(subscription.expires_at) >
-      new Date();
+    isAdmin ||
+    (
+      subscription?.status === "active" &&
+      subscription?.expires_at &&
+      new Date(subscription.expires_at) > new Date()
+    );
 
   const premiumPlan =
     String(
@@ -1977,10 +1981,34 @@ export default function Home() {
   ];
 
   const goPremium = () => {
-    window.location.href = "/premium";
+    // Admins with a server-verified admin session do not need to purchase a plan.
+    window.location.href = isAdmin ? "/premium/home" : "/premium";
+  };
+
+  const adminFeatureRoutes = {
+    "Current Affairs": "/current-affairs",
+    "PYQ Intelligence": "/pyq",
+    "Prelims Test": "/prelims-test",
+    "Mains": "/answer",
+    "Mains Answer Writing": "/answer",
+    "AI Answer Evaluation": "/answer",
+    "Study Material": "/premium/home",
+    "Performance Analytics": "/answer/history",
   };
 
   const openLockedFeature = (name) => {
+    // isAdmin is populated from server-side admin verification above.
+    // Non-admin users keep the existing paywall behavior.
+    if (isAdmin) {
+      const route = adminFeatureRoutes[name];
+      if (route) {
+        window.location.href = route;
+        return;
+      }
+      window.location.href = "/premium/home";
+      return;
+    }
+
     setLockedFeature(name || "This feature");
   };
 
