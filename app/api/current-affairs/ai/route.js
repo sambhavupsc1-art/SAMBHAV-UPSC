@@ -142,30 +142,44 @@ function buildPrompt(item) {
   };
 
   return `
-You are the UPSC Current Affairs Editor for SAMBHAV UPSC.
+You are the senior UPSC Current Affairs editor for SAMBHAV UPSC.
 
-The backend has ALREADY selected this article as UPSC relevant.
+Create EXACTLY ONE decision for this candidate. For The Hindu PDF candidates,
+YOU MUST independently decide whether the article deserves publication for UPSC.
+The extraction stage uses imperfect PDF text windows; a keyword match is NOT proof
+of UPSC relevance. The input may contain a wrong headline, mixed columns, partial
+article text, page furniture, or unrelated local news.
 
-Create EXACTLY ONE current-affairs record.
+STRICT UPSC RELEVANCE GATE (The Hindu PDF only):
+Set is_upsc_relevant=true ONLY if the supplied headline/content has a clear,
+substantive link to a UPSC CSE syllabus area AND provides a useful policy,
+constitutional, governance, economy, IR, society, environment, science/technology,
+security, disaster, culture/geography/history, or ethics learning point.
+Routine crime, ordinary local incidents, routine political statements, celebrity,
+sports/entertainment, promotional content, and isolated events without wider
+institutional/policy significance must be rejected. A protest or local event is
+eligible only when the text supports a broader issue such as rehabilitation,
+rights, public administration, public policy, environment, or accountability.
+Do not infer a broader issue from the headline alone if the article text does not support it.
 
-DO NOT reject it.
-DO NOT skip it.
-DO NOT merge it.
-DO NOT create another article.
+If the candidate is not relevant, has a mismatched headline/body, or lacks enough
+coherent article text to analyse reliably, return is_upsc_relevant=false, give a
+short relevance_reason, and leave the educational fields empty. It will be skipped,
+not published. If it is relevant, return is_upsc_relevant=true and a concise reason.
+For non-The-Hindu sources, process as before and set is_upsc_relevant=true.
+
+Create EXACTLY ONE current-affairs record. Do not merge it with another article.
 
 Use ONLY information supported by the supplied article.
 
 Never invent:
-- facts
-- statistics
-- schemes
-- reports
-- institutions
-- places
-- personalities
-- PYQs
+- facts, statistics, schemes, reports, institutions, places, personalities, court rulings,
+  constitutional provisions, quotes, committee recommendations or PYQs
+- a claim that is merely alleged as though it were an established fact
+- an author's opinion as though it were verified reporting
 
-If something is not supported, return an empty string.
+Clearly distinguish verified facts, allegations/claims, official responses and analysis.
+If something is not supported, say it is not stated in the supplied article or return an empty string.
 
 Generate both Hindi and English.
 
@@ -276,6 +290,8 @@ REQUIRED JSON
   "articles": [
     {
       "index": 0,
+      "is_upsc_relevant": true,
+      "relevance_reason": "",
 
       "title_hi": "",
       "title_en": "",
@@ -361,16 +377,46 @@ STATIC LINK
 Mention the relevant static UPSC topic.
 
 =========================================================
-MAINS ANALYSIS
+MAINS ANALYSIS — CRUX-STYLE, EXAM-READY, NOT A GENERIC PARAGRAPH
 =========================================================
 
-Where supported, cover:
+For a relevant The Hindu article, mains_analysis_hi and mains_analysis_en MUST be
+substantial, article-specific and formatted with these exact section labels (translate
+labels naturally in Hindi, while preserving the same order):
 
-- Significance
-- Implications
-- Challenges
-- Opportunities
-- Way Forward
+1. CONTEXT: explain the actual issue/event, why it matters now, stakeholders and
+   necessary background. Do not repeat the headline as the whole context.
+2. SIGNIFICANCE FOR UPSC: name the exact GS paper and syllabus linkage and explain
+   the public-policy/constitutional/developmental significance.
+3. UPSC VOCAB: give 3–5 useful terms with short, accurate definitions. Do not add
+   decorative vocabulary unrelated to the article.
+4. UPSC-READY INTRODUCTION: provide a concise answer-opening paragraph using only
+   verified article facts or a safe conceptual opening. Do not fabricate data.
+5. KEY POINTS: use 5–8 substantive bullets where the source supports them, covering
+   causes/mechanisms, stakeholders, evidence, impacts, institutional/legal dimensions,
+   implementation gaps and implications. Keep article facts distinct from inference.
+6. COUNTER VIEW: fairly present relevant competing considerations, official response,
+   public benefits, implementation constraints or limitations. If no counter-view is
+   provided by the source, explicitly label the points as analytical considerations,
+   not as claims made by the article.
+7. UPSC-READY CONCLUSION: a balanced conclusion with actionable way forward,
+   accountability/implementation measures and rights/equity/sustainability where relevant.
+
+Do not merely write a single short paragraph. Aim for roughly 350–600 words in Hindi
+and English combined separately per language only when the supplied article contains
+enough evidence; never pad with generic filler. Use readable headings and bullet points.
+Do not force irrelevant constitutional articles, schemes, statistics, SDGs or reports.
+When information is absent, state the limitation rather than guessing.
+
+PRELIMS FOCUS:
+Add source-supported facts, institutions, terms, locations, laws and concepts that a
+Prelims question could test. MCQ answer and explanation must be supported by the article.
+
+STATIC LINK:
+Give the specific static subject/topic, not a generic phrase such as “Governance”.
+
+The fields why_in_news, background and key_facts should remain concise and distinct;
+do not paste the whole Mains Analysis into those fields.
 
 =========================================================
 INPUT ARTICLE
@@ -1050,6 +1096,21 @@ async function processArticle(
     );
   }
 
+  const isTheHinduInput =
+    String(input?.report_type || "").toLowerCase().includes("the_hindu_pdf") ||
+    String(input?.source_name || "").toLowerCase().includes("the hindu");
+
+  // The AI relevance gate runs before normalization, duplicate checks and saving.
+  // Rejected PDF candidates never enter current_affairs.
+  if (isTheHinduInput && aiArticle?.is_upsc_relevant !== true) {
+    return {
+      created: 0,
+      skipped: 1,
+      reason: String(aiArticle?.relevance_reason || "Not sufficiently UPSC-relevant"),
+      title: String(input?.title || ""),
+    };
+  }
+
   const article =
     normalizeArticle(
       aiArticle,
@@ -1243,6 +1304,7 @@ export async function POST(request) {
     let failed = 0;
 
     const errors = [];
+    const skippedArticles = [];
 
     for (
       let i = 0;
@@ -1282,6 +1344,12 @@ export async function POST(request) {
             Number(
               result?.skipped || 0
             );
+          if (Number(result?.skipped || 0) > 0) {
+            skippedArticles.push({
+              title: String(input?.title || ""),
+              reason: String(result?.reason || "duplicate_or_not_upsc_relevant"),
+            });
+          }
         } catch (error) {
           failed++;
 
@@ -1324,6 +1392,7 @@ export async function POST(request) {
           failed,
         failed_articles:
           errors,
+        skipped_articles: skippedArticles,
       });
     }
 
@@ -1342,6 +1411,7 @@ export async function POST(request) {
           failed,
         failed_articles:
           errors,
+        skipped_articles: skippedArticles,
         error:
           "No current-affairs article could be processed.",
       },
