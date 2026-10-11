@@ -446,6 +446,8 @@ export default function AdminPage() {
   const filteredBanned =
     filterUsers(bannedUsers);
 
+  const dateForAdmin = (value) => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Date unavailable";
+
   async function handleContentUpload(event) {
     event.preventDefault();
     if (!contentTitle.trim() || !contentFile) {
@@ -795,7 +797,51 @@ export default function AdminPage() {
             margin-left: 15px;
           }
         }
-      `}</style>
+
+        .sambhav-command-center { margin: 18px 0 24px; }
+        .sambhav-command-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .sambhav-command-panel { min-width:0; background:#fff; border:1px solid #e7eaf0; border-radius:17px; padding:19px; box-shadow:0 5px 20px rgba(22,31,50,.035); }
+        .sambhav-command-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:17px; }
+        .sambhav-command-panel-head h3 { margin:0; color:#171c28; font-size:14px; letter-spacing:-.2px; }
+        .sambhav-command-panel-head p { margin:5px 0 0; color:#858b98; font-size:10px; }
+        .sambhav-panel-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:#f5f0e4; color:#9a783a; font-size:18px; }
+        .sambhav-donut-layout { display:flex; align-items:center; justify-content:center; gap:clamp(15px,3vw,35px); padding:7px 0 4px; }
+        .sambhav-donut { width:145px; height:145px; flex:0 0 145px; display:grid; place-items:center; border-radius:50%; position:relative; background:conic-gradient(#25ad7c 0 var(--approved),#f0b33c var(--approved) calc(var(--approved) + var(--pending)),#e75c67 calc(var(--approved) + var(--pending)) 100%); }
+        .sambhav-account-donut { background:conic-gradient(#8250d8 0 var(--premium),#438ce8 var(--premium) calc(var(--premium) + var(--free)),#efb43d calc(var(--premium) + var(--free)) 100%); }
+        .sambhav-donut:before { content:""; position:absolute; inset:12px; border-radius:50%; background:#fff; }
+        .sambhav-donut>div { position:relative; z-index:1; text-align:center; }
+        .sambhav-donut strong { display:block; color:#171c28; font-size:24px; font-weight:850; }
+        .sambhav-donut small { display:block; color:#858b98; font-size:9px; margin-top:3px; }
+        .sambhav-legend { display:grid; gap:13px; min-width:125px; flex:1; }
+        .sambhav-legend>div { display:grid; grid-template-columns:9px minmax(50px,1fr) auto; align-items:center; gap:8px; color:#5d6472; font-size:10px; }
+        .sambhav-legend i { width:8px; height:8px; border-radius:50%; display:block; }
+        .sambhav-legend b { color:#242a36; font-size:11px; }
+        .approved-dot { background:#25ad7c; } .pending-dot { background:#f0b33c; } .blocked-dot { background:#e75c67; }
+        .premium-dot { background:#8250d8; } .free-dot { background:#438ce8; } .demo-dot { background:#efb43d; }
+        .sambhav-command-link { border:1px solid #e4e7ed; background:#fff; border-radius:9px; padding:8px 10px; color:#80612d; font-size:10px; font-weight:750; cursor:pointer; }
+        .sambhav-activity-list { display:grid; }
+        .sambhav-activity-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #eff1f4; min-width:0; }
+        .sambhav-activity-item:last-child { border-bottom:0; }
+        .sambhav-activity-symbol { display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px; border-radius:11px; background:#edf6ef; color:#3b9b67; font-size:16px; }
+        .sambhav-activity-item>div { min-width:0; flex:1; }
+        .sambhav-activity-item strong,.sambhav-activity-item small { display:block; overflow-wrap:anywhere; }
+        .sambhav-activity-item strong { color:#252b37; font-size:10px; }
+        .sambhav-activity-item small { color:#858b98; font-size:9px; margin-top:4px; }
+        .sambhav-activity-status { border-radius:20px; padding:5px 7px; background:#eef1f5; color:#626b7a; font-size:8px; font-weight:750; }
+        .sambhav-activity-status.approved { background:#e6f7ed; color:#238254; }
+        .sambhav-activity-status.pending { background:#fff4d9; color:#956b1c; }
+        .sambhav-activity-status.banned,.sambhav-activity-status.rejected { background:#fdebea; color:#ad4545; }
+        .sambhav-empty-activity { padding:20px 0; color:#858b98; font-size:10px; }
+        .sambhav-quick-actions { display:grid; gap:8px; }
+        .sambhav-quick-actions button { display:flex; align-items:center; gap:11px; width:100%; border:1px solid #eceef2; background:#fff; border-radius:11px; padding:12px; text-align:left; cursor:pointer; transition:background .15s,border-color .15s,transform .15s; }
+        .sambhav-quick-actions button:hover { background:#fbfaf6; border-color:#dfd0ac; transform:translateY(-1px); }
+        .sambhav-quick-actions button span { width:29px; height:29px; display:grid; place-items:center; border-radius:9px; background:#f5f0e4; color:#927039; font-size:15px; }
+        .sambhav-quick-actions button b { flex:1; color:#272d39; font-size:10px; }
+        .sambhav-quick-actions button i { font-style:normal; color:#858b98; font-size:20px; }
+        @media(max-width:850px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr); } }
+        @media(max-width:520px) { .sambhav-command-panel { padding:14px; } .sambhav-donut-layout { gap:14px; } .sambhav-donut { width:118px; height:118px; flex-basis:118px; } .sambhav-donut:before { inset:10px; } .sambhav-legend { min-width:110px; } }
+
+            `}</style>
 
       <div
         style={styles.container}
@@ -1178,6 +1224,81 @@ export default function AdminPage() {
           <p className="sambhav-overview-warning">
             Counts are database row counts. Subscription records are not the same as active Premium users or verified revenue.
           </p>
+        </section>
+
+        {/* =================================================
+            ADMIN COMMAND CENTER — DATA-DRIVEN SUMMARY
+        ================================================= */}
+        <section className="sambhav-command-center" aria-label="Admin command center">
+          <div className="sambhav-command-grid">
+            <article className="sambhav-command-panel sambhav-status-panel">
+              <div className="sambhav-command-panel-head">
+                <div><h3>User Status Distribution</h3><p>Based on accounts currently loaded</p></div>
+                <span className="sambhav-panel-icon">◷</span>
+              </div>
+              <div className="sambhav-donut-layout">
+                <div className="sambhav-donut sambhav-status-donut"
+                  style={{"--approved": `${users.length ? (joinedUsers.length / users.length) * 100 : 0}%`,
+                    "--pending": `${users.length ? (pendingUsers.length / users.length) * 100 : 0}%`}}>
+                  <div><strong>{users.length}</strong><small>Total users</small></div>
+                </div>
+                <div className="sambhav-legend">
+                  <div><i className="approved-dot"/> <span>Approved</span><b>{joinedUsers.length}</b></div>
+                  <div><i className="pending-dot"/> <span>Pending</span><b>{pendingUsers.length}</b></div>
+                  <div><i className="blocked-dot"/> <span>Blocked</span><b>{bannedUsers.length}</b></div>
+                </div>
+              </div>
+            </article>
+
+            <article className="sambhav-command-panel sambhav-account-panel">
+              <div className="sambhav-command-panel-head">
+                <div><h3>Account Types</h3><p>Current account classification</p></div>
+                <span className="sambhav-panel-icon">◇</span>
+              </div>
+              <div className="sambhav-donut-layout">
+                <div className="sambhav-donut sambhav-account-donut"
+                  style={{"--premium": `${users.length ? (premiumUsers.length / users.length) * 100 : 0}%`,
+                    "--free": `${users.length ? (freeUsers.length / users.length) * 100 : 0}%`}}>
+                  <div><strong>{users.length}</strong><small>Total users</small></div>
+                </div>
+                <div className="sambhav-legend">
+                  <div><i className="premium-dot"/> <span>Premium</span><b>{premiumUsers.length}</b></div>
+                  <div><i className="free-dot"/> <span>Free</span><b>{freeUsers.length}</b></div>
+                  <div><i className="demo-dot"/> <span>Demo</span><b>{users.filter(u => u.premium_active && String(u.premium_plan || "").toLowerCase() === "demo").length}</b></div>
+                </div>
+              </div>
+            </article>
+
+            <article className="sambhav-command-panel sambhav-activity-panel">
+              <div className="sambhav-command-panel-head">
+                <div><h3>Recent Registrations</h3><p>Latest accounts returned by the users API</p></div>
+                <button type="button" className="sambhav-command-link" onClick={() => document.getElementById("sambhav-user-directory")?.scrollIntoView({behavior:"smooth"})}>View users →</button>
+              </div>
+              <div className="sambhav-activity-list">
+                {[...users].sort((a,b)=>new Date(b.created_at || 0)-new Date(a.created_at || 0)).slice(0,4).map((u) => (
+                  <div className="sambhav-activity-item" key={`recent-${u.id}`}>
+                    <span className="sambhav-activity-symbol">♙</span>
+                    <div><strong>{u.first_name || u.username || "Unnamed user"}</strong><small>{u.email || "No email"} · {dateForAdmin(u.created_at)}</small></div>
+                    <span className={`sambhav-activity-status ${u.status || "unknown"}`}>{u.status || "unknown"}</span>
+                  </div>
+                ))}
+                {users.length === 0 && <div className="sambhav-empty-activity">Registration data will appear here when users load.</div>}
+              </div>
+            </article>
+
+            <article className="sambhav-command-panel sambhav-quick-panel">
+              <div className="sambhav-command-panel-head">
+                <div><h3>Quick Actions</h3><p>Shortcuts to existing admin tools</p></div>
+                <span className="sambhav-panel-icon">↯</span>
+              </div>
+              <div className="sambhav-quick-actions">
+                <button type="button" onClick={() => document.getElementById("sambhav-user-directory")?.scrollIntoView({behavior:"smooth"})}><span>♙</span><b>Manage Users</b><i>›</i></button>
+                <button type="button" onClick={() => document.getElementById("sambhav-subscription-area")?.scrollIntoView({behavior:"smooth"})}><span>♕</span><b>View Subscriptions</b><i>›</i></button>
+                <button type="button" onClick={() => document.getElementById("admin-content-upload")?.scrollIntoView({behavior:"smooth"})}><span>▤</span><b>Add Content</b><i>›</i></button>
+                <button type="button" onClick={() => document.getElementById("sambhav-analytics-area")?.scrollIntoView({behavior:"smooth"})}><span>▥</span><b>View Analytics</b><i>›</i></button>
+              </div>
+            </article>
+          </div>
         </section>
 
         {/* =================================================
