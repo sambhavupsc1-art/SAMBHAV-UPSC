@@ -31,6 +31,13 @@ export default function AdminPage() {
   const [notificationCount, setNotificationCount] =
     useState(0);
 
+  // Content upload form state
+  const [contentFile, setContentFile] = useState(null);
+  const [contentTitle, setContentTitle] = useState("");
+  const [contentCategory, setContentCategory] = useState("Study Material");
+  const [contentUploading, setContentUploading] = useState(false);
+  const [contentUploadMessage, setContentUploadMessage] = useState("");
+
   /* =========================================================
      ADMIN OVERVIEW API
   ========================================================= */
@@ -439,6 +446,44 @@ export default function AdminPage() {
   const filteredBanned =
     filterUsers(bannedUsers);
 
+  async function handleContentUpload(event) {
+    event.preventDefault();
+    if (!contentTitle.trim() || !contentFile) {
+      setContentUploadMessage("Please add a title and choose a file.");
+      return;
+    }
+
+    setContentUploading(true);
+    setContentUploadMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", contentFile);
+      formData.append("title", contentTitle.trim());
+      formData.append("category", contentCategory);
+
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok || result.success !== true) {
+        throw new Error(result.error || "Content upload failed.");
+      }
+
+      setContentUploadMessage(
+        `Upload successful. Storage path: ${result.path || result.url || "saved"}`
+      );
+      setContentFile(null);
+      setContentTitle("");
+      event.currentTarget.reset();
+    } catch (err) {
+      setContentUploadMessage(err.message || "Content upload failed.");
+    } finally {
+      setContentUploading(false);
+    }
+  }
+
   /* =========================================================
      RENDER
   ========================================================= */
@@ -447,6 +492,8 @@ export default function AdminPage() {
     <main style={styles.page}>
       <style jsx global>{`
         @media (max-width: 760px) {
+          .sambhav-content-upload { padding: 16px !important; }
+          .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
           .sambhav-header {
             flex-direction: column !important;
             align-items: flex-start !important;
@@ -1017,6 +1064,19 @@ export default function AdminPage() {
             >
               ↻ Refresh
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById("admin-content-upload")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }}
+              style={styles.contentUploadHeaderButton}
+            >
+              ↑ Content Upload
+            </button>
           </div>
         </header>
 
@@ -1190,6 +1250,110 @@ export default function AdminPage() {
             >
               TOTAL ACCOUNTS
             </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            CONTENT UPLOAD
+        ================================================= */}
+        <section
+          id="admin-content-upload"
+          className="sambhav-content-upload"
+          style={styles.contentUploadSection}
+        >
+          <div style={styles.contentUploadHeader}>
+            <div>
+              <div style={styles.contentUploadEyebrow}>CONTENT MANAGEMENT</div>
+              <h2 style={styles.contentUploadTitle}>Upload Study Content</h2>
+              <p style={styles.contentUploadDescription}>
+                Upload PDFs, notes, images or other study files to the configured admin storage bucket.
+              </p>
+            </div>
+            <div style={styles.contentUploadIcon}>↑</div>
+          </div>
+
+          <form onSubmit={handleContentUpload} style={styles.contentUploadForm}>
+            <label style={styles.contentUploadLabel}>
+              Content title
+              <input
+                type="text"
+                value={contentTitle}
+                onChange={(event) => setContentTitle(event.target.value)}
+                placeholder="e.g. Polity revision notes"
+                required
+                style={styles.contentUploadInput}
+              />
+            </label>
+
+            <label style={styles.contentUploadLabel}>
+              Category
+              <select
+                value={contentCategory}
+                onChange={(event) => setContentCategory(event.target.value)}
+                style={styles.contentUploadInput}
+              >
+                {[
+                  "Study Material",
+                  "Current Affairs",
+                  "Prelims PYQ",
+                  "Mains Answer Writing",
+                  "Geography",
+                  "Economy",
+                  "Polity",
+                  "Environment",
+                  "History",
+                  "Internal Security",
+                ].map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+
+            <label style={styles.contentUploadDrop}>
+              <span style={styles.contentUploadDropIcon}>↑</span>
+              <strong>{contentFile ? contentFile.name : "Choose a file to upload"}</strong>
+              <small>Choose a file from your device</small>
+              <input
+                type="file"
+                required
+                onChange={(event) => setContentFile(event.target.files?.[0] || null)}
+                style={styles.contentUploadFileInput}
+              />
+            </label>
+
+            <div style={styles.contentUploadActions}>
+              <button
+                type="submit"
+                disabled={contentUploading}
+                style={{
+                  ...styles.contentUploadSubmit,
+                  opacity: contentUploading ? 0.65 : 1,
+                  cursor: contentUploading ? "wait" : "pointer",
+                }}
+              >
+                {contentUploading ? "Uploading..." : "Upload content"}
+              </button>
+              <span style={styles.contentUploadHint}>
+                Upload uses the authenticated /api/admin/content-upload endpoint.
+              </span>
+            </div>
+
+            {contentUploadMessage && (
+              <div
+                role="status"
+                style={{
+                  ...styles.contentUploadMessage,
+                  ...(contentUploadMessage.startsWith("Upload successful")
+                    ? styles.contentUploadSuccess
+                    : styles.contentUploadError),
+                }}
+              >
+                {contentUploadMessage}
+              </div>
+            )}
+          </form>
+          <div style={styles.contentUploadFootnote}>
+            Note: this uploads a file to storage. Publishing it into a course or Current Affairs feed requires the corresponding content database integration.
           </div>
         </section>
 
@@ -3783,6 +3947,171 @@ const styles = {
     fontSize: "7px",
     fontWeight: "900",
     letterSpacing: "1px",
+  },
+
+  contentUploadHeaderButton: {
+    border: "1px solid #d8c28f",
+    background: "linear-gradient(135deg,#e8d6a7,#c4a45d)",
+    color: "#171717",
+    borderRadius: "10px",
+    padding: "10px 13px",
+    fontSize: "10px",
+    fontWeight: "900",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  contentUploadSection: {
+    background: "#fff",
+    border: "1px solid #e6e9ef",
+    borderRadius: "20px",
+    padding: "24px",
+    margin: "0 0 22px",
+    boxShadow: "0 8px 28px rgba(20,30,50,.045)",
+    scrollMarginTop: "20px",
+  },
+  contentUploadHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    paddingBottom: "18px",
+    borderBottom: "1px solid #edf0f4",
+    marginBottom: "18px",
+  },
+  contentUploadEyebrow: {
+    color: "#9b7b3e",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1.7px",
+  },
+  contentUploadTitle: {
+    margin: "7px 0 0",
+    color: "#191d28",
+    fontSize: "21px",
+    letterSpacing: "-.5px",
+  },
+  contentUploadDescription: {
+    margin: "7px 0 0",
+    color: "#737b8a",
+    fontSize: "11px",
+    lineHeight: "1.6",
+  },
+  contentUploadIcon: {
+    width: "46px",
+    height: "46px",
+    flexShrink: 0,
+    display: "grid",
+    placeItems: "center",
+    borderRadius: "14px",
+    background: "#f5f0e4",
+    color: "#96743a",
+    fontSize: "25px",
+    fontWeight: "800",
+  },
+  contentUploadForm: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+    gap: "15px",
+  },
+  contentUploadLabel: {
+    display: "grid",
+    gap: "8px",
+    color: "#444b59",
+    fontSize: "10px",
+    fontWeight: "800",
+    minWidth: 0,
+  },
+  contentUploadInput: {
+    width: "100%",
+    minWidth: 0,
+    border: "1px solid #dfe4ec",
+    background: "#fff",
+    borderRadius: "10px",
+    padding: "12px 13px",
+    color: "#202633",
+    fontSize: "11px",
+    outline: "none",
+  },
+  contentUploadDrop: {
+    gridColumn: "1 / -1",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    minHeight: "150px",
+    border: "1px dashed #c9d0dc",
+    borderRadius: "14px",
+    background: "#fafbfc",
+    padding: "20px",
+    color: "#333a48",
+    fontSize: "11px",
+    cursor: "pointer",
+    textAlign: "center",
+  },
+  contentUploadDropIcon: {
+    display: "grid",
+    placeItems: "center",
+    width: "35px",
+    height: "35px",
+    borderRadius: "11px",
+    background: "#eee7d6",
+    color: "#98763b",
+    fontSize: "23px",
+    fontWeight: "800",
+  },
+  contentUploadFileInput: {
+    maxWidth: "100%",
+    marginTop: "4px",
+    fontSize: "10px",
+    color: "#777f8d",
+  },
+  contentUploadActions: {
+    gridColumn: "1 / -1",
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "12px",
+  },
+  contentUploadSubmit: {
+    border: "1px solid #191d27",
+    background: "#191d27",
+    color: "#fff",
+    borderRadius: "10px",
+    padding: "12px 18px",
+    fontSize: "11px",
+    fontWeight: "800",
+  },
+  contentUploadHint: {
+    color: "#858c99",
+    fontSize: "9px",
+    lineHeight: "1.5",
+  },
+  contentUploadMessage: {
+    gridColumn: "1 / -1",
+    borderRadius: "10px",
+    padding: "12px 14px",
+    fontSize: "10px",
+    lineHeight: "1.5",
+    overflowWrap: "anywhere",
+  },
+  contentUploadSuccess: {
+    background: "#eaf8ef",
+    border: "1px solid #ccebd7",
+    color: "#23774b",
+  },
+  contentUploadError: {
+    background: "#fff0ee",
+    border: "1px solid #f1d5d1",
+    color: "#a13f39",
+  },
+  contentUploadFootnote: {
+    marginTop: "14px",
+    paddingTop: "13px",
+    borderTop: "1px solid #eff1f5",
+    color: "#8b919d",
+    fontSize: "9px",
+    lineHeight: "1.6",
   },
 
   footer: {
