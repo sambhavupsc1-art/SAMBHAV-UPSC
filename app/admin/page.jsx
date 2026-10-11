@@ -38,6 +38,13 @@ export default function AdminPage() {
   const [contentUploading, setContentUploading] = useState(false);
   const [contentUploadMessage, setContentUploadMessage] = useState("");
 
+  // The Hindu newspaper extraction workflow
+  const [hinduPdf, setHinduPdf] = useState(null);
+  const [hinduDate, setHinduDate] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  const [hinduBusy, setHinduBusy] = useState(false);
+  const [hinduMessage, setHinduMessage] = useState("");
+  const [hinduResults, setHinduResults] = useState(null);
+
   /* =========================================================
      ADMIN OVERVIEW API
   ========================================================= */
@@ -550,6 +557,70 @@ export default function AdminPage() {
       setContentUploadMessage(err.message || "Content upload failed.");
     } finally {
       setContentUploading(false);
+    }
+  }
+
+  async function handleTheHinduExtraction(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const file = hinduPdf;
+    const date = hinduDate;
+    if (!file || !date) {
+      setHinduMessage("The Hindu PDF aur newspaper date select karo.");
+      return;
+    }
+    if (file.type && file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setHinduMessage("Please select a PDF newspaper file.");
+      return;
+    }
+    if (!file.size || file.size > 50 * 1024 * 1024) {
+      setHinduMessage("PDF size 50 MB se zyada nahi hona chahiye.");
+      return;
+    }
+
+    setHinduBusy(true);
+    setHinduMessage("Secure upload URL prepare ho raha hai…");
+    setHinduResults(null);
+    try {
+      const signResponse = await fetch("/api/admin/content-upload", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sign", fileName: file.name, size: file.size, contentType: file.type || "application/pdf" }),
+      });
+      const sign = await signResponse.json().catch(() => ({}));
+      if (!signResponse.ok || sign.success !== true || !sign.uploadUrl || !sign.path) {
+        throw new Error(sign.error || "Secure PDF upload could not be prepared.");
+      }
+
+      setHinduMessage("PDF secure storage par upload ho rahi hai…");
+      const uploadResponse = await fetch(sign.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/pdf", apikey: sign.anonKey, "x-upsert": "false" },
+        body: file,
+      });
+      if (!uploadResponse.ok) {
+        const detail = await uploadResponse.text().catch(() => "");
+        throw new Error(`PDF upload failed (${uploadResponse.status}). ${detail.slice(0, 220)}`);
+      }
+
+      setHinduMessage("PDF extract ho rahi hai aur UPSC-relevant articles process ho rahe hain. Ismein kuch minute lag sakte hain…");
+      const processResponse = await fetch("/api/admin/the-hindu-extract", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "process", path: sign.path, bucket: sign.bucket, date, fileName: file.name }),
+      });
+      const result = await processResponse.json().catch(() => ({}));
+      if (!processResponse.ok || result.success !== true) throw new Error(result.error || "The Hindu extraction failed.");
+      setHinduResults(result);
+      setHinduMessage(`Extraction complete — ${result.published || 0} published, ${result.skipped || 0} duplicates skipped, ${result.failed || 0} failed.`);
+      setHinduPdf(null);
+      form?.reset();
+    } catch (error) {
+      setHinduMessage(error?.message || "The Hindu extraction failed.");
+    } finally {
+      setHinduBusy(false);
     }
   }
 
@@ -1543,6 +1614,50 @@ export default function AdminPage() {
           <div style={styles.contentUploadFootnote}>
             Note: this uploads a file to storage. Publishing it into a course or Current Affairs feed requires the corresponding content database integration.
           </div>
+        </section>
+
+        {/* =================================================
+            THE HINDU PDF EXTRACTION
+        ================================================= */}
+        <section id="admin-the-hindu-extraction" className="sambhav-content-upload" style={{ ...styles.contentUploadSection, marginTop: 24 }}>
+          <div style={styles.contentUploadHeader}>
+            <div>
+              <div style={styles.contentUploadEyebrow}>CURRENT AFFAIRS AUTOMATION</div>
+              <h2 style={styles.contentUploadTitle}>The Hindu PDF Extraction</h2>
+              <p style={styles.contentUploadDescription}>Upload the full newspaper PDF. The existing SAMBHAV Current Affairs AI route creates bilingual Hindi/English records and checks duplicates.</p>
+            </div>
+            <div style={styles.contentUploadIcon}>AI</div>
+          </div>
+          <form onSubmit={handleTheHinduExtraction} style={{ ...styles.contentUploadForm, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+            <label style={styles.contentUploadLabel}>
+              Newspaper date
+              <input type="date" value={hinduDate} onChange={(e) => setHinduDate(e.target.value)} required style={styles.contentUploadInput} />
+            </label>
+            <label style={styles.contentUploadDrop}>
+              <span style={styles.contentUploadDropIcon}>↑</span>
+              <strong>{hinduPdf ? hinduPdf.name : "Choose The Hindu newspaper PDF"}</strong>
+              <small>PDF only · up to 50 MB · text-based PDF recommended</small>
+              <input type="file" accept="application/pdf,.pdf" required onChange={(e) => setHinduPdf(e.target.files?.[0] || null)} style={styles.contentUploadFileInput} />
+            </label>
+            <div style={{ ...styles.contentUploadActions, gridColumn: "1 / -1" }}>
+              <button type="submit" disabled={hinduBusy} style={{ ...styles.contentUploadSubmit, opacity: hinduBusy ? 0.65 : 1, cursor: hinduBusy ? "wait" : "pointer" }}>
+                {hinduBusy ? "Extracting newspaper…" : "Extract & Publish Current Affairs"}
+              </button>
+              <span style={styles.contentUploadHint}>Uses the existing /api/current-affairs/ai pipeline. Telegram webhook remains unchanged.</span>
+            </div>
+            {hinduMessage && <div role="status" style={{ ...styles.contentUploadMessage, ...(hinduMessage.startsWith("Extraction complete") ? styles.contentUploadSuccess : styles.contentUploadError), gridColumn: "1 / -1" }}>{hinduMessage}</div>}
+          </form>
+          {hinduResults && (
+            <div style={{ marginTop: 18, padding: 16, border: "1px solid rgba(120,130,150,.25)", borderRadius: 12 }}>
+              <strong>Extraction report · {hinduResults.date}</strong>
+              <p style={{ margin: "8px 0", fontSize: 13 }}>Text scanned: {(hinduResults.scannedCharacters || 0).toLocaleString()} characters · Candidates: {hinduResults.candidates || 0} · Published: {hinduResults.published || 0} · Skipped: {hinduResults.skipped || 0} · Failed: {hinduResults.failed || 0}</p>
+              {hinduResults.warning && <p style={{ margin: "8px 0", fontSize: 12, color: "#a16207" }}>{hinduResults.warning}</p>}
+              <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                {(hinduResults.results || []).map((item, index) => <div key={`${item.title}-${index}`} style={{ padding: 10, borderRadius: 8, background: "rgba(120,130,150,.08)", fontSize: 13 }}><strong>{item.title}</strong><div style={{ marginTop: 4, opacity: .8 }}>{item.status}{item.error ? ` — ${item.error}` : item.reason ? ` — ${item.reason}` : ""}</div></div>)}
+              </div>
+            </div>
+          )}
+          <div style={styles.contentUploadFootnote}>Review Current Affairs after extraction. Text-only PDF parsing cannot reliably read scanned pages; extraction is heuristic-based, so inspect the report for missed articles. Re-running is safe for duplicate checking.</div>
         </section>
 
         {/* =================================================
