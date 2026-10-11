@@ -3306,7 +3306,10 @@ function ArticleModal({
         {mains && (
           <>
             <h3>Mains Analysis</h3>
-            <div className="content-block">
+            <div
+              className="content-block ca-mains-analysis-content"
+              style={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}
+            >
               {mains}
             </div>
           </>
