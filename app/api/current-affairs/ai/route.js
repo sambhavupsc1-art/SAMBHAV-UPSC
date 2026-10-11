@@ -998,25 +998,50 @@ function isSameEvent(
   incomingTitle,
   existingTitle
 ) {
-  const a =
-    normalizeTitleForDuplicate(
-      incomingTitle
-    );
+  const normalizedA =
+    normalizeTitleForDuplicate(incomingTitle);
+  const normalizedB =
+    normalizeTitleForDuplicate(existingTitle);
 
-  const b =
-    normalizeTitleForDuplicate(
-      existingTitle
-    );
+  if (!normalizedA || !normalizedB) {
+    return false;
+  }
 
-  if (a && b && a === b) {
+  // Exact normalized headline is a reliable duplicate signal.
+  if (normalizedA === normalizedB) {
     return true;
   }
 
+  const a = duplicateTokens(normalizedA);
+  const b = duplicateTokens(normalizedB);
+
+  // A broad topic match is not enough: separate reports can cover the same event.
+  if (a.size < 3 || b.size < 3) {
+    return false;
+  }
+
+  let shared = 0;
+  for (const token of a) {
+    if (b.has(token)) shared++;
+  }
+
+  if (shared < 3) {
+    return false;
+  }
+
+  const unionSize = new Set([...a, ...b]).size;
+  const jaccard = unionSize ? shared / unionSize : 0;
+  const shorterSize = Math.min(a.size, b.size);
+  const containment = shorterSize ? shared / shorterSize : 0;
+  const sizeDifference = Math.abs(a.size - b.size);
+
+  // Similarity must be strong and the titles must be close in length.
+  // This avoids collapsing distinct articles merely because they mention
+  // the same people, institution, protest, court, or location.
   return (
-    titleSimilarity(
-      incomingTitle,
-      existingTitle
-    ) >= 0.78
+    jaccard >= 0.72 &&
+    containment >= 0.82 &&
+    sizeDifference <= 2
   );
 }
 
