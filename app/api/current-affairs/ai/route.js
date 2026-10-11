@@ -105,6 +105,15 @@ function buildPrompt(item) {
       .toLowerCase()
       .includes("ethics");
 
+  // Updated: detect The Hindu from either report_type or source_name.
+  const isTheHindu =
+    String(item?.report_type || "")
+      .toLowerCase()
+      .includes("the_hindu_pdf") ||
+    String(item?.source_name || "")
+      .toLowerCase()
+      .includes("the hindu");
+
   const input = {
     index: 0,
 
@@ -185,6 +194,23 @@ Focus on:
 
 Only use an ethics angle when supported by the article.
 `
+    : isTheHindu
+    ? `
+This article was extracted from a The Hindu newspaper PDF.
+
+Classify the ORIGINAL article accurately as one of:
+NEWS, EDITORIAL, OPINION / OP-ED, EXPLAINER / ANALYSIS, FEATURE / SPECIAL REPORT, INTERVIEW.
+
+Return that exact type in report_type. Do not label ordinary reporting as an editorial.
+
+For NEWS: explain what happened, why it matters, background, stakeholders, verified facts and implications.
+
+For EDITORIAL / OPINION: capture the central thesis, problem, structural/institutional causes, supporting arguments, recommendations, limitations/counterarguments where supported, and a balanced Mains perspective. Clearly treat opinions as the author's arguments, not established facts.
+
+For EXPLAINER / ANALYSIS / SPECIAL REPORT: capture context, mechanisms, causes, consequences, institutions, challenges and source-supported way forward.
+
+Keep article-specific details faithful to the supplied text. Do not invent page numbers, authors, quotes, statistics, schemes, laws, reports, constitutional provisions or PYQs. If unsupported, return an empty string. Keep the summary substantial enough for UPSC revision; do not reduce an in-depth article to a generic short summary.
+`
     : `
 This is a normal CURRENT AFFAIRS article.
 
@@ -218,6 +244,19 @@ Do not force a government scheme.
 Do not force a report.
 
 Do not fabricate PYQs.
+
+${
+  isTheHindu
+    ? `
+THE HINDU EXTRACTION RULES
+- Preserve the article's original headline in the appropriate title field as closely as possible.
+- Include only UPSC-relevant information supported by this article.
+- Use report_type to classify NEWS, EDITORIAL, OPINION / OP-ED, EXPLAINER / ANALYSIS, FEATURE / SPECIAL REPORT, or INTERVIEW.
+- For editorials/opinions, separate the author's opinion from verified facts and retain the central argument and recommendations.
+- Do not claim that this single article represents the entire newspaper. This record represents only the supplied article candidate.
+`
+    : ""
+}
 
 =========================================================
 IMPORTANT DATE RULE
@@ -496,8 +535,7 @@ async function generateWithGemini(
   throw new Error(
     `AI generation failed for article ${articleNumber}: ${lastError}`
   );
-}
-
+}  
 /* =========================================================
    NORMALIZE ARTICLE
 ========================================================= */
@@ -680,10 +718,11 @@ function normalizeArticle(
           ""
       ).trim(),
 
+    // Preserve the AI-generated classification.
     report_type:
       String(
-        input?.report_type ||
-          article?.report_type ||
+        article?.report_type ||
+          input?.report_type ||
           ""
       ).trim(),
 
@@ -754,7 +793,6 @@ const DUPLICATE_STOPWORDS =
     "new",
     "india",
     "indian",
-
     "का",
     "के",
     "की",
@@ -989,7 +1027,6 @@ async function saveArticle(
     return [];
   }
 }
-
 /* =========================================================
    PROCESS ONE ARTICLE
 ========================================================= */
@@ -1061,16 +1098,27 @@ async function processArticle(
       Array.isArray(duplicates) &&
       duplicates.length > 0
     ) {
-      console.log("CURRENT AFFAIRS ARTICLE SKIPPED", {
-        articleNumber,
-        title: article.title_en || article.title_hi || input?.title || "",
-        reason: "same-source-url-and-date",
-        existingId: duplicates[0]?.id || null,
-      });
+      console.log(
+        "CURRENT AFFAIRS ARTICLE SKIPPED",
+        {
+          articleNumber,
+          title:
+            article.title_en ||
+            article.title_hi ||
+            input?.title ||
+            "",
+          reason:
+            "same-source-url-and-date",
+          existingId:
+            duplicates[0]?.id || null,
+        }
+      );
+
       return {
         created: 0,
         skipped: 1,
-        reason: "same-source-url-and-date",
+        reason:
+          "same-source-url-and-date",
       };
     }
   }
@@ -1085,19 +1133,33 @@ async function processArticle(
     );
 
   if (sameEvent) {
-    console.log("CURRENT AFFAIRS ARTICLE SKIPPED", {
-      articleNumber,
-      title: article.title_en || article.title_hi || input?.title || "",
-      reason: "same-event-cross-source",
-      duplicateId: sameEvent.id || null,
-      duplicateSource: sameEvent.source_name || null,
-    });
+    console.log(
+      "CURRENT AFFAIRS ARTICLE SKIPPED",
+      {
+        articleNumber,
+        title:
+          article.title_en ||
+          article.title_hi ||
+          input?.title ||
+          "",
+        reason:
+          "same-event-cross-source",
+        duplicateId:
+          sameEvent.id || null,
+        duplicateSource:
+          sameEvent.source_name || null,
+      }
+    );
+
     return {
       created: 0,
       skipped: 1,
-      reason: "same-event-cross-source",
-      duplicate_id: sameEvent.id,
-      duplicate_source: sameEvent.source_name,
+      reason:
+        "same-event-cross-source",
+      duplicate_id:
+        sameEvent.id,
+      duplicate_source:
+        sameEvent.source_name,
     };
   }
 
@@ -1110,12 +1172,19 @@ async function processArticle(
     articleNumber
   );
 
-  console.log("CURRENT AFFAIRS ARTICLE SAVED", {
-    articleNumber,
-    title: article.title_en || article.title_hi || input?.title || "",
-    date: article.date,
-    source_url: article.source_url,
-  });
+  console.log(
+    "CURRENT AFFAIRS ARTICLE SAVED",
+    {
+      articleNumber,
+      title:
+        article.title_en ||
+        article.title_hi ||
+        input?.title ||
+        "",
+      date: article.date,
+      source_url: article.source_url,
+    }
+  );
 
   return {
     created: 1,
