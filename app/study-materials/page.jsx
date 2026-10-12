@@ -7,14 +7,14 @@ const exams = ["All", "Prelims", "Mains", "Prelims & Mains"];
 const languages = ["All", "Hindi", "English", "Bilingual"];
 
 const theme = {
-  page: "var(--sambhav-page, #f5f2eb)",
-  surface: "var(--sambhav-surface, #fffdf9)",
-  text: "var(--sambhav-text, #101010)",
-  muted: "var(--sambhav-muted, #77736b)",
-  border: "var(--sambhav-border, rgba(16,16,16,.10))",
-  gold: "var(--sambhav-gold, #a07d32)",
-  ink: "#101010",
-  goldLight: "#dfc477",
+  page: "var(--sambhav-page, #0b0b0b)",
+  surface: "var(--sambhav-surface, #151515)",
+  text: "var(--sambhav-text, #f5f2eb)",
+  muted: "var(--sambhav-muted, #aaa49a)",
+  border: "var(--sambhav-border, rgba(199,168,93,.22))",
+  gold: "var(--sambhav-gold, #c7a85d)",
+  ink: "#080808",
+  goldLight: "#e5c978",
 };
 
 export default function StudyMaterialsPage() {
@@ -67,11 +67,11 @@ export default function StudyMaterialsPage() {
   };
 
   const styles = {
-    page: { minHeight: "100vh", background: theme.page, color: theme.text, padding: "22px 16px 48px", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+    page: { minHeight: "100vh", background: theme.page, color: theme.text, padding: "18px 14px 36px", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
     wrap: { maxWidth: 1120, margin: "0 auto" },
-    card: { background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 20, padding: 18, boxShadow: "0 8px 28px rgba(16,16,16,.035)" },
-    input: { width: "100%", minWidth: 0, padding: "14px 14px 14px 42px", borderRadius: 13, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 14, boxSizing: "border-box", outlineOffset: 2 },
-    select: { width: "100%", padding: "12px 11px", borderRadius: 12, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 13, minHeight: 44 },
+    card: { background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 16, padding: 14, boxShadow: "0 12px 34px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.025)" },
+    input: { width: "100%", minWidth: 0, padding: "12px 12px 12px 40px", borderRadius: 13, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 14, boxSizing: "border-box", outlineOffset: 2 },
+    select: { width: "100%", padding: "10px 11px", borderRadius: 12, border: `1px solid ${theme.border}`, background: theme.surface, color: theme.text, fontSize: 13, minHeight: 44 },
     primary: { border: `1px solid ${theme.ink}`, borderRadius: 12, background: theme.ink, color: theme.goldLight, padding: "11px 15px", fontWeight: 800, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 12, minHeight: 40, boxSizing: "border-box" },
     secondary: { border: `1px solid ${theme.border}`, borderRadius: 12, background: "transparent", color: theme.text, padding: "10px 13px", fontWeight: 750, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 12, minHeight: 40, boxSizing: "border-box" },
     label: { display: "block", fontSize: 11, fontWeight: 850, marginBottom: 7, color: theme.muted, letterSpacing: ".04em", textTransform: "uppercase" },
@@ -79,6 +79,12 @@ export default function StudyMaterialsPage() {
 
   return (
     <main style={styles.page}>
+      <style jsx global>{`
+        #study-search::placeholder { color: #8d877d; }
+        #study-subject option, #study-exam option, #study-language option { background: #151515; color: #f5f2eb; }
+        @media (max-width: 520px) { #study-search { font-size: 13px !important; } }
+        .study-resource-card:hover { transform: translateY(-2px); border-color: rgba(199,168,93,.55) !important; box-shadow: 0 16px 36px rgba(0,0,0,.34) !important; }
+      `}</style>
       <div style={styles.wrap}>
         <a href="/premium" style={{ color: theme.muted, textDecoration: "none", fontSize: 12, fontWeight: 800, display: "inline-flex", gap: 8, alignItems: "center" }}>
           <span aria-hidden="true">←</span> Back to Premium Home
@@ -162,17 +168,17 @@ export default function StudyMaterialsPage() {
             <button type="button" style={{ ...styles.primary, marginTop: 17 }} onClick={clearFilters}>Clear all filters</button>
           </div>}
 
-          {!error && items.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 13 }}>
+          {!error && items.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 245px), 1fr))", gap: 10 }}>
             {items.map((item) => (
-              <article key={item.id} style={{ ...styles.card, padding: 17, display: "flex", flexDirection: "column", gap: 13, transition: "transform .18s ease, box-shadow .18s ease", minWidth: 0 }}>
+              <article key={item.id} className="study-resource-card" style={{ ...styles.card, padding: 13, display: "flex", flexDirection: "column", gap: 9, transition: "transform .18s ease, box-shadow .18s ease", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <div aria-hidden="true" style={{ width: 48, height: 54, flexShrink: 0, borderRadius: 13, background: theme.ink, color: theme.goldLight, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 950, letterSpacing: ".5px" }}>PDF</div>
+                  <div aria-hidden="true" style={{ width: 40, height: 44, flexShrink: 0, borderRadius: 13, background: theme.ink, color: theme.goldLight, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 950, letterSpacing: ".5px" }}>PDF</div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: 15, lineHeight: 1.45, margin: "0 0 6px", overflowWrap: "anywhere", fontWeight: 900 }}>{item.title || "Untitled resource"}</h3>
+                    <h3 style={{ fontSize: 13, lineHeight: 1.4, margin: "0 0 6px", overflowWrap: "anywhere", fontWeight: 900 }}>{item.title || "Untitled resource"}</h3>
                     <div style={{ fontSize: 11, lineHeight: 1.55, color: theme.muted }}>{[item.subject, item.topic].filter(Boolean).join(" · ") || item.category || "Study Material"}</div>
                   </div>
                 </div>
-                {item.description && <p style={{ fontSize: 12, lineHeight: 1.65, color: theme.muted, margin: 0, overflowWrap: "anywhere" }}>{item.description}</p>}
+                {item.description && <p style={{ fontSize: 11, lineHeight: 1.55, color: theme.muted, margin: 0, overflowWrap: "anywhere" }}>{item.description}</p>}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {[item.exam_type, item.language, item.category].filter(Boolean).map((tag, i) => <span key={`${tag}-${i}`} style={{ fontSize: 10, fontWeight: 800, color: theme.muted, border: `1px solid ${theme.border}`, borderRadius: 99, padding: "5px 8px", background: "rgba(127,127,127,.035)" }}>{tag}</span>)}
                 </div>
