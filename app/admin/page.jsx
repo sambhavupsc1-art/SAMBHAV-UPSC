@@ -727,6 +727,13 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
+        .sambhav-page { color: #f5f2eb !important; }
+        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="background: "#fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
+        .sambhav-page input, .sambhav-page select, .sambhav-page textarea { background-color: #111 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.3) !important; color-scheme: dark; }
+        .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #918a7d !important; }
+        .sambhav-page button { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+        .sambhav-page button:hover { border-color: rgba(199,168,93,.65) !important; }
+        .sambhav-page .sambhav-content-upload { background: linear-gradient(145deg,#171717,#101010) !important; border-color: rgba(199,168,93,.28) !important; box-shadow: 0 16px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025) !important; }
         @media (max-width: 760px) {
           .sambhav-content-upload { padding: 16px !important; }
           .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
@@ -3422,8 +3429,8 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#f5f2eb 0%,#eeeae1 100%)",
-    color: "#171613",
+      "radial-gradient(ellipse at top left,rgba(199,168,93,.12),transparent 34%),linear-gradient(180deg,#101010 0%,#080808 100%)",
+    color: "#f5f2eb",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
@@ -4642,3 +4649,5 @@ const styles = {
     fontWeight: "700",
   },
 };
+
+
