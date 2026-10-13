@@ -727,64 +727,64 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
-        .sambhav-page { color:#f5f2eb; }
+        .sambhav-page { color:#171923 !important; }
         .sambhav-page * { box-sizing:border-box; }
-        .sambhav-page input,.sambhav-page select,.sambhav-page textarea {
-          background:#111 !important;color:#f5f2eb !important;
-          border:1px solid rgba(199,168,93,.28) !important;
-          border-radius:12px !important; color-scheme:dark;
+        .sambhav-page button,.sambhav-page input,.sambhav-page select,.sambhav-page textarea { font:inherit; }
+        .sambhav-page button { cursor:pointer; transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease; }
+        .sambhav-page button:not(:disabled):hover { transform:translateY(-1px); }
+        .sambhav-page button:focus-visible,.sambhav-page input:focus-visible,.sambhav-page select:focus-visible,.sambhav-page textarea:focus-visible { outline:3px solid rgba(184,146,65,.3); outline-offset:2px; }
+        .sambhav-page input,.sambhav-page select,.sambhav-page textarea { max-width:100%; color:#202432 !important; background:#fffdf9 !important; border-color:#e5e0d5 !important; color-scheme:light; }
+        .sambhav-page input::placeholder,.sambhav-page textarea::placeholder { color:#8b8c91 !important; }
+        .sambhav-page .sambhav-overview { padding:22px; margin:0 0 20px; background:linear-gradient(145deg,#fffefa,#fdfbf6) !important; border:1px solid #e9e3d6 !important; border-radius:20px; box-shadow:0 8px 28px rgba(40,34,22,.045) !important; color:#171923 !important; }
+        .sambhav-page .sambhav-overview-metric,.sambhav-page .sambhav-overview-content-card { background:#fff !important; border:1px solid #ece7dc !important; border-radius:14px; box-shadow:0 3px 12px rgba(25,25,25,.025); color:#171923 !important; }
+        .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+        .sambhav-page .sambhav-overview-content-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+        .sambhav-page .sambhav-command-panel { min-width:0; background:#fffefa !important; border:1px solid #e9e3d6 !important; border-radius:17px; box-shadow:0 7px 22px rgba(40,34,22,.035) !important; color:#171923 !important; }
+        .sambhav-page .sambhav-command-panel-head h3,.sambhav-page .sambhav-activity-item strong,.sambhav-page .sambhav-quick-actions button b { color:#171923 !important; }
+        .sambhav-page .sambhav-donut:before { background:#fffefa !important; }
+        .sambhav-page .sambhav-donut strong,.sambhav-page .sambhav-legend b { color:#171923 !important; }
+        .sambhav-page .sambhav-quick-actions button,.sambhav-page .sambhav-command-link { background:#fff !important; border-color:#e9e3d6 !important; }
+        .sambhav-page .sambhav-content-upload { background:linear-gradient(145deg,#fffefa,#f9f6ee) !important; border:1px solid #e5dece !important; border-radius:18px !important; box-shadow:0 10px 28px rgba(42,35,20,.045) !important; }
+        .sambhav-page .sambhav-content-upload label { min-width:0; }
+        .sambhav-page .sambhav-header { gap:18px; align-items:center; }
+        .sambhav-page .sambhav-header-right { gap:8px; }
+        .sambhav-page .sambhav-user-card { padding:12px 15px !important; background:#fffefa !important; border-bottom:1px solid #eee9df !important; border-left:0 !important; }
+        .sambhav-page .sambhav-user-card:hover { background:#fbf8f0 !important; }
+        .sambhav-page .sambhav-user-card > div { gap:9px !important; }
+        .sambhav-page .sambhav-user-card .sambhav-user-identity { gap:10px !important; }
+        .sambhav-page .sambhav-user-card .sambhav-avatar { width:36px !important; height:36px !important; border-radius:11px !important; }
+        .sambhav-page .sambhav-user-card-actions { display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; justify-content:flex-end !important; align-items:center !important; gap:7px !important; }
+        .sambhav-page .sambhav-user-card-actions button { min-height:34px !important; padding:7px 11px !important; border-radius:9px !important; font-size:11px !important; }
+        .sambhav-page .sambhav-account-details { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:7px !important; }
+        .sambhav-page .sambhav-info-item { padding:9px 10px !important; min-width:0; border-radius:10px !important; }
+        .sambhav-page .sambhav-info-value { overflow-wrap:anywhere; }
+        .sambhav-page .sambhav-subscription-box { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+        .sambhav-page .sambhav-panel-title { color:#171923 !important; }
+        @media(max-width:1050px) {
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+          .sambhav-page .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
         }
-        .sambhav-page input::placeholder,.sambhav-page textarea::placeholder {color:#918a7d !important;}
-        .sambhav-page button {cursor:pointer; transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease;}
-        .sambhav-page button:not(:disabled):hover {transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.24);}
-        .sambhav-page button:focus-visible,.sambhav-page input:focus-visible,.sambhav-page select:focus-visible {outline:2px solid #c7a85d;outline-offset:2px;}
-        .sambhav-overview,.sambhav-command-panel,.sambhav-content-upload {
-          background:linear-gradient(145deg,#191919,#111) !important;
-          color:#f5f2eb !important;border:1px solid rgba(199,168,93,.24) !important;
-          border-radius:18px !important;box-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.025) !important;
+        @media(max-width:760px) {
+          .sambhav-page { padding:14px 10px 34px !important; }
+          .sambhav-page .sambhav-header { flex-direction:column !important; align-items:stretch !important; margin-bottom:18px !important; }
+          .sambhav-page .sambhav-header-right { width:100% !important; justify-content:flex-start !important; }
+          .sambhav-page .sambhav-overview { padding:15px !important; border-radius:16px !important; }
+          .sambhav-page .sambhav-overview-heading { align-items:flex-start !important; }
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+          .sambhav-page .sambhav-overview-content-grid { grid-template-columns:1fr !important; }
+          .sambhav-page .sambhav-command-grid { grid-template-columns:minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-content-upload { padding:15px !important; }
+          .sambhav-page .sambhav-content-upload form { grid-template-columns:minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-user-card { padding:11px !important; }
+          .sambhav-page .sambhav-user-card-content { gap:8px !important; }
+          .sambhav-page .sambhav-user-card-actions { justify-content:flex-start !important; }
+          .sambhav-page .sambhav-subscription-box { grid-template-columns:minmax(0,1fr) !important; }
         }
-        .sambhav-overview {padding:clamp(16px,2.2vw,26px) !important;margin:0 0 22px !important;}
-        .sambhav-overview-title,.sambhav-command-panel-head h3 {color:#f5f2eb !important;}
-        .sambhav-overview-subtitle,.sambhav-overview-note,.sambhav-overview-updated,
-        .sambhav-command-panel-head p,.sambhav-legend>div,.sambhav-activity-item small {color:#aaa397 !important;}
-        .sambhav-overview-status {background:#121612 !important;border-color:#293b2d !important;color:#a9d8b5 !important;}
-        .sambhav-overview-metric,.sambhav-overview-content-card {
-          min-width:0;background:linear-gradient(145deg,#202020,#171717) !important;
-          border:1px solid rgba(199,168,93,.18) !important;border-radius:13px !important;
-          color:#f5f2eb !important;padding:14px !important;
-        }
-        .sambhav-overview-metric-label,.sambhav-overview-content-label {color:#b9b1a2 !important;}
-        .sambhav-overview-number,.sambhav-overview-content-number,.sambhav-legend b,
-        .sambhav-donut strong,.sambhav-activity-item strong,.sambhav-quick-actions button b {color:#f5f2eb !important;}
-        .sambhav-overview-grid {display:grid !important;grid-template-columns:repeat(5,minmax(0,1fr)) !important;gap:10px !important;}
-        .sambhav-overview-content-grid {display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px !important;margin-top:10px !important;}
-        .sambhav-command-grid {display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:14px !important;}
-        .sambhav-command-panel {padding:18px !important;min-width:0 !important;}
-        .sambhav-donut:before {background:#191919 !important;}
-        .sambhav-activity-item {border-color:rgba(255,255,255,.08) !important;}
-        .sambhav-quick-actions button,.sambhav-command-link,.sambhav-overview-refresh {
-          background:#202020 !important;color:#f5f2eb !important;
-          border:1px solid rgba(199,168,93,.24) !important;border-radius:10px !important;
-        }
-        .sambhav-content-upload form {gap:12px !important;}
-        .sambhav-user-card,.sambhav-panel {min-width:0;}
-        @media(max-width:900px) {
-          .sambhav-overview-grid {grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
-          .sambhav-command-grid {grid-template-columns:1fr !important;}
-        }
-        @media(max-width:600px) {
-          .sambhav-page {padding:14px 10px 36px !important;}
-          .sambhav-header {align-items:flex-start !important;gap:16px !important;}
-          .sambhav-header-right {width:100% !important;justify-content:flex-start !important;gap:8px !important;}
-          .sambhav-overview-heading {align-items:flex-start !important;gap:10px !important;}
-          .sambhav-overview-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:8px !important;}
-          .sambhav-overview-content-grid {grid-template-columns:1fr !important;}
-          .sambhav-overview-metric {padding:12px !important;}
-          .sambhav-overview-number {font-size:25px !important;}
-          .sambhav-overview-updated {margin-left:0 !important;width:100% !important;}
-          .sambhav-command-panel {padding:14px !important;}
-          .sambhav-donut-layout {gap:12px !important;}
-          .sambhav-donut {width:112px !important;height:112px !important;flex-basis:112px !important;}
+        @media(max-width:420px) {
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:7px !important; }
+          .sambhav-page .sambhav-overview-metric { padding:10px !important; }
+          .sambhav-page .sambhav-overview-number { font-size:24px !important; }
+          .sambhav-page .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
         }
       `}</style>
 
@@ -3103,12 +3103,12 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(ellipse at top left,rgba(199,168,93,.12),transparent 34%),linear-gradient(180deg,#101010 0%,#080808 100%)",
-    color: "#f5f2eb",
+      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#faf9f5 0%,#f3f1eb 100%)",
+    color: "#171923",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
-      "24px 16px 60px",
+      "20px 18px 48px",
   },
 
   container: {
