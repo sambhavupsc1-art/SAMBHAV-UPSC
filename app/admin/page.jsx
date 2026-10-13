@@ -725,11 +725,10 @@ export default function AdminPage() {
   ========================================================= */
 
   return (
-    <main className="sambhav-page" style={styles.page}>
+    <main style={styles.page}>
       <style jsx global>{`
-        .sambhav-page { color: #f5f2eb !important; width: 100%; min-width: 0; box-sizing: border-box; }
-        .sambhav-page *, .sambhav-page *::before, .sambhav-page *::after { box-sizing: border-box; }
-        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
+        .sambhav-page { color: #f5f2eb !important; }
+        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="background: "#fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
         .sambhav-page input, .sambhav-page select, .sambhav-page textarea { background-color: #111 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.3) !important; color-scheme: dark; }
         .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #918a7d !important; }
         .sambhav-page button { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
@@ -834,8 +833,8 @@ export default function AdminPage() {
         }
 
         /* Compact premium live overview */
-        .sambhav-page .sambhav-overview {
-          display: block; width: 100%; min-width: 0; margin: 0 0 26px;
+        .sambhav-overview {
+          margin: 0 0 26px;
           padding: 22px;
           background: #fff;
           border: 1px solid #e8e6df;
@@ -910,8 +909,8 @@ export default function AdminPage() {
           color: #898780;
           font-size: 10px;
         }
-        .sambhav-page .sambhav-overview-grid {
-          display: grid; width: 100%; min-width: 0;
+        .sambhav-overview-grid {
+          display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 10px;
         }
@@ -956,8 +955,8 @@ export default function AdminPage() {
           font-size: 10px;
           line-height: 1.5;
         }
-        .sambhav-page .sambhav-overview-content-grid {
-          display: grid; width: 100%; min-width: 0;
+        .sambhav-overview-content-grid {
+          display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
           margin-top: 10px;
@@ -1113,95 +1112,89 @@ export default function AdminPage() {
           .sambhav-user-card-actions { gap: 8px !important; }
         }
 
-            
-        /* Compact, responsive user cards — scoped to this admin page */
-        .sambhav-page .sambhav-compact-user-card {
-          box-sizing: border-box;
-          width: 100%;
-          min-width: 0;
-          padding: 12px 14px !important;
-          margin: 0 0 10px;
-          border: 1px solid #e5dece !important;
-          border-radius: 14px !important;
-          background: #fffdf9 !important;
-          color: #24231f !important;
-          box-shadow: 0 3px 12px rgba(36, 30, 17, .045);
-          transition: border-color .16s ease, box-shadow .16s ease;
+
+        /* Final reference-inspired responsive admin redesign */
+        main:has(.sambhav-page) {
+          background: #f7f7f2 !important;
+          color: #171c28 !important;
+          padding: 18px 18px 42px !important;
         }
-        .sambhav-page .sambhav-compact-user-card:hover {
-          border-color: #c7a85d !important;
-          box-shadow: 0 7px 18px rgba(36, 30, 17, .07);
+        .sambhav-page {
+          max-width: 1440px !important;
+          width: 100% !important;
+          margin: 0 auto !important;
+          color: #171c28 !important;
+          font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
         }
-        .sambhav-page .sambhav-compact-user-card.sambhav-premium-user-card {
-          border-color: #d5bd80 !important;
-          background: linear-gradient(135deg, #fffdf6, #fff) !important;
+        .sambhav-page h1,.sambhav-page h2,.sambhav-page h3,
+        .sambhav-page h4,.sambhav-page strong { color: #171c28; }
+        .sambhav-page p { line-height: 1.5; }
+        .sambhav-page button,.sambhav-page input,.sambhav-page select,
+        .sambhav-page textarea { font-family: inherit !important; }
+        .sambhav-page button { border-radius: 10px; cursor: pointer; }
+        .sambhav-page input,.sambhav-page select,.sambhav-page textarea {
+          max-width: 100%; box-sizing: border-box; color: #171c28 !important;
+          background: #fff !important; border-color: #e4e5e2 !important;
         }
-        .sambhav-page .sambhav-compact-user-card.sambhav-blocked-user-card {
-          border-color: #e7ceca !important;
+        .sambhav-page .sambhav-header {
+          padding: 14px 18px !important; margin-bottom: 20px !important;
+          border: 1px solid #e8e5dc !important; border-radius: 18px !important;
+          background: rgba(255,255,255,.88) !important;
+          box-shadow: 0 5px 22px rgba(25,32,44,.035) !important;
+          flex-wrap: wrap !important;
         }
-        .sambhav-page .sambhav-compact-user-content {
-          display: flex !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          gap: 12px !important;
-          width: 100%;
-          min-width: 0;
+        .sambhav-page .sambhav-overview {
+          background: #fff !important; border: 1px solid #e8e9e5 !important;
+          border-radius: 18px !important; padding: 22px !important;
+          color: #171c28 !important; box-shadow: 0 5px 22px rgba(25,32,44,.035) !important;
         }
-        .sambhav-page .sambhav-compact-user-card .sambhav-user-identity {
-          flex: 1 1 220px;
-          min-width: 0 !important;
-          gap: 10px !important;
+        .sambhav-page .sambhav-overview-title { color: #171c28 !important; font-size: clamp(25px,3vw,34px) !important; }
+        .sambhav-page .sambhav-overview-subtitle { color: #687080 !important; font-size: 13px !important; }
+        .sambhav-page .sambhav-overview-status { background: #f5faf5 !important; border-color: #e0ece0 !important; }
+        .sambhav-page .sambhav-overview-grid { grid-template-columns: repeat(5,minmax(0,1fr)) !important; gap: 12px !important; }
+        .sambhav-page .sambhav-overview-metric { background: #fff !important; border: 1px solid #e8e9e5 !important; border-radius: 15px !important; min-height: 112px; }
+        .sambhav-page .sambhav-overview-content-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; gap: 12px !important; }
+        .sambhav-page .sambhav-overview-content-card { background: #fff !important; border: 1px solid #e8e9e5 !important; border-radius: 15px !important; }
+        .sambhav-page .sambhav-command-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 16px !important; }
+        .sambhav-page .sambhav-command-panel { background: #fff !important; border: 1px solid #e8e9e5 !important; border-radius: 17px !important; padding: 18px !important; box-shadow: 0 5px 22px rgba(25,32,44,.035) !important; }
+        .sambhav-page .sambhav-command-panel-head h3 { color: #171c28 !important; font-size: 15px !important; }
+        .sambhav-page .sambhav-command-panel-head p { color: #737b88 !important; font-size: 11px !important; }
+        .sambhav-page .sambhav-activity-item strong { color: #222a37 !important; font-size: 12px !important; }
+        .sambhav-page .sambhav-activity-item small { font-size: 10px !important; }
+        .sambhav-page .sambhav-quick-actions button { min-height: 48px; border-color: #e8e9e5 !important; }
+        .sambhav-page .sambhav-quick-actions button b { font-size: 12px !important; }
+        .sambhav-page .sambhav-user-card-actions { width: auto !important; flex-wrap: wrap !important; justify-content: flex-end !important; padding-top: 0 !important; }
+        .sambhav-page .sambhav-user-card-actions button { min-height: 38px !important; padding: 9px 13px !important; font-size: 11px !important; }
+        .sambhav-page [style*="borderBottom"] { border-color: #ecece8 !important; }
+        .sambhav-page .sambhav-user-card-actions button { white-space: nowrap; }
+        .sambhav-page .sambhav-content-upload { background: #fff !important; border-color: #e8e5dc !important; border-radius: 18px !important; }
+        .sambhav-page .sambhav-page-title,.sambhav-page .sambhav-hero-title { color: #171c28 !important; }
+        .sambhav-page .sambhav-hero-text { color: #687080 !important; }
+        @media (max-width: 1000px) {
+          main:has(.sambhav-page) { padding: 12px !important; }
+          .sambhav-page .sambhav-overview-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+          .sambhav-page .sambhav-overview-content-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
-        .sambhav-page .sambhav-compact-user-card .sambhav-user-name {
-          font-size: 13px !important;
-          line-height: 1.4 !important;
-          overflow-wrap: anywhere;
+        @media (max-width: 700px) {
+          main:has(.sambhav-page) { padding: 8px !important; }
+          .sambhav-page .sambhav-header { padding: 12px !important; gap: 10px !important; }
+          .sambhav-page .sambhav-overview { padding: 14px !important; }
+          .sambhav-page .sambhav-overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; }
+          .sambhav-page .sambhav-overview-content-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; }
+          .sambhav-page .sambhav-overview-metric { padding: 11px !important; min-height: 100px; }
+          .sambhav-page .sambhav-overview-number { font-size: 24px !important; }
+          .sambhav-page .sambhav-command-grid { grid-template-columns: minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-donut-layout { flex-wrap: wrap; justify-content: flex-start; }
+          .sambhav-page .sambhav-donut { width: 108px; height: 108px; flex-basis: 108px; }
+          .sambhav-page .sambhav-legend { min-width: 130px; }
+          .sambhav-page .sambhav-user-card-actions { width: 100% !important; justify-content: flex-start !important; }
+          .sambhav-page .sambhav-user-card-actions button { flex: 1 1 auto; }
         }
-        .sambhav-page .sambhav-compact-user-actions {
-          display: flex !important;
-          align-items: center !important;
-          justify-content: flex-end !important;
-          flex: 0 0 auto;
-          flex-wrap: wrap;
-          gap: 7px !important;
-          min-width: 0;
-        }
-        .sambhav-page .sambhav-compact-user-actions button {
-          min-height: 32px !important;
-          padding: 7px 10px !important;
-          border-radius: 8px !important;
-          font-size: 11px !important;
-          line-height: 1.25;
-          font-weight: 650;
-          white-space: nowrap;
-        }
-        .sambhav-page .sambhav-compact-user-actions button:disabled {
-          cursor: not-allowed;
-          opacity: .55;
-        }
-        @media (max-width: 760px) {
-          .sambhav-page .sambhav-compact-user-card {
-            padding: 11px !important;
-            border-radius: 12px !important;
-          }
-          .sambhav-page .sambhav-compact-user-content {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 10px !important;
-          }
-          .sambhav-page .sambhav-compact-user-card .sambhav-user-identity {
-            flex: 1 1 auto;
-            width: 100%;
-          }
-          .sambhav-page .sambhav-compact-user-actions {
-            width: 100%;
-            justify-content: stretch !important;
-          }
-          .sambhav-page .sambhav-compact-user-actions button {
-            flex: 1 1 0;
-            min-width: 0;
-            white-space: normal;
-          }
+        @media (max-width: 420px) {
+          .sambhav-page .sambhav-overview-content-grid { grid-template-columns: minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-overview-heading { flex-direction: column; align-items: stretch !important; }
+          .sambhav-page .sambhav-overview-refresh { align-self: flex-start; }
+          .sambhav-page .sambhav-donut-layout { gap: 10px; }
         }
 
             `}</style>
@@ -2817,7 +2810,7 @@ function FilterButton({
 }
 
 /* =========================================================
-   PENDING USER — COMPACT RESPONSIVE CARD
+   PENDING USER
 ========================================================= */
 
 function PendingUserCard({
@@ -2826,27 +2819,58 @@ function PendingUserCard({
   onApprove,
   onReject,
 }) {
-  const approving = actionLoading === `${user.id}-approved`;
-  const rejecting = actionLoading === `${user.id}-rejected`;
+  const approving =
+    actionLoading ===
+    `${user.id}-approved`;
+
+  const rejecting =
+    actionLoading ===
+    `${user.id}-rejected`;
 
   return (
-    <div className="sambhav-compact-user-card" style={styles.userCard}>
-      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
-        <UserInfo user={user} status="pending" />
-        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
+    <div
+      style={styles.userCard}
+    >
+      <div
+        style={styles.userCardContent}
+      >
+        <UserInfo
+          user={user}
+          status="pending"
+        />
+
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
+        >
           <button
             onClick={onReject}
-            disabled={rejecting || approving}
-            style={styles.cancelButton}
+            disabled={
+              rejecting ||
+              approving
+            }
+            style={
+              styles.cancelButton
+            }
           >
-            {rejecting ? "Rejecting..." : "Reject"}
+            {rejecting
+              ? "Rejecting..."
+              : "Reject"}
           </button>
+
           <button
             onClick={onApprove}
-            disabled={rejecting || approving}
-            style={styles.approveButton}
+            disabled={
+              rejecting ||
+              approving
+            }
+            style={
+              styles.approveButton
+            }
           >
-            {approving ? "Approving..." : "Approve"}
+            {approving
+              ? "Approving..."
+              : "Approve"}
           </button>
         </div>
       </div>
@@ -2855,7 +2879,7 @@ function PendingUserCard({
 }
 
 /* =========================================================
-   JOINED USER — COMPACT RESPONSIVE CARD
+   JOINED USER
 ========================================================= */
 
 function JoinedUserCard({
@@ -2864,53 +2888,94 @@ function JoinedUserCard({
   onRemove,
   onBlock,
 }) {
-  const removing = actionLoading === `${user.id}-rejected`;
-  const blocking = actionLoading === `${user.id}-banned`;
+  const removing =
+    actionLoading ===
+    `${user.id}-rejected`;
+
+  const blocking =
+    actionLoading ===
+    `${user.id}-banned`;
 
   function handleRemove() {
-    const confirmed = window.confirm(
-      `Remove access from ${
-        user.first_name || user.email || "this user"
-      }?\n\nThey will be able to access the account again after the account is approved.`
-    );
-    if (confirmed) onRemove();
+    const confirmed =
+      window.confirm(
+        `Remove access from ${
+          user.first_name ||
+          user.email ||
+          "this user"
+        }?\n\nThey will be able to access the account again after the account is approved.`
+      );
+
+    if (confirmed) {
+      onRemove();
+    }
   }
 
   function handleBlock() {
-    const confirmed = window.confirm(
-      `Block ${
-        user.first_name || user.email || "this user"
-      }?\n\nThis account will be blocked from access.`
-    );
-    if (confirmed) onBlock();
+    const confirmed =
+      window.confirm(
+        `Block ${
+          user.first_name ||
+          user.email ||
+          "this user"
+        }?\n\nThis account will be blocked from access.`
+      );
+
+    if (confirmed) {
+      onBlock();
+    }
   }
 
   return (
     <div
-      className={`sambhav-compact-user-card ${
-        user.premium_active ? "sambhav-premium-user-card" : ""
-      }`}
       style={{
         ...styles.userCard,
-        ...(user.premium_active ? styles.premiumUserCard : {}),
+        ...(user.premium_active
+          ? styles.premiumUserCard
+          : {}),
       }}
     >
-      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
-        <UserInfo user={user} status="approved" joined />
-        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
+      <div
+        style={styles.userCardContent}
+      >
+        <UserInfo
+          user={user}
+          status="approved"
+          joined
+        />
+
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
+        >
           <button
             onClick={handleRemove}
-            disabled={removing || blocking}
-            style={styles.removeButton}
+            disabled={
+              removing ||
+              blocking
+            }
+            style={
+              styles.removeButton
+            }
           >
-            {removing ? "Removing..." : "Remove Access"}
+            {removing
+              ? "Removing..."
+              : "Remove Access"}
           </button>
+
           <button
             onClick={handleBlock}
-            disabled={removing || blocking}
-            style={styles.blockButton}
+            disabled={
+              removing ||
+              blocking
+            }
+            style={
+              styles.blockButton
+            }
           >
-            {blocking ? "Blocking..." : "Block User"}
+            {blocking
+              ? "Blocking..."
+              : "Block User"}
           </button>
         </div>
       </div>
@@ -2919,7 +2984,7 @@ function JoinedUserCard({
 }
 
 /* =========================================================
-   BANNED USER — COMPACT RESPONSIVE CARD
+   BANNED USER
 ========================================================= */
 
 function BannedUserCard({
@@ -2927,26 +2992,55 @@ function BannedUserCard({
   actionLoading,
   onUnblock,
 }) {
-  const unblocking = actionLoading === `${user.id}-rejected`;
+  const unblocking =
+    actionLoading ===
+    `${user.id}-rejected`;
 
   function handleUnblock() {
-    const confirmed = window.confirm(
-      `Unblock ${user.first_name || user.email || "this user"}?`
-    );
-    if (confirmed) onUnblock();
+    const confirmed =
+      window.confirm(
+        `Unblock ${
+          user.first_name ||
+          user.email ||
+          "this user"
+        }?`
+      );
+
+    if (confirmed) {
+      onUnblock();
+    }
   }
 
   return (
-    <div className="sambhav-compact-user-card sambhav-blocked-user-card" style={styles.userCard}>
-      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
-        <UserInfo user={user} status="banned" />
-        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
+    <div
+      style={styles.userCard}
+    >
+      <div
+        style={styles.userCardContent}
+      >
+        <UserInfo
+          user={user}
+          status="banned"
+        />
+
+        <div
+          style={styles.userCardActions}
+          className="sambhav-user-card-actions"
+        >
           <button
-            onClick={handleUnblock}
-            disabled={unblocking}
-            style={styles.unblockButton}
+            onClick={
+              handleUnblock
+            }
+            disabled={
+              unblocking
+            }
+            style={
+              styles.unblockButton
+            }
           >
-            {unblocking ? "Unblocking..." : "Unblock User"}
+            {unblocking
+              ? "Unblocking..."
+              : "Unblock User"}
           </button>
         </div>
       </div>
@@ -3419,9 +3513,8 @@ function shortId(value) {
 const styles = {
   page: {
     minHeight: "100vh",
-    background:
-      "radial-gradient(ellipse at top left,rgba(199,168,93,.12),transparent 34%),linear-gradient(180deg,#101010 0%,#080808 100%)",
-    color: "#f5f2eb",
+    background: "#f7f7f2",
+    color: "#171c28",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
