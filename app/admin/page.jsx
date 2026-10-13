@@ -727,6 +727,79 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
+        .sambhav-user-directory-wrap {
+          width: 100%;
+          overflow: hidden;
+          border: 1px solid #e8e5dc;
+          border-radius: 16px;
+          background: #fffdf9;
+        }
+        .sambhav-user-directory-toolbar {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 13px 16px;
+          color: #667085;
+          background: #faf9f5;
+          border-bottom: 1px solid #e8e5dc;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .sambhav-user-directory-scroll { width: 100%; overflow-x: auto; }
+        .sambhav-user-directory {
+          width: 100%;
+          min-width: 720px;
+          border-collapse: collapse;
+          text-align: left;
+          color: #171c28;
+          font-size: 13px;
+        }
+        .sambhav-user-directory th {
+          padding: 13px 12px;
+          background: #f7f7f3;
+          color: #606979;
+          font-size: 11px;
+          font-weight: 700;
+          white-space: nowrap;
+          border-bottom: 1px solid #e8e5dc;
+        }
+        .sambhav-user-directory td {
+          padding: 12px;
+          border-bottom: 1px solid #eeece6;
+          vertical-align: middle;
+          white-space: nowrap;
+        }
+        .sambhav-user-directory tbody tr:last-child td { border-bottom: 0; }
+        .sambhav-user-directory tbody tr:hover { background: #fbfaf6; }
+        .sambhav-directory-user { display: flex; align-items: center; gap: 10px; min-width: 210px; }
+        .sambhav-directory-avatar {
+          width: 36px; height: 36px; flex: 0 0 36px;
+          display: inline-flex; align-items: center; justify-content: center;
+          border-radius: 50%; background: #e7e9ed; color: #424b5a;
+          font-weight: 700; font-size: 12px;
+        }
+        .sambhav-directory-name { color: #171c28; font-weight: 700; }
+        .sambhav-directory-email { margin-top: 3px; color: #737b88; font-size: 11px; }
+        .sambhav-directory-badge {
+          display: inline-flex; align-items: center; border-radius: 999px;
+          padding: 5px 9px; font-size: 11px; font-weight: 700;
+          background: #dcf7e7; color: #167344;
+        }
+        .sambhav-directory-badge.premium { background: #eee5ff; color: #6941c6; }
+        .sambhav-directory-badge.free { background: #e2efff; color: #175cd3; }
+        .sambhav-directory-actions { display: flex; gap: 6px; }
+        .sambhav-directory-actions button {
+          border: 1px solid #e0e2e5; background: #fff; color: #252b36;
+          border-radius: 9px; padding: 8px 10px; font-size: 11px;
+          font-weight: 700; cursor: pointer; white-space: nowrap;
+        }
+        .sambhav-directory-actions button:last-child { background: #17191f; color: #fff; border-color: #17191f; }
+        .sambhav-directory-actions button:disabled { opacity: .55; cursor: wait; }
+        @media (max-width: 640px) {
+          .sambhav-user-directory-wrap { border-radius: 12px; }
+          .sambhav-user-directory-toolbar { padding: 11px 12px; }
+          .sambhav-user-directory { min-width: 720px; }
+        }
         /* Reference theme: light background with dark, readable text */
         .sambhav-page { color: #171c28 !important; color-scheme: light; }
         .sambhav-page [style*="color: #f5f2eb"],
@@ -2460,36 +2533,36 @@ export default function AdminPage() {
                     text="Approved accounts will appear here."
                   />
                 ) : (
-                  <div
-                    style={
-                      styles.userList
-                    }
-                  >
-                    {filteredJoined.map(
-                      (user) => (
-                        <JoinedUserCard
-                          key={
-                            user.id
-                          }
-                          user={user}
-                          actionLoading={
-                            actionLoading
-                          }
-                          onRemove={() =>
-                            updateUserStatus(
-                              user.id,
-                              "rejected"
-                            )
-                          }
-                          onBlock={() =>
-                            updateUserStatus(
-                              user.id,
-                              "banned"
-                            )
-                          }
-                        />
-                      )
-                    )}
+                  <div className="sambhav-user-directory-wrap">
+                    <div className="sambhav-user-directory-toolbar">
+                      <span>{filteredJoined.length} users</span>
+                      <span>Approved accounts</span>
+                    </div>
+                    <div className="sambhav-user-directory-scroll">
+                      <table className="sambhav-user-directory">
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Plan</th>
+                            <th>Joined</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredJoined.map((user) => (
+                            <JoinedUserRow
+                              key={user.id}
+                              user={user}
+                              actionLoading={actionLoading}
+                              onRemove={() => updateUserStatus(user.id, "rejected")}
+                              onBlock={() => updateUserStatus(user.id, "banned")}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </section>
@@ -2896,6 +2969,58 @@ function PendingUserCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/* =========================================================
+   COMPACT USER DIRECTORY ROW
+========================================================= */
+
+function JoinedUserRow({ user, actionLoading, onRemove, onBlock }) {
+  const removing = actionLoading === `${user.id}-rejected`;
+  const blocking = actionLoading === `${user.id}-banned`;
+  const name = user.first_name || user.username || "Unknown User";
+  const initials = String(name).trim().charAt(0).toUpperCase() || "U";
+  const isPremium = user.premium_active === true;
+  const plan = String(user.premium_plan || user.plan || "free").toLowerCase();
+
+  function handleRemove() {
+    if (window.confirm(`Remove access from ${name}?\n\nThey will be able to access the account again after the account is approved.`)) onRemove();
+  }
+  function handleBlock() {
+    if (window.confirm(`Block ${name}?\n\nThis account will be blocked from access.`)) onBlock();
+  }
+
+  return (
+    <tr>
+      <td>
+        <div className="sambhav-directory-user">
+          <span className="sambhav-directory-avatar">{initials}</span>
+          <div>
+            <div className="sambhav-directory-name">{name}</div>
+            <div className="sambhav-directory-email">{user.email || "No email"}</div>
+          </div>
+        </div>
+      </td>
+      <td><span className="sambhav-directory-badge">Approved</span></td>
+      <td>
+        <span className={`sambhav-directory-badge ${isPremium ? "premium" : "free"}`}>
+          {isPremium ? (plan === "demo" ? "Demo" : (plan.charAt(0).toUpperCase() + plan.slice(1))) : "Free"}
+        </span>
+      </td>
+      <td>{formatDate(user.created_at)}</td>
+      <td>{user.last_login_at ? formatDate(user.last_login_at) : "—"}</td>
+      <td>
+        <div className="sambhav-directory-actions">
+          <button type="button" onClick={handleRemove} disabled={removing || blocking}>
+            {removing ? "Removing…" : "Remove Access"}
+          </button>
+          <button type="button" onClick={handleBlock} disabled={removing || blocking}>
+            {blocking ? "Blocking…" : "Block"}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
