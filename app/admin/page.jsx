@@ -5,6 +5,24 @@ import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const router = useRouter();
+  const [adminTheme, setAdminTheme] = useState("dark");
+
+  useEffect(() => {
+    try {
+      const savedTheme = window.localStorage.getItem("sambhav-admin-theme");
+      if (savedTheme === "light" || savedTheme === "dark") setAdminTheme(savedTheme);
+    } catch (error) {
+      // Theme preference is optional; default to dark if storage is unavailable.
+    }
+  }, []);
+
+  function toggleAdminTheme() {
+    setAdminTheme((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      try { window.localStorage.setItem("sambhav-admin-theme", next); } catch (error) {}
+      return next;
+    });
+  }
 
   const [users, setUsers] = useState([]);
   const [admin, setAdmin] = useState(null);
@@ -1291,11 +1309,89 @@ export default function AdminPage() {
           .sambhav-page .sambhav-donut-layout { gap: 10px; }
         }
 
+        /* Theme switch: both palettes apply to the admin content only. */
+        .sambhav-theme-toggle {
+          display:inline-flex !important; align-items:center; justify-content:center; gap:7px;
+          min-height:40px; padding:0 13px; border:1px solid #c8a85d !important;
+          border-radius:999px !important; background:#211d13 !important; color:#e8c76f !important;
+          font-size:10px; font-weight:800; letter-spacing:.7px; cursor:pointer; white-space:nowrap;
+        }
+        .sambhav-page[data-theme="dark"] { background:#0b0b0a !important; color:#f4f0e7 !important; }
+        main:has(.sambhav-page[data-theme="dark"]) { background:#0b0b0a !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-header,
+        .sambhav-page[data-theme="dark"] .sambhav-overview,
+        .sambhav-page[data-theme="dark"] .sambhav-command-panel,
+        .sambhav-page[data-theme="dark"] .sambhav-content-upload,
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory-wrap {
+          background:#141412 !important; color:#f4f0e7 !important;
+          border-color:rgba(199,168,93,.24) !important;
+          box-shadow:0 10px 30px rgba(0,0,0,.2) !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-overview-title,
+        .sambhav-page[data-theme="dark"] .sambhav-command-panel-head h3,
+        .sambhav-page[data-theme="dark"] .sambhav-donut strong,
+        .sambhav-page[data-theme="dark"] .sambhav-legend b,
+        .sambhav-page[data-theme="dark"] .sambhav-activity-item strong,
+        .sambhav-page[data-theme="dark"] .sambhav-directory-name,
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory,
+        .sambhav-page[data-theme="dark"] h1,
+        .sambhav-page[data-theme="dark"] h2,
+        .sambhav-page[data-theme="dark"] h3,
+        .sambhav-page[data-theme="dark"] h4,
+        .sambhav-page[data-theme="dark"] strong { color:#f4f0e7 !important; }
+        .sambhav-page[data-theme="dark"] p,
+        .sambhav-page[data-theme="dark"] .sambhav-overview-subtitle,
+        .sambhav-page[data-theme="dark"] .sambhav-overview-eyebrow,
+        .sambhav-page[data-theme="dark"] .sambhav-command-panel-head p,
+        .sambhav-page[data-theme="dark"] .sambhav-activity-item small,
+        .sambhav-page[data-theme="dark"] .sambhav-directory-email { color:#a6a196 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-overview-metric,
+        .sambhav-page[data-theme="dark"] .sambhav-overview-content-card,
+        .sambhav-page[data-theme="dark"] .sambhav-quick-actions button,
+        .sambhav-page[data-theme="dark"] .sambhav-command-link,
+        .sambhav-page[data-theme="dark"] .sambhav-overview-refresh,
+        .sambhav-page[data-theme="dark"] .sambhav-directory-actions button {
+          background:#1c1b18 !important; color:#f4f0e7 !important;
+          border-color:rgba(199,168,93,.2) !important;
+        }
+        .sambhav-page[data-theme="dark"] input,
+        .sambhav-page[data-theme="dark"] select,
+        .sambhav-page[data-theme="dark"] textarea { background:#191816 !important; color:#f4f0e7 !important; border-color:#39352a !important; color-scheme:dark; }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory-toolbar,
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory th { background:#201f1b !important; color:#c7c0b1 !important; border-color:#383329 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory td,
+        .sambhav-page[data-theme="dark"] .sambhav-activity-item { border-color:#302e28 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory tbody tr:hover { background:#222019 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-directory-actions button:last-child { background:#d8b75f !important; color:#17140c !important; }
+        .sambhav-page[data-theme="light"] { background:#f7f7f2 !important; color:#171c28 !important; }
+        .sambhav-page[data-theme="light"] .sambhav-theme-toggle { background:#fffdf8 !important; color:#80612d !important; }
+        .sambhav-page[data-theme="light"] .sambhav-header,
+        .sambhav-page[data-theme="light"] .sambhav-overview,
+        .sambhav-page[data-theme="light"] .sambhav-command-panel,
+        .sambhav-page[data-theme="light"] .sambhav-content-upload,
+        .sambhav-page[data-theme="light"] .sambhav-user-directory-wrap { background:#fffdf9 !important; color:#171c28 !important; }
+        .sambhav-page[data-theme="light"] .sambhav-overview-title,
+        .sambhav-page[data-theme="light"] .sambhav-command-panel-head h3,
+        .sambhav-page[data-theme="light"] .sambhav-donut strong,
+        .sambhav-page[data-theme="light"] .sambhav-legend b,
+        .sambhav-page[data-theme="light"] .sambhav-activity-item strong,
+        .sambhav-page[data-theme="light"] .sambhav-directory-name,
+        .sambhav-page[data-theme="light"] h1,
+        .sambhav-page[data-theme="light"] h2,
+        .sambhav-page[data-theme="light"] h3,
+        .sambhav-page[data-theme="light"] h4,
+        .sambhav-page[data-theme="light"] strong { color:#171c28 !important; }
+        @media (max-width:760px) {
+          .sambhav-theme-toggle { min-height:38px !important; }
+          .sambhav-page .sambhav-header-right { gap:8px !important; }
+        }
+
             `}</style>
 
       <div
         style={styles.container}
         className="sambhav-page"
+        data-theme={adminTheme}
       >
 
         {/* =================================================
@@ -1349,6 +1445,16 @@ export default function AdminPage() {
             style={styles.headerRight}
             className="sambhav-header-right"
           >
+            <button
+              type="button"
+              className="sambhav-theme-toggle"
+              onClick={toggleAdminTheme}
+              aria-label={`Switch to ${adminTheme === "dark" ? "light" : "dark"} theme`}
+              title={`Switch to ${adminTheme === "dark" ? "light" : "dark"} theme`}
+            >
+              <span aria-hidden="true">{adminTheme === "dark" ? "☼" : "☾"}</span>
+              {adminTheme === "dark" ? "LIGHT" : "DARK"}
+            </button>
             {admin?.email && (
               <div
                 style={
