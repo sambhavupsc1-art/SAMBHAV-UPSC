@@ -727,6 +727,13 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
+        .sambhav-page { color: #f5f2eb !important; }
+        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="background: "#fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
+        .sambhav-page input, .sambhav-page select, .sambhav-page textarea { background-color: #111 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.3) !important; color-scheme: dark; }
+        .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #918a7d !important; }
+        .sambhav-page button { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+        .sambhav-page button:hover { border-color: rgba(199,168,93,.65) !important; }
+        .sambhav-page .sambhav-content-upload { background: linear-gradient(145deg,#171717,#101010) !important; border-color: rgba(199,168,93,.28) !important; box-shadow: 0 16px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025) !important; }
         @media (max-width: 760px) {
           .sambhav-content-upload { padding: 16px !important; }
           .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
@@ -1103,6 +1110,97 @@ export default function AdminPage() {
           .sambhav-overview-heading { align-items: flex-start !important; }
           .sambhav-overview-updated { margin-left: 0 !important; width: 100%; }
           .sambhav-user-card-actions { gap: 8px !important; }
+        }
+
+            
+        /* Compact, responsive user cards — scoped to this admin page */
+        .sambhav-page .sambhav-compact-user-card {
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
+          padding: 12px 14px !important;
+          margin: 0 0 10px;
+          border: 1px solid #e5dece !important;
+          border-radius: 14px !important;
+          background: #fffdf9 !important;
+          color: #24231f !important;
+          box-shadow: 0 3px 12px rgba(36, 30, 17, .045);
+          transition: border-color .16s ease, box-shadow .16s ease;
+        }
+        .sambhav-page .sambhav-compact-user-card:hover {
+          border-color: #c7a85d !important;
+          box-shadow: 0 7px 18px rgba(36, 30, 17, .07);
+        }
+        .sambhav-page .sambhav-compact-user-card.sambhav-premium-user-card {
+          border-color: #d5bd80 !important;
+          background: linear-gradient(135deg, #fffdf6, #fff) !important;
+        }
+        .sambhav-page .sambhav-compact-user-card.sambhav-blocked-user-card {
+          border-color: #e7ceca !important;
+        }
+        .sambhav-page .sambhav-compact-user-content {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 12px !important;
+          width: 100%;
+          min-width: 0;
+        }
+        .sambhav-page .sambhav-compact-user-card .sambhav-user-identity {
+          flex: 1 1 220px;
+          min-width: 0 !important;
+          gap: 10px !important;
+        }
+        .sambhav-page .sambhav-compact-user-card .sambhav-user-name {
+          font-size: 13px !important;
+          line-height: 1.4 !important;
+          overflow-wrap: anywhere;
+        }
+        .sambhav-page .sambhav-compact-user-actions {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          flex: 0 0 auto;
+          flex-wrap: wrap;
+          gap: 7px !important;
+          min-width: 0;
+        }
+        .sambhav-page .sambhav-compact-user-actions button {
+          min-height: 32px !important;
+          padding: 7px 10px !important;
+          border-radius: 8px !important;
+          font-size: 11px !important;
+          line-height: 1.25;
+          font-weight: 650;
+          white-space: nowrap;
+        }
+        .sambhav-page .sambhav-compact-user-actions button:disabled {
+          cursor: not-allowed;
+          opacity: .55;
+        }
+        @media (max-width: 760px) {
+          .sambhav-page .sambhav-compact-user-card {
+            padding: 11px !important;
+            border-radius: 12px !important;
+          }
+          .sambhav-page .sambhav-compact-user-content {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .sambhav-page .sambhav-compact-user-card .sambhav-user-identity {
+            flex: 1 1 auto;
+            width: 100%;
+          }
+          .sambhav-page .sambhav-compact-user-actions {
+            width: 100%;
+            justify-content: stretch !important;
+          }
+          .sambhav-page .sambhav-compact-user-actions button {
+            flex: 1 1 0;
+            min-width: 0;
+            white-space: normal;
+          }
         }
 
             `}</style>
@@ -2718,7 +2816,7 @@ function FilterButton({
 }
 
 /* =========================================================
-   PENDING USER
+   PENDING USER — COMPACT RESPONSIVE CARD
 ========================================================= */
 
 function PendingUserCard({
@@ -2727,58 +2825,27 @@ function PendingUserCard({
   onApprove,
   onReject,
 }) {
-  const approving =
-    actionLoading ===
-    `${user.id}-approved`;
-
-  const rejecting =
-    actionLoading ===
-    `${user.id}-rejected`;
+  const approving = actionLoading === `${user.id}-approved`;
+  const rejecting = actionLoading === `${user.id}-rejected`;
 
   return (
-    <div
-      style={styles.userCard}
-    >
-      <div
-        style={styles.userCardContent}
-      >
-        <UserInfo
-          user={user}
-          status="pending"
-        />
-
-        <div
-          style={styles.userCardActions}
-          className="sambhav-user-card-actions"
-        >
+    <div className="sambhav-compact-user-card" style={styles.userCard}>
+      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
+        <UserInfo user={user} status="pending" />
+        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
           <button
             onClick={onReject}
-            disabled={
-              rejecting ||
-              approving
-            }
-            style={
-              styles.cancelButton
-            }
+            disabled={rejecting || approving}
+            style={styles.cancelButton}
           >
-            {rejecting
-              ? "Rejecting..."
-              : "Reject"}
+            {rejecting ? "Rejecting..." : "Reject"}
           </button>
-
           <button
             onClick={onApprove}
-            disabled={
-              rejecting ||
-              approving
-            }
-            style={
-              styles.approveButton
-            }
+            disabled={rejecting || approving}
+            style={styles.approveButton}
           >
-            {approving
-              ? "Approving..."
-              : "Approve"}
+            {approving ? "Approving..." : "Approve"}
           </button>
         </div>
       </div>
@@ -2787,7 +2854,7 @@ function PendingUserCard({
 }
 
 /* =========================================================
-   JOINED USER
+   JOINED USER — COMPACT RESPONSIVE CARD
 ========================================================= */
 
 function JoinedUserCard({
@@ -2796,94 +2863,53 @@ function JoinedUserCard({
   onRemove,
   onBlock,
 }) {
-  const removing =
-    actionLoading ===
-    `${user.id}-rejected`;
-
-  const blocking =
-    actionLoading ===
-    `${user.id}-banned`;
+  const removing = actionLoading === `${user.id}-rejected`;
+  const blocking = actionLoading === `${user.id}-banned`;
 
   function handleRemove() {
-    const confirmed =
-      window.confirm(
-        `Remove access from ${
-          user.first_name ||
-          user.email ||
-          "this user"
-        }?\n\nThey will be able to access the account again after the account is approved.`
-      );
-
-    if (confirmed) {
-      onRemove();
-    }
+    const confirmed = window.confirm(
+      `Remove access from ${
+        user.first_name || user.email || "this user"
+      }?\n\nThey will be able to access the account again after the account is approved.`
+    );
+    if (confirmed) onRemove();
   }
 
   function handleBlock() {
-    const confirmed =
-      window.confirm(
-        `Block ${
-          user.first_name ||
-          user.email ||
-          "this user"
-        }?\n\nThis account will be blocked from access.`
-      );
-
-    if (confirmed) {
-      onBlock();
-    }
+    const confirmed = window.confirm(
+      `Block ${
+        user.first_name || user.email || "this user"
+      }?\n\nThis account will be blocked from access.`
+    );
+    if (confirmed) onBlock();
   }
 
   return (
     <div
+      className={`sambhav-compact-user-card ${
+        user.premium_active ? "sambhav-premium-user-card" : ""
+      }`}
       style={{
         ...styles.userCard,
-        ...(user.premium_active
-          ? styles.premiumUserCard
-          : {}),
+        ...(user.premium_active ? styles.premiumUserCard : {}),
       }}
     >
-      <div
-        style={styles.userCardContent}
-      >
-        <UserInfo
-          user={user}
-          status="approved"
-          joined
-        />
-
-        <div
-          style={styles.userCardActions}
-          className="sambhav-user-card-actions"
-        >
+      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
+        <UserInfo user={user} status="approved" joined />
+        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
           <button
             onClick={handleRemove}
-            disabled={
-              removing ||
-              blocking
-            }
-            style={
-              styles.removeButton
-            }
+            disabled={removing || blocking}
+            style={styles.removeButton}
           >
-            {removing
-              ? "Removing..."
-              : "Remove Access"}
+            {removing ? "Removing..." : "Remove Access"}
           </button>
-
           <button
             onClick={handleBlock}
-            disabled={
-              removing ||
-              blocking
-            }
-            style={
-              styles.blockButton
-            }
+            disabled={removing || blocking}
+            style={styles.blockButton}
           >
-            {blocking
-              ? "Blocking..."
-              : "Block User"}
+            {blocking ? "Blocking..." : "Block User"}
           </button>
         </div>
       </div>
@@ -2892,7 +2918,7 @@ function JoinedUserCard({
 }
 
 /* =========================================================
-   BANNED USER
+   BANNED USER — COMPACT RESPONSIVE CARD
 ========================================================= */
 
 function BannedUserCard({
@@ -2900,55 +2926,26 @@ function BannedUserCard({
   actionLoading,
   onUnblock,
 }) {
-  const unblocking =
-    actionLoading ===
-    `${user.id}-rejected`;
+  const unblocking = actionLoading === `${user.id}-rejected`;
 
   function handleUnblock() {
-    const confirmed =
-      window.confirm(
-        `Unblock ${
-          user.first_name ||
-          user.email ||
-          "this user"
-        }?`
-      );
-
-    if (confirmed) {
-      onUnblock();
-    }
+    const confirmed = window.confirm(
+      `Unblock ${user.first_name || user.email || "this user"}?`
+    );
+    if (confirmed) onUnblock();
   }
 
   return (
-    <div
-      style={styles.userCard}
-    >
-      <div
-        style={styles.userCardContent}
-      >
-        <UserInfo
-          user={user}
-          status="banned"
-        />
-
-        <div
-          style={styles.userCardActions}
-          className="sambhav-user-card-actions"
-        >
+    <div className="sambhav-compact-user-card sambhav-blocked-user-card" style={styles.userCard}>
+      <div className="sambhav-compact-user-content" style={styles.userCardContent}>
+        <UserInfo user={user} status="banned" />
+        <div style={styles.userCardActions} className="sambhav-user-card-actions sambhav-compact-user-actions">
           <button
-            onClick={
-              handleUnblock
-            }
-            disabled={
-              unblocking
-            }
-            style={
-              styles.unblockButton
-            }
+            onClick={handleUnblock}
+            disabled={unblocking}
+            style={styles.unblockButton}
           >
-            {unblocking
-              ? "Unblocking..."
-              : "Unblock User"}
+            {unblocking ? "Unblocking..." : "Unblock User"}
           </button>
         </div>
       </div>
@@ -3422,8 +3419,8 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#f5f2eb 0%,#eeeae1 100%)",
-    color: "#171613",
+      "radial-gradient(ellipse at top left,rgba(199,168,93,.12),transparent 34%),linear-gradient(180deg,#101010 0%,#080808 100%)",
+    color: "#f5f2eb",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
@@ -4642,3 +4639,5 @@ const styles = {
     fontWeight: "700",
   },
 };
+
+
