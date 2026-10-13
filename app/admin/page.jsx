@@ -1386,6 +1386,50 @@ export default function AdminPage() {
           .sambhav-page .sambhav-header-right { gap:8px !important; }
         }
 
+        /* Final contrast and density fixes for real admin sections. */
+        .sambhav-page .sambhav-panel-title,
+        .sambhav-page .sambhav-panel-description,
+        .sambhav-page .sambhav-panel-eyebrow,
+        .sambhav-page .sambhav-search-title,
+        .sambhav-page .sambhav-search-eyebrow { color:inherit; }
+        .sambhav-page .sambhav-quick-actions button b { color:inherit; }
+        .sambhav-page .sambhav-user-directory-wrap { margin-top: 4px; }
+        .sambhav-page .sambhav-user-directory { table-layout:auto; }
+        .sambhav-page .sambhav-user-directory td,
+        .sambhav-page .sambhav-user-directory th { line-height:1.35; }
+        .sambhav-page .sambhav-panel-header { gap:12px; }
+        .sambhav-page [style*="No pending requests"] { color:inherit; }
+        .sambhav-page[data-theme="dark"] .sambhav-panel-title,
+        .sambhav-page[data-theme="dark"] .sambhav-search-title,
+        .sambhav-page[data-theme="dark"] .sambhav-quick-actions button b,
+        .sambhav-page[data-theme="dark"] .sambhav-content-upload label { color:#f4f0e7 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-panel-description,
+        .sambhav-page[data-theme="dark"] .sambhav-panel-eyebrow,
+        .sambhav-page[data-theme="dark"] .sambhav-search-eyebrow { color:#a6a196 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-panel-header,
+        .sambhav-page[data-theme="dark"] .sambhav-panel { background:#141412 !important; color:#f4f0e7 !important; border-color:rgba(199,168,93,.24) !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-empty-state,
+        .sambhav-page[data-theme="dark"] .sambhav-empty-state strong { color:#f4f0e7 !important; }
+        .sambhav-page[data-theme="dark"] .sambhav-content-upload input::placeholder,
+        .sambhav-page[data-theme="dark"] input::placeholder,
+        .sambhav-page[data-theme="dark"] textarea::placeholder { color:#a6a196 !important; opacity:1; }
+        .sambhav-page[data-theme="light"] .sambhav-panel,
+        .sambhav-page[data-theme="light"] .sambhav-search-panel { background:#fffdf9 !important; color:#171c28 !important; border-color:#e8e5dc !important; }
+        .sambhav-page[data-theme="light"] .sambhav-panel-title,
+        .sambhav-page[data-theme="light"] .sambhav-search-title,
+        .sambhav-page[data-theme="light"] .sambhav-quick-actions button b,
+        .sambhav-page[data-theme="light"] .sambhav-content-upload label { color:#171c28 !important; }
+        .sambhav-page[data-theme="light"] .sambhav-panel-description,
+        .sambhav-page[data-theme="light"] .sambhav-panel-eyebrow,
+        .sambhav-page[data-theme="light"] .sambhav-search-eyebrow { color:#687080 !important; }
+        .sambhav-page .sambhav-empty-state { min-height:150px !important; padding:28px 16px !important; }
+        .sambhav-page .sambhav-panel:has(.sambhav-empty-state) { min-height:0 !important; }
+        @media(max-width:640px) {
+          .sambhav-page .sambhav-panel-header { align-items:flex-start !important; }
+          .sambhav-page .sambhav-panel { margin-bottom:14px !important; }
+          .sambhav-page .sambhav-user-directory-scroll { -webkit-overflow-scrolling:touch; }
+        }
+
             `}</style>
 
       <div
@@ -1857,78 +1901,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* =================================================
-            HERO
-        ================================================= */}
-
-        <section
-          style={styles.hero}
-          className="sambhav-hero"
-        >
-          <div>
-            <div
-              style={
-                styles.heroEyebrow
-              }
-            >
-              SAMBHAV / ADMIN
-            </div>
-
-            <h1
-              style={styles.heroTitle}
-              className="sambhav-hero-title"
-            >
-              Platform
-              <br />
-              Control Center.
-            </h1>
-
-            <p
-              style={
-                styles.heroText
-              }
-            >
-              Manage members, access,
-              Premium subscriptions and
-              account security from one
-              place.
-            </p>
-          </div>
-
-          <div
-            style={styles.heroRight}
-            className="sambhav-hero-right"
-          >
-            <div
-              style={
-                styles.liveBadge
-              }
-            >
-              <span
-                style={
-                  styles.liveDot
-                }
-              />
-              SYSTEM LIVE
-            </div>
-
-            <div
-              style={
-                styles.heroTotal
-              }
-            >
-              {users.length}
-            </div>
-
-            <div
-              style={
-                styles.heroTotalLabel
-              }
-            >
-              TOTAL ACCOUNTS
-            </div>
-          </div>
-        </section>
+        {/* Duplicate Platform Control Center hero removed. The live overview above already provides this summary. */}
 
         {/* =================================================
             CONTENT UPLOAD
@@ -2482,6 +2455,7 @@ export default function AdminPage() {
 
               <section
                 style={styles.panel}
+                className="sambhav-panel"
               >
                 <div
                   style={
@@ -2581,6 +2555,7 @@ export default function AdminPage() {
 
               <section
                 style={styles.panel}
+                className="sambhav-panel"
               >
                 <div
                   style={
@@ -3657,6 +3632,7 @@ function EmptyState({
   return (
     <div
       style={styles.emptyState}
+      className="sambhav-empty-state"
     >
       <div
         style={styles.emptyIcon}
