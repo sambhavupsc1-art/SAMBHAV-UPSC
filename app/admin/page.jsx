@@ -38,7 +38,7 @@ export default function AdminPage() {
   const [contentUploading, setContentUploading] = useState(false);
   const [contentUploadMessage, setContentUploadMessage] = useState("");
 
-  // Persistent Study Material library controls (kept in the redesigned page).
+  // Persistent Study Material content manager
   const [libraryItems, setLibraryItems] = useState([]);
   const [libraryFolders, setLibraryFolders] = useState([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [libraryMessage, setLibraryMessage] = useState("");
   const [librarySearch, setLibrarySearch] = useState("");
+
 
   // The Hindu newspaper extraction workflow
   const [hinduPdf, setHinduPdf] = useState(null);
@@ -578,55 +579,81 @@ export default function AdminPage() {
     setLibraryMessage("");
     try {
       const response = await fetch("/api/admin/content-upload", {
-        method: "POST", credentials: "include", cache: "no-store",
+        method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({ action: "list" }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success !== true) throw new Error(data.error || "Content library could not be loaded.");
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Content library could not be loaded.");
+      }
       setLibraryItems(Array.isArray(data.items) ? data.items : []);
       setLibraryFolders(Array.isArray(data.folders) ? data.folders : []);
     } catch (err) {
       setLibraryMessage(err.message || "Content library could not be loaded.");
-    } finally { setLibraryLoading(false); }
+    } finally {
+      setLibraryLoading(false);
+    }
   }
 
   async function createContentFolder(event) {
     event.preventDefault();
     const name = newFolderName.trim();
-    if (!name) { setLibraryMessage("Enter a folder name first."); return; }
-    setLibraryActionBusy(true); setLibraryMessage("");
+    if (!name) {
+      setLibraryMessage("Enter a folder name first.");
+      return;
+    }
+    setLibraryActionBusy(true);
+    setLibraryMessage("");
     try {
       const response = await fetch("/api/admin/content-upload", {
-        method: "POST", credentials: "include",
+        method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create-folder", name }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success !== true) throw new Error(data.error || "Folder could not be created.");
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Folder could not be created.");
+      }
       setNewFolderName("");
-      setLibraryMessage(`Folder “${data.name || name}” created in Supabase Storage.`);
+      setLibraryMessage(`Folder “${data.name}” created in Supabase Storage.`);
       await loadContentLibrary();
-    } catch (err) { setLibraryMessage(err.message || "Folder could not be created."); }
-    finally { setLibraryActionBusy(false); }
+    } catch (err) {
+      setLibraryMessage(err.message || "Folder could not be created.");
+    } finally {
+      setLibraryActionBusy(false);
+    }
   }
 
   async function deleteContentItem(item) {
     if (!item?.id) return;
-    if (!window.confirm(`Delete “${item.title || "this content"}” from the Study Material library? This cannot be undone.`)) return;
-    setLibraryActionBusy(true); setLibraryMessage("");
+    const confirmed = window.confirm(
+      `Delete “${item.title || "this content"}” from the Study Material library? This removes its database record and attempts to remove its stored file. This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setLibraryActionBusy(true);
+    setLibraryMessage("");
     try {
       const response = await fetch("/api/admin/content-upload", {
-        method: "POST", credentials: "include",
+        method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "delete-content", id: item.id }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success !== true) throw new Error(data.error || "Content could not be deleted.");
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Content could not be deleted.");
+      }
       setLibraryMessage(data.warning || `Deleted “${item.title || "content"}”.`);
       await loadContentLibrary();
-    } catch (err) { setLibraryMessage(err.message || "Content could not be deleted."); }
-    finally { setLibraryActionBusy(false); }
+    } catch (err) {
+      setLibraryMessage(err.message || "Content could not be deleted.");
+    } finally {
+      setLibraryActionBusy(false);
+    }
   }
 
   async function handleTheHinduExtraction(event) {
@@ -700,403 +727,66 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
-        @media (max-width: 760px) {
-          .sambhav-content-upload { padding: 16px !important; }
-          .sambhav-content-upload form { grid-template-columns: minmax(0, 1fr) !important; }
-          .sambhav-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-
-          .sambhav-header-right {
-            width: 100% !important;
-            justify-content: flex-start !important;
-          }
-
-          .sambhav-hero {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            padding: 28px 22px !important;
-          }
-
-          .sambhav-hero-right {
-            width: 100% !important;
-            text-align: left !important;
-          }
-
-          .sambhav-panel-header {
-            padding: 20px 16px !important;
-          }
-
-          .sambhav-user-card {
-            padding: 18px 14px !important;
-          }
-
-          .sambhav-account-details {
-            grid-template-columns:
-              repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .sambhav-subscription-box {
-            grid-template-columns:
-              1fr !important;
-          }
-
-          .sambhav-user-card-actions {
-            justify-content: stretch !important;
-          }
-
-          .sambhav-user-card-actions button {
-            flex: 1 !important;
-            min-height: 42px !important;
-          }
-
-          .sambhav-premium-overview {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-
-          .sambhav-premium-numbers {
-            width: 100% !important;
-            justify-content: space-between !important;
-          }
+        .sambhav-page { color:#171923 !important; }
+        .sambhav-page * { box-sizing:border-box; }
+        .sambhav-page button,.sambhav-page input,.sambhav-page select,.sambhav-page textarea { font:inherit; }
+        .sambhav-page button { cursor:pointer; transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease; }
+        .sambhav-page button:not(:disabled):hover { transform:translateY(-1px); }
+        .sambhav-page button:focus-visible,.sambhav-page input:focus-visible,.sambhav-page select:focus-visible,.sambhav-page textarea:focus-visible { outline:3px solid rgba(184,146,65,.3); outline-offset:2px; }
+        .sambhav-page input,.sambhav-page select,.sambhav-page textarea { max-width:100%; color:#202432 !important; background:#fffdf9 !important; border-color:#e5e0d5 !important; color-scheme:light; }
+        .sambhav-page input::placeholder,.sambhav-page textarea::placeholder { color:#8b8c91 !important; }
+        .sambhav-page .sambhav-overview { padding:22px; margin:0 0 20px; background:linear-gradient(145deg,#fffefa,#fdfbf6) !important; border:1px solid #e9e3d6 !important; border-radius:20px; box-shadow:0 8px 28px rgba(40,34,22,.045) !important; color:#171923 !important; }
+        .sambhav-page .sambhav-overview-metric,.sambhav-page .sambhav-overview-content-card { background:#fff !important; border:1px solid #ece7dc !important; border-radius:14px; box-shadow:0 3px 12px rgba(25,25,25,.025); color:#171923 !important; }
+        .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+        .sambhav-page .sambhav-overview-content-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+        .sambhav-page .sambhav-command-panel { min-width:0; background:#fffefa !important; border:1px solid #e9e3d6 !important; border-radius:17px; box-shadow:0 7px 22px rgba(40,34,22,.035) !important; color:#171923 !important; }
+        .sambhav-page .sambhav-command-panel-head h3,.sambhav-page .sambhav-activity-item strong,.sambhav-page .sambhav-quick-actions button b { color:#171923 !important; }
+        .sambhav-page .sambhav-donut:before { background:#fffefa !important; }
+        .sambhav-page .sambhav-donut strong,.sambhav-page .sambhav-legend b { color:#171923 !important; }
+        .sambhav-page .sambhav-quick-actions button,.sambhav-page .sambhav-command-link { background:#fff !important; border-color:#e9e3d6 !important; }
+        .sambhav-page .sambhav-content-upload { background:linear-gradient(145deg,#fffefa,#f9f6ee) !important; border:1px solid #e5dece !important; border-radius:18px !important; box-shadow:0 10px 28px rgba(42,35,20,.045) !important; }
+        .sambhav-page .sambhav-content-upload label { min-width:0; }
+        .sambhav-page .sambhav-header { gap:18px; align-items:center; }
+        .sambhav-page .sambhav-header-right { gap:8px; }
+        .sambhav-page .sambhav-user-card { padding:12px 15px !important; background:#fffefa !important; border-bottom:1px solid #eee9df !important; border-left:0 !important; }
+        .sambhav-page .sambhav-user-card:hover { background:#fbf8f0 !important; }
+        .sambhav-page .sambhav-user-card > div { gap:9px !important; }
+        .sambhav-page .sambhav-user-card .sambhav-user-identity { gap:10px !important; }
+        .sambhav-page .sambhav-user-card .sambhav-avatar { width:36px !important; height:36px !important; border-radius:11px !important; }
+        .sambhav-page .sambhav-user-card-actions { display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; justify-content:flex-end !important; align-items:center !important; gap:7px !important; }
+        .sambhav-page .sambhav-user-card-actions button { min-height:34px !important; padding:7px 11px !important; border-radius:9px !important; font-size:11px !important; }
+        .sambhav-page .sambhav-account-details { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:7px !important; }
+        .sambhav-page .sambhav-info-item { padding:9px 10px !important; min-width:0; border-radius:10px !important; }
+        .sambhav-page .sambhav-info-value { overflow-wrap:anywhere; }
+        .sambhav-page .sambhav-subscription-box { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+        .sambhav-page .sambhav-panel-title { color:#171923 !important; }
+        @media(max-width:1050px) {
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+          .sambhav-page .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
         }
-
-        @media (max-width: 480px) {
-          .sambhav-page {
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-          }
-
-          .sambhav-hero-title {
-            font-size: 34px !important;
-          }
-
-          .sambhav-stats-grid {
-            grid-template-columns:
-              repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .sambhav-user-identity {
-            gap: 10px !important;
-          }
-
-          .sambhav-user-name {
-            font-size: 13px !important;
-          }
-
-          .sambhav-info-item {
-            padding: 10px !important;
-          }
-
-          .sambhav-info-value {
-            font-size: 11px !important;
-          }
-
-          .sambhav-panel-title {
-            font-size: 20px !important;
-          }
+        @media(max-width:760px) {
+          .sambhav-page { padding:14px 10px 34px !important; }
+          .sambhav-page .sambhav-header { flex-direction:column !important; align-items:stretch !important; margin-bottom:18px !important; }
+          .sambhav-page .sambhav-header-right { width:100% !important; justify-content:flex-start !important; }
+          .sambhav-page .sambhav-overview { padding:15px !important; border-radius:16px !important; }
+          .sambhav-page .sambhav-overview-heading { align-items:flex-start !important; }
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+          .sambhav-page .sambhav-overview-content-grid { grid-template-columns:1fr !important; }
+          .sambhav-page .sambhav-command-grid { grid-template-columns:minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-content-upload { padding:15px !important; }
+          .sambhav-page .sambhav-content-upload form { grid-template-columns:minmax(0,1fr) !important; }
+          .sambhav-page .sambhav-user-card { padding:11px !important; }
+          .sambhav-page .sambhav-user-card-content { gap:8px !important; }
+          .sambhav-page .sambhav-user-card-actions { justify-content:flex-start !important; }
+          .sambhav-page .sambhav-subscription-box { grid-template-columns:minmax(0,1fr) !important; }
         }
-
-        /* Compact premium live overview */
-        .sambhav-overview {
-          margin: 0 0 26px;
-          padding: 22px;
-          background: #fff;
-          border: 1px solid #e8e6df;
-          border-radius: 22px;
-          box-shadow: 0 8px 28px rgba(20, 22, 25, .035);
-          color: #171717;
+        @media(max-width:420px) {
+          .sambhav-page .sambhav-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:7px !important; }
+          .sambhav-page .sambhav-overview-metric { padding:10px !important; }
+          .sambhav-page .sambhav-overview-number { font-size:24px !important; }
+          .sambhav-page .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
         }
-        .sambhav-overview-heading {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 14px;
-          margin-bottom: 16px;
-        }
-        .sambhav-overview-eyebrow {
-          margin-bottom: 7px;
-          color: #8c867b;
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 1.8px;
-        }
-        .sambhav-overview-title {
-          margin: 0;
-          font-size: clamp(22px, 2.8vw, 29px);
-          line-height: 1.15;
-          letter-spacing: -.8px;
-          font-weight: 780;
-        }
-        .sambhav-overview-subtitle {
-          margin: 6px 0 0;
-          color: #77746e;
-          font-size: 12px;
-          line-height: 1.5;
-        }
-        .sambhav-overview-refresh {
-          flex-shrink: 0;
-          padding: 10px 13px;
-          border: 1px solid #e4e1d9;
-          border-radius: 11px;
-          background: #fff;
-          color: #171717;
-          font-size: 11px;
-          font-weight: 750;
-          cursor: pointer;
-        }
-        .sambhav-overview-refresh:disabled {
-          opacity: .55;
-          cursor: wait;
-        }
-        .sambhav-overview-status {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-          padding: 10px 12px;
-          margin-bottom: 12px;
-          border: 1px solid #e6e9e0;
-          border-radius: 11px;
-          background: #fafbf7;
-          color: #466747;
-          font-size: 11px;
-        }
-        .sambhav-overview-live-dot {
-          width: 7px;
-          height: 7px;
-          flex-shrink: 0;
-          border-radius: 50%;
-          background: #26955b;
-        }
-        .sambhav-overview-updated {
-          margin-left: auto;
-          color: #898780;
-          font-size: 10px;
-        }
-        .sambhav-overview-grid {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 10px;
-        }
-        .sambhav-overview-metric {
-          min-width: 0;
-          padding: 14px;
-          border: 1px solid #e9e7e0;
-          border-radius: 14px;
-          background: #fff;
-        }
-        .sambhav-overview-metric-label {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          color: #66635d;
-          font-size: 11px;
-          font-weight: 700;
-        }
-        .sambhav-overview-dot {
-          width: 7px;
-          height: 7px;
-          flex-shrink: 0;
-          border-radius: 3px;
-        }
-        .sambhav-overview-dot.blue { background: #4786db; }
-        .sambhav-overview-dot.amber { background: #d49a35; }
-        .sambhav-overview-dot.green { background: #299966; }
-        .sambhav-overview-dot.red { background: #d65c55; }
-        .sambhav-overview-dot.purple { background: #8863c9; }
-        .sambhav-overview-number {
-          display: block;
-          margin: 14px 0 6px;
-          font-size: clamp(24px, 2.5vw, 30px);
-          line-height: 1;
-          font-weight: 780;
-          letter-spacing: -.8px;
-          font-variant-numeric: tabular-nums;
-        }
-        .sambhav-overview-note {
-          margin: 0;
-          color: #8a8881;
-          font-size: 10px;
-          line-height: 1.5;
-        }
-        .sambhav-overview-content-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: 10px;
-        }
-        .sambhav-overview-content-card {
-          padding: 14px 15px;
-          border: 1px solid #e9e7e0;
-          border-radius: 14px;
-          background: #faf9f6;
-        }
-        .sambhav-overview-content-label {
-          color: #65625c;
-          font-size: 11px;
-          font-weight: 700;
-        }
-        .sambhav-overview-content-number {
-          display: block;
-          margin: 8px 0 4px;
-          font-size: 24px;
-          font-weight: 780;
-          letter-spacing: -.6px;
-        }
-        .sambhav-overview-error {
-          padding: 11px 12px;
-          margin-bottom: 12px;
-          border: 1px solid #f0d3cd;
-          border-radius: 11px;
-          background: #fff7f5;
-          color: #9e392f;
-          font-size: 11px;
-          line-height: 1.5;
-        }
-        .sambhav-overview-error button {
-          margin-left: 8px;
-          padding: 5px 8px;
-          border: 1px solid #e7c6c0;
-          border-radius: 7px;
-          background: #fff;
-          cursor: pointer;
-        }
-        .sambhav-overview-warning {
-          margin: 11px 0 0;
-          color: #8a6a2b;
-          font-size: 10px;
-          line-height: 1.6;
-        }
-
-        @media (max-width: 900px) {
-          .sambhav-overview-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-        @media (max-width: 600px) {
-          .sambhav-overview {
-            padding: 15px;
-            border-radius: 18px;
-            margin-bottom: 20px;
-          }
-          .sambhav-overview-heading {
-            align-items: flex-start;
-          }
-          .sambhav-overview-title {
-            font-size: 24px;
-          }
-          .sambhav-overview-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-          }
-          .sambhav-overview-metric {
-            padding: 12px;
-            border-radius: 12px;
-          }
-          .sambhav-overview-content-grid {
-            grid-template-columns: 1fr;
-            gap: 8px;
-          }
-          .sambhav-overview-updated {
-            width: 100%;
-            margin-left: 15px;
-          }
-        }
-
-        .sambhav-command-center { margin: 18px 0 24px; }
-        .sambhav-command-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-        .sambhav-command-panel { min-width:0; background:#fff; border:1px solid #e7eaf0; border-radius:17px; padding:19px; box-shadow:0 5px 20px rgba(22,31,50,.035); }
-        .sambhav-command-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:17px; }
-        .sambhav-command-panel-head h3 { margin:0; color:#171c28; font-size:14px; letter-spacing:-.2px; }
-        .sambhav-command-panel-head p { margin:5px 0 0; color:#858b98; font-size:10px; }
-        .sambhav-panel-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:#f5f0e4; color:#9a783a; font-size:18px; }
-        .sambhav-donut-layout { display:flex; align-items:center; justify-content:center; gap:clamp(15px,3vw,35px); padding:7px 0 4px; }
-        .sambhav-donut { width:145px; height:145px; flex:0 0 145px; display:grid; place-items:center; border-radius:50%; position:relative; background:conic-gradient(#25ad7c 0 var(--approved),#f0b33c var(--approved) calc(var(--approved) + var(--pending)),#e75c67 calc(var(--approved) + var(--pending)) 100%); }
-        .sambhav-account-donut { background:conic-gradient(#8250d8 0 var(--premium),#438ce8 var(--premium) calc(var(--premium) + var(--free)),#efb43d calc(var(--premium) + var(--free)) 100%); }
-        .sambhav-donut:before { content:""; position:absolute; inset:12px; border-radius:50%; background:#fff; }
-        .sambhav-donut>div { position:relative; z-index:1; text-align:center; }
-        .sambhav-donut strong { display:block; color:#171c28; font-size:24px; font-weight:850; }
-        .sambhav-donut small { display:block; color:#858b98; font-size:9px; margin-top:3px; }
-        .sambhav-legend { display:grid; gap:13px; min-width:125px; flex:1; }
-        .sambhav-legend>div { display:grid; grid-template-columns:9px minmax(50px,1fr) auto; align-items:center; gap:8px; color:#5d6472; font-size:10px; }
-        .sambhav-legend i { width:8px; height:8px; border-radius:50%; display:block; }
-        .sambhav-legend b { color:#242a36; font-size:11px; }
-        .approved-dot { background:#25ad7c; } .pending-dot { background:#f0b33c; } .blocked-dot { background:#e75c67; }
-        .premium-dot { background:#8250d8; } .free-dot { background:#438ce8; } .demo-dot { background:#efb43d; }
-        .sambhav-command-link { border:1px solid #e4e7ed; background:#fff; border-radius:9px; padding:8px 10px; color:#80612d; font-size:10px; font-weight:750; cursor:pointer; }
-        .sambhav-activity-list { display:grid; }
-        .sambhav-activity-item { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #eff1f4; min-width:0; }
-        .sambhav-activity-item:last-child { border-bottom:0; }
-        .sambhav-activity-symbol { display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px; border-radius:11px; background:#edf6ef; color:#3b9b67; font-size:16px; }
-        .sambhav-activity-item>div { min-width:0; flex:1; }
-        .sambhav-activity-item strong,.sambhav-activity-item small { display:block; overflow-wrap:anywhere; }
-        .sambhav-activity-item strong { color:#252b37; font-size:10px; }
-        .sambhav-activity-item small { color:#858b98; font-size:9px; margin-top:4px; }
-        .sambhav-activity-status { border-radius:20px; padding:5px 7px; background:#eef1f5; color:#626b7a; font-size:8px; font-weight:750; }
-        .sambhav-activity-status.approved { background:#e6f7ed; color:#238254; }
-        .sambhav-activity-status.pending { background:#fff4d9; color:#956b1c; }
-        .sambhav-activity-status.banned,.sambhav-activity-status.rejected { background:#fdebea; color:#ad4545; }
-        .sambhav-empty-activity { padding:20px 0; color:#858b98; font-size:10px; }
-        .sambhav-quick-actions { display:grid; gap:8px; }
-        .sambhav-quick-actions button { display:flex; align-items:center; gap:11px; width:100%; border:1px solid #eceef2; background:#fff; border-radius:11px; padding:12px; text-align:left; cursor:pointer; transition:background .15s,border-color .15s,transform .15s; }
-        .sambhav-quick-actions button:hover { background:#fbfaf6; border-color:#dfd0ac; transform:translateY(-1px); }
-        .sambhav-quick-actions button span { width:29px; height:29px; display:grid; place-items:center; border-radius:9px; background:#f5f0e4; color:#927039; font-size:15px; }
-        .sambhav-quick-actions button b { flex:1; color:#272d39; font-size:10px; }
-        .sambhav-quick-actions button i { font-style:normal; color:#858b98; font-size:20px; }
-        @media(max-width:850px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr); } }
-        @media(max-width:520px) { .sambhav-command-panel { padding:14px; } .sambhav-donut-layout { gap:14px; } .sambhav-donut { width:118px; height:118px; flex-basis:118px; } .sambhav-donut:before { inset:10px; } .sambhav-legend { min-width:110px; } }
-
-        /* SAMBHAV dashboard-aligned polish: compact records, accessible controls, responsive metrics. */
-        .sambhav-page button, .sambhav-page input, .sambhav-page select, .sambhav-page textarea { font: inherit; }
-        .sambhav-page button { transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; }
-        .sambhav-page button:not(:disabled):hover { transform: translateY(-1px); }
-        .sambhav-page button:focus-visible, .sambhav-page input:focus-visible, .sambhav-page select:focus-visible, .sambhav-page textarea:focus-visible { outline: 3px solid rgba(160,125,50,.34); outline-offset: 2px; }
-        .sambhav-overview { background: rgba(255,253,249,.94) !important; border-color: #e5dece !important; box-shadow: 0 12px 34px rgba(42,35,20,.055) !important; }
-        .sambhav-overview-metric, .sambhav-overview-content-card { background: #fffdf9 !important; border-color: #e9e2d3 !important; }
-        .sambhav-overview-dot.purple { background: #a58a4a !important; }
-        .sambhav-overview-dot.blue { background: #9c8a64 !important; }
-        .sambhav-overview-dot.green { background: #64856c !important; }
-        .sambhav-overview-dot.red { background: #b87568 !important; }
-        .sambhav-overview-dot.amber { background: #c7a85d !important; }
-        .sambhav-user-card-actions button { min-height: 36px; padding: 8px 12px !important; border-radius: 10px !important; font-size: 12px !important; }
-        .sambhav-account-details { gap: 8px !important; }
-        .sambhav-info-item { min-width: 0; border-radius: 10px !important; }
-        .sambhav-content-upload { border: 1px solid #e5dece !important; box-shadow: 0 12px 34px rgba(42,35,20,.045); }
-        .sambhav-command-panel { border-color: #e5dece !important; box-shadow: 0 8px 24px rgba(42,35,20,.035); }
-        @media (max-width: 900px) {
-          .sambhav-overview-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
-          .sambhav-overview-content-grid { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
-        }
-        @media (max-width: 600px) {
-          .sambhav-overview { padding: 15px !important; border-radius: 17px !important; }
-          .sambhav-overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
-          .sambhav-overview-content-grid { grid-template-columns: 1fr !important; }
-          .sambhav-overview-heading { align-items: flex-start !important; }
-          .sambhav-overview-updated { margin-left: 0 !important; width: 100%; }
-          .sambhav-user-card-actions { gap: 8px !important; }
-        }
-        /* Reference-inspired compact admin layout */
-        .sambhav-overview { background: rgba(255,253,249,.96) !important; border-color:#e5dece !important; border-radius:17px !important; }
-        .sambhav-overview-grid { gap:10px !important; }
-        .sambhav-overview-metric { background:#fffdf9 !important; border-color:#e8e1d3 !important; border-radius:14px !important; }
-        .sambhav-command-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-        .sambhav-command-panel { border-radius:16px; }
-        .sambhav-user-card { padding:12px 16px !important; }
-        .sambhav-user-card-content { display:grid !important; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px !important; }
-        .sambhav-user-main { display:grid; grid-template-columns:minmax(190px,.85fr) minmax(300px,1.35fr); align-items:center; gap:12px; }
-        .sambhav-user-name { font-size:13px !important; }
-        .sambhav-account-details { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:6px !important; }
-        .sambhav-info-item { padding:8px 9px !important; }
-        .sambhav-info-value { font-size:10px !important; }
-        .sambhav-subscription-box { grid-column:1 / -1; padding:8px 10px !important; }
-        .sambhav-user-card-actions { width:auto !important; flex-wrap:wrap; justify-content:flex-end !important; }
-        .sambhav-user-card-actions button { white-space:nowrap; }
-        @media(max-width:1100px) { .sambhav-user-card-content { grid-template-columns:minmax(0,1fr) !important; } .sambhav-user-main { grid-template-columns:minmax(0,1fr); } .sambhav-user-card-actions { justify-content:flex-start !important; } }
-        @media(max-width:760px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr) !important; } .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } .sambhav-overview-content-grid { grid-template-columns:1fr !important; } }
-
-            `}</style>
+      `}</style>
 
       <div
         style={styles.container}
@@ -1484,7 +1174,7 @@ export default function AdminPage() {
         {/* =================================================
             ADMIN COMMAND CENTER — DATA-DRIVEN SUMMARY
         ================================================= */}
-        <section id="sambhav-analytics-area" className="sambhav-command-center" aria-label="Admin command center">
+        <section className="sambhav-command-center" aria-label="Admin command center">
           <div className="sambhav-command-grid">
             <article className="sambhav-command-panel sambhav-status-panel">
               <div className="sambhav-command-panel-head">
@@ -1733,30 +1423,91 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* STUDY MATERIAL CONTENT STUDIO — retained in the redesigned admin */}
+        {/* =================================================
+            STUDY MATERIAL CONTENT STUDIO
+        ================================================= */}
         <section id="sambhav-content-studio" className="sambhav-content-upload" style={{ ...styles.contentUploadSection, marginTop: 24 }}>
           <div style={styles.contentUploadHeader}>
-            <div><div style={styles.contentUploadEyebrow}>ADMIN CONTROL CENTER</div><h2 style={styles.contentUploadTitle}>Content Studio</h2><p style={styles.contentUploadDescription}>Create Study Material folders, search saved records, refresh the library, and delete content with confirmation.</p></div>
+            <div>
+              <div style={styles.contentUploadEyebrow}>ADMIN CONTROL CENTER</div>
+              <h2 style={styles.contentUploadTitle}>Content Studio</h2>
+              <p style={styles.contentUploadDescription}>
+                Create persistent storage folders, review published Study Material records, and remove content with confirmation.
+              </p>
+            </div>
             <div style={styles.contentUploadIcon}>▤</div>
           </div>
+
           <form onSubmit={createContentFolder} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "end", marginBottom: 18 }}>
-            <label style={{ display: "block", minWidth: 0, fontSize: 12, fontWeight: 800 }}>Create folder
-              <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} maxLength={60} placeholder="e.g. Polity, Internal Security, Hindi Notes" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: "12px 13px", borderRadius: 10, border: "1px solid #e2dac9", background: "#fffdf9", color: "#151515", fontSize: 13 }} />
+            <label style={{ display: "block", minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+              Create folder
+              <input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                maxLength={60}
+                placeholder="e.g. Polity, Internal Security, Hindi Notes"
+                style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: "12px 13px", borderRadius: 10, border: "1px solid #d9d0bd", background: "#fffdf9", color: "#151515", fontSize: 13 }}
+              />
             </label>
-            <button type="submit" disabled={libraryActionBusy} style={{ ...styles.headerButton, minHeight: 42 }}>{libraryActionBusy ? "Working…" : "+ Create Folder"}</button>
+            <button type="submit" disabled={libraryActionBusy} style={{ ...styles.headerButton, minHeight: 42, opacity: libraryActionBusy ? .65 : 1 }}>
+              {libraryActionBusy ? "Working…" : "+ Create Folder"}
+            </button>
           </form>
+
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-            <div style={{ flex: "1 1 180px", fontSize: 12, color: "#77736b" }}><strong style={{ color: "#171717" }}>{libraryFolders.length}</strong> folders · <strong style={{ color: "#171717" }}>{libraryItems.length}</strong> material records</div>
-            <input value={librarySearch} onChange={(e) => setLibrarySearch(e.target.value)} placeholder="Search title or subject…" aria-label="Search content records" style={{ flex: "1 1 220px", maxWidth: 360, padding: "10px 12px", borderRadius: 10, border: "1px solid #e2dac9", background: "#fffdf9", color: "#171717", fontSize: 12 }} />
-            <button type="button" onClick={loadContentLibrary} disabled={libraryLoading || libraryActionBusy} style={styles.headerButton}>{libraryLoading ? "Refreshing…" : "↻ Refresh"}</button>
+            <div style={{ flex: "1 1 220px", fontSize: 12, color: "#77736b" }}>
+              <strong style={{ color: "#151515" }}>{libraryFolders.length}</strong> folders · <strong style={{ color: "#151515" }}>{libraryItems.length}</strong> material records
+            </div>
+            <input
+              value={librarySearch}
+              onChange={(e) => setLibrarySearch(e.target.value)}
+              placeholder="Search content by title or subject…"
+              aria-label="Search content records"
+              style={{ flex: "1 1 220px", maxWidth: 360, padding: "10px 12px", borderRadius: 10, border: "1px solid #d9d0bd", background: "#fffdf9", color: "#151515", fontSize: 12 }}
+            />
+            <button type="button" onClick={loadContentLibrary} disabled={libraryLoading || libraryActionBusy} style={styles.headerButton}>
+              {libraryLoading ? "Refreshing…" : "↻ Refresh"}
+            </button>
           </div>
-          {libraryFolders.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>{libraryFolders.map((folder) => <span key={folder} style={{ border: "1px solid #e4dac6", background: "#f8f3e8", borderRadius: 999, padding: "7px 10px", color: "#5c4821", fontSize: 11, fontWeight: 800 }}>▰ {folder}</span>)}</div>}
-          {libraryMessage && <div role="status" style={{ margin: "10px 0 14px", padding: "11px 13px", borderRadius: 10, background: "#f8f3e8", border: "1px solid #e4dac6", color: "#59471f", fontSize: 12, lineHeight: 1.5 }}>{libraryMessage}</div>}
-          <div style={{ display: "grid", gap: 8 }}>
-            {libraryItems.filter((item) => `${item.title || ""} ${item.subject || ""} ${item.category || ""} ${item.topic || ""}`.toLowerCase().includes(librarySearch.trim().toLowerCase())).map((item) => <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 13px", border: "1px solid #e8e0d0", borderRadius: 12, background: "#fffdf9" }}><div style={{ width: 36, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "#171717", color: "#dfc477", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>FILE</div><div style={{ minWidth: 0, flex: "1 1 220px" }}><div style={{ fontSize: 13, fontWeight: 850, color: "#191919", overflowWrap: "anywhere" }}>{item.title || "Untitled content"}</div><div style={{ marginTop: 4, fontSize: 11, color: "#77736b" }}>{[item.subject || item.category, item.topic, item.language, item.exam_type].filter(Boolean).join(" · ") || "Study Material"} · {item.published ? "Published" : "Draft"}</div></div><button type="button" disabled={libraryActionBusy} onClick={() => deleteContentItem(item)} style={{ border: "1px solid #e3b8b2", background: "#fff5f3", color: "#a52c24", borderRadius: 9, padding: "9px 11px", fontSize: 11, fontWeight: 850, cursor: libraryActionBusy ? "wait" : "pointer" }}>Delete Content</button></div>)}
-            {!libraryLoading && libraryItems.length === 0 && <div style={{ border: "1px dashed #d9d0bd", borderRadius: 12, padding: 20, color: "#77736b", textAlign: "center", fontSize: 12 }}>No content records found. Refresh after uploading a Study Material file.</div>}
+
+          {libraryFolders.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {libraryFolders.map((folder) => (
+                <span key={folder} style={{ border: "1px solid #e4dac6", background: "#f8f3e8", borderRadius: 999, padding: "7px 10px", color: "#5c4821", fontSize: 11, fontWeight: 800 }}>▰ {folder}</span>
+              ))}
+            </div>
+          )}
+
+          {libraryMessage && (
+            <div role="status" style={{ margin: "10px 0 14px", padding: "11px 13px", borderRadius: 10, background: "#f8f3e8", border: "1px solid #e4dac6", color: "#59471f", fontSize: 12, lineHeight: 1.5 }}>
+              {libraryMessage}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gap: 9 }}>
+            {libraryItems
+              .filter((item) => `${item.title || ""} ${item.subject || ""} ${item.category || ""} ${item.topic || ""}`.toLowerCase().includes(librarySearch.trim().toLowerCase()))
+              .map((item) => (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 13px", border: "1px solid #e8e0d0", borderRadius: 12, background: "#fffdf9" }}>
+                  <div style={{ width: 36, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "#171717", color: "#dfc477", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>PDF</div>
+                  <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 850, color: "#191919", overflowWrap: "anywhere" }}>{item.title || "Untitled content"}</div>
+                    <div style={{ marginTop: 4, fontSize: 11, color: "#77736b" }}>{[item.subject || item.category, item.topic, item.language, item.exam_type].filter(Boolean).join(" · ") || "Study Material"} · {item.published ? "Published" : "Draft"}</div>
+                  </div>
+                  <button type="button" disabled={libraryActionBusy} onClick={() => deleteContentItem(item)} style={{ border: "1px solid #e3b8b2", background: "#fff5f3", color: "#a52c24", borderRadius: 9, padding: "9px 11px", fontSize: 11, fontWeight: 850, cursor: libraryActionBusy ? "wait" : "pointer" }}>
+                    Delete Content
+                  </button>
+                </div>
+              ))}
+            {!libraryLoading && libraryItems.length === 0 && (
+              <div style={{ border: "1px dashed #d9d0bd", borderRadius: 12, padding: 20, color: "#77736b", textAlign: "center", fontSize: 12 }}>
+                No content records were returned. Refresh after uploading a Study Material file.
+              </div>
+            )}
           </div>
-          <p style={{ margin: "14px 0 0", color: "#77736b", fontSize: 10, lineHeight: 1.6 }}>Folder and deletion actions use the existing authenticated content-upload API.</p>
+          <p style={{ margin: "14px 0 0", color: "#77736b", fontSize: 10, lineHeight: 1.6 }}>
+            Folder names are stored as placeholder objects under admin-folders/ in the configured Supabase bucket. Deleting a material removes its library record and attempts to clean up its stored file.
+          </p>
         </section>
 
         {/* =================================================
@@ -1874,7 +1625,6 @@ export default function AdminPage() {
         ================================================= */}
 
         <section
-          id="sambhav-user-directory"
           style={
             styles.searchPanel
           }
@@ -2921,7 +2671,6 @@ function UserInfo({
   return (
     <div
       style={styles.userMain}
-      className="sambhav-user-main"
     >
       {/* USER IDENTITY */}
 
@@ -3354,12 +3103,12 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#f5f2eb 0%,#eeeae1 100%)",
-    color: "#171613",
+      "radial-gradient(ellipse at top left,rgba(199,168,93,.10),transparent 34%),linear-gradient(180deg,#faf9f5 0%,#f3f1eb 100%)",
+    color: "#171923",
     fontFamily:
       '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif',
     padding:
-      "24px 16px 60px",
+      "20px 18px 48px",
   },
 
   container: {
@@ -4574,3 +4323,5 @@ const styles = {
     fontWeight: "700",
   },
 };
+
+
