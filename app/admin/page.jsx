@@ -727,10 +727,31 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <style jsx global>{`
-        .sambhav-page { color: #f5f2eb !important; }
-        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="background: "#fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
-        .sambhav-page input, .sambhav-page select, .sambhav-page textarea { background-color: #111 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.3) !important; color-scheme: dark; }
-        .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #918a7d !important; }
+        /* Reference theme: light background with dark, readable text */
+        .sambhav-page { color: #171c28 !important; color-scheme: light; }
+        .sambhav-page [style*="color: #f5f2eb"],
+        .sambhav-page [style*="color:#f5f2eb"],
+        .sambhav-page [style*="color: rgb(245, 242, 235)"],
+        .sambhav-page [style*="color: rgba(245, 242, 235"] {
+          color: #171c28 !important;
+        }
+        .sambhav-page [style*="background: #fff"],
+        .sambhav-page [style*="backgroundColor: #fff"],
+        .sambhav-page [style*="background: #f7f"],
+        .sambhav-page [style*="background: #f6f"] {
+          background: #fffdf9 !important;
+          color: #171c28 !important;
+          border-color: #e8e5dc !important;
+        }
+        .sambhav-page input, .sambhav-page select, .sambhav-page textarea {
+          background-color: #fff !important;
+          color: #171c28 !important;
+          border-color: #e4e5e2 !important;
+          color-scheme: light;
+        }
+        .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #737b88 !important; }
+        .sambhav-page h1, .sambhav-page h2, .sambhav-page h3, .sambhav-page h4,
+        .sambhav-page strong, .sambhav-page label { color: #171c28 !important; }
         .sambhav-page button { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
         .sambhav-page button:hover { border-color: rgba(199,168,93,.65) !important; }
         .sambhav-page .sambhav-content-upload { background: linear-gradient(145deg,#171717,#101010) !important; border-color: rgba(199,168,93,.28) !important; box-shadow: 0 16px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025) !important; }
