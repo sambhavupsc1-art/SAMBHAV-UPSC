@@ -725,10 +725,11 @@ export default function AdminPage() {
   ========================================================= */
 
   return (
-    <main style={styles.page}>
+    <main className="sambhav-page" style={styles.page}>
       <style jsx global>{`
-        .sambhav-page { color: #f5f2eb !important; }
-        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="background: "#fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
+        .sambhav-page { color: #f5f2eb !important; width: 100%; min-width: 0; box-sizing: border-box; }
+        .sambhav-page *, .sambhav-page *::before, .sambhav-page *::after { box-sizing: border-box; }
+        .sambhav-page [style*="background: #fff"], .sambhav-page [style*="backgroundColor: #fff"], .sambhav-page [style*="background: #f7f"], .sambhav-page [style*="background: #f6f"] { background: #151515 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.22) !important; }
         .sambhav-page input, .sambhav-page select, .sambhav-page textarea { background-color: #111 !important; color: #f5f2eb !important; border-color: rgba(199,168,93,.3) !important; color-scheme: dark; }
         .sambhav-page input::placeholder, .sambhav-page textarea::placeholder { color: #918a7d !important; }
         .sambhav-page button { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
@@ -833,8 +834,8 @@ export default function AdminPage() {
         }
 
         /* Compact premium live overview */
-        .sambhav-overview {
-          margin: 0 0 26px;
+        .sambhav-page .sambhav-overview {
+          display: block; width: 100%; min-width: 0; margin: 0 0 26px;
           padding: 22px;
           background: #fff;
           border: 1px solid #e8e6df;
@@ -909,8 +910,8 @@ export default function AdminPage() {
           color: #898780;
           font-size: 10px;
         }
-        .sambhav-overview-grid {
-          display: grid;
+        .sambhav-page .sambhav-overview-grid {
+          display: grid; width: 100%; min-width: 0;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 10px;
         }
@@ -955,8 +956,8 @@ export default function AdminPage() {
           font-size: 10px;
           line-height: 1.5;
         }
-        .sambhav-overview-content-grid {
-          display: grid;
+        .sambhav-page .sambhav-overview-content-grid {
+          display: grid; width: 100%; min-width: 0;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
           margin-top: 10px;
