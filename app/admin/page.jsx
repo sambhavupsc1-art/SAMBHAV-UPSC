@@ -38,6 +38,15 @@ export default function AdminPage() {
   const [contentUploading, setContentUploading] = useState(false);
   const [contentUploadMessage, setContentUploadMessage] = useState("");
 
+  // Persistent Study Material library controls (kept in the redesigned page).
+  const [libraryItems, setLibraryItems] = useState([]);
+  const [libraryFolders, setLibraryFolders] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryActionBusy, setLibraryActionBusy] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [libraryMessage, setLibraryMessage] = useState("");
+  const [librarySearch, setLibrarySearch] = useState("");
+
   // The Hindu newspaper extraction workflow
   const [hinduPdf, setHinduPdf] = useState(null);
   const [hinduDate, setHinduDate] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
@@ -92,6 +101,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadUsers();
+  }, []);
+
+  useEffect(() => {
+    loadContentLibrary();
   }, []);
 
   /* =========================================================
@@ -560,6 +573,62 @@ export default function AdminPage() {
     }
   }
 
+  async function loadContentLibrary() {
+    setLibraryLoading(true);
+    setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST", credentials: "include", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) throw new Error(data.error || "Content library could not be loaded.");
+      setLibraryItems(Array.isArray(data.items) ? data.items : []);
+      setLibraryFolders(Array.isArray(data.folders) ? data.folders : []);
+    } catch (err) {
+      setLibraryMessage(err.message || "Content library could not be loaded.");
+    } finally { setLibraryLoading(false); }
+  }
+
+  async function createContentFolder(event) {
+    event.preventDefault();
+    const name = newFolderName.trim();
+    if (!name) { setLibraryMessage("Enter a folder name first."); return; }
+    setLibraryActionBusy(true); setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create-folder", name }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) throw new Error(data.error || "Folder could not be created.");
+      setNewFolderName("");
+      setLibraryMessage(`Folder “${data.name || name}” created in Supabase Storage.`);
+      await loadContentLibrary();
+    } catch (err) { setLibraryMessage(err.message || "Folder could not be created."); }
+    finally { setLibraryActionBusy(false); }
+  }
+
+  async function deleteContentItem(item) {
+    if (!item?.id) return;
+    if (!window.confirm(`Delete “${item.title || "this content"}” from the Study Material library? This cannot be undone.`)) return;
+    setLibraryActionBusy(true); setLibraryMessage("");
+    try {
+      const response = await fetch("/api/admin/content-upload", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete-content", id: item.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) throw new Error(data.error || "Content could not be deleted.");
+      setLibraryMessage(data.warning || `Deleted “${item.title || "content"}”.`);
+      await loadContentLibrary();
+    } catch (err) { setLibraryMessage(err.message || "Content could not be deleted."); }
+    finally { setLibraryActionBusy(false); }
+  }
+
   async function handleTheHinduExtraction(event) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -979,62 +1048,6 @@ export default function AdminPage() {
         @media(max-width:850px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr); } }
         @media(max-width:520px) { .sambhav-command-panel { padding:14px; } .sambhav-donut-layout { gap:14px; } .sambhav-donut { width:118px; height:118px; flex-basis:118px; } .sambhav-donut:before { inset:10px; } .sambhav-legend { min-width:110px; } }
 
-        /* Reference-inspired admin dashboard refinement */
-        .sambhav-page { background:#f7f7f3 !important; color:#151922 !important; }
-        .sambhav-page > div { max-width:1360px; }
-        .sambhav-overview { margin:0 0 18px !important; padding:22px !important; border:1px solid #e9e8e2 !important; border-radius:18px !important; background:#fff !important; box-shadow:0 3px 16px rgba(18,24,35,.035) !important; }
-        .sambhav-overview-heading { margin-bottom:18px !important; }
-        .sambhav-overview-title { font-size:clamp(25px,3vw,34px) !important; letter-spacing:-1.1px !important; }
-        .sambhav-overview-eyebrow { color:#777b84 !important; letter-spacing:1.4px !important; }
-        .sambhav-overview-status { display:inline-flex !important; margin:0 0 14px !important; min-width:240px; background:#f5faf5 !important; border-color:#e2eee2 !important; }
-        .sambhav-overview-grid { gap:12px !important; }
-        .sambhav-overview-metric { padding:16px !important; border-radius:14px !important; background:#fff !important; border-color:#e9eaf0 !important; box-shadow:0 2px 8px rgba(20,25,35,.025); }
-        .sambhav-overview-number { font-size:29px !important; margin:13px 0 5px !important; }
-        .sambhav-overview-content-grid { gap:12px !important; margin-top:12px !important; }
-        .sambhav-overview-content-card { padding:17px !important; background:#fff !important; border-radius:14px !important; }
-        .sambhav-overview-content-number { font-size:27px !important; }
-        .sambhav-command-center { margin:0 0 18px !important; }
-        .sambhav-command-grid { gap:12px !important; }
-        .sambhav-command-panel { padding:19px !important; border-radius:16px !important; background:#fff !important; border-color:#e9eaf0 !important; box-shadow:0 3px 14px rgba(18,24,35,.03) !important; }
-        .sambhav-command-panel-head h3 { font-size:14px !important; }
-        .sambhav-donut { width:126px !important; height:126px !important; flex-basis:126px !important; }
-        .sambhav-donut:before { inset:10px !important; }
-        .sambhav-activity-item { padding:10px 0 !important; }
-        .sambhav-quick-actions button { padding:11px !important; }
-        /* The reference uses one overview instead of a second oversized hero/stat strip. */
-        .sambhav-hero, .sambhav-stats-grid { display:none !important; }
-        .sambhav-search-panel, .sambhav-page section[style*="searchPanel"] { border-radius:16px !important; }
-        .sambhav-page input, .sambhav-page select { max-width:100%; }
-        .sambhav-content-upload { padding:20px !important; border-radius:16px !important; background:#fff !important; border-color:#e8e9ed !important; box-shadow:0 3px 14px rgba(18,24,35,.03) !important; }
-        .sambhav-content-upload h2 { letter-spacing:-.45px; }
-        /* Keep account cards compact: identity, details and actions sit together on desktop. */
-        .sambhav-user-card { padding:12px 16px !important; background:#fff !important; border-bottom:1px solid #edf0f3 !important; }
-        .sambhav-user-card-content { display:grid !important; grid-template-columns:minmax(190px,1.05fr) minmax(300px,1.8fr) auto !important; align-items:center !important; gap:14px !important; }
-        .sambhav-user-identity { align-items:center !important; gap:10px !important; }
-        .sambhav-user-name { font-size:13px !important; font-weight:750 !important; }
-        .sambhav-user-card .sambhav-account-details { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:6px !important; }
-        .sambhav-info-item { padding:8px !important; background:#fafaf8 !important; border-color:#eeeee9 !important; }
-        .sambhav-info-label { font-size:7px !important; }
-        .sambhav-info-value { font-size:10px !important; }
-        .sambhav-user-card-actions { width:auto !important; justify-content:flex-end !important; flex-wrap:wrap !important; }
-        .sambhav-user-card-actions button { min-height:34px !important; padding:8px 10px !important; font-size:10px !important; white-space:nowrap; }
-        .sambhav-premium-overview { border-radius:16px !important; }
-        @media(max-width:1050px) {
-          .sambhav-user-card-content { grid-template-columns:minmax(0,1fr) !important; align-items:stretch !important; }
-          .sambhav-user-card-actions { width:100% !important; justify-content:flex-start !important; }
-        }
-        @media(max-width:600px) {
-          .sambhav-overview { padding:14px !important; }
-          .sambhav-overview-title { font-size:25px !important; }
-          .sambhav-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
-          .sambhav-overview-content-grid { grid-template-columns:1fr !important; }
-          .sambhav-command-panel { padding:14px !important; }
-          .sambhav-donut-layout { justify-content:flex-start !important; }
-          .sambhav-user-card .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
-          .sambhav-user-card-actions button { flex:1 !important; }
-          .sambhav-content-upload { padding:15px !important; }
-        }
-
         /* SAMBHAV dashboard-aligned polish: compact records, accessible controls, responsive metrics. */
         .sambhav-page button, .sambhav-page input, .sambhav-page select, .sambhav-page textarea { font: inherit; }
         .sambhav-page button { transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; }
@@ -1064,6 +1077,24 @@ export default function AdminPage() {
           .sambhav-overview-updated { margin-left: 0 !important; width: 100%; }
           .sambhav-user-card-actions { gap: 8px !important; }
         }
+        /* Reference-inspired compact admin layout */
+        .sambhav-overview { background: rgba(255,253,249,.96) !important; border-color:#e5dece !important; border-radius:17px !important; }
+        .sambhav-overview-grid { gap:10px !important; }
+        .sambhav-overview-metric { background:#fffdf9 !important; border-color:#e8e1d3 !important; border-radius:14px !important; }
+        .sambhav-command-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .sambhav-command-panel { border-radius:16px; }
+        .sambhav-user-card { padding:12px 16px !important; }
+        .sambhav-user-card-content { display:grid !important; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px !important; }
+        .sambhav-user-main { display:grid; grid-template-columns:minmax(190px,.85fr) minmax(300px,1.35fr); align-items:center; gap:12px; }
+        .sambhav-user-name { font-size:13px !important; }
+        .sambhav-account-details { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:6px !important; }
+        .sambhav-info-item { padding:8px 9px !important; }
+        .sambhav-info-value { font-size:10px !important; }
+        .sambhav-subscription-box { grid-column:1 / -1; padding:8px 10px !important; }
+        .sambhav-user-card-actions { width:auto !important; flex-wrap:wrap; justify-content:flex-end !important; }
+        .sambhav-user-card-actions button { white-space:nowrap; }
+        @media(max-width:1100px) { .sambhav-user-card-content { grid-template-columns:minmax(0,1fr) !important; } .sambhav-user-main { grid-template-columns:minmax(0,1fr); } .sambhav-user-card-actions { justify-content:flex-start !important; } }
+        @media(max-width:760px) { .sambhav-command-grid { grid-template-columns:minmax(0,1fr) !important; } .sambhav-account-details { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } .sambhav-overview-content-grid { grid-template-columns:1fr !important; } }
 
             `}</style>
 
@@ -1453,7 +1484,7 @@ export default function AdminPage() {
         {/* =================================================
             ADMIN COMMAND CENTER — DATA-DRIVEN SUMMARY
         ================================================= */}
-        <section className="sambhav-command-center" aria-label="Admin command center">
+        <section id="sambhav-analytics-area" className="sambhav-command-center" aria-label="Admin command center">
           <div className="sambhav-command-grid">
             <article className="sambhav-command-panel sambhav-status-panel">
               <div className="sambhav-command-panel-head">
@@ -1702,6 +1733,32 @@ export default function AdminPage() {
           </div>
         </section>
 
+        {/* STUDY MATERIAL CONTENT STUDIO — retained in the redesigned admin */}
+        <section id="sambhav-content-studio" className="sambhav-content-upload" style={{ ...styles.contentUploadSection, marginTop: 24 }}>
+          <div style={styles.contentUploadHeader}>
+            <div><div style={styles.contentUploadEyebrow}>ADMIN CONTROL CENTER</div><h2 style={styles.contentUploadTitle}>Content Studio</h2><p style={styles.contentUploadDescription}>Create Study Material folders, search saved records, refresh the library, and delete content with confirmation.</p></div>
+            <div style={styles.contentUploadIcon}>▤</div>
+          </div>
+          <form onSubmit={createContentFolder} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "end", marginBottom: 18 }}>
+            <label style={{ display: "block", minWidth: 0, fontSize: 12, fontWeight: 800 }}>Create folder
+              <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} maxLength={60} placeholder="e.g. Polity, Internal Security, Hindi Notes" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 7, padding: "12px 13px", borderRadius: 10, border: "1px solid #e2dac9", background: "#fffdf9", color: "#151515", fontSize: 13 }} />
+            </label>
+            <button type="submit" disabled={libraryActionBusy} style={{ ...styles.headerButton, minHeight: 42 }}>{libraryActionBusy ? "Working…" : "+ Create Folder"}</button>
+          </form>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+            <div style={{ flex: "1 1 180px", fontSize: 12, color: "#77736b" }}><strong style={{ color: "#171717" }}>{libraryFolders.length}</strong> folders · <strong style={{ color: "#171717" }}>{libraryItems.length}</strong> material records</div>
+            <input value={librarySearch} onChange={(e) => setLibrarySearch(e.target.value)} placeholder="Search title or subject…" aria-label="Search content records" style={{ flex: "1 1 220px", maxWidth: 360, padding: "10px 12px", borderRadius: 10, border: "1px solid #e2dac9", background: "#fffdf9", color: "#171717", fontSize: 12 }} />
+            <button type="button" onClick={loadContentLibrary} disabled={libraryLoading || libraryActionBusy} style={styles.headerButton}>{libraryLoading ? "Refreshing…" : "↻ Refresh"}</button>
+          </div>
+          {libraryFolders.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>{libraryFolders.map((folder) => <span key={folder} style={{ border: "1px solid #e4dac6", background: "#f8f3e8", borderRadius: 999, padding: "7px 10px", color: "#5c4821", fontSize: 11, fontWeight: 800 }}>▰ {folder}</span>)}</div>}
+          {libraryMessage && <div role="status" style={{ margin: "10px 0 14px", padding: "11px 13px", borderRadius: 10, background: "#f8f3e8", border: "1px solid #e4dac6", color: "#59471f", fontSize: 12, lineHeight: 1.5 }}>{libraryMessage}</div>}
+          <div style={{ display: "grid", gap: 8 }}>
+            {libraryItems.filter((item) => `${item.title || ""} ${item.subject || ""} ${item.category || ""} ${item.topic || ""}`.toLowerCase().includes(librarySearch.trim().toLowerCase())).map((item) => <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 13px", border: "1px solid #e8e0d0", borderRadius: 12, background: "#fffdf9" }}><div style={{ width: 36, height: 40, borderRadius: 9, display: "grid", placeItems: "center", background: "#171717", color: "#dfc477", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>FILE</div><div style={{ minWidth: 0, flex: "1 1 220px" }}><div style={{ fontSize: 13, fontWeight: 850, color: "#191919", overflowWrap: "anywhere" }}>{item.title || "Untitled content"}</div><div style={{ marginTop: 4, fontSize: 11, color: "#77736b" }}>{[item.subject || item.category, item.topic, item.language, item.exam_type].filter(Boolean).join(" · ") || "Study Material"} · {item.published ? "Published" : "Draft"}</div></div><button type="button" disabled={libraryActionBusy} onClick={() => deleteContentItem(item)} style={{ border: "1px solid #e3b8b2", background: "#fff5f3", color: "#a52c24", borderRadius: 9, padding: "9px 11px", fontSize: 11, fontWeight: 850, cursor: libraryActionBusy ? "wait" : "pointer" }}>Delete Content</button></div>)}
+            {!libraryLoading && libraryItems.length === 0 && <div style={{ border: "1px dashed #d9d0bd", borderRadius: 12, padding: 20, color: "#77736b", textAlign: "center", fontSize: 12 }}>No content records found. Refresh after uploading a Study Material file.</div>}
+          </div>
+          <p style={{ margin: "14px 0 0", color: "#77736b", fontSize: 10, lineHeight: 1.6 }}>Folder and deletion actions use the existing authenticated content-upload API.</p>
+        </section>
+
         {/* =================================================
             THE HINDU PDF EXTRACTION
         ================================================= */}
@@ -1817,6 +1874,7 @@ export default function AdminPage() {
         ================================================= */}
 
         <section
+          id="sambhav-user-directory"
           style={
             styles.searchPanel
           }
@@ -2611,11 +2669,9 @@ function PendingUserCard({
   return (
     <div
       style={styles.userCard}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
-        className="sambhav-user-card-content"
       >
         <UserInfo
           user={user}
@@ -2717,11 +2773,9 @@ function JoinedUserCard({
           ? styles.premiumUserCard
           : {}),
       }}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
-        className="sambhav-user-card-content"
       >
         <UserInfo
           user={user}
@@ -2799,11 +2853,9 @@ function BannedUserCard({
   return (
     <div
       style={styles.userCard}
-      className="sambhav-user-card"
     >
       <div
         style={styles.userCardContent}
-        className="sambhav-user-card-content"
       >
         <UserInfo
           user={user}
@@ -2869,6 +2921,7 @@ function UserInfo({
   return (
     <div
       style={styles.userMain}
+      className="sambhav-user-main"
     >
       {/* USER IDENTITY */}
 
