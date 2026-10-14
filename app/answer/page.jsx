@@ -14,9 +14,6 @@ export default function AnswerWritingPage() {
   const [previews, setPreviews] = useState([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState(null);
-  const [evaluationStartedAt, setEvaluationStartedAt] = useState(null);
-  const [evaluationElapsed, setEvaluationElapsed] = useState(0);
-  const [selectedAnswerMarker, setSelectedAnswerMarker] = useState(null);
   const [historySaveState, setHistorySaveState] = useState("idle");
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -71,23 +68,6 @@ export default function AnswerWritingPage() {
       });
     };
   }, [previews]);
-
-  useEffect(() => {
-    if (!evaluating || !evaluationStartedAt) return;
-    const tick = () => setEvaluationElapsed(Math.max(0, Math.floor((Date.now() - evaluationStartedAt) / 1000)));
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [evaluating, evaluationStartedAt]);
-
-  const evaluationElapsedLabel = `${String(Math.floor(evaluationElapsed / 60)).padStart(2, "0")}:${String(evaluationElapsed % 60).padStart(2, "0")}`;
-  const evaluationStage = evaluationElapsed < 8
-    ? "Reading your answer pages"
-    : evaluationElapsed < 22
-    ? "Mapping the question demands"
-    : evaluationElapsed < 40
-    ? "Checking content and evidence"
-    : "Finalising marks and feedback";
 
   /* =========================
      MARKS / WORD LIMIT
@@ -359,52 +339,9 @@ export default function AnswerWritingPage() {
       }
 
       setError("");
-      setEvaluationElapsed(0);
-      setEvaluationStartedAt(Date.now());
       setEvaluating(true);
 
       try {
-        // Reuse the exact saved evaluation for identical question + exact image bytes
-        // in this browser session. This prevents accidental score drift on repeat taps.
-        const fingerprintParts = [
-          questionData.question || "",
-          questionData.paper || "GS",
-          questionData.section || "",
-          String(marks),
-          String(wordLimit),
-        ];
-        const imageSignatures = [];
-        for (const file of images) {
-          const bytes = await file.arrayBuffer();
-          const digest = await crypto.subtle.digest("SHA-256", bytes);
-          imageSignatures.push(Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join(""));
-        }
-        const cacheSource = `${fingerprintParts.join("|")}::${imageSignatures.join("|")}`;
-        const cacheDigest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(cacheSource));
-        const cacheKey = `sambhav_evaluation_cache_${Array.from(new Uint8Array(cacheDigest)).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
-        const cachedEvaluation = sessionStorage.getItem(cacheKey);
-
-        if (cachedEvaluation) {
-          const cached = JSON.parse(cachedEvaluation);
-          if (cached?.evaluation) {
-            setEvaluation(cached.evaluation);
-            sessionStorage.setItem(
-              `sambhav_answer_evaluation_${questionData.id}`,
-              JSON.stringify({ question: questionData, pages: images.length, evaluation: cached.evaluation, submittedAt: cached.submittedAt || new Date().toISOString(), reused: true })
-            );
-            setHistorySaveState("saving");
-            try {
-              const historyResponse = await fetch("/api/mains/history", {
-                method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
-                body: JSON.stringify({ questionData, evaluation: cached.evaluation }),
-              });
-              const historyData = await historyResponse.json().catch(() => ({}));
-              setHistorySaveState(historyResponse.ok && historyData.success ? "saved" : historyResponse.status === 401 ? "signin" : "failed");
-            } catch { setHistorySaveState("failed"); }
-            return;
-          }
-        }
-
         const formData = new FormData();
 
         formData.append(
@@ -478,8 +415,6 @@ ${details}`
           );
         }
 
-        // Keep the score stable for this exact answer in this session.
-        sessionStorage.setItem(cacheKey, JSON.stringify({ evaluation: data.evaluation, submittedAt: new Date().toISOString() }));
         setEvaluation(
           data.evaluation
         );
@@ -531,7 +466,6 @@ ${details}`
         );
       } finally {
         setEvaluating(false);
-        setEvaluationStartedAt(null);
       }
     };
 
@@ -852,51 +786,6 @@ ${details}`
                 }
               </div>
             </section>
-
-            <EvaluationSection title="Examiner's Markup · Click a marker">
-              <p style={styles.markerIntro}>Tap a numbered marker on the answer page to view marks, examiner feedback and a suggested improvement for that passage.</p>
-              {previews.length > 0 ? (
-                <div style={styles.markupPages}>
-                  {previews.map((src, pageIndex) => {
-                    const pageMarkers = (evaluation.answer_markers || []).filter((marker) => Number(marker.page_number) === pageIndex + 1);
-                    return (
-                      <div key={`markup-page-${pageIndex}`} style={styles.markupPage}>
-                        <div style={styles.markupPageLabel}>ANSWER PAGE {pageIndex + 1}</div>
-                        <div style={styles.markupImageWrap}>
-                          <img src={src} alt={`Handwritten answer page ${pageIndex + 1}`} style={styles.markupImage} />
-                          {pageMarkers.map((marker, markerIndex) => (
-                            <button key={`marker-${pageIndex}-${markerIndex}`} type="button"
-                              aria-label={`Open examiner feedback: ${marker.label || `Marker ${markerIndex + 1}`}`}
-                              title={marker.label || "View examiner feedback"}
-                              onClick={() => setSelectedAnswerMarker(marker)}
-                              style={{ ...styles.answerMarker, left: `${Number(marker.x) / 10}%`, top: `${Number(marker.y) / 10}%` }}
-                            >{markerIndex + 1}</button>
-                          ))}
-                        </div>
-                        {pageMarkers.length === 0 && <p style={styles.markerEmpty}>No passage-level marker was returned for this page. See detailed feedback below.</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : <p style={styles.markerEmpty}>Answer images are not available in this view. Detailed evaluation feedback is shown below.</p>}
-              {(evaluation.answer_markers || []).length === 0 && <p style={styles.markerEmpty}>No reliable passage-level markers were returned. The rest of the evaluation remains available below.</p>}
-            </EvaluationSection>
-
-            {selectedAnswerMarker && (
-              <div role="dialog" aria-modal="true" aria-labelledby="answer-marker-title" style={styles.markerOverlay} onClick={() => setSelectedAnswerMarker(null)}>
-                <section style={styles.markerModal} onClick={(event) => event.stopPropagation()}>
-                  <div style={styles.markerModalHeader}>
-                    <div><div style={styles.markerEyebrow}>SAMBHAV UPSC · EXAMINER FEEDBACK</div><h2 id="answer-marker-title" style={styles.markerModalTitle}>{selectedAnswerMarker.label || "Answer feedback"}</h2></div>
-                    <button type="button" aria-label="Close feedback" onClick={() => setSelectedAnswerMarker(null)} style={styles.markerClose}>×</button>
-                  </div>
-                  <div style={styles.markerMarksCard}><strong style={{ fontSize: 36, lineHeight: 1.1 }}>+{selectedAnswerMarker.marks_awarded ?? 0}</strong><span>Marks indicated for this point</span></div>
-                  <div style={styles.markerDetailBlock}><div style={styles.markerDetailLabel}>YOUR ANSWER</div><p style={styles.markerQuote}>{selectedAnswerMarker.candidate_excerpt || "Exact passage could not be transcribed confidently."}</p></div>
-                  <div style={styles.markerDetailBlock}><div style={styles.markerDetailLabel}>EXAMINER'S FEEDBACK</div><p style={styles.markerDetailText}>{selectedAnswerMarker.examiner_feedback || "No specific feedback was returned for this marker."}</p></div>
-                  <div style={styles.markerSuggested}><div style={styles.markerSuggestedTitle}>Suggested approach</div><p style={{ margin: 0, lineHeight: 1.65, fontSize: 13 }}>{selectedAnswerMarker.suggested_approach || "Address the question's demand with a precise concept, evidence or relevant example."}</p></div>
-                  <div style={styles.markerModalFooter}><span>Page {selectedAnswerMarker.page_number}</span><button type="button" onClick={() => setSelectedAnswerMarker(null)} style={styles.markerDone}>Done</button></div>
-                </section>
-              </div>
-            )}
 
             <EvaluationSection
               title="1. Question Demand Analysis"
@@ -1883,31 +1772,6 @@ ${details}`
             </div>
           )}
 
-          {evaluating && (
-            <div role="dialog" aria-modal="true" aria-labelledby="evaluation-processing-title" style={styles.processingOverlay}>
-              <section style={styles.processingModal}>
-                <div style={styles.processingHeader}>
-                  <div style={styles.processingEyebrow}>SAMBHAV UPSC · MAINS EXAMINER</div>
-                  <h2 id="evaluation-processing-title" style={styles.processingTitle}>Evaluating your answer</h2>
-                  <p style={styles.processingSubtitle}>Your submitted pages are being reviewed together as one answer.</p>
-                </div>
-                <div style={styles.processingBody}>
-                  <div style={styles.processingSpinner} aria-hidden="true" />
-                  <div style={styles.processingTime}><span style={styles.processingClock}>◷</span> {evaluationElapsedLabel}</div>
-                  <div style={styles.processingProgressTrack}><div style={styles.processingProgressIndeterminate} /></div>
-                  <div style={styles.processingStage}>{evaluationStage}</div>
-                  <div style={styles.processingSteps}>
-                    <span style={evaluationElapsed >= 8 ? styles.processingStepDone : styles.processingStepActive}>01&nbsp; Read</span>
-                    <span style={evaluationElapsed >= 22 ? styles.processingStepDone : evaluationElapsed >= 8 ? styles.processingStepActive : styles.processingStep}>02&nbsp; Analyse</span>
-                    <span style={evaluationElapsed >= 40 ? styles.processingStepDone : evaluationElapsed >= 22 ? styles.processingStepActive : styles.processingStep}>03&nbsp; Score</span>
-                  </div>
-                  <p style={styles.processingFootnote}>Processing time depends on handwriting clarity and the number of pages. Please keep this screen open.</p>
-                </div>
-              </section>
-              <style>{`@keyframes sambhavSpin { to { transform: rotate(360deg); } } @keyframes sambhavProgress { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }`}</style>
-            </div>
-          )}
-
           <button
             type="button"
             disabled={
@@ -2520,30 +2384,6 @@ const styles = {
     maxWidth: "520px",
   },
 
-  markerIntro: { margin: "0 0 14px", color: "#64748b", lineHeight: 1.6, fontSize: 13 },
-  markupPages: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: 14 },
-  markupPage: { minWidth: 0, border: "1px solid #dbe3ef", borderRadius: 16, overflow: "hidden", background: "#f8fafc" },
-  markupPageLabel: { padding: "10px 12px", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "#334155", background: "#eef2ff", borderBottom: "1px solid #dbe3ef" },
-  markupImageWrap: { position: "relative", width: "100%", lineHeight: 0, background: "#e2e8f0" },
-  markupImage: { display: "block", width: "100%", height: "auto", objectFit: "contain" },
-  answerMarker: { position: "absolute", transform: "translate(-50%, -50%)", width: 34, height: 34, border: "2px solid #fff", borderRadius: 999, background: "linear-gradient(135deg,#2563eb,#4f46e5)", color: "#fff", fontWeight: 800, fontSize: 13, boxShadow: "0 4px 14px rgba(37,99,235,.4)", cursor: "pointer", display: "grid", placeItems: "center", lineHeight: 1 },
-  markerEmpty: { margin: "12px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.6 },
-  markerOverlay: { position: "fixed", inset: 0, zIndex: 10000, background: "rgba(15,23,42,.62)", backdropFilter: "blur(5px)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 },
-  markerModal: { width: "min(100%, 680px)", maxHeight: "88dvh", overflowY: "auto", background: "#fff", color: "#0f172a", borderRadius: "24px 24px 0 0", boxShadow: "0 -16px 50px rgba(15,23,42,.24)", padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" },
-  markerModalHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, borderBottom: "1px solid #e2e8f0", paddingBottom: 16 },
-  markerEyebrow: { color: "#64748b", fontSize: 10, fontWeight: 800, letterSpacing: ".1em", marginBottom: 6 },
-  markerModalTitle: { margin: 0, fontSize: 21, lineHeight: 1.25, fontWeight: 800 },
-  markerClose: { flex: "0 0 auto", width: 34, height: 34, border: 0, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 26, cursor: "pointer" },
-  markerMarksCard: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, margin: "16px 0", padding: "18px 12px", borderRadius: 14, background: "#eafaf2", color: "#087f5b" },
-  markerDetailBlock: { marginTop: 16 },
-  markerDetailLabel: { color: "#64748b", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", marginBottom: 8 },
-  markerQuote: { margin: 0, borderLeft: "3px solid #3b82f6", background: "#f8fafc", padding: 14, borderRadius: "0 10px 10px 0", fontStyle: "italic", lineHeight: 1.65 },
-  markerDetailText: { margin: 0, lineHeight: 1.7, fontSize: 14, color: "#334155" },
-  markerSuggested: { marginTop: 16, padding: 15, borderRadius: 12, borderLeft: "4px solid #10b981", background: "#ecfdf5", color: "#166534" },
-  markerSuggestedTitle: { fontWeight: 800, marginBottom: 6 },
-  markerModalFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 18, color: "#64748b", fontSize: 12 },
-  markerDone: { border: 0, borderRadius: 10, padding: "11px 20px", color: "#fff", background: "#1d4ed8", fontWeight: 800, cursor: "pointer" },
-
   scoreCard: {
     background: "#111",
     color: "#fff",
@@ -2853,35 +2693,6 @@ const styles = {
     fontSize: "12px",
     lineHeight: "1.75",
   },
-
-  processingOverlay: {
-    position: "fixed", inset: 0, zIndex: 9999, background: "rgba(10, 16, 30, 0.68)",
-    backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)", display: "flex",
-    alignItems: "center", justifyContent: "center", padding: "18px",
-  },
-  processingModal: {
-    width: "100%", maxWidth: "440px", overflow: "hidden", borderRadius: "24px",
-    background: "#fff", boxShadow: "0 28px 90px rgba(0,0,0,.32)", color: "#142033",
-  },
-  processingHeader: {
-    padding: "23px 24px 21px", color: "#fff",
-    background: "linear-gradient(120deg, #225ce5 0%, #5144d8 100%)",
-  },
-  processingEyebrow: { fontSize: "9px", letterSpacing: "1.6px", fontWeight: 800, opacity: .8 },
-  processingTitle: { margin: "9px 0 6px", fontSize: "23px", lineHeight: 1.2, fontWeight: 850 },
-  processingSubtitle: { margin: 0, fontSize: "12px", lineHeight: 1.55, opacity: .88 },
-  processingBody: { padding: "27px 24px 23px", textAlign: "center" },
-  processingSpinner: { width: "50px", height: "50px", margin: "0 auto 16px", borderRadius: "50%", border: "6px solid #e3eaff", borderTopColor: "#2861e8", animation: "sambhavSpin .85s linear infinite" },
-  processingTime: { fontSize: "23px", fontWeight: 750, fontVariantNumeric: "tabular-nums", color: "#1d293d" },
-  processingClock: { color: "#5274bf", fontSize: "24px", verticalAlign: "-1px" },
-  processingProgressTrack: { height: "8px", borderRadius: "999px", background: "#e9edf5", margin: "23px 0 13px", overflow: "hidden" },
-  processingProgressIndeterminate: { width: "38%", height: "100%", borderRadius: "999px", background: "linear-gradient(90deg,#2861e8,#6549e8)", animation: "sambhavProgress 1.45s ease-in-out infinite" },
-  processingStage: { fontSize: "13px", fontWeight: 750, color: "#34445f", minHeight: "20px" },
-  processingSteps: { display: "flex", justifyContent: "space-between", gap: "6px", marginTop: "24px" },
-  processingStep: { flex: 1, padding: "8px 4px", borderRadius: "9px", background: "#f2f4f8", color: "#8490a2", fontSize: "10px", fontWeight: 750 },
-  processingStepActive: { flex: 1, padding: "8px 4px", borderRadius: "9px", background: "#eaf0ff", color: "#2857c5", fontSize: "10px", fontWeight: 850 },
-  processingStepDone: { flex: 1, padding: "8px 4px", borderRadius: "9px", background: "#e6f8ef", color: "#148454", fontSize: "10px", fontWeight: 850 },
-  processingFootnote: { margin: "20px 0 0", color: "#8993a2", fontSize: "10px", lineHeight: 1.5 },
 
   muted: {
     color: "#777",
