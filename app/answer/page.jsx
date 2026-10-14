@@ -14,6 +14,9 @@ export default function AnswerWritingPage() {
   const [previews, setPreviews] = useState([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState(null);
+  const [evaluationStartedAt, setEvaluationStartedAt] = useState(null);
+  const [evaluationElapsed, setEvaluationElapsed] = useState(0);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [historySaveState, setHistorySaveState] = useState("idle");
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -68,6 +71,33 @@ export default function AnswerWritingPage() {
       });
     };
   }, [previews]);
+
+  /* =========================
+     EVALUATION PROCESSING TIMER
+  ========================= */
+
+  useEffect(() => {
+    if (!evaluating || !evaluationStartedAt) return;
+
+    const tick = () => {
+      setEvaluationElapsed(
+        Math.max(0, Math.floor((Date.now() - evaluationStartedAt) / 1000))
+      );
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [evaluating, evaluationStartedAt]);
+
+  const evaluationElapsedLabel = `${String(Math.floor(evaluationElapsed / 60)).padStart(2, "0")}:${String(evaluationElapsed % 60).padStart(2, "0")}`;
+  const evaluationStage = evaluationElapsed < 8
+    ? "Reading your answer pages"
+    : evaluationElapsed < 22
+    ? "Mapping the question demands"
+    : evaluationElapsed < 40
+    ? "Checking content and evidence"
+    : "Finalising marks and feedback";
 
   /* =========================
      MARKS / WORD LIMIT
@@ -339,6 +369,8 @@ export default function AnswerWritingPage() {
       }
 
       setError("");
+      setEvaluationElapsed(0);
+      setEvaluationStartedAt(Date.now());
       setEvaluating(true);
 
       try {
@@ -466,6 +498,7 @@ ${details}`
         );
       } finally {
         setEvaluating(false);
+        setEvaluationStartedAt(null);
       }
     };
 
@@ -1145,40 +1178,76 @@ ${details}`
                   .point_level_feedback || []
               ).map(
                 (item, index) => (
-                  <div
+                  <button
                     key={index}
-                    style={
-                      styles.feedbackCard
-                    }
+                    type="button"
+                    onClick={() => setSelectedFeedback(item)}
+                    style={styles.feedbackCardButton}
                   >
-                    <div
-                      style={
-                        styles.feedbackType
-                      }
-                    >
-                      {item.type}
+                    <div style={styles.feedbackType}>
+                      {item.type || "Examiner Feedback"}
                     </div>
-
-                    <div
-                      style={
-                        styles.feedbackIssue
-                      }
-                    >
+                    <div style={styles.feedbackIssue}>
                       {item.issue}
                     </div>
-
-                    <div
-                      style={
-                        styles.feedbackImprove
-                      }
-                    >
+                    <div style={styles.feedbackImprove}>
                       <b>Improve:</b>{" "}
                       {item.improvement}
                     </div>
-                  </div>
+                    <div style={styles.feedbackTapHint}>
+                      Tap to view detailed feedback →
+                    </div>
+                  </button>
                 )
               )}
             </EvaluationSection>
+
+            {selectedFeedback && (
+              <div
+                style={styles.processingOverlay}
+                onClick={() => setSelectedFeedback(null)}
+              >
+                <section
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="examiner-feedback-popup-title"
+                  style={styles.feedbackPopup}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div style={styles.popupHeader}>
+                    <div>
+                      <div style={styles.processingEyebrow}>SAMBHAV UPSC · EXAMINER FEEDBACK</div>
+                      <h2 id="examiner-feedback-popup-title" style={styles.processingTitle}>
+                        {selectedFeedback.type || "Answer Review"}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Close feedback"
+                      onClick={() => setSelectedFeedback(null)}
+                      style={styles.popupClose}
+                    >×</button>
+                  </div>
+                  <div style={styles.popupBlock}>
+                    <div style={styles.infoBlockTitle}>Issue identified</div>
+                    <div style={styles.infoBlockText}>
+                      {selectedFeedback.issue || "No additional issue details available."}
+                    </div>
+                  </div>
+                  <div style={styles.popupBlock}>
+                    <div style={styles.infoBlockTitle}>How to improve</div>
+                    <div style={styles.infoBlockText}>
+                      {selectedFeedback.improvement || "No specific improvement was returned."}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    style={{ ...styles.evaluateButton, marginTop: "14px" }}
+                    onClick={() => setSelectedFeedback(null)}
+                  >Done</button>
+                </section>
+              </div>
+            )}
 
             <EvaluationSection
               title="10. Better Answer Framework"
@@ -1769,6 +1838,46 @@ ${details}`
               style={styles.errorBox}
             >
               {error}
+            </div>
+          )}
+
+          {evaluating && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="evaluation-processing-title"
+              style={styles.processingOverlay}
+            >
+              <section style={styles.processingModal}>
+                <div style={styles.processingHeader}>
+                  <div style={styles.processingEyebrow}>SAMBHAV UPSC · MAINS EXAMINER</div>
+                  <h2 id="evaluation-processing-title" style={styles.processingTitle}>
+                    Evaluating your answer
+                  </h2>
+                  <p style={styles.processingSubtitle}>
+                    Your submitted pages are being reviewed together as one answer.
+                  </p>
+                </div>
+                <div style={styles.processingBody}>
+                  <div style={styles.processingSpinner} aria-hidden="true" />
+                  <div style={styles.processingTime}>
+                    <span style={styles.processingClock}>◷</span> {evaluationElapsedLabel}
+                  </div>
+                  <div style={styles.processingProgressTrack}>
+                    <div style={styles.processingProgressIndeterminate} />
+                  </div>
+                  <div style={styles.processingStage}>{evaluationStage}</div>
+                  <div style={styles.processingSteps}>
+                    <span style={evaluationElapsed >= 8 ? styles.processingStepDone : styles.processingStepActive}>01&nbsp; Read</span>
+                    <span style={evaluationElapsed >= 22 ? styles.processingStepDone : evaluationElapsed >= 8 ? styles.processingStepActive : styles.processingStep}>02&nbsp; Analyse</span>
+                    <span style={evaluationElapsed >= 40 ? styles.processingStepDone : evaluationElapsed >= 22 ? styles.processingStepActive : styles.processingStep}>03&nbsp; Score</span>
+                  </div>
+                  <p style={styles.processingFootnote}>
+                    Processing time depends on handwriting clarity and the number of pages. Please keep this screen open.
+                  </p>
+                </div>
+              </section>
+              <style>{`@keyframes sambhavSpin { to { transform: rotate(360deg); } } @keyframes sambhavProgress { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }`}</style>
             </div>
           )}
 
@@ -2692,6 +2801,219 @@ const styles = {
     background: "#f7f7f5",
     fontSize: "12px",
     lineHeight: "1.75",
+  },
+
+  feedbackCardButton: {
+    display: "block",
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid #e2e2df",
+    borderRadius: "13px",
+    padding: "12px",
+    marginTop: "8px",
+    background: "#fff",
+    color: "#111",
+    textAlign: "left",
+    fontFamily: "inherit",
+    cursor: "pointer",
+  },
+
+  feedbackTapHint: {
+    marginTop: "10px",
+    color: "#777",
+    fontSize: "10px",
+    fontWeight: "800",
+  },
+
+  processingOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(10, 10, 10, 0.70)",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "18px",
+    boxSizing: "border-box",
+  },
+
+  processingModal: {
+    width: "100%",
+    maxWidth: "430px",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    boxSizing: "border-box",
+    background: "#fff",
+    color: "#111",
+    border: "1px solid #e5e5e3",
+    borderRadius: "24px",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.30)",
+  },
+
+  processingHeader: {
+    padding: "22px 22px 17px",
+    borderBottom: "1px solid #ecece8",
+    textAlign: "center",
+  },
+
+  processingEyebrow: {
+    color: "#9a8244",
+    fontSize: "9px",
+    fontWeight: "900",
+    letterSpacing: "1.35px",
+    textTransform: "uppercase",
+  },
+
+  processingTitle: {
+    margin: "10px 0 0",
+    fontSize: "19px",
+    lineHeight: "1.35",
+    fontWeight: "900",
+    color: "#111",
+  },
+
+  processingSubtitle: {
+    margin: "7px 0 0",
+    color: "#777",
+    fontSize: "11px",
+    lineHeight: "1.55",
+  },
+
+  processingBody: {
+    padding: "20px 22px 22px",
+    textAlign: "center",
+  },
+
+  processingSpinner: {
+    width: "34px",
+    height: "34px",
+    margin: "0 auto 10px",
+    border: "3px solid #e8e5dc",
+    borderTop: "3px solid #111",
+    borderRadius: "50%",
+    animation: "sambhavSpin 0.8s linear infinite",
+  },
+
+  processingTime: {
+    fontSize: "20px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+    fontVariantNumeric: "tabular-nums",
+  },
+
+  processingClock: {
+    color: "#9a8244",
+    marginRight: "4px",
+  },
+
+  processingProgressTrack: {
+    height: "5px",
+    marginTop: "16px",
+    overflow: "hidden",
+    borderRadius: "99px",
+    background: "#ecece8",
+  },
+
+  processingProgressIndeterminate: {
+    height: "100%",
+    width: "35%",
+    borderRadius: "99px",
+    background: "linear-gradient(90deg, #111, #b89a53)",
+    animation: "sambhavProgress 1.5s ease-in-out infinite alternate",
+  },
+
+  processingStage: {
+    marginTop: "13px",
+    fontSize: "12px",
+    fontWeight: "800",
+    color: "#333",
+  },
+
+  processingSteps: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "6px",
+    marginTop: "16px",
+  },
+
+  processingStep: {
+    padding: "8px 4px",
+    border: "1px solid #e5e5e3",
+    borderRadius: "9px",
+    color: "#999",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  processingStepActive: {
+    padding: "8px 4px",
+    border: "1px solid #111",
+    borderRadius: "9px",
+    background: "#111",
+    color: "#fff",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  processingStepDone: {
+    padding: "8px 4px",
+    border: "1px solid #d8c99e",
+    borderRadius: "9px",
+    background: "#f5f0e2",
+    color: "#6d5826",
+    fontSize: "9px",
+    fontWeight: "800",
+  },
+
+  processingFootnote: {
+    margin: "15px 0 0",
+    color: "#888",
+    fontSize: "9px",
+    lineHeight: "1.55",
+  },
+
+  feedbackPopup: {
+    width: "100%",
+    maxWidth: "480px",
+    maxHeight: "85vh",
+    overflowY: "auto",
+    boxSizing: "border-box",
+    background: "#fff",
+    color: "#111",
+    border: "1px solid #e5e5e3",
+    borderRadius: "22px",
+    padding: "20px",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.28)",
+  },
+
+  popupHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
+    marginBottom: "15px",
+  },
+
+  popupClose: {
+    width: "36px",
+    height: "36px",
+    flexShrink: 0,
+    border: "1px solid #e5e5e3",
+    background: "#f5f5f3",
+    color: "#111",
+    borderRadius: "10px",
+    fontSize: "23px",
+    cursor: "pointer",
+  },
+
+  popupBlock: {
+    background: "#f7f7f5",
+    border: "1px solid #e8e8e5",
+    borderRadius: "13px",
+    padding: "13px",
+    marginTop: "10px",
   },
 
   muted: {
