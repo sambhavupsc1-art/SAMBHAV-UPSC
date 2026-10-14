@@ -159,6 +159,15 @@ MARKING:
 
 Never exceed maximum marks.
 
+CONSISTENCY RULES — APPLY STRICTLY:
+- Use a stable 100-point internal rubric, then convert the result to the requested maximum marks.
+- Allocate the requested marks across non-overlapping criteria: demand fulfilment 30%, content accuracy/depth 25%, analysis 20%, structure and coherence 15%, examples/evidence 10%. For questions where a criterion is genuinely inapplicable, redistribute its weight proportionally across the remaining criteria and explain this briefly.
+- Use quarter-mark increments only (0.00, 0.25, 0.50, 0.75, 1.00, etc.) for awarded marks.
+- Do not score the same weakness under multiple criteria.
+- Make marks_breakdown the single source of truth for the final score. Its criterion maximums must add up to maximum_marks; its awarded marks must be within each criterion's maximum; overall_score must equal the sum of marks_breakdown.awarded after rounding to the nearest 0.25.
+- Keep scoring anchors stable: excellent demand fulfilment and accurate, analytical coverage earns the upper band; adequate but incomplete coverage earns the middle band; superficial, inaccurate or largely irrelevant answers earn the lower band. Do not shift standards between answers.
+- Never alter the score to make the feedback sound more encouraging or more critical.
+
 10-mark answers generally correspond to approximately 150 words.
 15-mark answers generally correspond to approximately 250 words.
 
@@ -770,6 +779,22 @@ const EVALUATION_SCHEMA = {
       required: ["missing_evidence", "verification_notes"],
     },
 
+    answer_markers: {
+      type: "array",
+      description: "Clickable examiner feedback markers placed approximately over relevant answer passages. Coordinates are normalized from 0 to 1000 on the corresponding uploaded page.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          page_number: { type: "integer" }, x: { type: "number" }, y: { type: "number" },
+          label: { type: "string" }, marks_awarded: { type: "number" },
+          candidate_excerpt: { type: "string" }, examiner_feedback: { type: "string" },
+          suggested_approach: { type: "string" }, feedback_type: { type: "string" },
+        },
+        required: ["page_number", "x", "y", "label", "marks_awarded", "candidate_excerpt", "examiner_feedback", "suggested_approach", "feedback_type"],
+      },
+    },
+
     marks_breakdown: {
       type: "array",
       items: {
@@ -833,6 +858,7 @@ const EVALUATION_SCHEMA = {
     "keyword_audit",
     "visual_analysis",
     "evidence_audit",
+    "answer_markers",
     "marks_breakdown",
     "sentence_improvements",
     "model_answer",
@@ -1125,6 +1151,73 @@ async function callGemini({
 
 /*
 |--------------------------------------------------------------------------
+| DETERMINISTIC SCORE NORMALIZATION
+|--------------------------------------------------------------------------
+*/
+function normalizeEvaluationScore(evaluation, maximumMarks) {
+  const roundQuarter = (value) => Math.round(value * 4) / 4;
+  const safeMaximum = Math.max(0, Number(maximumMarks) || 0);
+  const breakdown = Array.isArray(evaluation?.marks_breakdown)
+    ? evaluation.marks_breakdown
+    : [];
+
+  if (breakdown.length) {
+    const safe = breakdown.map((item, index) => ({
+      ...item,
+      criterion: String(item?.criterion || `Criterion ${index + 1}`),
+      maximum: Math.max(0, Number(item?.maximum) || 0),
+      awarded: Math.max(0, Number(item?.awarded) || 0),
+    }));
+    const originalMaximumSum = safe.reduce((sum, item) => sum + item.maximum, 0);
+
+    if (originalMaximumSum > 0 && safeMaximum > 0) {
+      // Allocate maximum marks in exact quarter-mark units. Largest-remainder
+      // allocation guarantees criterion maximums sum exactly to the question total.
+      const totalUnits = Math.round(safeMaximum * 4);
+      const shares = safe.map((item) => (item.maximum / originalMaximumSum) * totalUnits);
+      const units = shares.map(Math.floor);
+      let remaining = totalUnits - units.reduce((sum, value) => sum + value, 0);
+      const order = shares.map((share, index) => ({ index, remainder: share - units[index] }))
+        .sort((a, b) => b.remainder - a.remainder);
+      for (let i = 0; i < remaining; i += 1) units[order[i % order.length].index] += 1;
+
+      safe.forEach((item, index) => {
+        const old = breakdown[index];
+        const oldMax = Math.max(0, Number(old?.maximum) || 0);
+        const oldAwarded = Math.max(0, Number(old?.awarded) || 0);
+        const ratio = oldMax > 0 ? Math.min(1, oldAwarded / oldMax) : 0;
+        item.maximum = units[index] / 4;
+        item.awarded = Math.min(item.maximum, Math.max(0, roundQuarter(ratio * item.maximum)));
+      });
+
+      evaluation.marks_breakdown = safe;
+      evaluation.overall_score = Math.min(
+        safeMaximum,
+        Math.max(0, roundQuarter(safe.reduce((sum, item) => sum + item.awarded, 0)))
+      );
+    } else {
+      const raw = Number(evaluation?.overall_score);
+      evaluation.overall_score = Math.min(safeMaximum, Math.max(0, roundQuarter(Number.isFinite(raw) ? raw : 0)));
+    }
+  } else {
+    const raw = Number(evaluation?.overall_score);
+    evaluation.overall_score = Math.min(safeMaximum, Math.max(0, roundQuarter(Number.isFinite(raw) ? raw : 0)));
+  }
+
+  evaluation.answer_markers = (Array.isArray(evaluation.answer_markers) ? evaluation.answer_markers : [])
+    .filter((marker) => marker && Number.isFinite(Number(marker.page_number)) && Number.isFinite(Number(marker.x)) && Number.isFinite(Number(marker.y)))
+    .map((marker) => ({ ...marker,
+      page_number: Math.max(1, Math.floor(Number(marker.page_number))),
+      x: Math.max(0, Math.min(1000, Number(marker.x))),
+      y: Math.max(0, Math.min(1000, Number(marker.y))),
+      marks_awarded: Math.max(0, Number(marker.marks_awarded) || 0),
+    }));
+  evaluation.maximum_marks = safeMaximum;
+  return evaluation;
+}
+
+/*
+|--------------------------------------------------------------------------
 | POST
 |--------------------------------------------------------------------------
 */
@@ -1393,12 +1486,14 @@ MANDATORY EVALUATION:
 6. Explicitly state when no additional diagram is necessary.
 7. Audit relevant data, constitutional references, judgments, reports, schemes, examples and case studies. Never fabricate evidence; mark uncertain facts as needing verification.
 8. Assess analytical depth, balance, logic, repetition, relevance, word-limit discipline and factual accuracy.
-9. Provide criterion-wise marks that are consistent with the existing rubric and add up to no more than ${marks}. Avoid double-counting.
-10. Give sentence-level improvements only for readable exact passages.
-11. Provide three to five prioritized improvements and a complete improved model answer within approximately ${wordLimit} words.
-12. Detect the dominant language from the handwritten answer and write all human-readable evaluation fields in that language.
-13. The model answer is an AI-generated suggested answer, not an official UPSC model answer.
-14. The final score must be between 0 and ${marks}; it is an estimated AI assessment, not an official UPSC score.
+9. Use the same fixed scoring rubric on every evaluation: demand fulfilment 30%, content accuracy/depth 25%, analysis 20%, structure/coherence 15%, examples/evidence 10%. Keep criteria non-overlapping and do not double-penalize.
+10. Set marks_breakdown criterion maximums to add up exactly to ${marks}. Set each awarded mark within its criterion maximum, use 0.25-mark increments, and set overall_score to the sum of marks_breakdown.awarded.
+11. Give sentence-level improvements only for readable exact passages.
+12. Provide three to five prioritized improvements and a complete improved model answer within approximately ${wordLimit} words.
+13. Detect the dominant language from the handwritten answer and write all human-readable evaluation fields in that language.
+14. Return 3–8 answer_markers when distinct feedback points can be tied to visible passages. Each marker must refer to a real readable passage on one supplied page; do not invent excerpts. page_number is 1-based. x and y are normalized coordinates from 0 to 1000, measured from the top-left of that page, and should point near the relevant passage. If exact location is uncertain, say so in examiner_feedback; if no reliable location exists, return an empty array. Keep marker feedback consistent with the overall rubric. marks_awarded is local credit for that point, not extra marks added to the overall score.
+15. The model answer is an AI-generated suggested answer, not an official UPSC model answer.
+16. The final score must be between 0 and ${marks}; it is an estimated AI assessment, not an official UPSC score.
 
 Return every field required by the JSON schema. For fields with no applicable findings, return an empty array or an appropriate concise explanation rather than omitting the field.
 `;
@@ -1545,29 +1640,9 @@ Return every field required by the JSON schema. For fields with no applicable fi
     }
 
     /*
-     * SCORE SAFETY
+     * SCORE SAFETY + CONSISTENCY
      */
-
-    evaluation.maximum_marks =
-      marks;
-
-    const rawScore =
-      Number(
-        evaluation.overall_score
-      );
-
-    evaluation.overall_score =
-      Math.max(
-        0,
-        Math.min(
-          Number.isFinite(
-            rawScore
-          )
-            ? rawScore
-            : 0,
-          marks
-        )
-      );
+    evaluation = normalizeEvaluationScore(evaluation, marks);
 
     /*
      * SUCCESS RESPONSE
