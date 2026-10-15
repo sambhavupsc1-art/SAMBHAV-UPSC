@@ -770,7 +770,9 @@ export async function POST(request) {
       );
     }
 
-    const detectedDate = dateFromText(pdfText);
+    // Validate against the PDF's opening/header text only; article-body dates
+    // elsewhere in the newspaper must not trigger a newspaper-date mismatch.
+    const detectedDate = dateFromText(pdfText.slice(0, 2500));
 
     if (detectedDate && detectedDate !== date) {
       return NextResponse.json(
