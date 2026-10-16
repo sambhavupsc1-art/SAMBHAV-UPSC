@@ -1897,6 +1897,7 @@ export default function AdminPage() {
                 <button type="button" onClick={() => document.getElementById("admin-content-upload")?.scrollIntoView({behavior:"smooth"})}><span>▤</span><b>Add Content</b><i>›</i></button>
                 <button type="button" onClick={() => document.getElementById("sambhav-analytics-area")?.scrollIntoView({behavior:"smooth"})}><span>▥</span><b>View Analytics</b><i>›</i></button>
                 <button type="button" onClick={() => router.push("/admin/ai-evaluation-benchmark")}><span>◎</span><b>AI Evaluation Benchmark</b><i>›</i></button>
+                <button type="button" onClick={() => { window.location.href = "/admin/ai-evaluation-benchmark"; }}><span>◎</span><b>AI Evaluation Benchmark</b><i>›</i></button>
               </div>
             </article>
           </div>
