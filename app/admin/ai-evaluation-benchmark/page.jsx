@@ -1,9 +1,57 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 
 const API = "/api/admin/ai-evaluation-benchmark";
+
+const DIMENSION_KEYS = [
+  "content",
+  "structure",
+  "examples",
+  "relevance",
+  "analysis",
+];
+
+function parseDimensionInput(value) {
+  if (!value || !String(value).trim()) return {};
+
+  const parsed =
+    typeof value === "string" ? JSON.parse(value) : value;
+
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed)
+  ) {
+    throw new Error("Dimension scores must be a JSON object.");
+  }
+
+  const normalized = {};
+
+  for (const key of DIMENSION_KEYS) {
+    if (parsed[key] === "" || parsed[key] == null) continue;
+
+    const score = Number(parsed[key]);
+
+    if (!Number.isFinite(score) || score < 0) {
+      throw new Error(
+        `Invalid ${key} dimension score. Use a non-negative number.`
+      );
+    }
+
+    normalized[key] = score;
+  }
+
+  return normalized;
+}
+
+function dimensionInputValue(value) {
+  return value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+    ? JSON.stringify(value, null, 2)
+    : "";
+}
 
 const inputStyle = {
   width: "100%",
@@ -37,7 +85,9 @@ async function readResponse(response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data.success === false) {
-    throw new Error(data.error || `Request failed (${response.status}).`);
+    throw new Error(
+      data.error || `Request failed (${response.status}).`
+    );
   }
 
   return data;
@@ -71,6 +121,10 @@ export default function AdminAIEvaluationBenchmarkPage() {
   const [aiScore, setAiScore] = useState("");
   const [humanFeedback, setHumanFeedback] = useState("");
   const [aiFeedback, setAiFeedback] = useState("");
+
+  const [humanDimensions, setHumanDimensions] = useState("");
+  const [aiDimensions, setAiDimensions] = useState("");
+
   const [rubricVersion, setRubricVersion] = useState("manual-v1");
   const [aiModelVersion, setAiModelVersion] = useState(
     "recorded-existing-evaluation"
@@ -92,6 +146,7 @@ export default function AdminAIEvaluationBenchmarkPage() {
       });
 
       const data = await readResponse(response);
+
       setRecords(Array.isArray(data.records) ? data.records : []);
 
       if (data.warning) {
@@ -106,7 +161,9 @@ export default function AdminAIEvaluationBenchmarkPage() {
 
   useEffect(() => {
     load().catch((error) => {
-      setMessage(error.message || "Could not load benchmark records.");
+      setMessage(
+        error.message || "Could not load benchmark records."
+      );
     });
   }, [load]);
 
@@ -121,6 +178,8 @@ export default function AdminAIEvaluationBenchmarkPage() {
     setAiScore("");
     setHumanFeedback("");
     setAiFeedback("");
+    setHumanDimensions("");
+    setAiDimensions("");
     setRubricVersion("manual-v1");
     setAiModelVersion("recorded-existing-evaluation");
     setConsent(false);
@@ -142,10 +201,21 @@ export default function AdminAIEvaluationBenchmarkPage() {
     setAiScore(String(record.ai_score ?? ""));
     setHumanFeedback(parseFeedback(record.human_feedback));
     setAiFeedback(parseFeedback(record.ai_feedback));
+
+    setHumanDimensions(
+      dimensionInputValue(record.human_dimensions)
+    );
+
+    setAiDimensions(
+      dimensionInputValue(record.ai_dimensions)
+    );
+
     setRubricVersion(record.rubric_version || "manual-v1");
+
     setAiModelVersion(
       record.ai_model_version || "recorded-existing-evaluation"
     );
+
     setConsent(record.consent_public === true);
 
     setCandidateImages(
@@ -179,7 +249,9 @@ export default function AdminAIEvaluationBenchmarkPage() {
       }
 
       if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
-        throw new Error(`${file.name}: maximum image size is 50 MB.`);
+        throw new Error(
+          `${file.name}: maximum image size is 50 MB.`
+        );
       }
 
       const signResponse = await fetch(API, {
@@ -219,12 +291,12 @@ export default function AdminAIEvaluationBenchmarkPage() {
 
         throw new Error(
           `Upload failed for ${file.name} (${put.status}). ${
-            detail.slice(0, 180) || "Check Storage bucket settings."
+            detail.slice(0, 180) ||
+            "Check Storage bucket settings."
           }`
         );
       }
 
-      // Store the object path. Do not store public URLs for a private bucket.
       uploaded.push(sign.path);
     }
 
@@ -245,15 +317,21 @@ export default function AdminAIEvaluationBenchmarkPage() {
       }
 
       if (!candidateAnswer.trim()) {
-        throw new Error("Candidate answer transcription is required.");
+        throw new Error(
+          "Candidate answer transcription is required."
+        );
       }
 
       if (!candidateImages.length && !candidateFiles.length) {
-        throw new Error("Upload at least one student original copy image.");
+        throw new Error(
+          "Upload at least one student original copy image."
+        );
       }
 
       if (!instituteImages.length && !instituteFiles.length) {
-        throw new Error("Upload at least one institute-checked copy image.");
+        throw new Error(
+          "Upload at least one institute-checked copy image."
+        );
       }
 
       const max = Number(maximumMarks);
@@ -279,13 +357,47 @@ export default function AdminAIEvaluationBenchmarkPage() {
       let nextInstituteImages = [...instituteImages];
 
       if (candidateFiles.length) {
-        const uploaded = await uploadFiles(candidateFiles, "candidate");
-        nextCandidateImages = [...nextCandidateImages, ...uploaded];
+        const uploaded = await uploadFiles(
+          candidateFiles,
+          "candidate"
+        );
+
+        nextCandidateImages = [
+          ...nextCandidateImages,
+          ...uploaded,
+        ];
       }
 
       if (instituteFiles.length) {
-        const uploaded = await uploadFiles(instituteFiles, "institute");
-        nextInstituteImages = [...nextInstituteImages, ...uploaded];
+        const uploaded = await uploadFiles(
+          instituteFiles,
+          "institute"
+        );
+
+        nextInstituteImages = [
+          ...nextInstituteImages,
+          ...uploaded,
+        ];
+      }
+
+      let humanDimensionsValue;
+      let aiDimensionsValue;
+
+      try {
+        humanDimensionsValue =
+          parseDimensionInput(humanDimensions);
+      } catch {
+        throw new Error(
+          'Human dimension scores must be valid JSON, e.g. {"content":4,"structure":3,"examples":2,"relevance":4,"analysis":3}.'
+        );
+      }
+
+      try {
+        aiDimensionsValue = parseDimensionInput(aiDimensions);
+      } catch {
+        throw new Error(
+          'AI dimension scores must be valid JSON, e.g. {"content":4,"structure":3,"examples":2,"relevance":4,"analysis":3}.'
+        );
       }
 
       let humanFeedbackValue = {};
@@ -323,6 +435,8 @@ export default function AdminAIEvaluationBenchmarkPage() {
           ai_score: ai,
           human_feedback: humanFeedbackValue,
           ai_feedback: aiFeedbackValue,
+          human_dimensions: humanDimensionsValue,
+          ai_dimensions: aiDimensionsValue,
           rubric_version: rubricVersion,
           ai_model_version: aiModelVersion,
           consent_public: consent,
@@ -335,13 +449,14 @@ export default function AdminAIEvaluationBenchmarkPage() {
 
       setMessage(data.message || "Record saved.");
 
-      // API returns signed URLs for preview; retain these in the form.
       setCandidateImages(
-        data.record?.candidate_copy_images || nextCandidateImages
+        data.record?.candidate_copy_images ||
+          nextCandidateImages
       );
 
       setInstituteImages(
-        data.record?.institute_copy_images || nextInstituteImages
+        data.record?.institute_copy_images ||
+          nextInstituteImages
       );
 
       setCandidateFiles([]);
@@ -391,6 +506,7 @@ export default function AdminAIEvaluationBenchmarkPage() {
   const field = (label, value, setValue, props = {}) => (
     <label style={{ display: "block", minWidth: 0 }}>
       <span style={labelStyle}>{label}</span>
+
       <input
         style={inputStyle}
         value={value}
@@ -478,7 +594,9 @@ export default function AdminAIEvaluationBenchmarkPage() {
               type="button"
               style={{ ...buttonStyle, padding: "6px 8px" }}
               onClick={() =>
-                setImages((old) => old.filter((_, i) => i !== index))
+                setImages((old) =>
+                  old.filter((_, i) => i !== index)
+                )
               }
             >
               Remove image
@@ -522,8 +640,8 @@ export default function AdminAIEvaluationBenchmarkPage() {
           </h1>
 
           <p style={{ margin: 0, color: "#626262", lineHeight: 1.6 }}>
-            Add selected copies only. Save → Verify → Publish. Publishing
-            requires explicit public consent.
+            Add selected copies only. Save → Verify → Publish.
+            Publishing requires explicit public consent.
           </p>
         </header>
 
@@ -579,6 +697,7 @@ export default function AdminAIEvaluationBenchmarkPage() {
 
           <label>
             <span style={labelStyle}>Question *</span>
+
             <textarea
               required
               rows={3}
@@ -597,41 +716,141 @@ export default function AdminAIEvaluationBenchmarkPage() {
           >
             {field("Subject", subject, setSubject)}
             {field("Question type", questionType, setQuestionType)}
-            {field("Maximum marks *", maximumMarks, setMaximumMarks, {
-              type: "number",
-              min: "0.1",
-              step: "any",
-              required: true,
-            })}
-            {field("Human / institute marks *", humanScore, setHumanScore, {
-              type: "number",
-              min: "0",
-              step: "any",
-              required: true,
-            })}
-            {field("Existing AI marks *", aiScore, setAiScore, {
-              type: "number",
-              min: "0",
-              step: "any",
-              required: true,
-            })}
+
+            {field(
+              "Maximum marks *",
+              maximumMarks,
+              setMaximumMarks,
+              {
+                type: "number",
+                min: "0.1",
+                step: "any",
+                required: true,
+              }
+            )}
+
+            {field(
+              "Human / institute marks *",
+              humanScore,
+              setHumanScore,
+              {
+                type: "number",
+                min: "0",
+                step: "any",
+                required: true,
+              }
+            )}
+
+            {field(
+              "Existing AI marks *",
+              aiScore,
+              setAiScore,
+              {
+                type: "number",
+                min: "0",
+                step: "any",
+                required: true,
+              }
+            )}
+
             {field("Rubric version", rubricVersion, setRubricVersion)}
-            {field("AI model version (as recorded)", aiModelVersion, setAiModelVersion)}
+
+            {field(
+              "AI model version (as recorded)",
+              aiModelVersion,
+              setAiModelVersion
+            )}
           </div>
 
           <label>
             <span style={labelStyle}>
               Candidate answer transcription *
             </span>
+
             <textarea
               required
               rows={5}
               style={{ ...inputStyle, resize: "vertical" }}
               value={candidateAnswer}
-              onChange={(event) => setCandidateAnswer(event.target.value)}
+              onChange={(event) =>
+                setCandidateAnswer(event.target.value)
+              }
               placeholder="Enter the student's answer transcription. Do not invent data."
             />
           </label>
+
+          {/* NEW: dimension-wise scores */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <label>
+              <span style={labelStyle}>
+                Human / institute dimension scores (JSON)
+              </span>
+
+              <textarea
+                rows={5}
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                  fontFamily: "monospace",
+                }}
+                value={humanDimensions}
+                onChange={(event) =>
+                  setHumanDimensions(event.target.value)
+                }
+                placeholder='{"content":4,"structure":3,"examples":2,"relevance":4,"analysis":3}'
+              />
+
+              <small
+                style={{
+                  display: "block",
+                  color: "#666",
+                  marginTop: 5,
+                  lineHeight: 1.5,
+                }}
+              >
+                Enter actual recorded human scores only. Valid keys:
+                content, structure, examples, relevance, analysis.
+              </small>
+            </label>
+
+            <label>
+              <span style={labelStyle}>
+                SAMBHAV AI dimension scores (JSON)
+              </span>
+
+              <textarea
+                rows={5}
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                  fontFamily: "monospace",
+                }}
+                value={aiDimensions}
+                onChange={(event) =>
+                  setAiDimensions(event.target.value)
+                }
+                placeholder='{"content":4,"structure":3,"examples":2,"relevance":4,"analysis":3}'
+              />
+
+              <small
+                style={{
+                  display: "block",
+                  color: "#666",
+                  marginTop: 5,
+                  lineHeight: 1.5,
+                }}
+              >
+                Enter existing AI evaluation scores. Do not estimate
+                or invent missing values.
+              </small>
+            </label>
+          </div>
 
           <div
             style={{
@@ -644,11 +863,14 @@ export default function AdminAIEvaluationBenchmarkPage() {
               <span style={labelStyle}>
                 Human / institute feedback (JSON or plain text)
               </span>
+
               <textarea
                 rows={5}
                 style={{ ...inputStyle, resize: "vertical" }}
                 value={humanFeedback}
-                onChange={(event) => setHumanFeedback(event.target.value)}
+                onChange={(event) =>
+                  setHumanFeedback(event.target.value)
+                }
                 placeholder='{"summary":"...","strengths":[],"improvements":[]}'
               />
             </label>
@@ -657,11 +879,14 @@ export default function AdminAIEvaluationBenchmarkPage() {
               <span style={labelStyle}>
                 Existing AI feedback (JSON or plain text)
               </span>
+
               <textarea
                 rows={5}
                 style={{ ...inputStyle, resize: "vertical" }}
                 value={aiFeedback}
-                onChange={(event) => setAiFeedback(event.target.value)}
+                onChange={(event) =>
+                  setAiFeedback(event.target.value)
+                }
                 placeholder='{"summary":"...","strengths":[],"improvements":[]}'
               />
             </label>
@@ -783,9 +1008,9 @@ export default function AdminAIEvaluationBenchmarkPage() {
               lineHeight: 1.6,
             }}
           >
-            Editing and saving resets verification and publication. The AI
-            marks and feedback must be copied from the existing evaluator
-            result; this page does not call or modify the evaluator.
+            Editing and saving resets verification and publication.
+            The AI marks and feedback must be copied from the existing
+            evaluator result; this page does not call or modify the evaluator.
           </p>
         </form>
 
