@@ -1,6 +1,9 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
+const API = "/api/ai-evaluation-benchmark";
 
 const DIMENSIONS = [
   ["content", "Content quality"],
@@ -10,116 +13,439 @@ const DIMENSIONS = [
   ["analysis", "Analytical depth"],
 ];
 
-const palette = {
-  page: "var(--sambhav-page, #f5f2eb)",
-  surface: "var(--sambhav-surface, #fffdf9)",
-  text: "var(--sambhav-text, #171717)",
-  muted: "var(--sambhav-muted, #77736b)",
-  border: "var(--sambhav-border, #e5e1d8)",
-  gold: "#a07d32",
-};
+const GOLD = "#c6a45c";
 
-function fmtDate(value) {
+function dateLabel(value) {
   if (!value) return "Not available";
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Not available"
-    : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  if (Number.isNaN(date.getTime())) return "Not available";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
-function asList(value) {
-  if (Array.isArray(value)) return value.filter((x) => typeof x === "string" && x.trim());
-  if (typeof value === "string" && value.trim()) return [value.trim()];
+
+function list(value) {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item) => typeof item === "string" && item.trim()
+    );
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+
   return [];
 }
-function feedbackItems(source, key) {
+
+function feedbackList(source, key) {
   if (!source || typeof source !== "object") return [];
-  const fallback = key === "strengths" ? "positive_points" : "improvement_suggestions";
-  return asList(source[key] || source[fallback]);
+
+  const aliases = {
+    strengths: ["strengths", "positive_points"],
+    weaknesses: ["weaknesses", "improvement_suggestions"],
+    comments: ["comments", "feedback", "summary"],
+    demand: ["question_demand", "demand_analysis"],
+  };
+
+  for (const field of aliases[key] || [key]) {
+    const result = list(source[field]);
+    if (result.length) return result;
+  }
+
+  return [];
 }
-function dimValue(source, key) {
-  const value = source && typeof source === "object" ? source[key] : null;
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (value && typeof value === "object" && Number.isFinite(Number(value.score))) return Number(value.score);
+
+function dimensionValue(source, key) {
+  const value = source && typeof source === "object"
+    ? source[key]
+    : null;
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    Number.isFinite(Number(value.score))
+  ) {
+    return Number(value.score);
+  }
+
   return null;
 }
-function avg(rows, key) {
-  return rows.length ? rows.reduce((s, r) => s + Number(r[key]), 0) / rows.length : null;
-}
-function pct(value) {
-  return value == null || !Number.isFinite(value) ? "—" : `${value.toFixed(1)}%`;
-}
-function marks(value, maximum) {
-  return Number.isFinite(Number(value)) && Number.isFinite(Number(maximum))
-    ? `${Number(value).toFixed(1)} / ${Number(maximum).toFixed(1)}`
-    : "Not available";
+
+function average(rows, key) {
+  if (!rows.length) return null;
+
+  return rows.reduce(
+    (sum, row) => sum + Number(row[key]),
+    0
+  ) / rows.length;
 }
 
-function Card({ children, style = {}, ...props }) {
+function percentage(value) {
+  return value == null || !Number.isFinite(value)
+    ? "—"
+    : `${value.toFixed(1)}%`;
+}
+
+function formatMarks(value, maximum) {
+  if (
+    !Number.isFinite(Number(value)) ||
+    !Number.isFinite(Number(maximum))
+  ) {
+    return "Not available";
+  }
+
+  return `${Number(value).toFixed(2)} / ${Number(maximum).toFixed(2)}`;
+}
+
+function imageList(value) {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? [value]
+      : [];
+
+  return values
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item.url === "string") return item.url.trim();
+      return "";
+    })
+    .filter((url) => /^https?:\/\//i.test(url));
+}
+
+function Panel({ children, style = {}, ...props }) {
   return (
-    <section {...props} style={{
-      background: palette.surface, border: `1px solid ${palette.border}`,
-      borderRadius: 20, padding: 18, minWidth: 0, ...style,
-    }}>{children}</section>
+    <section
+      {...props}
+      style={{
+        minWidth: 0,
+        padding: 18,
+        border: "1px solid var(--line)",
+        borderRadius: 20,
+        background: "var(--surface)",
+        boxShadow: "0 8px 28px rgba(0,0,0,.08)",
+        ...style,
+      }}
+    >
+      {children}
+    </section>
   );
 }
+
 function Eyebrow({ children }) {
-  return <div style={{ color: palette.muted, fontSize: 10, fontWeight: 850, letterSpacing: ".8px", textTransform: "uppercase" }}>{children}</div>;
-}
-function SectionTitle({ children, note }) {
-  return <div style={{ marginBottom: 14 }}>
-    <h2 style={{ fontSize: 19, letterSpacing: "-.4px", margin: "6px 0 4px" }}>{children}</h2>
-    {note && <p style={{ color: palette.muted, fontSize: 12, lineHeight: 1.6, margin: 0 }}>{note}</p>}
-  </div>;
-}
-function Feedback({ title, items, empty = "Not supplied in this published record." }) {
-  return <div style={{ marginTop: 14 }}>
-    <div style={{ fontSize: 12, fontWeight: 850, marginBottom: 6 }}>{title}</div>
-    {items.length ? <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.7 }}>
-      {items.map((item, i) => <li key={`${title}-${i}`}>{item}</li>)}
-    </ul> : <p style={{ margin: 0, color: palette.muted, fontSize: 11 }}>{empty}</p>}
-  </div>;
-}
-function Metric({ label, value, detail, icon }) {
-  return <Card style={{ padding: 15 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-      <Eyebrow>{label}</Eyebrow><span aria-hidden="true" style={{ fontSize: 17, color: palette.gold }}>{icon}</span>
-    </div>
-    <div style={{ fontSize: 27, fontWeight: 900, letterSpacing: "-.8px", margin: "11px 0 4px" }}>{value}</div>
-    <div style={{ color: palette.muted, fontSize: 10, lineHeight: 1.5 }}>{detail}</div>
-  </Card>;
-}
-
-function normalizeImageList(value) {
-  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
-  return values.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
-}
-
-function CopyImageCard({ title, subtitle, images, empty, theme }) {
-  const list = normalizeImageList(images);
-  const colors = theme === "dark"
-    ? { background: "#1b1e21", border: "#34383c", muted: "#b0b3b7", text: "#f4f1e9", imageBg: "#111315" }
-    : { background: "#fffdf9", border: "#e5e1d8", muted: "#77736b", text: "#171717", imageBg: "#f5f2eb" };
   return (
-    <Card style={{ padding: 14, background: colors.background, borderColor: colors.border }}>
-      <Eyebrow>{title}</Eyebrow>
-      <p style={{ fontSize: 11, color: colors.muted, lineHeight: 1.5, margin: "6px 0 12px" }}>{subtitle}</p>
-      {list.length ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 9 }}>
-          {list.map((src, index) => (
-            <a key={`${src}-${index}`} href={src} target="_blank" rel="noreferrer" style={{ display: "block", border: `1px solid ${colors.border}`, borderRadius: 12, overflow: "hidden", background: colors.imageBg, color: colors.text, textDecoration: "none" }}>
-              <img src={src} alt={`${title}, page ${index + 1}`} loading="lazy" style={{ width: "100%", height: 260, objectFit: "contain", display: "block", background: colors.imageBg }} />
-              <div style={{ padding: "8px 9px", fontSize: 10, fontWeight: 800 }}>Page {index + 1} · Tap to open</div>
-            </a>
+    <div
+      style={{
+        fontSize: 10,
+        fontWeight: 850,
+        letterSpacing: "1.15px",
+        lineHeight: 1.5,
+        textTransform: "uppercase",
+        color: "var(--muted)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Heading({ children, note }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <h2
+        style={{
+          margin: "6px 0",
+          fontSize: "clamp(18px, 3vw, 23px)",
+          letterSpacing: "-.55px",
+          lineHeight: 1.25,
+        }}
+      >
+        {children}
+      </h2>
+
+      {note && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            lineHeight: 1.75,
+            color: "var(--muted)",
+          }}
+        >
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value, detail, icon }) {
+  return (
+    <Panel
+      style={{
+        padding: 15,
+        background:
+          "linear-gradient(145deg, var(--surface), var(--surface-alt))",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <Eyebrow>{label}</Eyebrow>
+
+        <span
+          aria-hidden="true"
+          style={{ color: GOLD, fontSize: 19, fontWeight: 800 }}
+        >
+          {icon}
+        </span>
+      </div>
+
+      <div
+        style={{
+          fontSize: "clamp(25px, 4vw, 34px)",
+          fontWeight: 900,
+          letterSpacing: "-1px",
+          margin: "13px 0 5px",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+      </div>
+
+      <div
+        style={{
+          fontSize: 10,
+          lineHeight: 1.7,
+          color: "var(--muted)",
+        }}
+      >
+        {detail}
+      </div>
+    </Panel>
+  );
+}
+
+function FeedbackBlock({ title, items, empty = "No feedback supplied." }) {
+  return (
+    <div style={{ marginTop: 15 }}>
+      <div style={{ fontSize: 12, fontWeight: 850, marginBottom: 7 }}>
+        {title}
+      </div>
+
+      {items.length ? (
+        <ul
+          style={{
+            margin: 0,
+            paddingLeft: 18,
+            fontSize: 12,
+            lineHeight: 1.8,
+            color: "var(--text)",
+          }}
+        >
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} style={{ marginBottom: 4 }}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 11,
+            lineHeight: 1.7,
+            color: "var(--muted)",
+          }}
+        >
+          {empty}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CopyPanel({ title, subtitle, images, empty }) {
+  const [failed, setFailed] = useState({});
+
+  const urls = imageList(images);
+
+  return (
+    <Panel style={{ padding: 13 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          marginBottom: 13,
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            flexShrink: 0,
+            display: "grid",
+            placeItems: "center",
+            border: "1px solid var(--line)",
+            borderRadius: 11,
+            background: "var(--surface-alt)",
+            color: GOLD,
+            fontWeight: 900,
+          }}
+        >
+          ▧
+        </div>
+
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 850, lineHeight: 1.5 }}>
+            {title}
+          </div>
+
+          <div
+            style={{
+              fontSize: 10,
+              color: "var(--muted)",
+              lineHeight: 1.6,
+              marginTop: 3,
+            }}
+          >
+            {subtitle}
+          </div>
+        </div>
+      </div>
+
+      {urls.length ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
+            gap: 10,
+          }}
+        >
+          {urls.map((url, index) => (
+            <div
+              key={`${url}-${index}`}
+              style={{
+                overflow: "hidden",
+                border: "1px solid var(--line)",
+                borderRadius: 13,
+                background: "var(--image-bg)",
+              }}
+            >
+              {!failed[index] ? (
+                <a href={url} target="_blank" rel="noreferrer">
+                  <img
+                    src={url}
+                    alt={`${title}, page ${index + 1}`}
+                    loading="lazy"
+                    onError={() =>
+                      setFailed((previous) => ({
+                        ...previous,
+                        [index]: true,
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      height: 290,
+                      display: "block",
+                      objectFit: "contain",
+                      background: "var(--image-bg)",
+                    }}
+                  />
+                </a>
+              ) : (
+                <div
+                  style={{
+                    minHeight: 160,
+                    display: "grid",
+                    placeItems: "center",
+                    padding: 16,
+                    textAlign: "center",
+                    fontSize: 11,
+                    color: "var(--muted)",
+                  }}
+                >
+                  Image could not load. The image URL may have expired.
+                </div>
+              )}
+
+              <div
+                style={{
+                  padding: "10px 11px",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  borderTop: "1px solid var(--line)",
+                }}
+              >
+                Page {index + 1}
+                {!failed[index] && (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      float: "right",
+                      color: "var(--gold)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Open ↗
+                  </a>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
-        <div style={{ border: `1px dashed ${colors.border}`, borderRadius: 13, background: colors.imageBg, minHeight: 210, padding: 18, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", gap: 8 }}>
-          <div aria-hidden="true" style={{ fontSize: 28 }}>▧</div>
-          <div style={{ fontSize: 12, fontWeight: 850, color: colors.text }}>Copy image not available</div>
-          <div style={{ fontSize: 10, lineHeight: 1.6, color: colors.muted }}>{empty}</div>
+        <div
+          style={{
+            minHeight: 170,
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            gap: 9,
+            border: "1px dashed var(--line)",
+            borderRadius: 14,
+            background: "var(--image-bg)",
+          }}
+        >
+          <span style={{ fontSize: 30, color: GOLD }}>▧</span>
+
+          <strong style={{ fontSize: 12 }}>{empty}</strong>
+
+          <p
+            style={{
+              margin: 0,
+              maxWidth: 270,
+              fontSize: 10,
+              lineHeight: 1.7,
+              color: "var(--muted)",
+            }}
+          >
+            Images are displayed only when eligible image URLs are supplied
+            by the benchmark API.
+          </p>
         </div>
       )}
-    </Card>
+    </Panel>
   );
 }
 
@@ -128,282 +454,1001 @@ export default function AIEvaluationBenchmarkPage() {
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("sambhav-theme");
-      if (saved === "dark" || saved === "light") setTheme(saved);
+      if (saved === "dark" || saved === "light") {
+        setTheme(saved);
+      }
     } catch {}
   }, []);
 
   useEffect(() => {
-    try { window.localStorage.setItem("sambhav-theme", theme); } catch {}
+    try {
+      window.localStorage.setItem("sambhav-theme", theme);
+    } catch {}
   }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/ai-evaluation-benchmark", { credentials: "include", cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Could not load benchmark records.");
-        if (!cancelled) {
-          const safeRows = Array.isArray(data.records) ? data.records.filter((r) =>
-            r && r.id != null &&
-            Number.isFinite(Number(r.ai_score)) &&
-            Number.isFinite(Number(r.human_score)) &&
-            Number(r.maximum_marks) > 0 &&
-            typeof r.candidate_answer === "string" &&
-            r.candidate_answer.trim()
-          ) : [];
-          setRecords(safeRows);
-          setSelectedId(safeRows[0]?.id ? String(safeRows[0].id) : "");
+
+    async function load() {
+      try {
+        const response = await fetch(API, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "Could not load benchmark records."
+          );
         }
-      })
-      .catch((e) => { if (!cancelled) setError(e.message || "Benchmark service unavailable."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+
+        const safeRows = Array.isArray(data.records)
+          ? data.records.filter(
+              (record) =>
+                record &&
+                record.id != null &&
+                Number.isFinite(Number(record.ai_score)) &&
+                Number.isFinite(Number(record.human_score)) &&
+                Number(record.maximum_marks) > 0 &&
+                typeof record.candidate_answer === "string" &&
+                record.candidate_answer.trim()
+            )
+          : [];
+
+        if (!cancelled) {
+          setRecords(safeRows);
+          setSelectedId((previous) => {
+            if (safeRows.some((r) => String(r.id) === String(previous))) {
+              return previous;
+            }
+
+            return safeRows[0]?.id != null
+              ? String(safeRows[0].id)
+              : "";
+          });
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Benchmark service unavailable.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const metrics = useMemo(() => {
     const n = records.length;
-    const diffs = records.map((r) => Math.abs(Number(r.ai_score) - Number(r.human_score)));
-    const exactCount = diffs.filter((d) => d === 0).length;
-    const withinOneCount = diffs.filter((d) => d <= 1).length;
+
+    const differences = records.map((record) =>
+      Math.abs(Number(record.ai_score) - Number(record.human_score))
+    );
+
+    const exactCount = differences.filter((value) => value === 0).length;
+    const withinOneCount = differences.filter((value) => value <= 1).length;
+
     return {
-      n, aiAvg: avg(records, "ai_score"), humanAvg: avg(records, "human_score"),
-      mae: n ? diffs.reduce((s, d) => s + d, 0) / n : null,
-      exact: n ? exactCount / n * 100 : null,
-      withinOne: n ? withinOneCount / n * 100 : null,
-      exactCount, withinOneCount,
+      n,
+      aiAverage: average(records, "ai_score"),
+      humanAverage: average(records, "human_score"),
+      mae: n
+        ? differences.reduce((sum, value) => sum + value, 0) / n
+        : null,
+      exact: n ? (exactCount / n) * 100 : null,
+      withinOne: n ? (withinOneCount / n) * 100 : null,
+      exactCount,
+      withinOneCount,
     };
   }, [records]);
 
-  const selected = records.find((r) => String(r.id) === String(selectedId)) || records[0] || null;
-  const latest = records.reduce((value, row) => {
-    const date = row.published_at || row.evaluated_at;
-    return date && (!value || new Date(date) > new Date(value)) ? date : value;
+  const selected =
+    records.find((record) => String(record.id) === String(selectedId)) ||
+    records[0] ||
+    null;
+
+  const latest = records.reduce((latestDate, record) => {
+    const value = record.published_at || record.evaluated_at;
+
+    if (!value) return latestDate;
+
+    return !latestDate || new Date(value) > new Date(latestDate)
+      ? value
+      : latestDate;
   }, null);
 
-  const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 12 };
-  const smallGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 145px), 1fr))", gap: 10 };
-  const mutedText = { color: palette.muted, fontSize: 12, lineHeight: 1.65 };
+  const grid = {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 250px), 1fr))",
+    gap: 13,
+  };
+
+  const metricGrid = {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(min(100%, 150px), 1fr))",
+    gap: 11,
+  };
+
+  const rootStyle = {
+    "--page": theme === "dark" ? "#101214" : "#f5f2eb",
+    "--surface": theme === "dark" ? "#191c1f" : "#fffdf9",
+    "--surface-alt": theme === "dark" ? "#22262a" : "#efebe2",
+    "--text": theme === "dark" ? "#f4f1e9" : "#171717",
+    "--muted": theme === "dark" ? "#a7adb3" : "#77736b",
+    "--line": theme === "dark" ? "#33383d" : "#e5e1d8",
+    "--image-bg": theme === "dark" ? "#101214" : "#f5f2eb",
+    "--gold": GOLD,
+    minHeight: "100vh",
+    background: "var(--page)",
+    color: "var(--text)",
+    padding: "20px 13px 55px",
+    fontFamily:
+      "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    colorScheme: theme,
+    transition: "background .2s ease, color .2s ease",
+  };
 
   return (
-    <main data-theme={theme} style={{
-      minHeight: "100vh",
-      background: theme === "dark" ? "#111315" : "#f5f2eb",
-      color: theme === "dark" ? "#f4f1e9" : "#171717",
-      padding: "18px 14px 54px",
-      fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-      colorScheme: theme,
-      "--sambhav-page": theme === "dark" ? "#111315" : "#f5f2eb",
-      "--sambhav-surface": theme === "dark" ? "#1b1e21" : "#fffdf9",
-      "--sambhav-text": theme === "dark" ? "#f4f1e9" : "#171717",
-      "--sambhav-muted": theme === "dark" ? "#b0b3b7" : "#77736b",
-      "--sambhav-border": theme === "dark" ? "#34383c" : "#e5e1d8",
-    }}>
-      <div style={{ maxWidth: 1050, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 }}>
-          <a href="/premium/home" style={{ display: "inline-block", color: palette.muted, fontSize: 12, fontWeight: 800, textDecoration: "none" }}>← Back to dashboard</a>
-          <button type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} style={{ border: `1px solid ${palette.border}`, borderRadius: 999, background: palette.surface, color: palette.text, padding: "9px 12px", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11, fontWeight: 850, cursor: "pointer" }}>
-            <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>{theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-        </div>
+    <main style={rootStyle}>
+      <style>{`
+        * { box-sizing: border-box; }
+        .benchmark-shell { width: 100%; max-width: 1060px; margin: 0 auto; }
+        .benchmark-link:hover { opacity: .8; }
+        .benchmark-button { transition: transform .15s ease, border-color .15s ease; }
+        .benchmark-button:hover { transform: translateY(-1px); border-color: var(--gold) !important; }
+        .benchmark-record:hover { border-color: var(--gold) !important; }
+        .benchmark-copy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+        @media (max-width: 560px) {
+          .benchmark-copy-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+      `}</style>
 
-        <header style={{ marginBottom: 22 }}>
-          <Eyebrow><span style={{ color: palette.gold }}>SAMBHAV UPSC · TRUST & TRANSPARENCY</span></Eyebrow>
-          <h1 style={{ fontSize: "clamp(30px, 5vw, 44px)", lineHeight: 1.08, letterSpacing: "-1.3px", margin: "10px 0" }}>AI Evaluation Benchmark</h1>
-          <p style={{ ...mutedText, maxWidth: 760, fontSize: 13, margin: 0 }}>We don't ask you to trust our AI blindly. We test it against consent-based human evaluations of the same UPSC Mains answers. Human scores are a reference—not infallible ground truth.</p>
+      <div className="benchmark-shell">
+        <nav
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 26,
+          }}
+        >
+          <a
+            className="benchmark-link"
+            href="/premium/home"
+            style={{
+              color: "var(--muted)",
+              textDecoration: "none",
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            ← Back to dashboard
+          </a>
+
+          <button
+            className="benchmark-button"
+            type="button"
+            onClick={() =>
+              setTheme((current) =>
+                current === "dark" ? "light" : "dark"
+              )
+            }
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 999,
+              padding: "10px 13px",
+              background: "var(--surface)",
+              color: "var(--text)",
+              fontWeight: 800,
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            {theme === "dark" ? "☀ Light mode" : "☾ Dark mode"}
+          </button>
+        </nav>
+
+        <header style={{ marginBottom: 25 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              color: "var(--gold)",
+              fontSize: 10,
+              fontWeight: 900,
+              letterSpacing: "1.6px",
+              textTransform: "uppercase",
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "var(--gold)",
+              }}
+            />
+            SAMBHAV UPSC · Trust & Transparency
+          </div>
+
+          <h1
+            style={{
+              fontSize: "clamp(30px, 5.5vw, 47px)",
+              lineHeight: 1.08,
+              letterSpacing: "-1.5px",
+              margin: "12px 0",
+              fontWeight: 900,
+            }}
+          >
+            AI Evaluation
+            <br />
+            <span style={{ color: "var(--gold)" }}>Benchmark</span>
+          </h1>
+
+          <p
+            style={{
+              maxWidth: 720,
+              color: "var(--muted)",
+              fontSize: 13,
+              lineHeight: 1.85,
+              margin: 0,
+            }}
+          >
+            We test SAMBHAV AI against consent-based human evaluations of the
+            same UPSC Mains answers. Human scores are a reference, not
+            infallible ground truth.
+          </p>
         </header>
 
-        <Card style={{ marginBottom: 16, padding: 18, background: "linear-gradient(135deg, var(--sambhav-surface, #fffdf9), var(--sambhav-page, #f5f2eb))" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            <div style={{ maxWidth: 620 }}>
-              <Eyebrow>LIVE VALIDATION STATUS</Eyebrow>
-              <h2 style={{ fontSize: 20, margin: "8px 0" }}>{loading ? "Loading verified records…" : error ? "Benchmark temporarily unavailable" : records.length ? "Verified benchmark results" : "Benchmark data being collected"}</h2>
-              <p style={{ ...mutedText, margin: 0 }}>{loading ? "Retrieving eligible, public and consented evaluation pairs." : error ? "The data service could not be reached. Please retry later." : records.length ? "Metrics below are calculated from eligible paired records returned by the benchmark service." : "No published records currently meet the verification, public-consent and score-completeness requirements. We are not publishing an accuracy or agreement claim without evidence."}</p>
+        <Panel
+          style={{
+            marginBottom: 20,
+            padding: "20px 18px",
+            background:
+              "linear-gradient(135deg, var(--surface), var(--surface-alt))",
+            borderColor: "color-mix(in srgb, var(--gold) 40%, var(--line))",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 14,
+            }}
+          >
+            <div style={{ maxWidth: 680 }}>
+              <Eyebrow>Live validation status</Eyebrow>
+
+              <h2
+                style={{
+                  fontSize: "clamp(19px, 3vw, 25px)",
+                  letterSpacing: "-.5px",
+                  margin: "9px 0",
+                }}
+              >
+                {loading
+                  ? "Loading verified records…"
+                  : error
+                    ? "Benchmark temporarily unavailable"
+                    : records.length
+                      ? "Verified benchmark results"
+                      : "Benchmark data being collected"}
+              </h2>
+
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 12,
+                  lineHeight: 1.8,
+                  margin: 0,
+                }}
+              >
+                {loading
+                  ? "Retrieving eligible, published and consented evaluations."
+                  : error
+                    ? "The data service could not be reached."
+                    : records.length
+                      ? "The metrics below are calculated from eligible records returned by the benchmark service."
+                      : "No published records currently meet verification, consent and score-completeness requirements. No unsupported accuracy claims are presented."}
+              </p>
             </div>
-            <span style={{ border: `1px solid ${palette.border}`, borderRadius: 999, padding: "7px 10px", fontSize: 10, fontWeight: 850, whiteSpace: "nowrap" }}>{error ? "SERVICE ISSUE" : loading ? "LOADING" : records.length ? "VERIFIED DATA" : "AWAITING DATA"}</span>
+
+            <span
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: 999,
+                padding: "8px 11px",
+                color: "var(--gold)",
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: ".6px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {error
+                ? "SERVICE ISSUE"
+                : loading
+                  ? "LOADING"
+                  : records.length
+                    ? "VERIFIED DATA"
+                    : "AWAITING DATA"}
+            </span>
           </div>
-        </Card>
+        </Panel>
 
-        {error && <Card role="alert" style={{ borderColor: "#b52b22", marginBottom: 16 }}>
-          <strong>Could not load benchmark</strong><p style={{ ...mutedText, marginBottom: 0 }}>{error}</p>
-          <button onClick={() => window.location.reload()} style={{ marginTop: 12, padding: "10px 13px", borderRadius: 10, border: `1px solid ${palette.border}`, background: palette.surface, color: palette.text, fontWeight: 800 }}>Retry</button>
-        </Card>}
+        {error && (
+          <Panel style={{ borderColor: "#ba514b", marginBottom: 18 }}>
+            <strong>Could not load benchmark</strong>
+            <p style={{ color: "var(--muted)", fontSize: 12 }}>{error}</p>
 
-        <div style={{ marginBottom: 10 }}><Eyebrow>TRUST OVERVIEW</Eyebrow></div>
-        <div style={smallGrid}>
-          <Metric label="Verified answers" value={loading ? "…" : metrics.n} detail={records.length ? "Eligible published paired records" : "Only verified, public, consented records count"} icon="◎" />
-          <Metric label="Mean absolute error" value={metrics.mae == null ? "—" : metrics.mae.toFixed(2)} detail="Average marks difference · lower is closer" icon="↔" />
-          <Metric label="Exact agreement" value={pct(metrics.exact)} detail={records.length ? `${metrics.exactCount} of ${metrics.n} pairs have identical marks` : "Awaiting enough eligible paired records"} icon="=" />
-          <Metric label="Within 1 mark" value={pct(metrics.withinOne)} detail={records.length ? `${metrics.withinOneCount} of ${metrics.n} pairs differ by at most 1 mark` : "Awaiting enough eligible paired records"} icon="±" />
+            <button
+              className="benchmark-button"
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid var(--line)",
+                borderRadius: 10,
+                background: "var(--surface-alt)",
+                color: "var(--text)",
+                fontWeight: 800,
+              }}
+            >
+              Retry
+            </button>
+          </Panel>
+        )}
+
+        <div style={{ marginBottom: 11 }}>
+          <Eyebrow>Trust overview</Eyebrow>
         </div>
-        {!records.length && !loading && !error && <p style={{ ...mutedText, fontSize: 10, margin: "8px 2px 20px" }}>Metric cards are intentionally blank until verified data exists. No synthetic or illustrative numbers are presented as results.</p>}
 
-        {/* Copy image comparison stays visible even while the benchmark dataset is empty. */}
-        <Card style={{ marginTop: 20 }}>
-          <SectionTitle note="The same answer can be reviewed against the institute/reference-marked copy. Images appear only when eligible records include consented image URLs.">
+        <div style={metricGrid}>
+          <Metric
+            label="Verified answers"
+            value={loading ? "…" : metrics.n}
+            detail="Eligible published evaluation pairs"
+            icon="◎"
+          />
+
+          <Metric
+            label="Mean absolute error"
+            value={metrics.mae == null ? "—" : metrics.mae.toFixed(2)}
+            detail="Average absolute marks difference; lower is closer"
+            icon="↔"
+          />
+
+          <Metric
+            label="Exact agreement"
+            value={percentage(metrics.exact)}
+            detail={
+              records.length
+                ? `${metrics.exactCount} of ${metrics.n} pairs have identical marks`
+                : "Awaiting eligible paired records"
+            }
+            icon="="
+          />
+
+          <Metric
+            label="Within 1 mark"
+            value={percentage(metrics.withinOne)}
+            detail={
+              records.length
+                ? `${metrics.withinOneCount} of ${metrics.n} pairs differ by at most 1 mark`
+                : "Awaiting eligible paired records"
+            }
+            icon="±"
+          />
+        </div>
+
+        {!records.length && !loading && !error && (
+          <p
+            style={{
+              color: "var(--muted)",
+              fontSize: 10,
+              lineHeight: 1.7,
+              margin: "10px 2px 20px",
+            }}
+          >
+            Metrics remain blank until eligible verified data exists. No
+            illustrative numbers are used.
+          </p>
+        )}
+
+        <div style={{ marginTop: 25, marginBottom: 11 }}>
+          <Eyebrow>Evidence library</Eyebrow>
+        </div>
+
+        <Panel style={{ marginBottom: 17 }}>
+          <Heading note="Review the original handwritten answer alongside the reference-checked copy. Only consented images from eligible records are displayed.">
             Copy Image Comparison
-          </SectionTitle>
-          <div style={grid}>
-            {[
-              {
-                title: "Your Original Answer Copy",
-                subtitle: "Candidate handwritten answer",
-                images: selected?.candidate_copy_images,
-                empty: "Candidate copy image not available yet.",
-              },
-              {
-                title: "Institute / Human-Checked Copy",
-                subtitle: "Reference evaluator's checked copy",
-                images: selected?.institute_copy_images,
-                empty: "Institute-checked copy image not available yet.",
-              },
-            ].map((item) => {
-              const images = Array.isArray(item.images)
-                ? item.images.map((entry) => typeof entry === "string" ? entry : entry?.url).filter((url) => typeof url === "string" && /^https:\/\//i.test(url))
-                : [];
-              return (
-                <article key={item.title} style={{ border: `1px solid ${palette.border}`, borderRadius: 16, padding: 12, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 900 }}>{item.title}</div>
-                  <p style={{ ...mutedText, fontSize: 10, margin: "4px 0 10px" }}>{item.subtitle}</p>
-                  {images.length ? (
-                    <div style={{ display: "grid", gap: 9 }}>
-                      {images.map((src, index) => (
-                        <a key={`${item.title}-${index}`} href={src} target="_blank" rel="noreferrer" style={{ display: "block", borderRadius: 11, overflow: "hidden", border: `1px solid ${palette.border}` }}>
-                          <img src={src} alt={`${item.title}, page ${index + 1}`} loading="lazy" style={{ width: "100%", height: "auto", display: "block", objectFit: "contain", background: palette.page }} />
-                          <div style={{ padding: 8, fontSize: 10, fontWeight: 800, color: palette.text }}>Open page {index + 1} ↗</div>
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ minHeight: 175, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center", border: `1px dashed ${palette.border}`, borderRadius: 12, padding: 14, background: palette.page }}>
-                      <span aria-hidden="true" style={{ fontSize: 31 }}>▧</span>
-                      <strong style={{ fontSize: 12 }}>{item.empty}</strong>
-                      <span style={{ color: palette.muted, fontSize: 10, lineHeight: 1.5 }}>A consented image URL must be added to a verified benchmark record.</span>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-          <p style={{ ...mutedText, fontSize: 10, margin: "10px 0 0" }}>For privacy, only copy images explicitly approved for public benchmark display should be added here.</p>
-        </Card>
+          </Heading>
 
-        {records.length > 0 && selected && <>
-          <div style={{ marginTop: 22, marginBottom: 10 }}><Eyebrow>AGGREGATE SCORE SNAPSHOT</Eyebrow></div>
-          <div style={smallGrid}>
-            <Metric label="Human average" value={metrics.humanAvg == null ? "—" : metrics.humanAvg.toFixed(2)} detail="Raw marks; interpret with each answer's maximum" icon="H" />
-            <Metric label="SAMBHAV AI average" value={metrics.aiAvg == null ? "—" : metrics.aiAvg.toFixed(2)} detail="Raw marks; not an accuracy measure" icon="AI" />
+          <div className="benchmark-copy-grid">
+            <CopyPanel
+              title="Original answer copy"
+              subtitle="Student's submitted handwritten answer"
+              images={selected?.candidate_copy_images}
+              empty="Original answer image not available."
+            />
+
+            <CopyPanel
+              title="Institute / human-checked copy"
+              subtitle="Reference evaluator's checked answer"
+              images={selected?.institute_copy_images}
+              empty="Checked answer image not available."
+            />
           </div>
 
-          <Card style={{ marginTop: 16 }}>
-            <SectionTitle note="Select an eligible published record to inspect the two evaluations on the same original answer.">AI vs Human · Same-answer comparison</SectionTitle>
-            <label htmlFor="benchmark-record" style={{ display: "block", fontSize: 11, fontWeight: 800, marginBottom: 7 }}>Published benchmark record</label>
-            <select id="benchmark-record" value={String(selected.id)} onChange={(e) => setSelectedId(e.target.value)} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid ${palette.border}`, background: palette.surface, color: palette.text, fontSize: 12 }}>
-              {records.map((r) => <option key={r.id} value={String(r.id)}>{`${r.subject || "UPSC"} · ${String(r.question || "Question not supplied").slice(0, 90)}`}</option>)}
-            </select>
-            <div style={{ background: palette.page, borderRadius: 14, padding: 14, marginTop: 13 }}>
-              <Eyebrow>QUESTION · {selected.subject || "Subject not specified"} · {selected.question_type || "Type not specified"}</Eyebrow>
-              <div style={{ fontSize: 13, lineHeight: 1.7, fontWeight: 750, marginTop: 7 }}>{selected.question || "Question not supplied in this record."}</div>
+          <p
+            style={{
+              fontSize: 10,
+              lineHeight: 1.7,
+              color: "var(--muted)",
+              margin: "13px 0 0",
+            }}
+          >
+            For privacy, only images explicitly approved for public benchmark
+            display should be published.
+          </p>
+        </Panel>
+
+        {records.length > 0 && selected && (
+          <>
+            <div style={{ marginTop: 25, marginBottom: 11 }}>
+              <Eyebrow>Evaluation results</Eyebrow>
             </div>
-            <SectionTitle note="Compare the original handwritten answer with the institute/reference-checked copy, where both images are available and consented.">Original Copy vs Institute-Checked Copy</SectionTitle>
-            <div style={{ ...grid, marginTop: 12 }}>
-              <CopyImageCard
-                title="YOUR ORIGINAL ANSWER COPY"
-                subtitle="Aspirant's submitted handwritten answer"
-                images={selected.candidate_copy_images || selected.candidate_image_urls || selected.answer_image_urls || selected.candidate_copy_image_url || selected.answer_image_url}
-                empty="Original answer-copy images are not attached to this published benchmark record."
-                theme={theme}
+
+            <div style={metricGrid}>
+              <Metric
+                label="Human average"
+                value={
+                  metrics.humanAverage == null
+                    ? "—"
+                    : metrics.humanAverage.toFixed(2)
+                }
+                detail="Average recorded human marks"
+                icon="H"
               />
-              <CopyImageCard
-                title="INSTITUTE / HUMAN-CHECKED COPY"
-                subtitle="Reference copy with examiner markings"
-                images={selected.institute_copy_images || selected.human_copy_images || selected.reference_copy_image_urls || selected.institute_copy_image_url || selected.human_copy_image_url}
-                empty="Institute/reference-checked copy images are not attached to this published benchmark record."
-                theme={theme}
+
+              <Metric
+                label="SAMBHAV AI average"
+                value={
+                  metrics.aiAverage == null
+                    ? "—"
+                    : metrics.aiAverage.toFixed(2)
+                }
+                detail="Average recorded AI marks"
+                icon="AI"
               />
             </div>
-            <div style={{ ...grid, marginTop: 12 }}>
-              <Card style={{ padding: 15 }}>
-                <Eyebrow>HUMAN REFERENCE EVALUATION</Eyebrow>
-                <div style={{ fontSize: 27, fontWeight: 900, margin: "9px 0 3px" }}>{marks(selected.human_score, selected.maximum_marks)}</div>
-                <div style={mutedText}>Marks awarded · {selected.maximum_marks} maximum</div>
-                <Feedback title="Evaluator comments" items={asList(selected.human_feedback?.comments || selected.human_feedback?.feedback)} />
-                <Feedback title="Strengths" items={feedbackItems(selected.human_feedback, "strengths")} />
-                <Feedback title="Areas to improve" items={feedbackItems(selected.human_feedback, "weaknesses")} />
-              </Card>
-              <Card style={{ padding: 15 }}>
-                <Eyebrow>SAMBHAV AI EVALUATION</Eyebrow>
-                <div style={{ fontSize: 27, fontWeight: 900, margin: "9px 0 3px" }}>{marks(selected.ai_score, selected.maximum_marks)}</div>
-                <div style={mutedText}>Marks awarded · {selected.maximum_marks} maximum</div>
-                <Feedback title="Question-demand analysis" items={asList(selected.ai_feedback?.question_demand || selected.ai_feedback?.demand_analysis)} />
-                <Feedback title="Strengths" items={feedbackItems(selected.ai_feedback, "strengths")} />
-                <Feedback title="Weaknesses and improvements" items={feedbackItems(selected.ai_feedback, "weaknesses")} />
-              </Card>
-            </div>
-            <div style={{ border: `1px solid ${palette.border}`, borderRadius: 14, padding: 14, marginTop: 12 }}>
-              <Eyebrow>SCORE DIFFERENCE · AI MINUS HUMAN</Eyebrow>
-              <div style={{ fontSize: 23, fontWeight: 900, marginTop: 7 }}>{(Number(selected.ai_score) - Number(selected.human_score) > 0 ? "+" : "") + (Number(selected.ai_score) - Number(selected.human_score)).toFixed(1)} marks</div>
-              <p style={{ ...mutedText, margin: "6px 0 0" }}>Rubric: {selected.rubric_version || "Not specified"} · Model: {selected.ai_model_version || "Not specified"} · Published: {fmtDate(selected.published_at)}</p>
-            </div>
-            <div style={{ marginTop: 16 }}>
-              <SectionTitle note="Missing dimension scores are shown as unavailable and are not treated as zero.">Dimension-wise comparison</SectionTitle>
+
+            <Panel style={{ marginTop: 17 }}>
+              <Heading note="Both evaluations should refer to the same question and original answer.">
+                AI vs Human
+              </Heading>
+
+              <label
+                htmlFor="benchmark-record"
+                style={{
+                  display: "block",
+                  fontSize: 11,
+                  fontWeight: 850,
+                  marginBottom: 7,
+                }}
+              >
+                Published benchmark record
+              </label>
+
+              <select
+                id="benchmark-record"
+                value={String(selected.id)}
+                onChange={(event) => setSelectedId(event.target.value)}
+                style={{
+                  width: "100%",
+                  minWidth: 0,
+                  padding: 12,
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  background: "var(--surface-alt)",
+                  color: "var(--text)",
+                  fontSize: 12,
+                }}
+              >
+                {records.map((record) => (
+                  <option key={record.id} value={String(record.id)}>
+                    {`${record.subject || "UPSC"} · ${String(
+                      record.question || "Question"
+                    ).slice(0, 100)}`}
+                  </option>
+                ))}
+              </select>
+
+              <div
+                style={{
+                  padding: 15,
+                  marginTop: 13,
+                  border: "1px solid var(--line)",
+                  borderRadius: 14,
+                  background: "var(--surface-alt)",
+                }}
+              >
+                <Eyebrow>
+                  {selected.subject || "UPSC"} ·{" "}
+                  {selected.question_type || "Question type not specified"}
+                </Eyebrow>
+
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    lineHeight: 1.85,
+                    marginTop: 8,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {selected.question || "Question not supplied."}
+                </div>
+              </div>
+
+              <div style={{ ...grid, marginTop: 14 }}>
+                <Panel style={{ padding: 15 }}>
+                  <Eyebrow>Human reference evaluation</Eyebrow>
+
+                  <div
+                    style={{
+                      fontSize: 27,
+                      fontWeight: 900,
+                      margin: "11px 0 5px",
+                    }}
+                  >
+                    {formatMarks(
+                      selected.human_score,
+                      selected.maximum_marks
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                    Recorded human score
+                  </div>
+
+                  <FeedbackBlock
+                    title="Evaluator comments"
+                    items={feedbackList(selected.human_feedback, "comments")}
+                  />
+
+                  <FeedbackBlock
+                    title="Strengths"
+                    items={feedbackList(selected.human_feedback, "strengths")}
+                  />
+
+                  <FeedbackBlock
+                    title="Areas to improve"
+                    items={feedbackList(selected.human_feedback, "weaknesses")}
+                  />
+                </Panel>
+
+                <Panel style={{ padding: 15 }}>
+                  <Eyebrow>SAMBHAV AI evaluation</Eyebrow>
+
+                  <div
+                    style={{
+                      fontSize: 27,
+                      fontWeight: 900,
+                      margin: "11px 0 5px",
+                    }}
+                  >
+                    {formatMarks(
+                      selected.ai_score,
+                      selected.maximum_marks
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                    Recorded AI score
+                  </div>
+
+                  <FeedbackBlock
+                    title="Question-demand analysis"
+                    items={feedbackList(selected.ai_feedback, "demand")}
+                  />
+
+                  <FeedbackBlock
+                    title="Strengths"
+                    items={feedbackList(selected.ai_feedback, "strengths")}
+                  />
+
+                  <FeedbackBlock
+                    title="Weaknesses and improvements"
+                    items={feedbackList(selected.ai_feedback, "weaknesses")}
+                  />
+                </Panel>
+              </div>
+
+              <Panel
+                style={{
+                  marginTop: 13,
+                  padding: 15,
+                  background: "var(--surface-alt)",
+                }}
+              >
+                <Eyebrow>Score difference · AI minus Human</Eyebrow>
+
+                <div
+                  style={{
+                    fontSize: 25,
+                    fontWeight: 900,
+                    color: "var(--gold)",
+                    marginTop: 7,
+                  }}
+                >
+                  {Number(selected.ai_score) - Number(selected.human_score) > 0
+                    ? "+"
+                    : ""}
+                  {(
+                    Number(selected.ai_score) - Number(selected.human_score)
+                  ).toFixed(2)}{" "}
+                  marks
+                </div>
+
+                <div
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: 10,
+                    lineHeight: 1.8,
+                    marginTop: 8,
+                  }}
+                >
+                  Rubric: {selected.rubric_version || "Not specified"}
+                  {" · "}
+                  Model: {selected.ai_model_version || "Not specified"}
+                  {" · "}
+                  Published: {dateLabel(selected.published_at)}
+                </div>
+              </Panel>
+
+              <div style={{ marginTop: 22 }}>
+                <Heading note="Missing dimension scores remain unavailable; they are not treated as zero.">
+                  Dimension-wise comparison
+                </Heading>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {DIMENSIONS.map(([key, title]) => {
+                    const human = dimensionValue(
+                      selected.human_dimensions,
+                      key
+                    );
+
+                    const ai = dimensionValue(
+                      selected.ai_dimensions,
+                      key
+                    );
+
+                    const maximum = Math.max(
+                      Number(human) || 0,
+                      Number(ai) || 0,
+                      1
+                    );
+
+                    return (
+                      <Panel
+                        key={key}
+                        style={{ padding: 13, boxShadow: "none" }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            justifyContent: "space-between",
+                            gap: 8,
+                            fontSize: 11,
+                            fontWeight: 850,
+                          }}
+                        >
+                          <span>{title}</span>
+                          <span style={{ color: "var(--muted)" }}>
+                            Human {human ?? "—"} · AI {ai ?? "—"}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 8,
+                            marginTop: 12,
+                          }}
+                        >
+                          {[
+                            ["Human", human, GOLD],
+                            ["AI", ai, "#8794a3"],
+                          ].map(([label, value, color]) => (
+                            <div
+                              key={label}
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "42px minmax(0, 1fr)",
+                                gap: 8,
+                                alignItems: "center",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  color: "var(--muted)",
+                                }}
+                              >
+                                {label}
+                              </span>
+
+                              <div
+                                style={{
+                                  height: 8,
+                                  borderRadius: 99,
+                                  background: "var(--surface-alt)",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: "100%",
+                                    width:
+                                      value == null
+                                        ? "0%"
+                                        : `${Math.min(
+                                            100,
+                                            Math.max(0, value) /
+                                              maximum *
+                                              100
+                                          )}%`,
+                                    background: color,
+                                    borderRadius: 99,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Panel>
+                    );
+                  })}
+                </div>
+
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: "var(--muted)",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  Gold represents the human reference; blue-grey represents
+                  SAMBHAV AI. Bars are scaled within each dimension.
+                </p>
+              </div>
+            </Panel>
+
+            <Panel style={{ marginTop: 17 }}>
+              <Heading note="Select a published record to inspect its recorded scores.">
+                Published evaluation records
+              </Heading>
+
               <div style={{ display: "grid", gap: 9 }}>
-                {DIMENSIONS.map(([key, name]) => {
-                  const human = dimValue(selected.human_dimensions, key);
-                  const ai = dimValue(selected.ai_dimensions, key);
-                  const max = Math.max(Number(human) || 0, Number(ai) || 0, 1);
-                  return <div key={key} style={{ border: `1px solid ${palette.border}`, borderRadius: 13, padding: 12 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8, fontSize: 11, fontWeight: 800 }}>
-                      <span>{name}</span><span>Human {human ?? "—"} · AI {ai ?? "—"}</span>
-                    </div>
-                    <div style={{ display: "grid", gap: 6, marginTop: 9 }}>
-                      <div style={{ height: 7, background: "#e7e2d9", borderRadius: 99, overflow: "hidden" }}><div style={{ height: "100%", width: human == null ? "0%" : `${Math.min(100, Math.max(0, human) / max * 100)}%`, background: palette.gold }} /></div>
-                      <div style={{ height: 7, background: "#e7e2d9", borderRadius: 99, overflow: "hidden" }}><div style={{ height: "100%", width: ai == null ? "0%" : `${Math.min(100, Math.max(0, ai) / max * 100)}%`, background: "#555" }} /></div>
-                    </div>
-                  </div>;
+                {records.map((record) => {
+                  const active =
+                    String(record.id) === String(selected.id);
+
+                  const difference = Math.abs(
+                    Number(record.ai_score) - Number(record.human_score)
+                  );
+
+                  return (
+                    <button
+                      className="benchmark-record"
+                      key={record.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedId(String(record.id));
+
+                        document
+                          .getElementById("benchmark-record")
+                          ?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                          });
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: 14,
+                        border: "1px solid var(--line)",
+                        borderRadius: 14,
+                        background: active
+                          ? "var(--surface-alt)"
+                          : "var(--surface)",
+                        color: "var(--text)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          flexWrap: "wrap",
+                          gap: 9,
+                        }}
+                      >
+                        <strong style={{ fontSize: 12 }}>
+                          {record.subject || "UPSC"} ·{" "}
+                          {record.question_type || "Question"}
+                        </strong>
+
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: "var(--muted)",
+                          }}
+                        >
+                          {dateLabel(record.published_at)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          lineHeight: 1.75,
+                          marginTop: 8,
+                        }}
+                      >
+                        {String(
+                          record.question || "Question not supplied"
+                        ).slice(0, 220)}
+                        {String(record.question || "").length > 220
+                          ? "…"
+                          : ""}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 850,
+                          color: "var(--gold)",
+                          marginTop: 9,
+                        }}
+                      >
+                        Human {formatMarks(
+                          record.human_score,
+                          record.maximum_marks
+                        )}
+                        {" · "}
+                        AI {formatMarks(
+                          record.ai_score,
+                          record.maximum_marks
+                        )}
+                        {" · "}
+                        Difference {difference.toFixed(2)}
+                      </div>
+                    </button>
+                  );
                 })}
               </div>
-              <p style={{ ...mutedText, fontSize: 10 }}>Gold bar = human reference; dark bar = SAMBHAV AI. Bar lengths are scaled per dimension for visual comparison.</p>
-            </div>
-          </Card>
+            </Panel>
+          </>
+        )}
 
-          <Card style={{ marginTop: 16 }}>
-            <SectionTitle note="Records shown here are restricted to the API's eligible published dataset.">Published evaluation records</SectionTitle>
-            <div style={{ display: "grid", gap: 8 }}>
-              {records.map((r, index) => <button key={r.id} onClick={() => { setSelectedId(String(r.id)); document.getElementById("benchmark-record")?.scrollIntoView({ behavior: "smooth", block: "center" }); }} style={{ width: "100%", textAlign: "left", border: `1px solid ${palette.border}`, background: String(r.id) === String(selected.id) ? palette.page : palette.surface, borderRadius: 13, padding: 12, color: palette.text, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <strong style={{ fontSize: 12 }}>{r.subject || "UPSC"} · {r.question_type || "Question"}</strong>
-                  <span style={{ fontSize: 10, color: palette.muted }}>{fmtDate(r.published_at)}</span>
-                </div>
-                <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 5 }}>{String(r.question || "Question not supplied").slice(0, 180)}{String(r.question || "").length > 180 ? "…" : ""}</div>
-                <div style={{ fontSize: 11, fontWeight: 800, marginTop: 7 }}>Human {marks(r.human_score, r.maximum_marks)} · AI {marks(r.ai_score, r.maximum_marks)} · Difference {Math.abs(Number(r.ai_score) - Number(r.human_score)).toFixed(1)}</div>
-              </button>)}
-            </div>
-          </Card>
-        </>}
+        <Panel style={{ marginTop: 19 }}>
+          <Eyebrow>Method & data provenance</Eyebrow>
 
-        <Card style={{ marginTop: 18 }}>
-          <Eyebrow><span style={{ color: palette.gold }}>METHOD & DATA PROVENANCE</span></Eyebrow>
-          <h2 style={{ fontSize: 22, margin: "8px 0 12px" }}>How We Test Our AI</h2>
-          <ol style={{ paddingLeft: 20, margin: 0, fontSize: 12, lineHeight: 1.8 }}>
+          <h2
+            style={{
+              fontSize: "clamp(21px, 4vw, 27px)",
+              letterSpacing: "-.7px",
+              margin: "8px 0 14px",
+            }}
+          >
+            How We Test Our AI
+          </h2>
+
+          <ol
+            style={{
+              paddingLeft: 20,
+              margin: 0,
+              fontSize: 12,
+              lineHeight: 1.9,
+              color: "var(--text)",
+            }}
+          >
             <li>The same question and answer must be used for both evaluations.</li>
-            <li>Human and AI evaluations should be performed independently; human evaluators must not see AI marks in advance.</li>
-            <li>Where practical, evaluators are blinded to candidate identity and other evaluators' scores.</li>
-            <li>The dataset should cover multiple GS subjects, question types and answer-quality levels.</li>
-            <li>Rubric version, maximum marks, model version, sample size and scoring criteria should be recorded.</li>
-            <li>Benchmark metrics must be recalculated after a material model or rubric change.</li>
-            <li>Only records marked verified, public and consented are included. Human marks are a comparison reference, not unquestionable ground truth.</li>
+            <li>
+              Human and AI evaluations should be performed independently.
+            </li>
+            <li>
+              Where practical, evaluators should be blinded to candidate
+              identity and other evaluators' scores.
+            </li>
+            <li>
+              The dataset should cover multiple GS subjects, question types
+              and answer-quality levels.
+            </li>
+            <li>
+              Rubric version, maximum marks, model version and scoring
+              criteria should be recorded.
+            </li>
+            <li>
+              Metrics should be recalculated after a material model or rubric
+              change.
+            </li>
+            <li>
+              Only verified, public and consented records are included.
+              Human marks are a reference, not unquestionable ground truth.
+            </li>
           </ol>
-          <div style={{ marginTop: 14, padding: 13, borderRadius: 12, background: palette.page, fontSize: 11, lineHeight: 1.7 }}>
-            <strong>Metric definitions</strong><br />
-            MAE = mean of |AI marks − human marks|. Exact agreement = identical marks divided by eligible pairs. Within-1-mark agreement = pairs with an absolute difference ≤ 1 divided by eligible pairs. Scores are compared on the same answer and maximum-mark scale.
+
+          <div
+            style={{
+              marginTop: 15,
+              padding: 14,
+              border: "1px solid var(--line)",
+              borderRadius: 13,
+              background: "var(--surface-alt)",
+              fontSize: 11,
+              lineHeight: 1.85,
+            }}
+          >
+            <strong>Metric definitions</strong>
+            <p style={{ margin: "5px 0 0", color: "var(--muted)" }}>
+              MAE = mean of absolute AI-minus-human score differences. Exact
+              agreement means identical marks. Within-1-mark agreement means
+              the absolute difference is at most one mark.
+            </p>
           </div>
-          <div style={{ ...mutedText, fontSize: 10, marginTop: 12 }}>Last updated: {fmtDate(latest)}. This is an independent benchmark, not an official UPSC assessment. Published records require verification and explicit public consent. AI outputs can be wrong and should not replace human judgement.</div>
-        </Card>
+
+          <p
+            style={{
+              margin: "13px 0 0",
+              color: "var(--muted)",
+              fontSize: 10,
+              lineHeight: 1.8,
+            }}
+          >
+            Last updated: {dateLabel(latest)}. This is a benchmark, not an
+            official UPSC assessment. Published records require verification
+            and explicit public consent. AI outputs can be wrong and should
+            not replace human judgement.
+          </p>
+        </Panel>
+
+        <footer
+          style={{
+            textAlign: "center",
+            padding: "24px 5px 0",
+            color: "var(--muted)",
+            fontSize: 10,
+            lineHeight: 1.8,
+          }}
+        >
+          SAMBHAV UPSC · AI Evaluation Benchmark
+          <br />
+          Evidence-led evaluation · Transparency · Responsible AI
+        </footer>
       </div>
     </main>
   );
