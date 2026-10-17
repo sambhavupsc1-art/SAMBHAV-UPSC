@@ -33,12 +33,21 @@ const modules = [
     icon: "🤖",
     route: null,
   },
+  
   {
     title: "Study Material",
     subtitle: "Smart Library • GS • Notes • Revision",
     icon: "📚",
     route: "/study-materials",
   },
+  {
+    title: "Mission PYQ",
+    subtitle: "Repeated Topics • Daily Targets • Revision",
+    icon: "🎯",
+    route: "/mission-pyq",
+  },
+];
+
 ];
 
 const styles = {
