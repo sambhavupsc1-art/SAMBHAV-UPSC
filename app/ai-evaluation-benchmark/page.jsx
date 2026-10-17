@@ -178,67 +178,91 @@ function dimensionValue(source, key) {
   if (!parsed) return null;
 
   const aliases = DIMENSION_ALIASES[key] || [key];
-  const acceptedKeys = new Set(
-    aliases.map(normalizeDimensionKey)
-  );
+  const acceptedKeys = new Set(aliases.map(normalizeDimensionKey));
+  const scoreKeys = [
+    "score",
+    "marks",
+    "value",
+    "obtained_marks",
+    "obtainedMarks",
+    "rating",
+    "total",
+  ];
+  const containerKeys = [
+    "dimensions",
+    "dimension_scores",
+    "dimensionScores",
+    "scores",
+    "rubric_scores",
+    "rubricScores",
+    "criteria",
+    "summary",
+    "evaluation",
+    "feedback",
+    "result",
+    "details",
+  ];
 
-  let value = null;
-
-  if (Array.isArray(parsed)) {
-    const entry = parsed.find(
-      (item) => item && acceptedKeys.has(item.key)
-    );
-
-    if (entry) value = entry.value;
-  } else if (typeof parsed === "object") {
-    const matchingKey = Object.keys(parsed).find((candidate) =>
-      acceptedKeys.has(normalizeDimensionKey(candidate))
-    );
-
-    if (matchingKey != null) {
-      value = parsed[matchingKey];
+  function numericScore(value) {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
     }
-  }
 
-  if (value == null) return null;
+    if (typeof value === "string" && value.trim() !== "") {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : null;
+    }
 
-  // Accept numeric values and numeric strings.
-  if (
-    typeof value === "number" ||
-    (typeof value === "string" && value.trim() !== "")
-  ) {
-    const numeric = Number(value);
-
-    return Number.isFinite(numeric) ? numeric : null;
-  }
-
-  // Accept common score fields inside dimension objects.
-  if (typeof value === "object" && !Array.isArray(value)) {
-    const scoreKeys = [
-      "score",
-      "marks",
-      "value",
-      "obtained_marks",
-      "obtainedMarks",
-      "rating",
-      "total",
-    ];
-
-    for (const scoreKey of scoreKeys) {
-      const candidate = value[scoreKey];
-
-      if (
-        typeof candidate === "number" ||
-        (typeof candidate === "string" && candidate.trim() !== "")
-      ) {
-        const numeric = Number(candidate);
-
-        if (Number.isFinite(numeric)) return numeric;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const scoreKey of scoreKeys) {
+        if (value[scoreKey] == null) continue;
+        const result = numericScore(value[scoreKey]);
+        if (result != null) return result;
       }
     }
+
+    return null;
   }
 
-  return null;
+  function findDimension(node, depth = 0) {
+    if (node == null || depth > 8) return null;
+
+    const normalized = parseDimensionSource(node);
+    if (!normalized) return null;
+
+    if (Array.isArray(normalized)) {
+      for (const entry of normalized) {
+        if (!entry) continue;
+        if (acceptedKeys.has(entry.key)) {
+          const score = numericScore(entry.value);
+          if (score != null) return score;
+        }
+        const nested = findDimension(entry.value, depth + 1);
+        if (nested != null) return nested;
+      }
+      return null;
+    }
+
+    if (typeof normalized !== "object") return null;
+
+    // First check matching dimension names at this level.
+    for (const candidate of Object.keys(normalized)) {
+      if (!acceptedKeys.has(normalizeDimensionKey(candidate))) continue;
+      const score = numericScore(normalized[candidate]);
+      if (score != null) return score;
+    }
+
+    // Then search known wrapper fields used by evaluation APIs.
+    for (const field of containerKeys) {
+      if (normalized[field] == null) continue;
+      const nested = findDimension(normalized[field], depth + 1);
+      if (nested != null) return nested;
+    }
+
+    return null;
+  }
+
+  return findDimension(parsed);
 }
 
 function average(rows, key) {
@@ -1295,15 +1319,13 @@ export default function AIEvaluationBenchmarkPage() {
 
                 <div style={{ display: "grid", gap: 10 }}>
                   {DIMENSIONS.map(([key, title]) => {
-                    const human = dimensionValue(
-                      selected.human_dimensions,
-                      key
-                    );
+                    const human =
+                      dimensionValue(selected.human_dimensions, key) ??
+                      dimensionValue(selected.human_feedback, key);
 
-                    const ai = dimensionValue(
-                      selected.ai_dimensions,
-                      key
-                    );
+                    const ai =
+                      dimensionValue(selected.ai_dimensions, key) ??
+                      dimensionValue(selected.ai_feedback, key);
 
                     const values = [human, ai].filter(
                       (value) => value != null
