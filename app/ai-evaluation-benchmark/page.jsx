@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -59,21 +58,184 @@ function feedbackList(source, key) {
   return [];
 }
 
-function dimensionValue(source, key) {
-  const value = source && typeof source === "object"
-    ? source[key]
-    : null;
+/**
+ * Normalize dimension data without inventing scores.
+ *
+ * Supports:
+ * - Plain objects: { content: 4 }
+ * - Numeric strings: { content: "4" }
+ * - Score objects: { content: { score: 4 } }
+ * - JSON strings containing objects or arrays
+ * - Array entries: [{ dimension: "Content quality", score: 4 }]
+ * - Alternate dimension names such as content_quality and examples_evidence
+ */
+function parseDimensionSource(source) {
+  if (source == null) return null;
 
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
+  if (typeof source === "string") {
+    const trimmed = source.trim();
+    if (!trimmed) return null;
+
+    try {
+      return parseDimensionSource(JSON.parse(trimmed));
+    } catch {
+      return null;
+    }
   }
 
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+
+        const name =
+          item.key ??
+          item.dimension ??
+          item.dimension_key ??
+          item.name ??
+          item.label ??
+          item.title ??
+          item.criterion;
+
+        if (name == null) return null;
+
+        return {
+          key: normalizeDimensionKey(name),
+          value: item,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof source === "object") {
+    return source;
+  }
+
+  return null;
+}
+
+function normalizeDimensionKey(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+const DIMENSION_ALIASES = {
+  content: [
+    "content",
+    "contentquality",
+    "qualityofcontent",
+    "answercontent",
+    "subjectknowledge",
+    "knowledge",
+    "coverage",
+    "contentcoverage",
+  ],
+  structure: [
+    "structure",
+    "answerstructure",
+    "structuring",
+    "organization",
+    "organisation",
+    "presentation",
+    "logicalstructure",
+  ],
+  examples: [
+    "examples",
+    "example",
+    "evidence",
+    "examplesandevidence",
+    "examplesanddata",
+    "data",
+    "facts",
+    "factsandfigures",
+    "supportingevidence",
+  ],
+  relevance: [
+    "relevance",
+    "questionrelevance",
+    "relevancetoquestion",
+    "questiondemand",
+    "demand",
+    "adherencetoquestion",
+    "answerrelevance",
+  ],
+  analysis: [
+    "analysis",
+    "analyticaldepth",
+    "analysisanddepth",
+    "criticalanalysis",
+    "criticalthinking",
+    "depthofanalysis",
+    "analyticalability",
+  ],
+};
+
+function dimensionValue(source, key) {
+  const parsed = parseDimensionSource(source);
+  if (!parsed) return null;
+
+  const aliases = DIMENSION_ALIASES[key] || [key];
+  const acceptedKeys = new Set(
+    aliases.map(normalizeDimensionKey)
+  );
+
+  let value = null;
+
+  if (Array.isArray(parsed)) {
+    const entry = parsed.find(
+      (item) => item && acceptedKeys.has(item.key)
+    );
+
+    if (entry) value = entry.value;
+  } else if (typeof parsed === "object") {
+    const matchingKey = Object.keys(parsed).find((candidate) =>
+      acceptedKeys.has(normalizeDimensionKey(candidate))
+    );
+
+    if (matchingKey != null) {
+      value = parsed[matchingKey];
+    }
+  }
+
+  if (value == null) return null;
+
+  // Accept numeric values and numeric strings.
   if (
-    value &&
-    typeof value === "object" &&
-    Number.isFinite(Number(value.score))
+    typeof value === "number" ||
+    (typeof value === "string" && value.trim() !== "")
   ) {
-    return Number(value.score);
+    const numeric = Number(value);
+
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  // Accept common score fields inside dimension objects.
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const scoreKeys = [
+      "score",
+      "marks",
+      "value",
+      "obtained_marks",
+      "obtainedMarks",
+      "rating",
+      "total",
+    ];
+
+    for (const scoreKey of scoreKeys) {
+      const candidate = value[scoreKey];
+
+      if (
+        typeof candidate === "number" ||
+        (typeof candidate === "string" && candidate.trim() !== "")
+      ) {
+        const numeric = Number(candidate);
+
+        if (Number.isFinite(numeric)) return numeric;
+      }
+    }
   }
 
   return null;
@@ -1143,9 +1305,12 @@ export default function AIEvaluationBenchmarkPage() {
                       key
                     );
 
+                    const values = [human, ai].filter(
+                      (value) => value != null
+                    );
+
                     const maximum = Math.max(
-                      Number(human) || 0,
-                      Number(ai) || 0,
+                      ...values.map((value) => Math.abs(value)),
                       1
                     );
 
