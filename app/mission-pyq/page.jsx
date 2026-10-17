@@ -115,7 +115,7 @@ export default function MissionPYQPage() {
     .filter((q) => section === "all" || q._type === section)
     .filter((q) => priority === "all" || q._priority === priority)
     .filter((q) => !search || `${q.question} ${q.topic} ${q.subject || ""} ${q.paper || ""} ${q.year || ""}`.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => ({ P1: 0, P2: 1, P3: 2 }[a._priority] - ({ P1: 0, P2: 1, P3: 2 }[b._priority]) || Number(b.year || 0) - Number(a.year || 0)),
+    .sort((a, b) => (({ P1: 0, P2: 1, P3: 2 }[a._priority]) - ({ P1: 0, P2: 1, P3: 2 }[b._priority]) || Number(b.year || 0) - Number(a.year || 0))),
   [allQuestions, topicCounts, progressMap, section, priority, search]);
 
   const attemptedCount = progress.filter((p) => p.attempted).length;
