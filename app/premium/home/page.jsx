@@ -48,8 +48,6 @@ const modules = [
   },
 ];
 
-];
-
 const styles = {
   page: {
     minHeight: "100vh",
