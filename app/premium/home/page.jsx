@@ -41,10 +41,10 @@ const modules = [
     route: "/study-materials",
   },
   {
-    title: "Mission PYQ",
-    subtitle: "Repeated Topics • Daily Targets • Revision",
-    icon: "🎯",
-    route: "/mission-pyq",
+    title: "Mains Roadmap",
+    subtitle: "Study • Mains PYQs • Answer Writing • AI Evaluation",
+    icon: "🗺️",
+    route: "/mains-roadmap",
   },
 ];
 
