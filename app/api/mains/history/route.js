@@ -72,6 +72,29 @@ async function getAuthenticatedUserId() {
   return { userId: users[0].id };
 }
 
+
+function verifyEvaluationReceipt(receipt, { userId, questionId, evaluation }) {
+  try {
+    const secret = process.env.AUTH_SESSION_SECRET;
+    if (!secret || !receipt || !userId || !questionId || !evaluation) return false;
+    const parts = String(receipt).split('.');
+    if (parts.length !== 2) return false;
+    const [payload, signature] = parts;
+    const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+    if (signature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return false;
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    const evaluationHash = crypto.createHash('sha256').update(JSON.stringify(evaluation)).digest('hex');
+    return String(data.userId) === String(userId) &&
+      String(data.questionId) === String(questionId) &&
+      data.evaluationHash === evaluationHash &&
+      Number.isFinite(Number(data.issuedAt)) &&
+      Date.now() >= Number(data.issuedAt) &&
+      Date.now() - Number(data.issuedAt) <= 30 * 24 * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
 function supabaseHeaders(extra = {}) {
   return {
     apikey: SUPABASE_SECRET_KEY,
@@ -118,6 +141,7 @@ export async function POST(request) {
     const payload = await request.json();
     const questionData = payload?.questionData || {};
     const evaluation = payload?.evaluation;
+    const receipt = payload?.receipt;
     const question = String(questionData.question || "").trim();
 
     if (!question || !evaluation || typeof evaluation !== "object") {
@@ -133,6 +157,11 @@ export async function POST(request) {
       ? yearValue
       : null;
     const verified = questionData.verified === true && Boolean(questionData.id) && pyqYear !== null;
+    const receiptVerified = verifyEvaluationReceipt(receipt, {
+      userId: auth.userId,
+      questionId: questionData.id,
+      evaluation,
+    });
 
     const row = {
       user_id: auth.userId,
@@ -152,12 +181,14 @@ export async function POST(request) {
         ? Number(questionData.word_limit || questionData.words)
         : null,
       pyq_verified: verified,
-      question_source: String(
-        questionData.source || questionData.source_file ||
-        (String(questionData.year || "").toLowerCase() === "manual"
-          ? "Custom Question"
-          : (verified ? "Verified PYQ dataset" : "PYQ unverified"))
-      ).slice(0, 200),
+      question_source: receiptVerified
+        ? "AI Evaluation (server-verified)"
+        : String(
+            questionData.source || questionData.source_file ||
+            (String(questionData.year || "").toLowerCase() === "manual"
+              ? "Custom Question"
+              : (verified ? "Verified PYQ dataset" : "PYQ unverified"))
+          ).slice(0, 200),
       candidate_answer_transcription: String(evaluation.candidate_answer_transcription || "").slice(0, 80_000),
       evaluation,
       score: Number.isFinite(Number(evaluation.overall_score)) ? Number(evaluation.overall_score) : null,
