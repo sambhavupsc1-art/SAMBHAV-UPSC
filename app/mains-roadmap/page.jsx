@@ -121,44 +121,11 @@ function getThemeQuestions(questions, theme) {
 
 function makeStyles() {
   return {
-    page: {
-      minHeight: "100vh",
-      background: "#f4f6f8",
-      color: "#17202b",
-      fontFamily: "Inter, system-ui, sans-serif",
-      padding: "16px 12px 48px",
-    },
-    shell: {
-      maxWidth: 1280,
-      margin: "0 auto",
-      display: "grid",
-      gridTemplateColumns: "minmax(0, 1.65fr) minmax(280px, .85fr)",
-      gap: 16,
-    },
-    card: {
-      background: "#fff",
-      border: "1px solid #e4e8ed",
-      borderRadius: 16,
-      padding: 18,
-    },
-    button: {
-      border: "1px solid #d8dfe7",
-      borderRadius: 10,
-      padding: "10px 12px",
-      background: "#fff",
-      color: "#1b2734",
-      cursor: "pointer",
-      fontWeight: 700,
-    },
-    primary: {
-      border: "1px solid #3158ed",
-      borderRadius: 10,
-      padding: "11px 14px",
-      background: "#3158ed",
-      color: "#fff",
-      cursor: "pointer",
-      fontWeight: 800,
-    },
+    page: { minHeight: "100vh", background: "linear-gradient(180deg, #f4f7fc 0%, #f8fafc 42%, #eef3fa 100%)", color: "#14213d", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: "clamp(16px, 3vw, 32px) clamp(12px, 2.5vw, 28px) 56px", fontSize: 15, lineHeight: 1.65 },
+    shell: { maxWidth: 1240, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(290px, .8fr)", gap: 20, alignItems: "start" },
+    card: { background: "rgba(255,255,255,.94)", border: "1px solid rgba(210,220,235,.9)", borderRadius: 20, padding: "clamp(16px, 2.2vw, 24px)", boxShadow: "0 8px 28px rgba(25, 48, 86, .055), inset 0 1px 0 rgba(255,255,255,.9)", backdropFilter: "blur(12px)", minWidth: 0 },
+    button: { border: "1px solid #d6dfec", borderRadius: 12, padding: "11px 15px", background: "rgba(255,255,255,.95)", color: "#253653", cursor: "pointer", fontWeight: 700, fontSize: 14, lineHeight: 1.4, minHeight: 42, boxShadow: "0 2px 5px rgba(20,33,61,.035)", transition: "background .18s ease, border-color .18s ease, transform .18s ease" },
+    primary: { border: "1px solid #244bd8", borderRadius: 12, padding: "12px 17px", background: "linear-gradient(135deg, #315be8 0%, #2444bd 100%)", color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: 14, lineHeight: 1.4, minHeight: 44, boxShadow: "0 7px 16px rgba(49,91,232,.2)" },
   };
 }
 
@@ -507,17 +474,29 @@ export default function MainsRoadmapPage() {
     <main style={styles.page}>
       <style jsx global>{`
         * { box-sizing: border-box; }
-        button:focus-visible, input:focus-visible {
-          outline: 2px solid #3158ed;
-          outline-offset: 2px;
-        }
+        html { -webkit-text-size-adjust: 100%; }
+        body { margin: 0; }
+        button, input { font: inherit; }
+        button { -webkit-tap-highlight-color: transparent; }
+        button:focus-visible, input:focus-visible { outline: 3px solid rgba(49,91,232,.42); outline-offset: 3px; }
+        button:hover { border-color: #aebfe0; }
+        label { color: #273751; }
+        h1, h2, h3, h4 { color: #14213d; letter-spacing: -.025em; line-height: 1.28; }
+        p { line-height: 1.7; }
+        input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 18px; accent-color: #315be8; margin-top: 2px; cursor: pointer; }
         @media (max-width: 850px) {
-          .roadmap-shell { grid-template-columns: 1fr !important; }
+          .roadmap-shell { grid-template-columns: minmax(0, 1fr) !important; gap: 14px !important; }
           .roadmap-side { order: -1; }
-          .roadmap-header {
-            align-items: flex-start !important;
-            flex-direction: column !important;
-          }
+          .roadmap-header { align-items: stretch !important; flex-direction: column !important; margin-bottom: 14px !important; }
+          .roadmap-header h1 { font-size: clamp(25px, 6vw, 32px) !important; }
+        }
+        @media (max-width: 520px) {
+          .roadmap-shell { gap: 12px !important; }
+          .roadmap-shell > section { gap: 12px !important; }
+          .roadmap-shell h2 { font-size: 21px; }
+          .roadmap-shell h3 { font-size: 17px; }
+          .roadmap-shell p { font-size: 14px; }
+          .roadmap-shell button { max-width: 100%; }
         }
       `}</style>
 
@@ -701,8 +680,8 @@ export default function MainsRoadmapPage() {
                             gap: 9,
                             alignItems: "flex-start",
                             marginTop: 11,
-                            fontSize: 13,
-                            lineHeight: 1.5,
+                            fontSize: 14,
+                            lineHeight: 1.7,
                           }}
                         >
                           <input
@@ -735,7 +714,8 @@ export default function MainsRoadmapPage() {
                   key={name}
                   style={{
                     ...styles.button,
-                    padding: 9,
+                    padding: "11px 10px",
+                    minHeight: 66,
                     background: stage === index ? "#e7efff" : "#f7f9fb",
                     borderColor: stage === index ? "#3158ed" : "#e4e8ed",
                     textAlign: "left",
@@ -775,7 +755,7 @@ export default function MainsRoadmapPage() {
               <div style={{ marginTop: 14 }}>
                 <h3>Existing Mains PYQs</h3>
                 {currentTheme.mapped.length === 0 && (
-                  <p style={{ color: "#64748b", fontSize: 13 }}>
+                  <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
                     Is theme ke liye current mapping mein koi question nahi
                     mila. Theme ke keywords aur topic tags review karo.
                   </p>
@@ -796,7 +776,7 @@ export default function MainsRoadmapPage() {
                       <strong>
                         UPSC Mains {question.year || "Year unavailable"}
                       </strong>
-                      <p style={{ lineHeight: 1.6, fontSize: 13 }}>
+                      <p style={{ lineHeight: 1.6, fontSize: 14, lineHeight: 1.7 }}>
                         {question.question}
                       </p>
                       <small style={{ color: "#64748b" }}>
@@ -962,7 +942,7 @@ export default function MainsRoadmapPage() {
                         }}
                       >
                         <strong>{question.year || "Year unavailable"}</strong>
-                        <p style={{ fontSize: 13 }}>{question.question}</p>
+                        <p style={{ fontSize: 14, lineHeight: 1.7 }}>{question.question}</p>
                         <button
                           style={styles.button}
                           onClick={() => router.push("/mission-pyq")}
@@ -1126,7 +1106,7 @@ export default function MainsRoadmapPage() {
             <h3 style={{ marginTop: 0 }}>Overall Progress</h3>
             {isArtCulture && (
               <>
-                <p style={{ fontSize: 13 }}>
+                <p style={{ fontSize: 14, lineHeight: 1.7 }}>
                   {artThemes.filter((theme) => theme.finished).length} /{" "}
                   {artThemes.length} themes completed
                 </p>
