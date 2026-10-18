@@ -1135,7 +1135,44 @@ export default function MissionPYQPage() {
 
                 <button
                   style={button}
-                  onClick={() => router.push("/answer")}
+                  onClick={() => {
+                    // Pass the exact selected PYQ to the existing Answer Writing page.
+                    // This prevents the manual-question form from appearing for a mapped PYQ.
+                    const marksValue = Number(selected.marks || 15);
+                    const wordLimitValue = Number(
+                      selected.word_limit || selected.words || (marksValue <= 10 ? 150 : 250)
+                    );
+                    const answerQuestion = {
+                      id: String(selected.id),
+                      pyq_id: String(selected.id),
+                      year: selected.year ?? "",
+                      paper: selected.paper || "GS I",
+                      section: "Mains",
+                      topic: selected.topic || activeRoadmapTheme?.title || "Art & Culture",
+                      question: selected.question || "",
+                      question_hi: selected.question_hi || "",
+                      question_number: selected.question_number ?? selected.question_no ?? null,
+                      marks: marksValue,
+                      word_limit: wordLimitValue,
+                      words: wordLimitValue,
+                      verified: true,
+                      source: selected.source || "UPSC Official",
+                      theme_id: roadmapFilter?.themeId || "",
+                      theme_title: activeRoadmapTheme?.title || roadmapFilter?.themeTitle || "",
+                    };
+
+                    try {
+                      sessionStorage.setItem(
+                        "sambhav_answer_question",
+                        JSON.stringify(answerQuestion)
+                      );
+                    } catch {
+                      setNotice("Question transfer nahi ho saka. Browser storage allow karke dobara try karein.");
+                      return;
+                    }
+
+                    router.push("/answer");
+                  }}
                 >
                   Open Answer Writing & AI Evaluation →
                 </button>
