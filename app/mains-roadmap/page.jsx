@@ -215,7 +215,7 @@ export default function MainsRoadmapPage() {
       setError("");
 
       try {
-        const [authResponse, pyqResponse] = await Promise.all([
+        const [authResponse, pyqResponse, progressResponse] = await Promise.all([
           fetch("/api/auth/me", {
             credentials: "include",
             cache: "no-store",
@@ -224,11 +224,16 @@ export default function MainsRoadmapPage() {
             credentials: "include",
             cache: "no-store",
           }),
+          fetch("/api/mains-roadmap/progress", {
+            credentials: "include",
+            cache: "no-store",
+          }),
         ]);
 
-        const [auth, pyqData] = await Promise.all([
+        const [auth, pyqData, progressData] = await Promise.all([
           authResponse.json().catch(() => ({})),
           pyqResponse.json().catch(() => ({})),
+          progressResponse.json().catch(() => ({})),
         ]);
 
         if (!authResponse.ok || !auth?.user) {
@@ -248,7 +253,18 @@ export default function MainsRoadmapPage() {
             }))
           : [];
 
-        if (!cancelled) setQuestions(rows);
+        if (!cancelled) {
+          setQuestions(rows);
+          if (progressResponse.ok && progressData?.success && progressData.progress) {
+            setCompleted(progressData.progress);
+          } else {
+            // Existing browser progress is retained as a fallback if database sync is unavailable.
+            try {
+              const local = JSON.parse(localStorage.getItem("sambhav-mains-roadmap-v2") || "{}");
+              if (local.completed && typeof local.completed === "object") setCompleted(local.completed);
+            } catch {}
+          }
+        }
       } catch (e) {
         if (!cancelled) setError(e?.message || "Roadmap load nahi hua.");
       } finally {
@@ -304,7 +320,32 @@ export default function MainsRoadmapPage() {
       const writingDone = !!completed[`${key}:writing:confirmed`];
       const evaluationDone = !!completed[`${key}:evaluation:confirmed`];
 
-      const unlocked = true;
+      const previousTheme = ART_CULTURE_SUBJECT.themes[
+        ART_CULTURE_SUBJECT.themes.findIndex((item) => item.id === theme.id) - 1
+      ];
+      const previousKey = previousTheme
+        ? `GS I:Art and Culture:${previousTheme.id}`
+        : "";
+      const previousTaskCount = previousTheme
+        ? previousTheme.studyTasks.reduce((sum, group) => sum + group.items.length, 0)
+        : 0;
+      const previousStudyDone = previousTheme
+        ? previousTheme.studyTasks.reduce(
+            (sum, group) => sum + group.items.filter((_, index) =>
+              completed[`${previousKey}:study:${group.id}:${index}`]
+            ).length, 0
+          )
+        : 0;
+      const previousMapped = previousTheme ? getThemeQuestions(questions, previousTheme) : [];
+      const previousPyqsDone = previousMapped.length > 0 &&
+        previousMapped.every((q) => completed[`${previousKey}:pyq:${q.id}`]);
+      const previousFinished = previousTheme
+        ? previousStudyDone === previousTaskCount &&
+          previousPyqsDone &&
+          !!completed[`${previousKey}:writing:confirmed`] &&
+          !!completed[`${previousKey}:evaluation:confirmed`]
+        : true;
+      const unlocked = !previousTheme || previousFinished;
       const finished =
         studyDone === taskCount &&
         allMappedAttempted &&
@@ -330,8 +371,9 @@ export default function MainsRoadmapPage() {
     topicStats.find((topic) => topic.subject === activeTopic) || topicStats[0];
 
   const currentTheme =
-    artThemes.find((theme) => theme.id === activeTheme) ||
-    artThemes.find((theme) => !theme.finished) ||
+    artThemes.find((theme) => theme.id === activeTheme && theme.unlocked) ||
+    artThemes.find((theme) => !theme.finished && theme.unlocked) ||
+    artThemes.find((theme) => theme.unlocked) ||
     artThemes[0];
 
   const visibleTopics = topicStats.filter((topic) =>
@@ -343,8 +385,27 @@ export default function MainsRoadmapPage() {
   const p2Count = topicStats.filter((topic) => topic.priority === "P2").length;
   const p3Count = topicStats.filter((topic) => topic.priority === "P3").length;
 
-  function setCheck(key, value) {
-    setCompleted((previous) => ({ ...previous, [key]: value }));
+  async function setCheck(key, value) {
+    const next = { ...completed, [key]: value };
+    setCompleted(next);
+    setNotice("");
+    try {
+      const response = await fetch("/api/mains-roadmap/progress", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress: next }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        setNotice(data?.error || "Database sync fail hui. Progress is browser mein bhi save hai.");
+      } else {
+        setCompleted(data.progress || next);
+        setNotice("Progress database mein save ho gayi.");
+      }
+    } catch {
+      setNotice("Database sync abhi nahi ho payi. Browser progress backup available hai.");
+    }
   }
 
   function choosePaper(nextPaper) {
@@ -362,6 +423,11 @@ export default function MainsRoadmapPage() {
   }
 
   function chooseTheme(theme) {
+    const item = artThemes.find((candidate) => candidate.id === theme.id);
+    if (!item?.unlocked) {
+      setNotice("Is theme ko unlock karne ke liye pichhla theme complete karein.");
+      return;
+    }
     setActiveTheme(theme.id);
     setStage(0);
     setNotice("");
@@ -503,7 +569,7 @@ export default function MainsRoadmapPage() {
             style={styles.button}
             onClick={() =>
               setNotice(
-                "Prepare → Revision & PYQ → Answer Writing → Evaluation. Art & Culture progress is stored in this browser."
+                "Prepare → Revision & PYQ → Answer Writing → Evaluation. Progress database mein sync hoti hai; network issue par browser backup bhi rehta hai."
               )
             }
           >
@@ -757,7 +823,7 @@ export default function MainsRoadmapPage() {
                       </label>
                       <button
                         style={{ ...styles.button, marginTop: 10 }}
-                        onClick={() => router.push("/mission-pyq")}
+                        onClick={() => router.push(`/mission-pyq?section=mains&paper=${encodeURIComponent(question.paper || "GS I")}&theme=${encodeURIComponent(currentTheme.id)}&themeTitle=${encodeURIComponent(currentTheme.title)}&q=${encodeURIComponent(question.id)}`)}
                       >
                         Open Mission PYQ
                       </button>
@@ -823,9 +889,9 @@ export default function MainsRoadmapPage() {
                 </p>
                 <button
                   style={styles.primary}
-                  onClick={() => router.push("/ai-evaluation")}
+                  onClick={() => router.push("/answer")}
                 >
-                  Open AI Evaluation →
+                  Open Answer Writing & AI Evaluation →
                 </button>
                 <label
                   style={{
@@ -850,8 +916,7 @@ export default function MainsRoadmapPage() {
                   Maine evaluation feedback review karke mistakes revise kar li
                 </label>
                 <p style={{ fontSize: 11, color: "#64748b" }}>
-                  Completion student checkbox se record hoti hai. AI evaluation
-                  result ko backend se verify karna abhi implement nahi hai.
+                  Yeh review checkbox self-tracking hai. AI evaluation ke successful result ko independently verify karne ke liye evaluation API mein server-side record integration alag se zaroori hai.
                 </p>
               </div>
             )}
@@ -921,9 +986,9 @@ export default function MainsRoadmapPage() {
                 {stage === 3 && (
                   <button
                     style={{ ...styles.primary, marginTop: 14 }}
-                    onClick={() => router.push("/ai-evaluation")}
+                    onClick={() => router.push("/answer")}
                   >
-                    Open AI Evaluation →
+                    Open Answer Writing & AI Evaluation →
                   </button>
                 )}
               </div>
@@ -992,8 +1057,12 @@ export default function MainsRoadmapPage() {
                   <button
                     key={theme.id}
                     onClick={() => chooseTheme(theme)}
+                    disabled={!theme.unlocked}
+                    title={!theme.unlocked ? "Pichhla theme complete karne par unlock hoga" : ""}
                     style={{
                       ...styles.button,
+                      opacity: theme.unlocked ? 1 : 0.48,
+                      cursor: theme.unlocked ? "pointer" : "not-allowed",
                       display: "block",
                       textAlign: "left",
                       width: "100%",
@@ -1014,7 +1083,7 @@ export default function MainsRoadmapPage() {
                       }}
                     >
                       {theme.mapped.length} mapped PYQs ·{" "}
-                      {theme.finished ? "Completed" : "In progress"}
+                      {theme.finished ? "Completed" : theme.unlocked ? "In progress" : "Locked — previous theme pending"}
                     </span>
                   </button>
                 ))}
