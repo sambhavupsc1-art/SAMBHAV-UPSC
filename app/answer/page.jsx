@@ -349,6 +349,12 @@ export default function AnswerWritingPage() {
           questionData.question || ""
         );
 
+        // Bind the server-issued evaluation receipt to the exact mapped PYQ.
+        formData.append(
+          "question_id",
+          String(questionData.id || "")
+        );
+
         formData.append(
           "paper",
           questionData.paper || "GS"
@@ -439,7 +445,11 @@ ${details}`
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "same-origin",
-            body: JSON.stringify({ questionData, evaluation: data.evaluation }),
+            body: JSON.stringify({
+              questionData,
+              evaluation: data.evaluation,
+              receipt: data.receipt || null,
+            }),
           });
           const historyData = await historyResponse.json().catch(() => ({}));
           if (historyResponse.ok && historyData.success) {
