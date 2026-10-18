@@ -141,6 +141,7 @@ export default function MainsRoadmapPage() {
   const [activeTheme, setActiveTheme] = useState("");
   const [stage, setStage] = useState(0);
   const [completed, setCompleted] = useState({});
+  const [verifiedEvaluationIds, setVerifiedEvaluationIds] = useState([]);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -182,7 +183,7 @@ export default function MainsRoadmapPage() {
       setError("");
 
       try {
-        const [authResponse, pyqResponse, progressResponse] = await Promise.all([
+        const [authResponse, pyqResponse, progressResponse, historyResponse] = await Promise.all([
           fetch("/api/auth/me", {
             credentials: "include",
             cache: "no-store",
@@ -195,12 +196,17 @@ export default function MainsRoadmapPage() {
             credentials: "include",
             cache: "no-store",
           }),
+          fetch("/api/mains/history", {
+            credentials: "include",
+            cache: "no-store",
+          }),
         ]);
 
-        const [auth, pyqData, progressData] = await Promise.all([
+        const [auth, pyqData, progressData, historyData] = await Promise.all([
           authResponse.json().catch(() => ({})),
           pyqResponse.json().catch(() => ({})),
           progressResponse.json().catch(() => ({})),
+          historyResponse.json().catch(() => ({})),
         ]);
 
         if (!authResponse.ok || !auth?.user) {
@@ -222,6 +228,18 @@ export default function MainsRoadmapPage() {
 
         if (!cancelled) {
           setQuestions(rows);
+          if (historyResponse.ok && historyData?.success && Array.isArray(historyData.records)) {
+            const verifiedIds = historyData.records
+              .filter((record) =>
+                record?.question_source === "AI Evaluation (server-verified)" &&
+                record?.pyq_id != null &&
+                String(record.pyq_id).trim() !== ""
+              )
+              .map((record) => String(record.pyq_id));
+            setVerifiedEvaluationIds([...new Set(verifiedIds)]);
+          } else {
+            setVerifiedEvaluationIds([]);
+          }
           if (progressResponse.ok && progressData?.success && progressData.progress) {
             setCompleted(progressData.progress);
           } else {
@@ -285,7 +303,9 @@ export default function MainsRoadmapPage() {
         mapped.every((q) => completed[`${key}:pyq:${q.id}`]);
 
       const writingDone = !!completed[`${key}:writing:confirmed`];
-      const evaluationDone = !!completed[`${key}:evaluation:confirmed`];
+      // Evaluation completion is server-verified against the mapped PYQ id.
+      // The student checkbox below is review tracking only and never unlocks a theme.
+      const evaluationDone = mapped.some((q) => verifiedEvaluationIds.includes(String(q.id)));
 
       const previousTheme = ART_CULTURE_SUBJECT.themes[
         ART_CULTURE_SUBJECT.themes.findIndex((item) => item.id === theme.id) - 1
@@ -306,11 +326,15 @@ export default function MainsRoadmapPage() {
       const previousMapped = previousTheme ? getThemeQuestions(questions, previousTheme) : [];
       const previousPyqsDone = previousMapped.length > 0 &&
         previousMapped.every((q) => completed[`${previousKey}:pyq:${q.id}`]);
+      const previousWritingDone = !!completed[`${previousKey}:writing:confirmed`];
+      const previousEvaluationDone = previousMapped.some((q) =>
+        verifiedEvaluationIds.includes(String(q.id))
+      );
       const previousFinished = previousTheme
         ? previousStudyDone === previousTaskCount &&
           previousPyqsDone &&
-          !!completed[`${previousKey}:writing:confirmed`] &&
-          !!completed[`${previousKey}:evaluation:confirmed`]
+          previousWritingDone &&
+          previousEvaluationDone
         : true;
       const unlocked = !previousTheme || previousFinished;
       const finished =
@@ -332,7 +356,7 @@ export default function MainsRoadmapPage() {
         finished,
       };
     });
-  }, [questions, completed]);
+  }, [questions, completed, verifiedEvaluationIds]);
 
   const currentGeneral =
     topicStats.find((topic) => topic.subject === activeTopic) || topicStats[0];
@@ -398,6 +422,39 @@ export default function MainsRoadmapPage() {
     setActiveTheme(theme.id);
     setStage(0);
     setNotice("");
+  }
+
+  function openThemeAnswer(theme, mode = "evaluation") {
+    if (!theme?.mapped?.length) {
+      setNotice("Is theme ke liye mapped PYQ available nahi hai; verified evaluation start nahi ho sakti.");
+      return;
+    }
+    const q = theme.mapped[0];
+    const assignedQuestion = {
+      ...q,
+      id: String(q.id),
+      question: String(q.question || q.question_hi || "").trim(),
+      year: Number(q.year) || q.year,
+      paper: q.paper || "GS I",
+      section: "Mains",
+      topic: theme.title,
+      marks: Number(q.marks) || 10,
+      word_limit: Number(q.word_limit) || (Number(q.marks) >= 15 ? 250 : 150),
+      verified: true,
+      source: q.source || q.source_file || "Mapped Mains PYQ",
+      roadmap_theme_id: theme.id,
+      roadmap_mode: mode,
+    };
+    if (!assignedQuestion.question) {
+      setNotice("Mapped PYQ ka question text missing hai; evaluation open nahi ki gayi.");
+      return;
+    }
+    try {
+      sessionStorage.setItem("sambhav_answer_question", JSON.stringify(assignedQuestion));
+      router.push("/answer");
+    } catch {
+      setNotice("Question set nahi ho paya. Browser storage enable karke dobara try karein.");
+    }
   }
 
   function nextStage() {
@@ -856,7 +913,7 @@ export default function MainsRoadmapPage() {
                 </ul>
                 <button
                   style={styles.primary}
-                  onClick={() => router.push("/answer")}
+                  onClick={() => openThemeAnswer(currentTheme, "writing")}
                 >
                   Open Answer Writing →
                 </button>
@@ -893,7 +950,7 @@ export default function MainsRoadmapPage() {
                 </p>
                 <button
                   style={styles.primary}
-                  onClick={() => router.push("/answer")}
+                  onClick={() => openThemeAnswer(currentTheme, "evaluation")}
                 >
                   Open Answer Writing & AI Evaluation →
                 </button>
@@ -920,7 +977,9 @@ export default function MainsRoadmapPage() {
                   Maine evaluation feedback review karke mistakes revise kar li
                 </label>
                 <p style={{ fontSize: 11, color: "#64748b" }}>
-                  Yeh review checkbox self-tracking hai. AI evaluation ke successful result ko independently verify karne ke liye evaluation API mein server-side record integration alag se zaroori hai.
+                  {currentTheme.evaluationDone
+                    ? "Server verified: is theme ke mapped PYQ ki AI evaluation history mil gayi."
+                    : "Not verified yet: mapped PYQ par AI evaluation chalao aur history save hone do. Review checkbox akela theme unlock nahi karega."}
                 </p>
               </div>
             )}
