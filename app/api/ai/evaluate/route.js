@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
@@ -21,6 +23,52 @@ const MODELS = [
   "gemini-3.1-flash-lite",
   "gemini-3-flash-preview",
 ];
+
+
+
+/* SERVER-VERIFIED EVALUATION RECEIPT */
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+function verifySessionToken(token) {
+  try {
+    const secret = process.env.AUTH_SESSION_SECRET;
+    if (!secret || !token) return null;
+    const parts = token.split(".");
+    if (parts.length !== 2) return null;
+    const [payload, signature] = parts;
+    const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+    if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!data?.userId || !data?.exp || Date.now() > data.exp) return null;
+    return data;
+  } catch { return null; }
+}
+
+async function getReceiptUserId() {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !process.env.AUTH_SESSION_SECRET) return null;
+    const cookieStore = await cookies();
+    const session = verifySessionToken(cookieStore.get("sambhav_session")?.value);
+    if (!session?.userId) return null;
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(session.userId)}&select=id&limit=1`, {
+      headers: { apikey: SUPABASE_SECRET_KEY, Authorization: `Bearer ${SUPABASE_SECRET_KEY}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const users = await response.json();
+    return users?.[0]?.id || null;
+  } catch { return null; }
+}
+
+function createEvaluationReceipt({ userId, questionId, evaluation }) {
+  const secret = process.env.AUTH_SESSION_SECRET;
+  if (!secret || !userId || !questionId || !evaluation) return null;
+  const evaluationHash = crypto.createHash("sha256").update(JSON.stringify(evaluation)).digest("hex");
+  const payload = Buffer.from(JSON.stringify({ userId: String(userId), questionId: String(questionId), evaluationHash, issuedAt: Date.now() })).toString("base64url");
+  const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -1178,6 +1226,8 @@ export async function POST(request) {
         ) || ""
       ).trim();
 
+    const questionId = String(formData.get("question_id") || "").trim();
+
     const marks =
       Number(
         formData.get(
@@ -1573,11 +1623,16 @@ Return every field required by the JSON schema. For fields with no applicable fi
      * SUCCESS RESPONSE
      */
 
+    const receiptUserId = questionId ? await getReceiptUserId() : null;
+    const receipt = receiptUserId ? createEvaluationReceipt({ userId: receiptUserId, questionId, evaluation }) : null;
+
     return NextResponse.json(
       {
         success: true,
 
         evaluation,
+
+        receipt,
 
         meta: {
           provider:
