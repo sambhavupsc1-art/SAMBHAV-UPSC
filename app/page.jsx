@@ -1555,10 +1555,13 @@ export default function Home() {
 
           /*
            * Independent admin verification.
+           * Do not block the main page render on this second request:
+           * the session response above already contains the server-verified
+           * isAdmin value. The admin endpoint can update the flag in the
+           * background without delaying the initial page display.
            */
-          await verifyAdmin();
-
           setLoading(false);
+          void verifyAdmin();
 
           return;
         }
