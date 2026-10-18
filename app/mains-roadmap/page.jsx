@@ -474,29 +474,53 @@ export default function MainsRoadmapPage() {
     <main style={styles.page}>
       <style jsx global>{`
         * { box-sizing: border-box; }
-        html { -webkit-text-size-adjust: 100%; }
-        body { margin: 0; }
+        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+        body { margin: 0; background: #f3f6fc; }
         button, input { font: inherit; }
-        button { -webkit-tap-highlight-color: transparent; }
+        button { -webkit-tap-highlight-color: transparent; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 18px rgba(29,54,102,.11); }
         button:focus-visible, input:focus-visible { outline: 3px solid rgba(49,91,232,.42); outline-offset: 3px; }
-        button:hover { border-color: #aebfe0; }
-        label { color: #273751; }
-        h1, h2, h3, h4 { color: #14213d; letter-spacing: -.025em; line-height: 1.28; }
-        p { line-height: 1.7; }
-        input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 18px; accent-color: #315be8; margin-top: 2px; cursor: pointer; }
-        @media (max-width: 850px) {
-          .roadmap-shell { grid-template-columns: minmax(0, 1fr) !important; gap: 14px !important; }
+        h1,h2,h3,h4 { color: #14213d; letter-spacing: -.025em; line-height: 1.3; }
+        p { line-height: 1.75; }
+        input[type=checkbox] { width: 19px !important; height: 19px !important; flex: 0 0 19px; accent-color: #315be8; margin-top: 2px; cursor: pointer; }
+        main:has(.roadmap-shell) { background: radial-gradient(ellipse at 12% 0%,rgba(87,129,239,.13),transparent 36%),linear-gradient(180deg,#f5f8ff 0%,#f8faff 48%,#edf2fa 100%) !important; }
+        .roadmap-header { max-width: 1240px !important; padding: 18px 20px 24px; border-bottom: 1px solid #dfe7f4; }
+        .roadmap-header h1 { font-size: clamp(28px,4vw,38px) !important; font-weight: 850; letter-spacing: -.04em; }
+        .roadmap-header input { min-height: 46px; font-size: 14px; box-shadow: 0 3px 12px rgba(26,49,90,.05); }
+        .roadmap-shell { max-width: 1240px !important; gap: 20px !important; }
+        .roadmap-shell > section { gap: 18px !important; min-width: 0; }
+        .roadmap-shell > section > section,.roadmap-shell .roadmap-side > section { border-radius: 20px !important; border: 1px solid #e0e7f2 !important; background: rgba(255,255,255,.97) !important; box-shadow: 0 9px 28px rgba(24,48,88,.065),inset 0 1px 0 #fff !important; padding: clamp(18px,2.4vw,26px) !important; min-width: 0; }
+        .roadmap-shell h2 { font-size: clamp(22px,2.5vw,28px); font-weight: 800; }
+        .roadmap-shell h3 { font-size: 18px !important; font-weight: 800; margin-bottom: 12px; }
+        .roadmap-shell p { font-size: 14px !important; color: #5e6e86; }
+        .roadmap-shell label { display: flex; align-items: flex-start; gap: 12px !important; margin-top: 14px !important; font-size: 15px !important; line-height: 1.75 !important; color: #253650; }
+        .roadmap-shell label span { display: block; min-width: 0; }
+        .roadmap-shell button { border-radius: 12px !important; font-size: 14px !important; line-height: 1.45 !important; min-height: 44px; }
+        .roadmap-shell > section > section > div[style*="border: 1px solid"] { border-color: #e1e8f3 !important; border-radius: 15px !important; background: linear-gradient(180deg,#fff 0%,#fbfcff 100%); padding: 17px !important; }
+        .roadmap-shell > section > section > div[style*="border: 1px solid"] > strong { font-size: 15px; }
+        .roadmap-shell > section > section > div[style*="eef5ff"],.roadmap-shell > section > section[style*="eef5ff"] { background: linear-gradient(135deg,#eaf1ff 0%,#f6f9ff 58%,#fff 100%) !important; border: 1px solid #cddcff !important; box-shadow: 0 12px 30px rgba(48,84,170,.10),inset 0 1px 0 #fff !important; }
+        .roadmap-shell > section > section[style*="eef5ff"] h2 { font-size: clamp(23px,3vw,30px); }
+        .roadmap-side button { padding: 14px 15px !important; margin-top: 10px !important; }
+        @media(max-width:850px) {
+          .roadmap-shell { grid-template-columns: minmax(0,1fr) !important; gap: 15px !important; }
           .roadmap-side { order: -1; }
-          .roadmap-header { align-items: stretch !important; flex-direction: column !important; margin-bottom: 14px !important; }
-          .roadmap-header h1 { font-size: clamp(25px, 6vw, 32px) !important; }
+          .roadmap-header { align-items: stretch !important; flex-direction: column !important; padding: 14px 4px 18px; }
+          .roadmap-header > div:last-child { width: 100%; }
+          .roadmap-header input { flex: 1 1 180px; min-width: 0 !important; }
+          .roadmap-header h1 { font-size: clamp(27px,6vw,34px) !important; }
+          .roadmap-shell > section { gap: 14px !important; }
         }
-        @media (max-width: 520px) {
-          .roadmap-shell { gap: 12px !important; }
-          .roadmap-shell > section { gap: 12px !important; }
-          .roadmap-shell h2 { font-size: 21px; }
-          .roadmap-shell h3 { font-size: 17px; }
-          .roadmap-shell p { font-size: 14px; }
-          .roadmap-shell button { max-width: 100%; }
+        @media(max-width:520px) {
+          .roadmap-shell { gap: 13px !important; }
+          .roadmap-shell > section { gap: 13px !important; }
+          .roadmap-shell > section > section { padding: 17px !important; border-radius: 18px !important; }
+          .roadmap-shell h2 { font-size: 22px !important; }
+          .roadmap-shell h3 { font-size: 17px !important; }
+          .roadmap-shell p { font-size: 14px !important; }
+          .roadmap-shell label { font-size: 14px !important; }
+          .roadmap-shell button { min-height: 44px; }
+          .roadmap-shell > section > section > div[style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+          .roadmap-shell > section > section > div[style*="border: 1px solid"] { padding: 14px !important; }
         }
       `}</style>
 
