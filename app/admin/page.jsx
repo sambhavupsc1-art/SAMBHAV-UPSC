@@ -1713,7 +1713,6 @@ export default function AdminPage() {
           .sambhav-page .sambhav-user-directory-scroll { -webkit-overflow-scrolling:touch; }
         }
 
-            `}
         /* Theme-aware contrast fixes: keep every admin section readable in both themes. */
         .sambhav-page[data-theme="dark"] {
           background: #0b0c0f !important;
@@ -1809,7 +1808,7 @@ export default function AdminPage() {
           color: #171c28 !important;
           color-scheme: light !important;
         }
-</style>
+      `}</style>
 
       <div
         style={styles.container}
