@@ -46,6 +46,12 @@ const modules = [
     icon: "🗺️",
     route: "/mains-roadmap",
   },
+  {
+    title: "Smart UPSC Plan",
+    subtitle: "73-Day Plan • Daily Tasks • PYQs • Revision",
+    icon: "📅",
+    route: "/smart-upsc",
+  },
 ];
 
 const styles = {
