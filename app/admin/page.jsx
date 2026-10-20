@@ -73,6 +73,18 @@ export default function AdminPage() {
   const [hinduMessage, setHinduMessage] = useState("");
   const [hinduResults, setHinduResults] = useState(null);
 
+  // Smart UPSC plan editor
+  const [smartUpscPlans, setSmartUpscPlans] = useState([]);
+  const [smartUpscSelectedId, setSmartUpscSelectedId] = useState("");
+  const [smartUpscTitle, setSmartUpscTitle] = useState("Smart UPSC Learning Plan");
+  const [smartUpscStartDate, setSmartUpscStartDate] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  const [smartUpscDuration, setSmartUpscDuration] = useState(73);
+  const [smartUpscSchedule, setSmartUpscSchedule] = useState([]);
+  const [smartUpscLoading, setSmartUpscLoading] = useState(false);
+  const [smartUpscSaving, setSmartUpscSaving] = useState(false);
+  const [smartUpscMessage, setSmartUpscMessage] = useState("");
+  const [smartUpscMessageType, setSmartUpscMessageType] = useState("info");
+
   /* =========================================================
      ADMIN OVERVIEW API
   ========================================================= */
@@ -735,6 +747,273 @@ export default function AdminPage() {
       setHinduMessage(error?.message || "The Hindu extraction failed.");
     } finally {
       setHinduBusy(false);
+    }
+  }
+
+
+  /* =========================================================
+     SMART UPSC PLAN EDITOR
+  ========================================================= */
+
+  function makeSmartUpscSchedule(duration, existing = []) {
+    return Array.from({ length: duration }, (_, index) => {
+      const dayNumber = index + 1;
+      const oldDay = existing.find((item) => Number(item?.day) === dayNumber);
+      return {
+        day: dayNumber,
+        title: typeof oldDay?.title === "string" && oldDay.title.trim()
+          ? oldDay.title
+          : `Day ${dayNumber} — Add study topic`,
+        tasks: Array.isArray(oldDay?.tasks)
+          ? oldDay.tasks.map((task) => String(task))
+          : [],
+      };
+    });
+  }
+
+  async function loadSmartUpscPlans(selectId = "") {
+    setSmartUpscLoading(true);
+    setSmartUpscMessage("");
+    try {
+      const response = await fetch("/api/admin/smart-upsc", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Smart UPSC plans could not be loaded.");
+      }
+
+      const plans = Array.isArray(data.plans) ? data.plans : [];
+      setSmartUpscPlans(plans);
+      const target = plans.find((plan) => plan.id === selectId)
+        || plans.find((plan) => plan.status === "draft")
+        || plans.find((plan) => plan.status === "published")
+        || plans[0];
+
+      if (target) {
+        setSmartUpscSelectedId(target.id);
+        setSmartUpscTitle(target.title || "Smart UPSC Learning Plan");
+        setSmartUpscStartDate(target.start_date || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+        setSmartUpscDuration(Number(target.duration_days) || 73);
+        setSmartUpscSchedule(makeSmartUpscSchedule(
+          Number(target.duration_days) || 73,
+          Array.isArray(target.schedule) ? target.schedule : []
+        ));
+      } else {
+        setSmartUpscSelectedId("");
+        setSmartUpscTitle("Smart UPSC Learning Plan");
+        setSmartUpscStartDate(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+        setSmartUpscDuration(73);
+        setSmartUpscSchedule(makeSmartUpscSchedule(73));
+      }
+    } catch (error) {
+      setSmartUpscMessage(error.message || "Smart UPSC plans could not be loaded.");
+      setSmartUpscMessageType("error");
+    } finally {
+      setSmartUpscLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadSmartUpscPlans();
+  }, []);
+
+  function selectSmartUpscPlan(planId) {
+    const plan = smartUpscPlans.find((item) => item.id === planId);
+    if (!plan) return;
+    setSmartUpscSelectedId(plan.id);
+    setSmartUpscTitle(plan.title || "Smart UPSC Learning Plan");
+    setSmartUpscStartDate(plan.start_date || "");
+    setSmartUpscDuration(Number(plan.duration_days) || 73);
+    setSmartUpscSchedule(makeSmartUpscSchedule(
+      Number(plan.duration_days) || 73,
+      Array.isArray(plan.schedule) ? plan.schedule : []
+    ));
+    setSmartUpscMessage("");
+  }
+
+  function startNewSmartUpscPlan() {
+    setSmartUpscSelectedId("");
+    setSmartUpscTitle("Smart UPSC Learning Plan");
+    setSmartUpscStartDate(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+    setSmartUpscDuration(73);
+    setSmartUpscSchedule(makeSmartUpscSchedule(73));
+    setSmartUpscMessage("New plan ready. Save it as a draft before publishing.");
+    setSmartUpscMessageType("info");
+  }
+
+  function changeSmartUpscDuration(value) {
+    const nextDuration = Math.max(1, Math.min(365, Number(value) || 1));
+    setSmartUpscDuration(nextDuration);
+    setSmartUpscSchedule((current) => makeSmartUpscSchedule(nextDuration, current));
+  }
+
+  function updateSmartUpscDay(dayNumber, field, value) {
+    setSmartUpscSchedule((current) =>
+      current.map((day) => {
+        if (day.day !== dayNumber) return day;
+        if (field === "tasksText") {
+          return {
+            ...day,
+            tasks: value.split("\n").map((task) => task.trim()).filter(Boolean),
+          };
+        }
+        return { ...day, [field]: value };
+      })
+    );
+  }
+
+  async function saveSmartUpscPlan(action = "save") {
+    if (smartUpscSaving) return;
+
+    const title = smartUpscTitle.trim();
+    if (!title) {
+      setSmartUpscMessage("Enter a plan title first.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+    if (!smartUpscStartDate) {
+      setSmartUpscMessage("Select the plan start date.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+    if (smartUpscSchedule.length !== smartUpscDuration) {
+      setSmartUpscMessage("The schedule must contain one entry for every plan day.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+
+    const selectedPlan = smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId);
+    if (action === "publish" && selectedPlan?.status === "published") {
+      setSmartUpscMessage("This plan is already published and cannot be edited live. Click New Plan to create a replacement version.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+    if (action === "publish" && selectedPlan?.status === "archived") {
+      setSmartUpscMessage("Archived plans cannot be published. Create a new plan instead.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+
+    if (action === "publish") {
+      const unfinished = smartUpscSchedule.find((day) =>
+        !day.title?.trim() ||
+        /add study topic/i.test(day.title) ||
+        day.title.trim() === `Day ${day.day}`
+      );
+      if (unfinished) {
+        setSmartUpscMessage(`Complete the title for Day ${unfinished.day} before publishing.`);
+        setSmartUpscMessageType("error");
+        return;
+      }
+      const noTasks = smartUpscSchedule.find((day) => !Array.isArray(day.tasks) || day.tasks.length === 0);
+      if (noTasks) {
+        setSmartUpscMessage(`Add at least one task for Day ${noTasks.day} before publishing.`);
+        setSmartUpscMessageType("error");
+        return;
+      }
+    }
+
+    setSmartUpscSaving(true);
+    setSmartUpscMessage("");
+
+    try {
+      let planId = smartUpscSelectedId;
+      const schedulePayload = {
+        title,
+        start_date: smartUpscStartDate,
+        duration_days: smartUpscDuration,
+        schedule: smartUpscSchedule,
+      };
+
+      // Save the edited content as a draft first. New plans are created;
+      // existing plans can only be edited while they are drafts.
+      const saveBody = planId
+        ? { action: "update", plan_id: planId, ...schedulePayload }
+        : { action: "create", ...schedulePayload };
+
+      const saveResponse = await fetch("/api/admin/smart-upsc", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(saveBody),
+      });
+      const saveData = await saveResponse.json().catch(() => ({}));
+
+      if (!saveResponse.ok || saveData.success !== true) {
+        throw new Error(saveData.error || "Smart UPSC plan could not be saved.");
+      }
+
+      if (saveData.plan?.id) planId = saveData.plan.id;
+      setSmartUpscSelectedId(planId || "");
+
+      if (action === "publish") {
+        const publishResponse = await fetch("/api/admin/smart-upsc", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "publish", plan_id: planId }),
+        });
+        const publishData = await publishResponse.json().catch(() => ({}));
+
+        if (!publishResponse.ok || publishData.success !== true) {
+          throw new Error(publishData.error || "Draft saved, but publishing failed.");
+        }
+      }
+
+      setSmartUpscMessage(
+        action === "publish"
+          ? "Plan published. Students can now load this schedule."
+          : "Draft saved successfully."
+      );
+      setSmartUpscMessageType("success");
+      await loadSmartUpscPlans(planId || "");
+      setSmartUpscMessage(
+        action === "publish"
+          ? "Plan published. Students can now load this schedule."
+          : "Draft saved successfully."
+      );
+      setSmartUpscMessageType("success");
+    } catch (error) {
+      setSmartUpscMessage(error.message || "Smart UPSC plan action failed.");
+      setSmartUpscMessageType("error");
+    } finally {
+      setSmartUpscSaving(false);
+    }
+  }
+
+  async function archiveSmartUpscPlan() {
+    if (!smartUpscSelectedId) return;
+    const plan = smartUpscPlans.find((item) => item.id === smartUpscSelectedId);
+    if (plan?.status === "published") {
+      setSmartUpscMessage("Published plan cannot be archived here. Publish a replacement plan first.");
+      setSmartUpscMessageType("error");
+      return;
+    }
+    if (!window.confirm("Archive this draft plan? This action cannot be undone from this editor.")) return;
+
+    setSmartUpscSaving(true);
+    try {
+      const response = await fetch("/api/admin/smart-upsc", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive", plan_id: smartUpscSelectedId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Plan could not be archived.");
+      }
+      setSmartUpscMessage("Draft archived.");
+      setSmartUpscMessageType("success");
+      await loadSmartUpscPlans();
+    } catch (error) {
+      setSmartUpscMessage(error.message || "Plan could not be archived.");
+      setSmartUpscMessageType("error");
+    } finally {
+      setSmartUpscSaving(false);
     }
   }
 
@@ -1823,6 +2102,142 @@ export default function AdminPage() {
           )}
           <p className="sambhav-overview-warning">
             Counts are database row counts. Subscription records are not the same as active Premium users or verified revenue.
+          </p>
+        </section>
+
+        {/* =================================================
+            SMART UPSC PLAN EDITOR
+        ================================================= */}
+        <section
+          id="smart-upsc-plan-editor"
+          style={{
+            margin: "0 0 24px",
+            padding: "22px",
+            background: "var(--smart-card, #fff)",
+            border: "1px solid #e8e5dc",
+            borderRadius: "20px",
+            boxShadow: "0 8px 28px rgba(20,22,25,.035)",
+            color: "inherit",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
+            <div>
+              <div style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: 1.7 }}>STUDY PLANNING / ADMIN</div>
+              <h2 style={{ margin: "7px 0 0", fontSize: 25, letterSpacing: "-.5px" }}>Smart UPSC Plan Editor</h2>
+              <p style={{ margin: "7px 0 0", color: "inherit", opacity: .72, fontSize: 12, lineHeight: 1.6 }}>
+                Build the day-wise schedule, save it as a draft, then publish it for students.
+              </p>
+            </div>
+            <button type="button" onClick={startNewSmartUpscPlan} disabled={smartUpscSaving}
+              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "11px 14px", fontWeight: 800, cursor: "pointer" }}>
+              + New Plan
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBottom: 14 }}>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Existing plan
+              <select value={smartUpscSelectedId} onChange={(event) => selectSmartUpscPlan(event.target.value)}
+                disabled={smartUpscLoading || smartUpscSaving}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }}>
+                <option value="">New unsaved plan</option>
+                {smartUpscPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    v{plan.version} · {plan.title} · {plan.status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Plan title
+              <input value={smartUpscTitle} onChange={(event) => setSmartUpscTitle(event.target.value)}
+                maxLength={160} placeholder="e.g. UPSC 73-Day Foundation Plan"
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Start date
+              <input type="date" value={smartUpscStartDate} onChange={(event) => setSmartUpscStartDate(event.target.value)}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Duration (days)
+              <input type="number" min="1" max="365" value={smartUpscDuration}
+                onChange={(event) => changeSmartUpscDuration(event.target.value)}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
+            </label>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "0 0 14px" }}>
+            <span style={{ padding: "6px 9px", borderRadius: 999, background: "#f5f0e4", color: "#84662f", fontSize: 11, fontWeight: 800 }}>
+              {smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status || "new draft"}
+            </span>
+            <span style={{ fontSize: 11, opacity: .72 }}>{smartUpscSchedule.length} day entries · tasks are entered one per line</span>
+            <button type="button" onClick={() => loadSmartUpscPlans(smartUpscSelectedId)} disabled={smartUpscLoading || smartUpscSaving}
+              style={{ marginLeft: "auto", border: "1px solid #e1e3e7", background: "transparent", color: "inherit", borderRadius: 9, padding: "8px 11px", fontWeight: 750, cursor: "pointer" }}>
+              {smartUpscLoading ? "Loading…" : "↻ Reload plans"}
+            </button>
+          </div>
+
+          {smartUpscMessage && (
+            <div role="status" style={{
+              marginBottom: 14, padding: "11px 13px", borderRadius: 10,
+              border: `1px solid ${smartUpscMessageType === "error" ? "#f1d5d1" : smartUpscMessageType === "success" ? "#ccebd7" : "#e8e1ce"}`,
+              background: smartUpscMessageType === "error" ? "#fff0ee" : smartUpscMessageType === "success" ? "#eaf8ef" : "#faf8f1",
+              color: smartUpscMessageType === "error" ? "#a13f39" : smartUpscMessageType === "success" ? "#23774b" : "#6c5a35",
+              fontSize: 12, lineHeight: 1.5, overflowWrap: "anywhere",
+            }}>
+              {smartUpscMessage}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gap: 10 }}>
+            {smartUpscSchedule.map((day) => (
+              <article key={day.day} style={{
+                display: "grid", gridTemplateColumns: "minmax(60px,75px) minmax(0,1fr)",
+                gap: 12, padding: 13, border: "1px solid #e8e9e5", borderRadius: 13,
+                background: "rgba(128,128,128,.035)",
+              }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "flex-start", paddingTop: 8 }}>
+                  <span style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: .8 }}>DAY</span>
+                  <strong style={{ fontSize: 23, lineHeight: 1 }}>{day.day}</strong>
+                </div>
+                <div style={{ display: "grid", gap: 9, minWidth: 0 }}>
+                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
+                    Topic / day title
+                    <input value={day.title} onChange={(event) => updateSmartUpscDay(day.day, "title", event.target.value)}
+                      maxLength={200} placeholder={`Day ${day.day}: subject and topic`}
+                      style={{ width: "100%", minWidth: 0, padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9 }} />
+                  </label>
+                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
+                    Tasks (one task per line)
+                    <textarea value={(day.tasks || []).join("\n")}
+                      onChange={(event) => updateSmartUpscDay(day.day, "tasksText", event.target.value)}
+                      rows={2} placeholder={"Read the topic\nSolve PYQs\nRevise notes"}
+                      style={{ width: "100%", minWidth: 0, resize: "vertical", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9, lineHeight: 1.5 }} />
+                  </label>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: "1px solid #ecece8" }}>
+            <button type="button" onClick={() => saveSmartUpscPlan("save")} disabled={smartUpscSaving || smartUpscLoading}
+              style={{ border: "1px solid #252a34", background: "#252a34", color: "#fff", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
+              {smartUpscSaving ? "Saving…" : "Save Draft"}
+            </button>
+            <button type="button" onClick={() => saveSmartUpscPlan("publish")}
+              disabled={smartUpscSaving || smartUpscLoading || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status === "archived"}
+              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "12px 16px", fontWeight: 900, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
+              {smartUpscSaving ? "Working…" : "Publish Plan"}
+            </button>
+            <button type="button" onClick={archiveSmartUpscPlan}
+              disabled={smartUpscSaving || !smartUpscSelectedId || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status !== "draft"}
+              style={{ border: "1px solid #e3c8c4", background: "#fff7f5", color: "#9b3932", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" }}>
+              Archive Draft
+            </button>
+          </div>
+          <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.6, opacity: .72 }}>
+            Publishing makes the selected schedule available to students. Fill every day's title and at least one task before publishing. Published plans should be replaced by publishing a new version rather than editing the live plan.
           </p>
         </section>
 
