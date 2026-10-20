@@ -1,12 +1,8 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const STORAGE_KEY = "sambhav-smart-upsc-progress-v1";
-const DEFAULT_START_DATE = "2026-10-20";
-const DEFAULT_DURATION = 73;
 
 const WORKFLOW = [
   {
@@ -53,29 +49,6 @@ const WORKFLOW = [
   },
 ];
 
-const TOPIC_CLUSTERS = [
-  { paper: "GS I", topic: "Indian Society", detail: "Social structure, diversity, women and vulnerable sections" },
-  { paper: "GS I", topic: "Modern History", detail: "Freedom struggle, movements and important personalities" },
-  { paper: "GS I", topic: "Art & Culture", detail: "Architecture, literature, heritage and cultural traditions" },
-  { paper: "GS I", topic: "Geography", detail: "Physical geography, resources and human geography" },
-  { paper: "GS II", topic: "Constitution", detail: "Constitutional features, amendments and basic structure" },
-  { paper: "GS II", topic: "Governance", detail: "Transparency, accountability, e-governance and citizen services" },
-  { paper: "GS II", topic: "Social Justice", detail: "Health, education, welfare and vulnerable groups" },
-  { paper: "GS II", topic: "International Relations", detail: "Neighbourhood, bilateral ties and global institutions" },
-  { paper: "GS III", topic: "Economy", detail: "Growth, inflation, employment and inclusive development" },
-  { paper: "GS III", topic: "Agriculture", detail: "Cropping, irrigation, food security and farmer welfare" },
-  { paper: "GS III", topic: "Environment", detail: "Biodiversity, conservation and climate change" },
-  { paper: "GS III", topic: "Internal Security", detail: "Terrorism, cyber security, borders and LWE" },
-  { paper: "GS III", topic: "Science & Technology", detail: "Emerging technologies and their applications" },
-  { paper: "GS III", topic: "Disaster Management", detail: "Preparedness, mitigation, response and resilience" },
-  { paper: "GS IV", topic: "Ethics & Human Values", detail: "Integrity, impartiality, empathy and objectivity" },
-  { paper: "GS IV", topic: "Emotional Intelligence", detail: "Attitude, aptitude and emotional competencies" },
-  { paper: "GS IV", topic: "Ethics in Governance", detail: "Accountability, probity and ethical administration" },
-  { paper: "GS IV", topic: "Case Studies", detail: "Stakeholders, ethical dilemmas and courses of action" },
-  { paper: "Essay", topic: "Essay Practice", detail: "Thesis, dimensions, examples, arguments and conclusion" },
-  { paper: "Revision", topic: "Weak Topic Revision", detail: "Revise low-confidence areas and previous mistakes" },
-];
-
 function dateFromISO(value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
@@ -96,42 +69,114 @@ function formatDate(value) {
   });
 }
 
-function makeSchedule(startDate, duration) {
-  const start = dateFromISO(startDate);
+function makeSchedule(plan) {
+  if (!plan || !Array.isArray(plan.schedule)) return [];
 
-  return Array.from({ length: duration }, (_, index) => {
+  const start = dateFromISO(plan.start_date);
+
+  return plan.schedule.map((item, index) => {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
 
-    const cluster = TOPIC_CLUSTERS[index % TOPIC_CLUSTERS.length];
+    const tasks = Array.isArray(item?.tasks) ? item.tasks : [];
 
     return {
-      day: index + 1,
-      date: toISODate(date),
-      paper: cluster.paper,
-      topic: cluster.topic,
-      detail: cluster.detail,
+      ...item,
+      day: Number(item?.day) || index + 1,
+      date: item?.date || toISODate(date),
+      paper: item?.paper || item?.subject || item?.gs_paper || "UPSC Mains",
+      topic: item?.topic || item?.title || `Day ${index + 1}`,
+      detail:
+        item?.detail ||
+        item?.description ||
+        tasks
+          .map((task) => typeof task === "string" ? task : task?.title || task?.text)
+          .filter(Boolean)
+          .join(" · ") ||
+        "Admin ke published plan ke according preparation karein.",
     };
   });
 }
 
 export default function SmartUpscPage() {
   const router = useRouter();
+  const saveTimer = useRef(null);
 
   const [userId, setUserId] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [plan, setPlan] = useState(null);
   const [activeDay, setActiveDay] = useState(1);
   const [completed, setCompleted] = useState({});
+  const [notes, setNotes] = useState({});
   const [search, setSearch] = useState("");
   const [showAllDays, setShowAllDays] = useState(false);
+  const [progressReady, setProgressReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
-  const startDate = DEFAULT_START_DATE;
-  const duration = DEFAULT_DURATION;
+  const schedule = useMemo(() => makeSchedule(plan), [plan]);
+  const duration = Number(plan?.duration_days) || schedule.length;
 
-  const schedule = useMemo(
-    () => makeSchedule(startDate, duration),
-    [startDate, duration]
-  );
+  const loadPlanAndProgress = useCallback(async () => {
+    setPlanLoading(true);
+    setSyncError("");
+
+    try {
+      const response = await fetch("/api/smart-upsc", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Smart UPSC plan load nahi ho paya.");
+      }
+
+      setPlan(data.plan || null);
+
+      if (data.plan && data.progress) {
+        const savedTasks = data.progress.completed_tasks;
+        const savedNotes = data.progress.notes;
+
+        setCompleted(
+          savedTasks && typeof savedTasks === "object" && !Array.isArray(savedTasks)
+            ? savedTasks
+            : {}
+        );
+        setNotes(
+          savedNotes && typeof savedNotes === "object" && !Array.isArray(savedNotes)
+            ? savedNotes
+            : {}
+        );
+
+        const savedDay = Number(data.progress.current_day);
+        setActiveDay(
+          Number.isInteger(savedDay) &&
+            savedDay >= 1 &&
+            savedDay <= Number(data.plan.duration_days)
+            ? savedDay
+            : 1
+        );
+      } else {
+        setCompleted({});
+        setNotes({});
+        setActiveDay(1);
+      }
+
+      setProgressReady(Boolean(data.plan));
+    } catch (error) {
+      setSyncError(error.message || "Plan load karte waqt error aaya.");
+      setProgressReady(false);
+    } finally {
+      setPlanLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,7 +187,6 @@ export default function SmartUpscPage() {
           credentials: "include",
           cache: "no-store",
         });
-
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok || !data?.user) {
@@ -160,26 +204,7 @@ export default function SmartUpscPage() {
         if (cancelled) return;
 
         setUserId(id);
-
-        try {
-          const saved = JSON.parse(
-            localStorage.getItem(`${STORAGE_KEY}:${id}`) || "{}"
-          );
-
-          if (saved.completed && typeof saved.completed === "object") {
-            setCompleted(saved.completed);
-          }
-
-          if (
-            Number.isInteger(saved.activeDay) &&
-            saved.activeDay >= 1 &&
-            saved.activeDay <= duration
-          ) {
-            setActiveDay(saved.activeDay);
-          }
-        } catch {
-          // Ignore invalid local progress.
-        }
+        await loadPlanAndProgress();
       } catch {
         if (!cancelled) router.replace("/login");
       } finally {
@@ -191,23 +216,49 @@ export default function SmartUpscPage() {
 
     return () => {
       cancelled = true;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [router, duration]);
+  }, [router, loadPlanAndProgress]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!progressReady || !plan?.id || !userId) return;
 
-    try {
-      localStorage.setItem(
-        `${STORAGE_KEY}:${userId}`,
-        JSON.stringify({ completed, activeDay })
-      );
-    } catch {
-      // Browser storage may be unavailable.
-    }
-  }, [userId, completed, activeDay]);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
 
-  const currentDay = schedule[activeDay - 1];
+    saveTimer.current = setTimeout(async () => {
+      setSaving(true);
+      setSyncError("");
+
+      try {
+        const response = await fetch("/api/smart-upsc", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan_id: plan.id,
+            current_day: Math.min(Math.max(activeDay, 1), duration),
+            completed_tasks: completed,
+            notes,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || "Progress save nahi hua.");
+        }
+      } catch (error) {
+        setSyncError(error.message || "Progress sync nahi hua. Internet check karein.");
+      } finally {
+        setSaving(false);
+      }
+    }, 650);
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [progressReady, plan?.id, userId, activeDay, completed, notes, duration]);
+
+  const currentDay = schedule.find((day) => day.day === activeDay) || schedule[0] || null;
 
   const dayProgress = completed[activeDay] || {};
 
@@ -248,35 +299,53 @@ export default function SmartUpscPage() {
 
   function resetProgress() {
     const confirmed = window.confirm(
-      "Is browser par saved Smart UPSC progress reset karni hai?"
+      "Kya aap is published plan ka saved progress reset karna chahte hain? Ye database mein bhi save hoga."
     );
 
     if (!confirmed) return;
 
     setCompleted({});
-
-    try {
-      if (userId) {
-        localStorage.removeItem(`${STORAGE_KEY}:${userId}`);
-      }
-    } catch {
-      // Ignore storage errors.
-    }
+    setNotes({});
+    setActiveDay(1);
   }
 
-  if (authLoading) {
+  if (authLoading || planLoading) {
     return (
       <main style={styles.centerPage}>
         <div style={styles.loadingCard}>
           <div style={styles.spinner} />
           <h2 style={{ margin: "16px 0 6px" }}>Smart UPSC load ho raha hai</h2>
-          <p style={styles.muted}>Account aur learning plan check kiya ja raha hai.</p>
+          <p style={styles.muted}>Account, published plan aur saved progress check ho raha hai.</p>
         </div>
       </main>
     );
   }
 
-  if (!currentDay) return null;
+  if (!plan) {
+    return (
+      <main style={styles.centerPage}>
+        <div style={styles.loadingCard}>
+          <div style={styles.brand}>SAMBHAV <span style={{ color: "#b08b37" }}>UPSC</span></div>
+          <h2 style={{ margin: "18px 0 8px" }}>Abhi koi published plan nahi hai</h2>
+          <p style={styles.muted}>Admin panel se Smart UPSC plan publish hone ke baad woh yahan dikhne lagega.</p>
+          {syncError && <p style={styles.errorText}>{syncError}</p>}
+          <button type="button" style={styles.primaryButton} onClick={() => router.push("/")}>Home par jaayein</button>
+          <button type="button" style={styles.textButton} onClick={loadPlanAndProgress}>Dobara check karein</button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!currentDay) {
+    return (
+      <main style={styles.centerPage}>
+        <div style={styles.loadingCard}>
+          <h2>Published plan ka schedule empty hai</h2>
+          <p style={styles.muted}>Admin panel mein har plan day ka schedule add karke publish karein.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={styles.page}>
@@ -294,17 +363,16 @@ export default function SmartUpscPage() {
             SAMBHAV <span style={{ color: "#b08b37" }}>UPSC</span>
           </div>
 
-          <span style={styles.statusPill}>73-DAY PLAN</span>
+          <span style={styles.statusPill}>{duration}-DAY PLAN</span>
         </header>
 
         <section style={styles.hero}>
           <div style={styles.eyebrow}>YOUR DAILY PREPARATION SYSTEM</div>
           <h1 style={styles.heroTitle}>
-            Study with a <span style={{ color: "#e3c777" }}>clear direction.</span>
+            {plan.title || "Study with a clear direction."}
           </h1>
           <p style={styles.heroText}>
-            Syllabus se revision tak, har din apni preparation ko measurable
-            tasks mein complete karo.
+            Admin ke published schedule ke according preparation karo. Checklist aur progress tumhare account ke saath database mein save hoti hai.
           </p>
 
           <div style={styles.heroStats}>
@@ -325,6 +393,10 @@ export default function SmartUpscPage() {
           <div style={styles.progressTrack}>
             <div style={{ ...styles.progressFill, width: `${overallPercent}%` }} />
           </div>
+          <div style={styles.saveStatus}>
+            {saving ? "Progress save ho raha hai…" : syncError ? "Progress sync issue" : "Progress synced with your account"}
+          </div>
+          {syncError && <p style={styles.errorText}>{syncError}</p>}
         </section>
 
         <section style={styles.section}>
@@ -334,7 +406,7 @@ export default function SmartUpscPage() {
               <h2 style={styles.sectionTitle}>Daily learning path</h2>
             </div>
             <div style={styles.dateRange}>
-              {formatDate(schedule[0].date)} – {formatDate(schedule[duration - 1].date)}
+              {formatDate(schedule[0]?.date)} – {formatDate(schedule[schedule.length - 1]?.date)}
             </div>
           </div>
 
@@ -381,11 +453,18 @@ export default function SmartUpscPage() {
 
             <h2 style={styles.topicTitle}>{currentDay.topic}</h2>
             <p style={styles.topicDescription}>{currentDay.detail}</p>
-            <p style={styles.topicNote}>
-              Note: Abhi ye starter topic rotation hai. Agle steps mein admin
-              panel se actual syllabus, topic clusters aur day-wise sequence
-              configure hoga.
-            </p>
+            {Array.isArray(currentDay.tasks) && currentDay.tasks.length > 0 && (
+              <div style={styles.adminTasks}>
+                <strong>Admin ke day-wise tasks</strong>
+                <ul>
+                  {currentDay.tasks.map((task, index) => (
+                    <li key={index}>
+                      {typeof task === "string" ? task : task?.title || task?.text || JSON.stringify(task)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div style={styles.topicFooter}>
               <span>{formatDate(currentDay.date)}</span>
@@ -536,19 +615,21 @@ export default function SmartUpscPage() {
         </section>
 
         <section style={styles.noticeCard}>
-          <strong>Progress storage notice</strong>
+          <strong>Database progress storage</strong>
           <p>
-            Is initial version mein checklist progress isi browser ke local
-            storage mein save hoti hai. Ye abhi server/database sync nahi hai.
-            Agle steps mein secure API aur Supabase persistence add ki jayegi.
+            Checklist, selected day aur notes tumhare login account ke saath Supabase mein save hote hain. Same account se dobara login karoge to progress restore hogi.
           </p>
+          <p>Reset karne par current published plan ki saved progress reset hogi.</p>
+          <button type="button" style={styles.resetButton} onClick={resetProgress}>
+            Reset this plan's progress
+          </button>
         </section>
 
         <footer style={styles.footer}>
-          <button type="button" style={styles.resetButton} onClick={resetProgress}>
-            Reset this browser's progress
-          </button>
           <p>SAMBHAV UPSC · Smart Learning System</p>
+          <button type="button" style={styles.textButton} onClick={loadPlanAndProgress}>
+            Refresh plan / progress
+          </button>
         </footer>
       </div>
     </main>
@@ -592,7 +673,10 @@ const styles = {
     borderRadius: "50%",
     animation: "smartUpscSpin 0.8s linear infinite",
   },
-  muted: { color: "#64748b", fontSize: 14 },
+  muted: { color: "#64748b", fontSize: 14, lineHeight: 1.7 },
+  errorText: { color: "#b42318", fontSize: 12, lineHeight: 1.6, marginTop: 10 },
+  saveStatus: { marginTop: 10, fontSize: 11, color: "#d1d5db" },
+  adminTasks: { marginTop: 16, padding: 14, borderRadius: 12, background: "#f8fafc", color: "#334155", fontSize: 12, lineHeight: 1.7 },
   header: {
     display: "flex",
     alignItems: "center",
