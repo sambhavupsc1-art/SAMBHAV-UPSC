@@ -2110,150 +2110,6 @@ export default function AdminPage() {
         </section>
 
         {/* =================================================
-            SMART UPSC PLAN EDITOR
-        ================================================= */}
-        <section
-          id="smart-upsc-plan-editor"
-          style={{
-            margin: "0 0 24px",
-            padding: "22px",
-            background: "var(--smart-card, #fff)",
-            border: "1px solid #e8e5dc",
-            borderRadius: "20px",
-            boxShadow: "0 8px 28px rgba(20,22,25,.035)",
-            color: "inherit",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
-            <div>
-              <div style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: 1.7 }}>STUDY PLANNING / ADMIN</div>
-              <h2 style={{ margin: "7px 0 0", fontSize: 25, letterSpacing: "-.5px" }}>Smart UPSC Plan Editor</h2>
-              <p style={{ margin: "7px 0 0", color: "inherit", opacity: .72, fontSize: 12, lineHeight: 1.6 }}>
-                Build the day-wise schedule, save it as a draft, then publish it for students.
-              </p>
-            </div>
-            <button type="button" onClick={startNewSmartUpscPlan} disabled={smartUpscSaving}
-              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "11px 14px", fontWeight: 800, cursor: "pointer" }}>
-              + New Plan
-            </button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBottom: 14 }}>
-            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
-              Existing plan
-              <select value={smartUpscSelectedId} onChange={(event) => selectSmartUpscPlan(event.target.value)}
-                disabled={smartUpscLoading || smartUpscSaving}
-                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }}>
-                <option value="">New unsaved plan</option>
-                {smartUpscPlans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    v{plan.version} · {plan.title} · {plan.status}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
-              Plan title
-              <input value={smartUpscTitle} onChange={(event) => setSmartUpscTitle(event.target.value)}
-                maxLength={160} placeholder="e.g. UPSC 73-Day Foundation Plan"
-                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
-            </label>
-            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
-              Start date
-              <input type="date" value={smartUpscStartDate} onChange={(event) => setSmartUpscStartDate(event.target.value)}
-                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
-            </label>
-            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
-              Duration (days)
-              <input type="number" min="1" max="365" value={smartUpscDuration}
-                onChange={(event) => changeSmartUpscDuration(event.target.value)}
-                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid #dfe4ec", borderRadius: 10 }} />
-            </label>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "0 0 14px" }}>
-            <span style={{ padding: "6px 9px", borderRadius: 999, background: "#f5f0e4", color: "#84662f", fontSize: 11, fontWeight: 800 }}>
-              {smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status || "new draft"}
-            </span>
-            <span style={{ fontSize: 11, opacity: .72 }}>{smartUpscSchedule.length} day entries · tasks are entered one per line</span>
-            <button type="button" onClick={() => loadSmartUpscPlans(smartUpscSelectedId)} disabled={smartUpscLoading || smartUpscSaving}
-              style={{ marginLeft: "auto", border: "1px solid #e1e3e7", background: "transparent", color: "inherit", borderRadius: 9, padding: "8px 11px", fontWeight: 750, cursor: "pointer" }}>
-              {smartUpscLoading ? "Loading…" : "↻ Reload plans"}
-            </button>
-          </div>
-
-          {smartUpscMessage && (
-            <div role="status" style={{
-              marginBottom: 14, padding: "11px 13px", borderRadius: 10,
-              border: `1px solid ${smartUpscMessageType === "error" ? "#f1d5d1" : smartUpscMessageType === "success" ? "#ccebd7" : "#e8e1ce"}`,
-              background: smartUpscMessageType === "error" ? "#fff0ee" : smartUpscMessageType === "success" ? "#eaf8ef" : "#faf8f1",
-              color: smartUpscMessageType === "error" ? "#a13f39" : smartUpscMessageType === "success" ? "#23774b" : "#6c5a35",
-              fontSize: 12, lineHeight: 1.5, overflowWrap: "anywhere",
-            }}>
-              {smartUpscMessage}
-            </div>
-          )}
-
-          {(() => {
-            const activeDay = smartUpscSchedule.find((day) => day.day === smartUpscEditingDay) || smartUpscSchedule[0];
-            const completedDayCount = smartUpscSchedule.filter((day) => day.title?.trim() && day.tasks?.some((task) => task.trim())).length;
-            return (
-              <div style={{ border: "1px solid #e8e9e5", borderRadius: 13, padding: 14, background: "rgba(128,128,128,.035)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.max(1, day - 1))} disabled={smartUpscEditingDay <= 1}
-                    style={{ border: "1px solid #dfe4ec", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay <= 1 ? .4 : 1 }}>← Previous</button>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800 }}>
-                    Edit day
-                    <select value={activeDay?.day || 1} onChange={(event) => setSmartUpscEditingDay(Number(event.target.value))}
-                      style={{ padding: "9px 10px", border: "1px solid #dfe4ec", borderRadius: 9, background: "transparent", color: "inherit", maxWidth: 150 }}>
-                      {smartUpscSchedule.map((day) => <option key={day.day} value={day.day}>Day {day.day}{day.title?.trim() && !day.title.includes("Add study topic") && day.tasks?.length ? " ✓" : " ·"}</option>)}
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.min(smartUpscDuration, day + 1))} disabled={smartUpscEditingDay >= smartUpscDuration}
-                    style={{ border: "1px solid #dfe4ec", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay >= smartUpscDuration ? .4 : 1 }}>Next →</button>
-                  <span style={{ marginLeft: "auto", fontSize: 11, opacity: .75 }}>{completedDayCount}/{smartUpscDuration} days filled</span>
-                </div>
-                {activeDay && <div style={{ display: "grid", gap: 10 }}>
-                  <div style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>DAY {activeDay.day} OF {smartUpscDuration}</div>
-                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
-                    Topic / day title
-                    <input value={activeDay.title} onChange={(event) => updateSmartUpscDay(activeDay.day, "title", event.target.value)}
-                      maxLength={200} placeholder={`Day ${activeDay.day}: subject and topic`}
-                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9 }} />
-                  </label>
-                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
-                    Tasks (one task per line)
-                    <textarea value={(activeDay.tasks || []).join("\n")} onChange={(event) => updateSmartUpscDay(activeDay.day, "tasksText", event.target.value)}
-                      rows={4} placeholder={"Read the topic\nSolve PYQs\nRevise notes"}
-                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9, lineHeight: 1.5 }} />
-                  </label>
-                </div>}
-              </div>
-            );
-          })()}
-
-          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: "1px solid #ecece8" }}>
-            <button type="button" onClick={() => saveSmartUpscPlan("save")} disabled={smartUpscSaving || smartUpscLoading}
-              style={{ border: "1px solid #252a34", background: "#252a34", color: "#fff", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
-              {smartUpscSaving ? "Saving…" : "Save Draft"}
-            </button>
-            <button type="button" onClick={() => saveSmartUpscPlan("publish")}
-              disabled={smartUpscSaving || smartUpscLoading || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status === "archived"}
-              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "12px 16px", fontWeight: 900, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
-              {smartUpscSaving ? "Working…" : "Publish Plan"}
-            </button>
-            <button type="button" onClick={archiveSmartUpscPlan}
-              disabled={smartUpscSaving || !smartUpscSelectedId || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status !== "draft"}
-              style={{ border: "1px solid #e3c8c4", background: "#fff7f5", color: "#9b3932", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" }}>
-              Archive Draft
-            </button>
-          </div>
-          <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.6, opacity: .72 }}>
-            Publishing makes the selected schedule available to students. Fill every day's title and at least one task before publishing. Published plans should be replaced by publishing a new version rather than editing the live plan.
-          </p>
-        </section>
-
-        {/* =================================================
             ADMIN COMMAND CENTER — DATA-DRIVEN SUMMARY
         ================================================= */}
         <section className="sambhav-command-center" aria-label="Admin command center">
@@ -2434,6 +2290,143 @@ export default function AdminPage() {
           <div style={styles.contentUploadFootnote}>
             Note: this uploads a file to storage. Publishing it into a course or Current Affairs feed requires the corresponding content database integration.
           </div>
+        </section>
+
+        {/* =================================================
+            SMART UPSC PLAN EDITOR
+        ================================================= */}
+        <section
+          id="smart-upsc-plan-editor"
+          className="sambhav-content-upload"
+          style={{ ...styles.contentUploadSection, marginTop: 24, marginBottom: 24 }}
+        >
+          <div style={styles.contentUploadHeader}>
+            <div>
+              <div style={styles.contentUploadEyebrow}>STUDY PLANNING / ADMIN</div>
+              <h2 style={styles.contentUploadTitle}>Smart UPSC Plan Editor</h2>
+              <p style={styles.contentUploadDescription}>
+                Build the day-wise schedule, save it as a draft, then publish it for students.
+              </p>
+            </div>
+            <button type="button" onClick={startNewSmartUpscPlan} disabled={smartUpscSaving}
+              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "11px 14px", fontWeight: 800, cursor: "pointer" }}>
+              + New Plan
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBottom: 14 }}>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Existing plan
+              <select value={smartUpscSelectedId} onChange={(event) => selectSmartUpscPlan(event.target.value)}
+                disabled={smartUpscLoading || smartUpscSaving}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 10, background: "transparent", color: "inherit", boxSizing: "border-box" }}>
+                <option value="">New unsaved plan</option>
+                {smartUpscPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    v{plan.version} · {plan.title} · {plan.status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Plan title
+              <input value={smartUpscTitle} onChange={(event) => setSmartUpscTitle(event.target.value)}
+                maxLength={160} placeholder="e.g. UPSC 73-Day Foundation Plan"
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 10, background: "transparent", color: "inherit", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Start date
+              <input type="date" value={smartUpscStartDate} onChange={(event) => setSmartUpscStartDate(event.target.value)}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 10, background: "transparent", color: "inherit", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ display: "grid", gap: 7, fontSize: 12, fontWeight: 750 }}>
+              Duration (days)
+              <input type="number" min="1" max="365" value={smartUpscDuration}
+                onChange={(event) => changeSmartUpscDuration(event.target.value)}
+                style={{ width: "100%", minWidth: 0, padding: "11px 12px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 10, background: "transparent", color: "inherit", boxSizing: "border-box" }} />
+            </label>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "0 0 14px" }}>
+            <span style={{ padding: "6px 9px", borderRadius: 999, background: "#f5f0e4", color: "#84662f", fontSize: 11, fontWeight: 800 }}>
+              {smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status || "new draft"}
+            </span>
+            <span style={{ fontSize: 11, opacity: .72 }}>{smartUpscSchedule.length} day entries · tasks are entered one per line</span>
+            <button type="button" onClick={() => loadSmartUpscPlans(smartUpscSelectedId)} disabled={smartUpscLoading || smartUpscSaving}
+              style={{ marginLeft: "auto", border: "1px solid #e1e3e7", background: "transparent", color: "inherit", borderRadius: 9, padding: "8px 11px", fontWeight: 750, cursor: "pointer" }}>
+              {smartUpscLoading ? "Loading…" : "↻ Reload plans"}
+            </button>
+          </div>
+
+          {smartUpscMessage && (
+            <div role="status" style={{
+              marginBottom: 14, padding: "11px 13px", borderRadius: 10,
+              border: `1px solid ${smartUpscMessageType === "error" ? "#f1d5d1" : smartUpscMessageType === "success" ? "#ccebd7" : "#e8e1ce"}`,
+              background: smartUpscMessageType === "error" ? "#fff0ee" : smartUpscMessageType === "success" ? "#eaf8ef" : "#faf8f1",
+              color: smartUpscMessageType === "error" ? "#a13f39" : smartUpscMessageType === "success" ? "#23774b" : "#6c5a35",
+              fontSize: 12, lineHeight: 1.5, overflowWrap: "anywhere",
+            }}>
+              {smartUpscMessage}
+            </div>
+          )}
+
+          {(() => {
+            const activeDay = smartUpscSchedule.find((day) => day.day === smartUpscEditingDay) || smartUpscSchedule[0];
+            const completedDayCount = smartUpscSchedule.filter((day) => day.title?.trim() && day.tasks?.some((task) => task.trim())).length;
+            return (
+              <div style={{ border: "1px solid var(--admin-border, #e8e9e5)", borderRadius: 13, padding: 14, background: "transparent" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.max(1, day - 1))} disabled={smartUpscEditingDay <= 1}
+                    style={{ border: "1px solid var(--admin-border, #dfe4ec)", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay <= 1 ? .4 : 1 }}>← Previous</button>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800 }}>
+                    Edit day
+                    <select value={activeDay?.day || 1} onChange={(event) => setSmartUpscEditingDay(Number(event.target.value))}
+                      style={{ padding: "9px 10px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 9, background: "transparent", color: "inherit", maxWidth: 150 }}>
+                      {smartUpscSchedule.map((day) => <option key={day.day} value={day.day}>Day {day.day}{day.title?.trim() && !day.title.includes("Add study topic") && day.tasks?.length ? " ✓" : " ·"}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.min(smartUpscDuration, day + 1))} disabled={smartUpscEditingDay >= smartUpscDuration}
+                    style={{ border: "1px solid var(--admin-border, #dfe4ec)", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay >= smartUpscDuration ? .4 : 1 }}>Next →</button>
+                  <span style={{ marginLeft: "auto", fontSize: 11, opacity: .75 }}>{completedDayCount}/{smartUpscDuration} days filled</span>
+                </div>
+                {activeDay && <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>DAY {activeDay.day} OF {smartUpscDuration}</div>
+                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
+                    Topic / day title
+                    <input value={activeDay.title} onChange={(event) => updateSmartUpscDay(activeDay.day, "title", event.target.value)}
+                      maxLength={200} placeholder={`Day ${activeDay.day}: subject and topic`}
+                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "10px 11px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 9, background: "transparent", color: "inherit", boxSizing: "border-box" }} />
+                  </label>
+                  <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
+                    Tasks (one task per line)
+                    <textarea value={(activeDay.tasks || []).join("\n")} onChange={(event) => updateSmartUpscDay(activeDay.day, "tasksText", event.target.value)}
+                      rows={4} placeholder={"Read the topic\nSolve PYQs\nRevise notes"}
+                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", padding: "10px 11px", border: "1px solid var(--admin-border, #dfe4ec)", borderRadius: 9, lineHeight: 1.5 }} />
+                  </label>
+                </div>}
+              </div>
+            );
+          })()}
+
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: "1px solid #ecece8" }}>
+            <button type="button" onClick={() => saveSmartUpscPlan("save")} disabled={smartUpscSaving || smartUpscLoading}
+              style={{ border: "1px solid #252a34", background: "#252a34", color: "#fff", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
+              {smartUpscSaving ? "Saving…" : "Save Draft"}
+            </button>
+            <button type="button" onClick={() => saveSmartUpscPlan("publish")}
+              disabled={smartUpscSaving || smartUpscLoading || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status === "archived"}
+              style={{ border: "1px solid #d8c28f", background: "linear-gradient(135deg,#e8d6a7,#c4a45d)", color: "#171717", borderRadius: 10, padding: "12px 16px", fontWeight: 900, cursor: "pointer", opacity: smartUpscSaving ? .65 : 1 }}>
+              {smartUpscSaving ? "Working…" : "Publish Plan"}
+            </button>
+            <button type="button" onClick={archiveSmartUpscPlan}
+              disabled={smartUpscSaving || !smartUpscSelectedId || smartUpscPlans.find((plan) => plan.id === smartUpscSelectedId)?.status !== "draft"}
+              style={{ border: "1px solid #e3c8c4", background: "transparent", color: "#9b3932", borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" }}>
+              Archive Draft
+            </button>
+          </div>
+          <p style={{ margin: "12px 0 0", fontSize: 11, lineHeight: 1.6, opacity: .72 }}>
+            Publishing makes the selected schedule available to students. Fill every day's title and at least one task before publishing. Published plans should be replaced by publishing a new version rather than editing the live plan.
+          </p>
         </section>
 
         {/* =================================================
