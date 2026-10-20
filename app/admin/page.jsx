@@ -1713,7 +1713,103 @@ export default function AdminPage() {
           .sambhav-page .sambhav-user-directory-scroll { -webkit-overflow-scrolling:touch; }
         }
 
-            `}</style>
+            `}
+        /* Theme-aware contrast fixes: keep every admin section readable in both themes. */
+        .sambhav-page[data-theme="dark"] {
+          background: #0b0c0f !important;
+          color: #f3f4f6 !important;
+          color-scheme: dark !important;
+        }
+        .sambhav-page[data-theme="dark"] h1,
+        .sambhav-page[data-theme="dark"] h2,
+        .sambhav-page[data-theme="dark"] h3,
+        .sambhav-page[data-theme="dark"] h4,
+        .sambhav-page[data-theme="dark"] strong,
+        .sambhav-page[data-theme="dark"] label,
+        .sambhav-page[data-theme="dark"] p,
+        .sambhav-page[data-theme="dark"] span,
+        .sambhav-page[data-theme="dark"] small,
+        .sambhav-page[data-theme="dark"] div {
+          text-shadow: none;
+        }
+        .sambhav-page[data-theme="dark"] h1,
+        .sambhav-page[data-theme="dark"] h2,
+        .sambhav-page[data-theme="dark"] h3,
+        .sambhav-page[data-theme="dark"] h4,
+        .sambhav-page[data-theme="dark"] strong,
+        .sambhav-page[data-theme="dark"] label {
+          color: #f3f4f6 !important;
+        }
+        .sambhav-page[data-theme="dark"] input,
+        .sambhav-page[data-theme="dark"] select,
+        .sambhav-page[data-theme="dark"] textarea {
+          background: #191b20 !important;
+          color: #f3f4f6 !important;
+          border-color: #41444d !important;
+          color-scheme: dark !important;
+        }
+        .sambhav-page[data-theme="dark"] input::placeholder,
+        .sambhav-page[data-theme="dark"] textarea::placeholder {
+          color: #a7acb7 !important;
+          opacity: 1 !important;
+        }
+        .sambhav-page[data-theme="dark"] input[type="file"] {
+          color: #f3f4f6 !important;
+          background: #191b20 !important;
+        }
+        .sambhav-page[data-theme="dark"] [style*="background: #fff"],
+        .sambhav-page[data-theme="dark"] [style*="background:#fff"],
+        .sambhav-page[data-theme="dark"] [style*="backgroundColor: #fff"],
+        .sambhav-page[data-theme="dark"] [style*="background: #f7f"],
+        .sambhav-page[data-theme="dark"] [style*="background: #f6f"],
+        .sambhav-page[data-theme="dark"] [style*="background: rgb(255, 255, 255)"] {
+          background: #17191e !important;
+          color: #f3f4f6 !important;
+          border-color: #383b43 !important;
+        }
+        .sambhav-page[data-theme="dark"] [style*="color: #171c28"],
+        .sambhav-page[data-theme="dark"] [style*="color:#171c28"],
+        .sambhav-page[data-theme="dark"] [style*="color: #252b36"],
+        .sambhav-page[data-theme="dark"] [style*="color: #424b5a"],
+        .sambhav-page[data-theme="dark"] [style*="color: #737b88"],
+        .sambhav-page[data-theme="dark"] [style*="color: #858c99"],
+        .sambhav-page[data-theme="dark"] [style*="color: #999"] {
+          color: #c5c9d2 !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-directory-name,
+        .sambhav-page[data-theme="dark"] .sambhav-directory-email {
+          color: #e6e8ed !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory th {
+          background: #202229 !important;
+          color: #f3f4f6 !important;
+          border-color: #383b43 !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory td {
+          color: #e0e3e9 !important;
+          border-color: #383b43 !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-user-directory tbody tr:hover {
+          background: #22252c !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-directory-actions button {
+          background: #24262d !important;
+          color: #f3f4f6 !important;
+          border-color: #454852 !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-directory-actions button:last-child {
+          background: #e8e9ec !important;
+          color: #17191f !important;
+          border-color: #e8e9ec !important;
+        }
+        .sambhav-page[data-theme="dark"] .sambhav-content-upload {
+          color: #f3f4f6 !important;
+        }
+        .sambhav-page[data-theme="light"] {
+          color: #171c28 !important;
+          color-scheme: light !important;
+        }
+</style>
 
       <div
         style={styles.container}
