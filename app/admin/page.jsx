@@ -80,6 +80,7 @@ export default function AdminPage() {
   const [smartUpscStartDate, setSmartUpscStartDate] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
   const [smartUpscDuration, setSmartUpscDuration] = useState(73);
   const [smartUpscSchedule, setSmartUpscSchedule] = useState([]);
+  const [smartUpscEditingDay, setSmartUpscEditingDay] = useState(1);
   const [smartUpscLoading, setSmartUpscLoading] = useState(false);
   const [smartUpscSaving, setSmartUpscSaving] = useState(false);
   const [smartUpscMessage, setSmartUpscMessage] = useState("");
@@ -793,6 +794,7 @@ export default function AdminPage() {
         || plans[0];
 
       if (target) {
+        setSmartUpscEditingDay(1);
         setSmartUpscSelectedId(target.id);
         setSmartUpscTitle(target.title || "Smart UPSC Learning Plan");
         setSmartUpscStartDate(target.start_date || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
@@ -802,6 +804,7 @@ export default function AdminPage() {
           Array.isArray(target.schedule) ? target.schedule : []
         ));
       } else {
+        setSmartUpscEditingDay(1);
         setSmartUpscSelectedId("");
         setSmartUpscTitle("Smart UPSC Learning Plan");
         setSmartUpscStartDate(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
@@ -823,8 +826,8 @@ export default function AdminPage() {
   function selectSmartUpscPlan(planId) {
     const plan = smartUpscPlans.find((item) => item.id === planId);
     if (!plan) return;
-    setSmartUpscSelectedId(plan.id);
-    setSmartUpscTitle(plan.title || "Smart UPSC Learning Plan");
+    setSmartUpscEditingDay(1);
+    setSmartUpscSelectedId(plan.id);    setSmartUpscTitle(plan.title || "Smart UPSC Learning Plan");
     setSmartUpscStartDate(plan.start_date || "");
     setSmartUpscDuration(Number(plan.duration_days) || 73);
     setSmartUpscSchedule(makeSmartUpscSchedule(
@@ -835,6 +838,7 @@ export default function AdminPage() {
   }
 
   function startNewSmartUpscPlan() {
+    setSmartUpscEditingDay(1);
     setSmartUpscSelectedId("");
     setSmartUpscTitle("Smart UPSC Learning Plan");
     setSmartUpscStartDate(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
@@ -2190,35 +2194,43 @@ export default function AdminPage() {
             </div>
           )}
 
-          <div style={{ display: "grid", gap: 10 }}>
-            {smartUpscSchedule.map((day) => (
-              <article key={day.day} style={{
-                display: "grid", gridTemplateColumns: "minmax(60px,75px) minmax(0,1fr)",
-                gap: 12, padding: 13, border: "1px solid #e8e9e5", borderRadius: 13,
-                background: "rgba(128,128,128,.035)",
-              }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "flex-start", paddingTop: 8 }}>
-                  <span style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: .8 }}>DAY</span>
-                  <strong style={{ fontSize: 23, lineHeight: 1 }}>{day.day}</strong>
+          {(() => {
+            const activeDay = smartUpscSchedule.find((day) => day.day === smartUpscEditingDay) || smartUpscSchedule[0];
+            const completedDayCount = smartUpscSchedule.filter((day) => day.title?.trim() && day.tasks?.some((task) => task.trim())).length;
+            return (
+              <div style={{ border: "1px solid #e8e9e5", borderRadius: 13, padding: 14, background: "rgba(128,128,128,.035)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.max(1, day - 1))} disabled={smartUpscEditingDay <= 1}
+                    style={{ border: "1px solid #dfe4ec", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay <= 1 ? .4 : 1 }}>← Previous</button>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800 }}>
+                    Edit day
+                    <select value={activeDay?.day || 1} onChange={(event) => setSmartUpscEditingDay(Number(event.target.value))}
+                      style={{ padding: "9px 10px", border: "1px solid #dfe4ec", borderRadius: 9, background: "transparent", color: "inherit", maxWidth: 150 }}>
+                      {smartUpscSchedule.map((day) => <option key={day.day} value={day.day}>Day {day.day}{day.title?.trim() && !day.title.includes("Add study topic") && day.tasks?.length ? " ✓" : " ·"}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={() => setSmartUpscEditingDay((day) => Math.min(smartUpscDuration, day + 1))} disabled={smartUpscEditingDay >= smartUpscDuration}
+                    style={{ border: "1px solid #dfe4ec", background: "transparent", color: "inherit", borderRadius: 9, padding: "9px 12px", cursor: "pointer", opacity: smartUpscEditingDay >= smartUpscDuration ? .4 : 1 }}>Next →</button>
+                  <span style={{ marginLeft: "auto", fontSize: 11, opacity: .75 }}>{completedDayCount}/{smartUpscDuration} days filled</span>
                 </div>
-                <div style={{ display: "grid", gap: 9, minWidth: 0 }}>
+                {activeDay && <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ color: "#9b7b3e", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>DAY {activeDay.day} OF {smartUpscDuration}</div>
                   <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
                     Topic / day title
-                    <input value={day.title} onChange={(event) => updateSmartUpscDay(day.day, "title", event.target.value)}
-                      maxLength={200} placeholder={`Day ${day.day}: subject and topic`}
-                      style={{ width: "100%", minWidth: 0, padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9 }} />
+                    <input value={activeDay.title} onChange={(event) => updateSmartUpscDay(activeDay.day, "title", event.target.value)}
+                      maxLength={200} placeholder={`Day ${activeDay.day}: subject and topic`}
+                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9 }} />
                   </label>
                   <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 800 }}>
                     Tasks (one task per line)
-                    <textarea value={(day.tasks || []).join("\n")}
-                      onChange={(event) => updateSmartUpscDay(day.day, "tasksText", event.target.value)}
-                      rows={2} placeholder={"Read the topic\nSolve PYQs\nRevise notes"}
-                      style={{ width: "100%", minWidth: 0, resize: "vertical", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9, lineHeight: 1.5 }} />
+                    <textarea value={(activeDay.tasks || []).join("\n")} onChange={(event) => updateSmartUpscDay(activeDay.day, "tasksText", event.target.value)}
+                      rows={4} placeholder={"Read the topic\nSolve PYQs\nRevise notes"}
+                      style={{ width: "100%", minWidth: 0, boxSizing: "border-box", resize: "vertical", padding: "10px 11px", border: "1px solid #dfe4ec", borderRadius: 9, lineHeight: 1.5 }} />
                   </label>
-                </div>
-              </article>
-            ))}
-          </div>
+                </div>}
+              </div>
+            );
+          })()}
 
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginTop: 18, paddingTop: 16, borderTop: "1px solid #ecece8" }}>
             <button type="button" onClick={() => saveSmartUpscPlan("save")} disabled={smartUpscSaving || smartUpscLoading}
