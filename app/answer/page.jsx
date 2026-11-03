@@ -13,10 +13,35 @@ export default function AnswerWritingPage() {
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [evaluating, setEvaluating] = useState(false);
+  const [evaluationElapsed, setEvaluationElapsed] = useState(0);
   const [evaluation, setEvaluation] = useState(null);
   const [historySaveState, setHistorySaveState] = useState("idle");
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+
+  /* =========================
+     AI EVALUATION ELAPSED TIME
+     This is display-only; it does not alter the evaluation request.
+  ========================= */
+
+  useEffect(() => {
+    if (!evaluating) {
+      setEvaluationElapsed(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const updateElapsed = () => {
+      setEvaluationElapsed(
+        Math.floor((Date.now() - startedAt) / 1000)
+      );
+    };
+
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+
+    return () => clearInterval(interval);
+  }, [evaluating]);
 
   /* =========================
      MANUAL QUESTION
@@ -703,6 +728,354 @@ ${details}`
               ← Back to PYQ
             </button>
           </div>
+        </main>
+      </>
+    );
+  }
+
+  /* =========================
+     PREMIUM AI EVALUATION PROCESSING
+     UI-only state. Existing API and evaluation logic remain unchanged.
+  ========================= */
+
+  if (evaluating) {
+    const elapsedMinutes = String(
+      Math.floor(evaluationElapsed / 60)
+    ).padStart(2, "0");
+    const elapsedSeconds = String(
+      evaluationElapsed % 60
+    ).padStart(2, "0");
+
+    return (
+      <>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+
+        <style>{`
+          @keyframes sambhavAiPulse {
+            0%, 100% { transform: scale(0.96); opacity: 0.72; }
+            50% { transform: scale(1.04); opacity: 1; }
+          }
+          @keyframes sambhavOrbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes sambhavProgress {
+            0% { transform: translateX(-110%); }
+            100% { transform: translateX(310%); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .sambhav-ai-pulse, .sambhav-ai-orbit, .sambhav-ai-progress {
+              animation: none !important;
+            }
+          }
+        `}</style>
+
+        <main
+          style={{
+            ...styles.page,
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px 16px",
+            boxSizing: "border-box",
+          }}
+        >
+          <section
+            aria-live="polite"
+            aria-busy="true"
+            style={{
+              width: "100%",
+              maxWidth: "510px",
+              background: "#fff",
+              border: "1px solid #e5e5e3",
+              borderRadius: "25px",
+              padding: "clamp(22px, 5vw, 34px)",
+              boxSizing: "border-box",
+              boxShadow: "0 18px 55px rgba(17,17,17,0.08)",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                marginBottom: "28px",
+                textAlign: "left",
+              }}
+            >
+              <div>
+                <div style={styles.logo}>SAMBHAV UPSC</div>
+                <div style={styles.topSubtitle}>
+                  MAINS ANSWER EVALUATION
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  border: "1px solid #e5e5e3",
+                  borderRadius: "999px",
+                  padding: "7px 10px",
+                  color: "#555",
+                  fontSize: "9px",
+                  fontWeight: "800",
+                  letterSpacing: ".7px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span
+                  className="sambhav-ai-pulse"
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: "#111",
+                    display: "inline-block",
+                    animation: "sambhavAiPulse 1.5s ease-in-out infinite",
+                  }}
+                />
+                PROCESSING
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "#111",
+                color: "#fff",
+                borderRadius: "21px",
+                padding: "27px 20px 24px",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  color: "#c9c9c4",
+                  fontSize: "9px",
+                  fontWeight: "800",
+                  letterSpacing: "1.8px",
+                  marginBottom: "10px",
+                }}
+              >
+                INTELLIGENT ANSWER ASSESSMENT
+              </div>
+
+              <h1
+                style={{
+                  color: "#fff",
+                  fontSize: "clamp(21px, 5vw, 27px)",
+                  lineHeight: 1.25,
+                  letterSpacing: "-.7px",
+                  margin: "0",
+                  fontWeight: "850",
+                }}
+              >
+                Evaluating Your Answer
+              </h1>
+
+              <p
+                style={{
+                  color: "#bdbdb8",
+                  fontSize: "11px",
+                  lineHeight: 1.6,
+                  margin: "9px 0 0",
+                }}
+              >
+                Your handwritten answer is being analysed
+              </p>
+
+              <div
+                style={{
+                  width: "112px",
+                  height: "112px",
+                  margin: "27px auto 15px",
+                  borderRadius: "50%",
+                  border: "1px solid #454545",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                }}
+              >
+                <div
+                  className="sambhav-ai-orbit"
+                  style={{
+                    position: "absolute",
+                    inset: "7px",
+                    borderRadius: "50%",
+                    border: "2px solid transparent",
+                    borderTopColor: "#f5f5f3",
+                    borderRightColor: "#777",
+                    animation: "sambhavOrbit 2.2s linear infinite",
+                  }}
+                />
+                <div
+                  className="sambhav-ai-pulse"
+                  style={{
+                    width: "65px",
+                    height: "65px",
+                    borderRadius: "50%",
+                    background: "#292929",
+                    border: "1px solid #555",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontSize: "25px",
+                    fontWeight: "700",
+                    animation: "sambhavAiPulse 2s ease-in-out infinite",
+                  }}
+                >
+                  ✦
+                </div>
+              </div>
+
+              <div
+                style={{
+                  color: "#fff",
+                  fontSize: "30px",
+                  lineHeight: 1.1,
+                  fontWeight: "850",
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "1px",
+                }}
+              >
+                {elapsedMinutes}:{elapsedSeconds}
+              </div>
+              <div
+                style={{
+                  color: "#aaa",
+                  fontSize: "9px",
+                  fontWeight: "700",
+                  letterSpacing: "1.2px",
+                  marginTop: "6px",
+                }}
+              >
+                TIME ELAPSED
+              </div>
+
+              <div
+                style={{
+                  height: "5px",
+                  background: "#393939",
+                  borderRadius: "99px",
+                  overflow: "hidden",
+                  marginTop: "25px",
+                }}
+              >
+                <div
+                  className="sambhav-ai-progress"
+                  style={{
+                    width: "34%",
+                    height: "100%",
+                    borderRadius: "99px",
+                    background: "#f5f5f3",
+                    animation: "sambhavProgress 1.8s ease-in-out infinite",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  color: "#e2e2df",
+                  fontSize: "11px",
+                  fontWeight: "650",
+                  marginTop: "13px",
+                }}
+              >
+                AI is reading and analysing your answer…
+              </div>
+            </div>
+
+            <div
+              style={{
+                textAlign: "left",
+                marginTop: "23px",
+                padding: "0 2px",
+              }}
+            >
+              <div
+                style={{
+                  color: "#777",
+                  fontSize: "9px",
+                  fontWeight: "850",
+                  letterSpacing: "1.1px",
+                  marginBottom: "13px",
+                }}
+              >
+                WHAT YOUR EVALUATION COVERS
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                }}
+              >
+                {[
+                  "Question demand",
+                  "Content & analysis",
+                  "Keywords & examples",
+                  "Structure & presentation",
+                  "Factual accuracy",
+                  "Marks & feedback",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#444",
+                      fontSize: "10px",
+                      lineHeight: 1.4,
+                      minWidth: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "17px",
+                        height: "17px",
+                        flex: "0 0 17px",
+                        borderRadius: "50%",
+                        background: "#f1f1ee",
+                        color: "#333",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "10px",
+                        fontWeight: "900",
+                      }}
+                    >
+                      ✓
+                    </span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: "23px",
+                paddingTop: "15px",
+                borderTop: "1px solid #eee",
+                color: "#888",
+                fontSize: "10px",
+                lineHeight: 1.6,
+              }}
+            >
+              Please keep this page open. Your detailed evaluation
+              will appear automatically when processing is complete.
+            </div>
+          </section>
         </main>
       </>
     );
