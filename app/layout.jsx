@@ -1,4 +1,3 @@
-
 import RegisterSW from "./register-sw";
 
 export const metadata = {
